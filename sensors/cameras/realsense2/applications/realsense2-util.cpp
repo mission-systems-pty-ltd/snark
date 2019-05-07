@@ -1,5 +1,5 @@
 // This file is part of snark, a generic and flexible library for robotics research
-// Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2018 The University of Sydney
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
