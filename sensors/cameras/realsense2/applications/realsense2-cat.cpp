@@ -32,16 +32,23 @@
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
+//#include <comma/application/signal_flag.h>
 #include <librealsense2/rs.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+//#include "../../../../imaging/cv_mat/serialization.h"
 
 namespace {
+
+//comma::signal_flag signaled;
 
 void bash_completion( unsigned const ac, char const * const * av )
 {
     static char const * const arguments[] =
     {
-        " depth list reset rgb",
-        " --list",
+        //" accel color configure depth fisheye gyro infrared1 infrared2 list reset",
+        " configure list reset",
+        " --device",
+        " --sensor",
         " --operations",
         " --output-fields",
         " --output-format",
@@ -54,7 +61,7 @@ void bash_completion( unsigned const ac, char const * const * av )
 void operations( unsigned const indent_count = 0 )
 {
     auto const indent = std::string( indent_count, ' ' );
-    std::cerr << indent << "depth; output depth image." << std::endl;
+    std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)." << std::endl;
     std::cerr << indent << "list; list devices." << std::endl;
     std::cerr << indent << "reset; reset devices." << std::endl;
     std::cerr << indent << "rgb; output rgb image." << std::endl;
@@ -75,7 +82,10 @@ void usage( bool const verbose )
     std::cerr << std::endl;
     std::cerr << "Options:" << std::endl;
     std::cerr << "    common:" << std::endl;
-    std::cerr << "        --device; serial number(s) of device(s)." << std::endl;
+    std::cerr << "        --device=<serial>; serial number(s) of device(s)." << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "    configure:" << std::endl;
+    std::cerr << "        --sensor=<index>; serial number(s) of device(s)." << std::endl;
     std::cerr << std::endl;
     std::cerr << "Info:" << std::endl;
     std::cerr << "    --operations; print operations and exit." << std::endl;
@@ -91,10 +101,35 @@ void handle_info_options( comma::command_line_options const& options )
 
 std::string get_operation( comma::command_line_options const& options )
 {
-    std::vector< std::string > operations = options.unnamed( "", "--output-fields,--output-format,--operations,--verbose" );
+    std::vector< std::string > operations = options.unnamed( "", "--device,--sensor,--output-fields,--output-format,--operations,--verbose" );
     if( operations.size() == 1 ) { return operations.front(); }
     COMMA_THROW( comma::exception, "expected one operation, got " << operations.size() << ": " << comma::join( operations, ' ' ) );
 }
+
+//unsigned get_cv_format( rs2_format rs2_fmt )
+//{
+//    switch( rs2_fmt )
+//    {
+//        case RS2_FORMAT_Z16:
+//        case RS2_FORMAT_DISPARITY16:
+//        case RS2_FORMAT_Y16:
+//            return CV_16UC1;
+//        case RS2_FORMAT_XYZ32F:
+//            return CV_32FC3;
+//        case RS2_FORMAT_Y8:
+//            return CV_8UC1;
+//        case RS2_FORMAT_RGB8:
+//        case RS2_FORMAT_BGR8:
+//            return CV_8UC3;
+//        case RS2_FORMAT_RGBA8:
+//        case RS2_FORMAT_BGRA8:
+//        case RS2_FORMAT_YUYV:
+//            return CV_8UC4;
+//        case RS2_FORMAT_RAW10: //5 bytes format, doesn't fit any cv types; but CV_MAKETYPE(CV_8U,5) would have same size
+//        default:
+//        { COMMA_THROW( comma::exception, "format not supported: " << rs2_fmt ); }
+//    }
+//}
 
 void list_sensors( rs2::device const& device )
 {
@@ -102,20 +137,60 @@ void list_sensors( rs2::device const& device )
     for( auto& sensor : sensors )
     {
         std::cerr << "    Sensor: " << sensor.get_info( RS2_CAMERA_INFO_NAME ) << std::endl;
+        std::cout << "        Options( index,name,description,default,min,max,current ):" << std::endl;
         for( int oi = 0; oi < static_cast< int >( RS2_OPTION_COUNT ); oi++ )
         {
             rs2_option option = static_cast< rs2_option >( oi );
             if( sensor.supports( option ) )
             {
-                std::cerr << "        Index( " << oi << " ): " << option << std::endl;
-                std::cerr << "        Description: " << sensor.get_option_description( option ) << std::endl;
-                std::cerr << "        Value: " << sensor.get_option( option ) << std::endl;
+                auto range = sensor.get_option_range( option );
+                std::cerr << "            " << oi << ',' << option << ',' << sensor.get_option_description( option )
+                    << ','<< range.def << ',' << range.min << ',' << range.max << ',' << sensor.get_option( option ) << std::endl;
             }
         }
+
+        //std::cout << "        Stream Profiles( id, index, name, type):" << std::endl;
+        //auto stream_profiles = sensor.get_stream_profiles();
+        //for( auto const& sp : stream_profiles )
+        //{
+        //    std::cerr << "            " << sp.unique_id() << ',' << sp.stream_index() << ',' << sp.stream_name() << ',' << sp.stream_type() << std::endl;
+        //}
     }
 }
 
 }
+
+namespace configure
+{
+
+struct input_t
+{
+    int index;
+    float value;
+    input_t( void ) : index( 0 ), value( 0 ) {}
+};
+
+}
+
+namespace comma { namespace visiting {
+
+template <> struct traits< configure::input_t >
+{
+    template < typename K, typename V > static void visit ( K const&, configure::input_t& t, V& v )
+    {
+        v.apply( "index", t.index );
+        v.apply( "value", t.value );
+    }
+
+    template < typename K, typename V > static void visit ( K const&, configure::input_t const& t, V& v )
+    {
+        v.apply( "index", t.index );
+        v.apply( "value", t.value );
+    }
+};
+
+}}
+
 
 int main( int ac, char* av[] )
 {
@@ -128,9 +203,82 @@ int main( int ac, char* av[] )
         auto const verbose = options.exists( "--verbose" );
         auto operation = get_operation( options );
         auto device_ids = options.values< std::string >( "--device" );
-        rs2::context context;
-        if( "list" == operation )
+
+        ///* if( "color" == operation )
+        //{
+        //    rs2::pipeline pipe;
+        //    rs2::config config;
+        //    config.enable_stream( RS2_STREAM_COLOR, RS2_FORMAT_BGR8 );
+        //    pipe.start( config );
+        //    auto format = get_cv_format( RS2_FORMAT_BGR8 ); // pipe.get_active_profile().get_stream( RS2_STREAM_COLOR ).format() );
+
+        //    snark::cv_mat::serialization::options opt;
+        //    snark::cv_mat::serialization serializer(opt);
+
+        //    rs2::frameset frames;
+        //    for( int ii = 0; ii < 30; ii++ ) { frames = pipe.wait_for_frames(); }
+
+        //    while( !signaled )
+        //    {
+        //        auto time = boost::posix_time::microsec_clock::universal_time();
+        //        auto frame = frames.get_color_frame();
+        //        
+        //        serializer.write( std::cout, std::make_pair( time, cv::Mat( cv::Size( frame.get_width(), frame.get_height() ), format, ( void* )frame.get_data(), cv::Mat::AUTO_STEP ) ) ); 
+        //    }
+        //        
+        //}
+        //else
+        if( "configure" == operation )
         {
+            rs2::context context;
+            auto devices = context.query_devices();
+            if( 0 == devices.size() ) { std::cerr << comma::verbose.app_name() << ": no device present." << std::endl; return 1; }
+            if( 1 < device_ids.size() ) { std::cerr << comma::verbose.app_name() << ": only one device can be configured at a time." << std::endl; return 1; }
+            rs2::device device;
+            if( 0 == device_ids.size() ) { device = devices[ 0 ]; }
+            else
+            {
+                for( auto const& dev : devices )
+                {
+                    auto device_id = std::string( dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) );
+                    if( device_id == device_ids[ 0 ] ) { device = dev; break; }
+                }
+                if( !device ) { std::cerr << comma::verbose.app_name() << ": device with serial "<< device_ids[ 0 ] << std::endl; return 1; }
+            }
+            auto sensors = device.query_sensors();
+            auto const sensor_index = options.value< unsigned >( "--sensor" );
+            if( sensors.size() <= sensor_index )
+            { std::cerr << comma::verbose.app_name() << ": sensor index " << sensor_index << " greater than maximum: "<< sensors.size() << std::endl; return 1; }
+            auto sensor = sensors[ sensor_index ];
+            //auto const sensor_name = sensor.get_info( RS2_CAMERA_INFO_NAME );
+
+            comma::csv::options csv;
+            csv.fields = "index,value";
+            comma::csv::input_stream< configure::input_t > istrm( std::cin, csv );
+            while( istrm.ready() || ( std::cin.good() && !std::cin.eof() ) )
+            {
+                auto record = istrm.read(); if( !record ) break;
+                rs2_option option = static_cast< rs2_option >( record->index );
+                //if( !sensor.supports( option ) )
+                //{
+                //    std::cerr << comma::verbose.app_name() << ": sensor '" << sensor_name << "' at index " << sensor_index
+                //        << " does not support option " << option << " with index" << record->index << std::endl;
+                //}
+                //auto range = sensor.get_option_range( option );
+                //if( range.min > record->value || range.max < record->value )
+                //{
+                //    std::cerr << comma::verbose.app_name() << ": given value " << record->value << " is out of range (" << range.min << ',' << range.max
+                //        << "for option " << option << " with index" << record->index << std::endl;
+                //}
+                sensor.set_option( option, record->value );
+
+            }
+
+        }
+        else if( "list" == operation )
+        {
+            if( !verbose ) { std::cerr << comma::verbose.app_name() << ": pass --verbose for sensor information." << std::endl; }
+            rs2::context context;
             auto devices = context.query_devices();
             for( auto const& dev : devices )
             {
@@ -147,6 +295,7 @@ int main( int ac, char* av[] )
         }
         else if( "reset" == operation )
         {
+            rs2::context context;
             auto devices = context.query_devices();
             for( auto dev : devices )
             {
@@ -157,9 +306,20 @@ int main( int ac, char* av[] )
                 }
             }
         }
-        std::cerr << "-----------------------------------------" << std::endl;
+        else if( "accel" == operation
+              || "fisheye" == operation
+              || "gyro" == operation )
+        {
+            std::cerr << comma::verbose.app_name() << ": '" << operation << "' not implemented." << std::endl;
+        }
+        else
+        {
+            std::cerr << comma::verbose.app_name() << ": unknown operation '" << operation << '\'' << std::endl;
+        }
+        
         return 0;
     }
+    catch( rs2::error& ex ) { std::cerr << comma::verbose.app_name() << ": realsense exception: " << ex.what() << std::endl; }
     catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
     catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
     return 1;
