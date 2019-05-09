@@ -60,7 +60,6 @@ void operations( unsigned const indent_count = 0 )
     std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)." << std::endl;
     std::cerr << indent << "list; list devices." << std::endl;
     std::cerr << indent << "reset; reset devices." << std::endl;
-    std::cerr << indent << "rgb; output rgb image." << std::endl;
 }
 
 void usage( bool const verbose )
@@ -87,6 +86,13 @@ void usage( bool const verbose )
     std::cerr << "    --operations; print operations and exit." << std::endl;
     std::cerr << "    --output-fields; print operation-dependent output fields to stdout and exit." << std::endl;
     std::cerr << "    --output-format; print operation-dependent output format to stdout and exit." << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Examples:" << std::endl;
+    std::cerr << indent << comma::verbose.app_name() << " list" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << indent << comma::verbose.app_name() << " reset --device 1234 --device 4321" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << indent << comma::verbose.app_name() << " configure --sensor=1 <<< '11,0'" << std::endl;
     std::cerr << std::endl;
 }
 
