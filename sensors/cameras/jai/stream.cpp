@@ -171,7 +171,7 @@ struct jai::stream::impl
         if( output_raw_image )
         {
             pair.second = cv::Mat( raw.iSizeY, raw.iSizeX, cv_type_from_jai( raw.iPixelType, true ) );
-            ::memcpy( pair.second.datastart, raw.pImageBuffer, pair.second.total() * pair.second.elemSize() );
+            ::memcpy( pair.second.data, raw.pImageBuffer, pair.second.total() * pair.second.elemSize() );
         }
         else
         {
@@ -184,7 +184,7 @@ struct jai::stream::impl
                 COMMA_THROW( comma::exception, "conversion from raw to image failed: " << error_to_string( r ) ); // todo: will exception work with tbb?
             }
             pair.second = cv::Mat( cooked.iSizeY, cooked.iSizeX, cv_type_from_jai( cooked.iPixelType ) );
-            ::memcpy( pair.second.datastart, cooked.pImageBuffer, cooked.iImageSize );
+            ::memcpy( pair.second.data, cooked.pImageBuffer, cooked.iImageSize );
             J_Image_Free( &cooked ); // it sucks
         }
         J_DataStream_QueueBuffer( handle, e.buffer() );
