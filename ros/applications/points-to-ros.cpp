@@ -38,6 +38,7 @@
 #include <thread>
 
 #include "ros/ros.h"
+#include "rosbag/bag.h"
 #include "std_msgs/String.h"
 #include "sensor_msgs/PointCloud2.h"
 
@@ -52,6 +53,7 @@ void usage(bool detail)
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
     std::cerr << "    --all; sends all the records as one ros message (when no block field), otherwise send each record as a message" << std::endl;
+    std::cerr << "    --bagfile; saves the messages as a bagfile, will also publish to a ros topic. Used with --filename " << std::endl;
     std::cerr << "    --hang-on,--stay; waits about three seconds before exiting so that subscribers can receive the last message" << std::endl;
     std::cerr << "    --help,-h: show help; --help --verbose: show more help" << std::endl;
     std::cerr << "    --frame: ros message frame as string"<<std::endl;
@@ -195,12 +197,34 @@ struct points
     snark::ros::point_cloud u;
     std::size_t data_size;
     bool ascii;
+    rosbag::Bag bag;
+
     //const comma::command_line_options& options
-    points(const comma::csv::options& csv, const std::string& format_str) : format(format_str), u(csv.fields,format.expanded_string()), data_size(format.size()), ascii(!csv.binary())
+    points(std::string filename, const comma::csv::options& csv, const std::string& format_str) : format(format_str), u(csv.fields,format.expanded_string()), data_size(format.size()), ascii(!csv.binary())
     {
-        
+        comma::verbose<<"Writing bagfile: "<<filename<<std::endl;
+        bag.open(filename, rosbag::bagmode::Write);
     }
-    void send(ros::Publisher& publisher,const std::string& frame_id)
+    ~points()
+    {
+        bag.close();
+    }
+    void write(const std::string& topic, const std::string& frame_id, const bool clear_records=true){
+        sensor_msgs::PointCloud2 msg=u.create_msg(records.size());
+        msg.header.stamp=::ros::Time::fromBoost(records[0].t);
+        msg.header.seq=records[0].block;
+        msg.header.frame_id=frame_id;
+        std::size_t offset=0;
+        for(const auto& i : records)
+        {
+            std::memcpy(&msg.data[offset],&i.data[0],data_size);
+            offset+=data_size;
+        }
+        comma::verbose<<"Writing msg to bagfile " << records.size()<<std::endl;
+        bag.write(topic, msg.header.stamp, msg );
+        records.clear();
+    }
+    void send(ros::Publisher& publisher,const std::string& frame_id, const bool clear_records=true)
     {
         //create msg
         sensor_msgs::PointCloud2 msg=u.create_msg(records.size());
@@ -218,7 +242,7 @@ struct points
         comma::verbose<<"publishing msg "<<records.size()<<std::endl;
         publisher.publish(msg);
         ros::spinOnce();
-        records.clear();
+        if(clear_records){ records.clear(); }
     }
     void push_back(const comma::csv::input_stream<record>& is, const record& p)
     {
@@ -244,6 +268,13 @@ int main( int argc, char** argv )
         comma::command_line_options options( argc, argv, usage );
         comma::csv::options csv(options);
         if(!csv.binary() && !options.exists("--format")) { COMMA_THROW( comma::exception, "please specify either --format=<format> for ascii or --binary=<format> for format"); }
+        bool write_bagfile = false;
+        std::string filename="points.bag";
+        if( options.exists("--bagfile") ){
+            write_bagfile = true; 
+            if( !options.exists("--filename") ){ std::cerr << comma::verbose.app_name() << ": defaulting filename to points.bag " << std::endl; }
+            else{ filename=options.value<std::string>("--filename",""); }
+        }
         csv.full_xpath=true;
         std::string topic=options.value<std::string>("--topic");
         unsigned queue_size=options.value<unsigned>("--queue-size",1);
@@ -268,15 +299,23 @@ int main( int argc, char** argv )
         comma::csv::input_stream<record> is(std::cin, csv);
         comma::csv::passed<record> passed(is,std::cout,csv.flush);
         unsigned block=0;
-        points points(csv,csv.binary() ? csv.format().string() : options.value<std::string>("--format"));
+        points points(filename,csv,csv.binary() ? csv.format().string() : options.value<std::string>("--format"));
+        
         while(std::cin.good())
         {
             //read binary from input
             const record* p=is.read();
             if ( ( !p || block != p->block) && !points.records.empty())
             {
-                //send the message
-                points.send(publisher,frame_id);
+                //send / write the message
+                if( write_bagfile ){
+                    bool clear_records = false;
+                    // points.send(publisher,frame_id,false);
+                    clear_records = true;
+                    points.write(topic, frame_id, clear_records);
+                }else{
+                    points.send(publisher,frame_id);
+                }
             }
             if( !p ) { break; }
             if(pass_through) { passed.write(); }
