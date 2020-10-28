@@ -49,6 +49,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/registration/icp.h>
+//#include <pcl/filters/statistical_outlier_removal.h>
 
 static void usage(bool detail)
 {
@@ -59,6 +60,7 @@ static void usage(bool detail)
     std::cerr<< "operations:"<< std::endl;
     std::cerr<< "    region-growing-segmentation"<< std::endl;
     std::cerr<< "    normal-estimator"<< std::endl;
+//    std::cerr<< "    statistical-outlier"<< std::endl;
     std::cerr<< "    iterative-closest-point"<< std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
@@ -86,7 +88,14 @@ static void usage(bool detail)
     std::cerr<< "     options:"<< std::endl;
     std::cerr << "       --k,--k-neighbours=<n>: number of k nearest neighbors to use for the feature estimation; default: 50"<< std::endl;
     std::cerr << std::endl;
-    std::cerr<< "iterative-closest-point"<< std::endl;
+//    std::cerr<< "statistical-outlier"<< std::endl;
+//    std::cerr<< "     fields: block,point/x,point/y,point/z"<< std::endl;
+//    std::cerr<< "     output: block,point/x,point/y,point/z"<< std::endl;
+//    std::cerr<< "     options:"<< std::endl;
+//    std::cerr << "       -k,--k-mean=<n>: number of k nearest neighbors analyze; default: 50"<< std::endl;
+//    std::cerr << "       --s,--stddev=<d>: standard deviation; default 1"<< std::endl;
+//    std::cerr << std::endl;
+     std::cerr<< "iterative-closest-point"<< std::endl;
     std::cerr << std::endl;
     std::cerr<< "     WARNING: work in progress, output format subject to change. talk to authors if you need to use icp operation"<< std::endl;
     std::cerr << std::endl;
@@ -245,6 +254,71 @@ public:
     virtual void run()=0;
 };
 
+//template< typename T, typename S >
+//class filter_app_t : public app_i
+//{
+//public:
+//    typedef T input_t;
+//    typedef S output_t;
+//
+//protected:
+//    comma::csv::options csv;
+//    std::undordered_map< PointXYZ, std::string > buffer;
+//    std::size_t reserve;
+//    
+//    virtual void clear()=0;
+//    virtual void push_back(const input_t& p)=0;
+//    virtual void process()=0;
+//    //process cloud
+//    virtual void write_output(comma::csv::output_stream<output_t>& os)=0;
+//
+//public:
+//    app_t(const comma::command_line_options& options) : csv(options)
+//    {
+//        csv.full_xpath=true;
+//        reserve=options.value<std::size_t>("--reserve",10000);
+//    }
+//    virtual void run()
+//    {
+//        input_t default_input;
+//        comma::csv::input_stream<input_t> is( std::cin, csv, default_input);
+//        std::uint32_t block=0;
+//        buffer.reserve(reserve);
+//        while( is.ready() || std::cin.good() )
+//        {
+//            const input_t* p=is.read();
+//            if ( (!p || block != p->block ) && buffer.size() )
+//            {
+//                process();
+//                write_output(os);
+//                //reset
+//                buffer.clear();
+//                clear();
+//            }
+//            if(!p){break;}
+//            block=p->block;
+//            buffer.emplace( p.point, is.last() );
+//            push_back(*p);
+//        }
+//    }
+//    void print_input_fields()
+//    {
+//        std::cout<<comma::join( comma::csv::names<input_t>(true), ',' ) << std::endl;
+//    }
+//    void print_input_format()
+//    {
+//        std::cout<<comma::csv::format::value<input_t>() << std::endl;
+//    }
+//    void print_output_fields()
+//    {
+//        std::cout<<comma::join( comma::csv::names<output_t>(true), ',' ) << std::endl;
+//    }
+//    void print_output_format()
+//    {
+//        std::cout<<comma::csv::format::value<output_t>() << std::endl;
+//    }
+//};
+
 template<typename T,typename S>
 class app_t : public app_i
 {
@@ -345,6 +419,52 @@ struct normal_estimator : public app_t<input_point,pcl::Normal>
         }
     }
 };
+
+//struct statistical_outlier : public filter_app_t<input_point,input_point>
+//{
+//    typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+//    typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
+//    int kmean;
+//    double stddev;
+//
+//    normal_estimator(const comma::command_line_options& options) : app_t(options),
+//        cloud(new pcl::PointCloud<pcl::PointXYZ>())
+//    {
+//        kmean=options.value<int>("-k,--k-mean",50);
+//        stddev = options.value< double >( "-s,--stddev", 1.0 );
+//    }
+//    void clear()
+//    {
+//        cloud->clear();
+//        cloud_filtered.clear();
+//    }
+//    void push_back(const input_t& p)
+//    {
+//        cloud->push_back(p.point);
+//    }
+//    void process()
+//    {
+//        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+//        sor.setInputCloud (cloud);
+//        sor.setMeanK (kmean);
+//        sor.setStddevMulThresh (1.0);
+//        sor.filter (*cloud_filtered);
+//    }
+//    void write_output(comma::csv::output_stream<output_t>& os)
+//    {
+//        for( auto const& pi : cloud_filtered.points )
+//        {
+//            auto const oi = buffer.find( pi );
+//            if( buffer.end() != oi )
+//            {
+//                std::cout.write( oi->second[ 0 ], oi->second.size() );
+//                if( !csv.binary() ) { std::cout << "\n"; }
+//                if( csv.flush() ) { std::cout.flush(); }
+//            }
+//        }
+//    }
+//};
+//
 
 struct iterative_closest_point : public app_t<input_point,icp_output>
 {
@@ -561,6 +681,10 @@ int main(int argc,char** argv)
             {
                 app.reset(new normal_estimator(options));
             }
+//            else if(operation=="statistical-filter")
+//            {
+//                app.reset(new statistical_outlier(options));
+//            }
             else
             {
                 std::cerr<<comma::verbose.app_name()<<": unrecognized operation "<<operation<<std::endl;
