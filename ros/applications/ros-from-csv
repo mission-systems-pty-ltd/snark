@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import rosbag
 import argparse, sys
 from signal import signal, SIGPIPE, SIG_DFL, SIG_IGN
 import rospy, rostopic
@@ -43,6 +44,9 @@ def main():
     parser.add_argument( '--message-type', '--type', help = 'message type, useful for debugging', type = str )
     parser.add_argument( '--output-fields', help = 'output input csv fields and exit', action = 'store_true' )
     parser.add_argument( '--output-format', help='print output format for binary and exit', action='store_true' )
+    parser.add_argument( '--bagfile',       help='Write to a bagfile instead of publishing', action = 'store_true' )
+    parser.add_argument( '--filename',      help='Name of bagfile to save topics to. Don\'t add file extension', default = "out" )
+    parser.add_argument( '--bag-length',    help='Time in (nearest) seconds to cut the bagfile length', default = 60 )
     parser.add_argument( '--package', '--import', help = 'if --type specified, package to import', type = str )
     parser.add_argument( '--verbose', '-v', help = 'chat more', action = 'store_true' )
     comma.csv.add_options( parser )
@@ -80,6 +84,15 @@ def main():
     binary = not not args.binary
     istream = comma.csv.stream( record_type, delimiter = args.delimiter, fields = args.fields, format = format, binary = binary, default_values = None, flush = args.flush )
     assign = record_type.assign( message, convert.from_csv_supported_types )
+    
+    # bag stuff
+    outfile = args.filename
+    timeout = args.bag_length
+    cut_time = 0
+    bag_num = 0
+    outbag = rosbag.Bag(outfile+str(bag_num)+".bag" , 'w')
+
+
     if args.dry_run:
         if args.verbose: print >> sys.stderr, "ros-from-csv: dry run, printing messages to stdout"
     else:
@@ -114,7 +127,18 @@ def main():
                 except:
                     pass
                 print message
+            elif args.bagfile:
+                time_now = message.header.stamp.secs
+                if( time_now  > cut_time + timeout ):
+                    cut_time = time_now
+                    outbag.reindex()
+                    outbag.close()
+                    outbag = rosbag.Bag(outfile+str(bag_num)+".bag" , 'w')
+                    print >> sys.stderr, "Writing to bag ", outfile + str(bag_num) + ".bag ", "Starting at time ", time_now
+                    bag_num += 1
+                outbag.write( topic=args.topic, msg=message, t=message.header.stamp )
             else:
                 publisher.publish( message )
+
 
 if __name__ == '__main__': main()
