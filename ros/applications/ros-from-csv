@@ -131,7 +131,6 @@ def main():
                 time_now = message.header.stamp.secs
                 if( time_now  > cut_time + timeout ):
                     cut_time = time_now
-                    outbag.reindex()
                     outbag.close()
                     outbag = rosbag.Bag(outfile+str(bag_num)+".bag" , 'w')
                     print >> sys.stderr, "Writing to bag ", outfile + str(bag_num) + ".bag ", "Starting at time ", time_now
