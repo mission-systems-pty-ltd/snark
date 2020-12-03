@@ -454,7 +454,8 @@ struct statistical_outlier : public filter_app_t<input_point,input_point>
     double stddev;
 
     statistical_outlier(const comma::command_line_options& options) : base_type(options),
-        cloud(new pcl::PointCloud<pcl::PointXYZ>())
+        cloud(new pcl::PointCloud<pcl::PointXYZ>()),
+        cloud_filtered( new pcl::PointCloud< pcl::PointXYZ>() )
     {
         kmean=options.value<int>("-k,--k-mean",50);
         stddev = options.value< double >( "-s,--stddev", 1.0 );
@@ -707,7 +708,7 @@ int main(int argc,char** argv)
             {
                 app.reset(new normal_estimator(options));
             }
-            else if(operation=="statistical-filter")
+            else if(operation=="statistical-outlier")
             {
                 app.reset(new statistical_outlier(options));
             }
