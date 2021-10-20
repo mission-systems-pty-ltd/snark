@@ -36,6 +36,7 @@ void usage( bool verbose )
     std::cerr << "\n        satellites:    satellites packet";
     std::cerr << "\n        magnetic-calibration: magnetic calibration status packet";
     std::cerr << "\n        system-state:  full system state packet";
+    std::cerr << "\n        packet-ids:    just display id's of all received packets";
     std::cerr << "\n";
     std::cerr << "\noptions:";
     std::cerr << "\n    --help,-h:         show help";
@@ -91,8 +92,15 @@ static void bash_completion()
               << std::endl;
 }
 
+// Packet ID field from message header. See §13.2 of the Spatial FOG Dual Reference Manual
+struct output_packet_id
 {
+    output_packet_id() : packet_id( 0 ) {}
+    uint8_t packet_id;
+};
+
 struct output_nav
+{
     output_nav() : height(0), system_status(0), filter_status(0) {}
     boost::posix_time::ptime t;
     snark::spherical::coordinates coordinates;
@@ -123,6 +131,20 @@ template < unsigned int S, bool P, bool F, std::size_t N > struct traits< boost:
     template< typename K, typename V > static void visit( const K& k, const boost::array< comma::packed::detail::endian< comma::packed::detail::big, S, P, F >, N >& t, V& v )
     {
         for( std::size_t i = 0; i < t.size(); i++ ) { v.apply( i, t[i]() ); }
+    }
+};
+
+template <>
+struct traits< output_packet_id >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const output_packet_id& p, Visitor& v )
+    {
+        v.apply( "packet_id", p.packet_id );
+    }
+
+    template < typename Key, class Visitor > static void visit( const Key&, output_packet_id& p, Visitor& v )
+    {
+        v.apply( "packet_id", p.packet_id );
     }
 };
 
@@ -223,6 +245,17 @@ struct app_t : public app_base
     static void output_format()
     {
         std::cout << comma::csv::format::value< T >() << std::endl;
+    }
+};
+
+struct app_packet_id : public app_t< output_packet_id >
+{
+    app_packet_id( const comma::command_line_options& options ) : app_t( options )
+    {}
+    //message handlers
+    void handle_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length )
+    {
+        std::cout << (unsigned int)msg_header->id() << std::endl;
     }
 };
 
@@ -425,6 +458,7 @@ int main( int argc, char** argv )
         std::string packet = unnamed[0];
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
+        else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
