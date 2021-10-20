@@ -91,9 +91,9 @@ static void bash_completion()
               << std::endl;
 }
 
-struct output
 {
-    output() : height(0), system_status(0), filter_status(0) {}
+struct output_nav
+    output_nav() : height(0), system_status(0), filter_status(0) {}
     boost::posix_time::ptime t;
     snark::spherical::coordinates coordinates;
     double height;
@@ -127,9 +127,9 @@ template < unsigned int S, bool P, bool F, std::size_t N > struct traits< boost:
 };
 
 template <>
-struct traits< output >
+struct traits< output_nav >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, const output& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const output_nav& p, Visitor& v )
     {
         v.apply( "t", p.t );
         v.apply( "coordinates", p.coordinates );
@@ -139,7 +139,7 @@ struct traits< output >
         v.apply( "filter_status", p.filter_status );
     }
 
-    template < typename Key, class Visitor > static void visit( const Key&, output& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, output_nav& p, Visitor& v )
     {
         v.apply( "t", p.t );
         v.apply( "coordinates", p.coordinates );
@@ -226,14 +226,14 @@ struct app_t : public app_base
     }
 };
 
-struct app_nav : public app_t< output >
+struct app_nav : public app_t< output_nav >
 {
     app_nav( const comma::command_line_options& options ) : app_t( options )
     {}
     //message handlers
     void handle( const messages::system_state* msg )
     {
-        output o;
+        output_nav o;
         o.t = msg->t();
         o.coordinates.latitude = msg->latitude();
         o.coordinates.longitude = msg->longitude();
