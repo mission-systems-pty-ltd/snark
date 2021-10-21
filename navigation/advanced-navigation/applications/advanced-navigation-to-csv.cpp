@@ -118,6 +118,7 @@ struct output_nav
 
 struct output_all
 {
+    output_all() : velocity_stddev( 0, 0, 0 ), orientation_stddev( 0, 0, 0 ) {}
     messages::system_state system_state;
     messages::raw_sensors raw_sensors;
     Eigen::Vector3f velocity_stddev;
