@@ -29,14 +29,17 @@ void usage( bool verbose )
     std::cerr << "\n       echo <value> | " << comma::verbose.app_name() << " --status=<packet>";
     std::cerr << "\n       " << comma::verbose.app_name() << " --status-description=<packet>";
     std::cerr << "\n";
-    std::cerr << "\n    where <packet> selects output and is one of:";
-    std::cerr << "\n        all:           combine system-state, raw-sensors and standard deviations";
-    std::cerr << "\n        navigation:    navigation data from system state packet (default)";
-    std::cerr << "\n        raw-sensors:   raw sensors packet";
-    std::cerr << "\n        satellites:    satellites packet";
+    std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
+    std::cerr << "\n        system-state:  system state packet (20)";
+    std::cerr << "\n        raw-sensors:   raw sensors packet (28)";
+    std::cerr << "\n        satellites:    satellites packet (30)";
     std::cerr << "\n        magnetic-calibration: magnetic calibration status packet";
-    std::cerr << "\n        system-state:  full system state packet";
+    std::cerr << "\n        navigation:    navigation data from system-state packet (default)";
+    std::cerr << "\n        all:           combine several packets as described below";
     std::cerr << "\n        packet-ids:    just display id's of all received packets";
+    std::cerr << "\n";
+    std::cerr << "\n        all is a combination of system-state(20), raw-sensors(28),";
+    std::cerr << "\n        velocity-std-dev(25), euler-orientation-std-dev(26) and satellites(30)";
     std::cerr << "\n";
     std::cerr << "\noptions:";
     std::cerr << "\n    --help,-h:         show help";
@@ -57,6 +60,9 @@ void usage( bool verbose )
     std::cerr << "\n";
     if( verbose )
     {
+        std::cerr << "\ncsv options:";
+        std::cerr << "\n";
+        std::cerr << comma::csv::options::usage();
         std::cerr << "\nexamples:";
         std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " all";
         std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " raw-sensors";
@@ -78,7 +84,7 @@ void usage( bool verbose )
     }
     else
     {
-        std::cerr << "\nuse -v or --verbose for examples";
+        std::cerr << "\nuse -v or --verbose for more csv options and examples";
     }
     std::cerr << "\n" << std::endl;
 }
@@ -86,7 +92,7 @@ void usage( bool verbose )
 static void bash_completion()
 {
     std::cout << "--help --verbose"
-              << " all magnetic-calibration navigation raw-sensors system-state satellites "
+              << " raw-sensors system-state satellites magnetic-calibration navigation all packet-ids"
               << " --output-fields --output-format --send --json"
               << " --magnetic-calibration-description --status --status-description"
               << std::endl;
@@ -454,7 +460,7 @@ int main( int argc, char** argv )
 
         std::unique_ptr< factory_i > factory;
 
-        if( unnamed.size() != 1 ) { COMMA_THROW( comma::exception, "expected one unnamed arguement, got: " << unnamed.size() ); }
+        if( unnamed.size() != 1 ) { COMMA_THROW( comma::exception, "expected one packet name, got: " << unnamed.size() ); }
         std::string packet = unnamed[0];
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
@@ -463,7 +469,7 @@ int main( int argc, char** argv )
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
-        else { COMMA_THROW( comma::exception, "expected <packet>: navigation | raw-sensors | system-state | all; got " << packet );}
+        else { COMMA_THROW( comma::exception, packet << " is an unsupported packet. See help." );}
 
         if( options.exists( "--output-fields" )) { factory->output_fields(); return 0; }
         if( options.exists( "--output-format" )) { factory->output_format(); return 0; }
