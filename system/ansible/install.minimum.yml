@@ -28,7 +28,7 @@
       - qt3d5-dev
       # - libqt4-dev
       - libassimp-dev
-      - python-opencv
+      - python3-opencv
       - python-pip
       - libqt5charts5-dev
 
