@@ -554,12 +554,6 @@ struct send_app : protected device
     {
         
     }
-    virtual void handle(const messages::acknowledgement* msg)
-    {
-        result=msg->result();
-        std::cout<<result<<std::endl;
-        comma::verbose<<messages::acknowledgement::result_msg(result)<<std::endl;
-    }
     unsigned process()
     {
         while(std::cin.good())

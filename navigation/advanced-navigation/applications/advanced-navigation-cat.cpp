@@ -244,13 +244,6 @@ struct send_app : protected snark::navigation::advanced_navigation::device
         , is( std::cin, comma::csv::options( options ))
     {}
 
-    virtual void handle( const messages::acknowledgement* msg )
-    {
-        result = msg->result();
-        std::cout << result << std::endl;
-        comma::verbose << messages::acknowledgement::result_msg( result ) << std::endl;
-    }
-
     unsigned int process()
     {
         while( std::cin.good() )
