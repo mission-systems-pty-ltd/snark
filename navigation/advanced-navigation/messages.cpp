@@ -309,9 +309,9 @@ void magnetic_calibration_status::status_description( std::ostream& os )
 // ---------------
 // acknowledgement
 // ---------------
-const char* acknowledgement::result_msg( unsigned int result )
+const char* acknowledgement::result_msg() const
 {
-    switch( result )
+    switch( result() )
     {
         case 0:
             return "Acknowledge success";

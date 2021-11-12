@@ -169,7 +169,7 @@ struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4
     comma::packed::little_endian::uint16 crc;
     comma::packed::uint8 result;
 
-    static const char* result_msg( unsigned int result );
+    const char* result_msg() const;
 };
 
 struct command : public comma::packed::packed_struct< command, 260 >
