@@ -232,6 +232,11 @@ struct app_base : protected snark::navigation::advanced_navigation::device
             if( !signaled && select.read().ready( fd() ) ) { device::process(); }
         }
     }
+
+    virtual void handle( const messages::acknowledgement* msg )
+    {
+        std::cerr << comma::verbose.app_name() << ": " << msg->result_msg() << std::endl;
+    }
 };
 
 template< typename T >
