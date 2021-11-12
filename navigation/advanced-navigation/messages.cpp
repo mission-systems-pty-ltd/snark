@@ -207,8 +207,8 @@ std::string filter_status_description::full_description( uint16_t status )
     unsigned int bit = 1;
     for( unsigned int i = 0; i < text.size(); ++i )
     {
-        if( !text[i].empty() ) 
-        { 
+        if( !text[i].empty() )
+        {
             //split last word
             std::string::size_type index = text[i].find_last_of( ' ' );
             //prolog
@@ -317,15 +317,15 @@ const char* acknowledgement::result_msg( unsigned int result )
             return "Acknowledge success";
         case 1:
             return "Acknowledge failure, CRC error";
-        case 2: 
+        case 2:
             return "Acknowledge failure, packet size incorrect";
-        case 3: 
+        case 3:
             return "Acknowledge failure, values outside of valid ranges";
-        case 4: 
+        case 4:
             return "Acknowledge failure, system flash memory failure";
-        case 5: 
+        case 5:
             return "Acknowledge failure, system not ready";
-        case 6: 
+        case 6:
             return "Acknowledge failure, unknown packet";
         default:
             { COMMA_THROW( comma::exception, "Acknowledge result invalid value (result msg)"); }
@@ -333,5 +333,5 @@ const char* acknowledgement::result_msg( unsigned int result )
 }
 
 } //namespace messages {
-    
+
 } } } //namespace snark { namespace navigation { namespace advanced_navigation {

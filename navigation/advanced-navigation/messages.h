@@ -59,7 +59,7 @@ struct system_status_description
 
     static std::string string( uint16_t status) ;
     static void description( std::ostream& os );
-    
+
     unsigned int system_failure() const;
     unsigned int accelerometer_sensor_failure() const;
     unsigned int gyroscope_sensor_failure() const;
@@ -89,7 +89,7 @@ struct filter_status_description
     static std::string full_description( uint16_t status );
     static void description( std::ostream& os );
     static void gnss_fix_description( std::ostream& os );
-    
+
     unsigned int gnss_fix() const;
     unsigned int orientation_filter_initialised() const;
     unsigned int navigation_filter_initialised() const;
