@@ -471,8 +471,8 @@ int main( int argc, char** argv )
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
         else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
-        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
+        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
         else { COMMA_THROW( comma::exception, packet << " is an unsupported packet. See help." );}

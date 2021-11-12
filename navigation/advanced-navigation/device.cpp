@@ -89,14 +89,11 @@ void device::process()
                 handle_raw( msg_header, &buf[msg_start], msg_header->len() );
                 switch( msg_header->id() )
                 {
+                case messages::acknowledgement::id:
+                    handle( reinterpret_cast< messages::acknowledgement* >( &buf[msg_start] ));
+                    break;
                 case messages::system_state::id:
                     handle( reinterpret_cast< messages::system_state* >( &buf[msg_start] ));
-                    break;
-                case messages::raw_sensors::id:
-                    handle( reinterpret_cast< messages::raw_sensors* >( &buf[msg_start] ));
-                    break;
-                case messages::satellites::id:
-                    handle( reinterpret_cast< messages::satellites* >( &buf[msg_start] ));
                     break;
                 case messages::position_standard_deviation::id:
                     handle( reinterpret_cast< messages::position_standard_deviation* >( &buf[msg_start] ));
@@ -107,8 +104,11 @@ void device::process()
                 case messages::orientation_standard_deviation::id:
                     handle( reinterpret_cast< messages::orientation_standard_deviation* >( &buf[msg_start] ));
                     break;
-                case messages::acknowledgement::id:
-                    handle( reinterpret_cast< messages::acknowledgement* >( &buf[msg_start] ));
+                case messages::raw_sensors::id:
+                    handle( reinterpret_cast< messages::raw_sensors* >( &buf[msg_start] ));
+                    break;
+                case messages::satellites::id:
+                    handle( reinterpret_cast< messages::satellites* >( &buf[msg_start] ));
                     break;
                 default:
 //                     comma::verbose<<"unhandled msg id: "<<int(msg_header->id())<<" len "<<msg_header->len()<<" "<<head<<" "<<index<<std::endl;

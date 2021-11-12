@@ -32,6 +32,16 @@ public:
     unsigned int len() const { return (unsigned int)( length() ); }
 };
 
+struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4 >
+{
+    enum { id = 0 };
+    comma::packed::uint8 packet_id;
+    comma::packed::little_endian::uint16 crc;
+    comma::packed::uint8 result;
+
+    const char* result_msg() const;
+};
+
 struct system_state : public comma::packed::packed_struct< system_state, 100 >
 {
     enum { id = 20 };
@@ -110,6 +120,25 @@ struct filter_status_description
     uint16_t status;
 };
 
+struct position_standard_deviation : public comma::packed::packed_struct< position_standard_deviation, 12 >
+{
+    enum { id = 24 };
+    boost::array< comma::packed::little_endian::float32, 3 > stddev;
+};
+
+struct velocity_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
+{
+    enum { id = 25 };
+    boost::array< comma::packed::little_endian::float32, 3 > stddev;
+};
+
+//euler_orientation_standard_deviation_packet_t
+struct orientation_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
+{
+    enum { id = 26 };
+    boost::array< comma::packed::little_endian::float32, 3 > stddev;
+};
+
 struct raw_sensors : public comma::packed::packed_struct< raw_sensors, 48 >
 {
     enum { id = 28 };
@@ -141,35 +170,6 @@ struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections,
 
     rtcm_corrections() {}
     rtcm_corrections( const char* buf, unsigned int size );
-};
-
-struct position_standard_deviation : public comma::packed::packed_struct< position_standard_deviation, 12 >
-{
-    enum { id = 24 };
-    boost::array< comma::packed::little_endian::float32, 3 > stddev;
-};
-
-struct velocity_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
-{
-    enum { id = 25 };
-    boost::array< comma::packed::little_endian::float32, 3 > stddev;
-};
-
-//euler_orientation_standard_deviation_packet_t
-struct orientation_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
-{
-    enum { id = 26 };
-    boost::array< comma::packed::little_endian::float32, 3 > stddev;
-};
-
-struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4 >
-{
-    enum { id = 0 };
-    comma::packed::uint8 packet_id;
-    comma::packed::little_endian::uint16 crc;
-    comma::packed::uint8 result;
-
-    const char* result_msg() const;
 };
 
 struct command : public comma::packed::packed_struct< command, 260 >

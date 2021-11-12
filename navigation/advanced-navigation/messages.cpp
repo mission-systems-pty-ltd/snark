@@ -83,6 +83,32 @@ void header::reset( unsigned char i, unsigned char l, const char* buf )
     LRC = detail::calculate_LRC( (uint8_t*)data() );
 }
 
+// ---------------
+// acknowledgement
+// ---------------
+const char* acknowledgement::result_msg() const
+{
+    switch( result() )
+    {
+        case 0:
+            return "Acknowledge success";
+        case 1:
+            return "Acknowledge failure, CRC error";
+        case 2:
+            return "Acknowledge failure, packet size incorrect";
+        case 3:
+            return "Acknowledge failure, values outside of valid ranges";
+        case 4:
+            return "Acknowledge failure, system flash memory failure";
+        case 5:
+            return "Acknowledge failure, system not ready";
+        case 6:
+            return "Acknowledge failure, unknown packet";
+        default:
+            { COMMA_THROW( comma::exception, "Acknowledge result invalid value (result msg)"); }
+    }
+}
+
 // ------------
 // system_state
 // ------------
@@ -95,15 +121,6 @@ boost::posix_time::ptime system_state::t() const
 snark::spherical::coordinates system_state::coordinates() const
 {
     return snark::spherical::coordinates( latitude(), longitude() );
-}
-
-// ----------------
-// rtcm_corrections
-// ----------------
-rtcm_corrections::rtcm_corrections( const char* buf, unsigned int size )
-    : header( id, size, buf)
-{
-    std::memcpy( &msg_data[0], buf,size );
 }
 
 // -------------------------
@@ -270,6 +287,15 @@ unsigned int filter_status_description::external_position_active() const { retur
 unsigned int filter_status_description::external_velocity_active() const { return ( status & 0x4000 ) ? 1 : 0; }
 unsigned int filter_status_description::external_heading_active() const { return ( status & 0x8000 ) ? 1 : 0; }
 
+// ----------------
+// rtcm_corrections
+// ----------------
+rtcm_corrections::rtcm_corrections( const char* buf, unsigned int size )
+    : header( id, size, buf)
+{
+    std::memcpy( &msg_data[0], buf,size );
+}
+
 // -------
 // command
 // -------
@@ -304,32 +330,6 @@ void magnetic_calibration_status::status_description( std::ostream& os )
     os << "10,Calibration error: time-out" << std::endl;
     os << "11,Calibration error: system error" << std::endl;
     os << "12,Calibration error: interference error" << std::endl;
-}
-
-// ---------------
-// acknowledgement
-// ---------------
-const char* acknowledgement::result_msg() const
-{
-    switch( result() )
-    {
-        case 0:
-            return "Acknowledge success";
-        case 1:
-            return "Acknowledge failure, CRC error";
-        case 2:
-            return "Acknowledge failure, packet size incorrect";
-        case 3:
-            return "Acknowledge failure, values outside of valid ranges";
-        case 4:
-            return "Acknowledge failure, system flash memory failure";
-        case 5:
-            return "Acknowledge failure, system not ready";
-        case 6:
-            return "Acknowledge failure, unknown packet";
-        default:
-            { COMMA_THROW( comma::exception, "Acknowledge result invalid value (result msg)"); }
-    }
 }
 
 } //namespace messages {
