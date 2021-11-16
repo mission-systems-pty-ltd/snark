@@ -1,4 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2021 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -32,6 +33,15 @@ public:
     unsigned int len() const { return (unsigned int)( length() ); }
 };
 
+struct command : public comma::packed::packed_struct< command, 260 >
+{
+    messages::header header;
+    boost::array< comma::packed::uint8, 255 > msg_data;
+
+    command() {}
+    command( uint8_t id, const char* buf, unsigned int size );
+};
+
 struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4 >
 {
     enum { id = 0 };
@@ -40,6 +50,15 @@ struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4
     comma::packed::uint8 result;
 
     const char* result_msg() const;
+};
+
+// only supports single packet requests, the underlying message supports multiple packets
+struct request : public comma::packed::packed_struct< request, 1 >
+{
+    enum { id = 1 };
+    comma::packed::uint8 packet_id;
+
+    command get_command() const { return command( id, data(), size ); }
 };
 
 struct system_state : public comma::packed::packed_struct< system_state, 100 >
@@ -172,21 +191,12 @@ struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections,
     rtcm_corrections( const char* buf, unsigned int size );
 };
 
-struct command : public comma::packed::packed_struct< command, 260 >
-{
-    messages::header header;
-    boost::array< comma::packed::uint8, 255 > msg_data;
-
-    command() {}
-    command( uint8_t id, const char* buf, unsigned int size );
-};
-
 struct magnetic_calibration_configuration : public comma::packed::packed_struct< magnetic_calibration_configuration, 1 >
 {
     enum { id = 190 };
     comma::packed::uint8 action;
 
-    command get_command() const;
+    command get_command() const { return command( id, data(), size ); }
 };
 
 struct magnetic_calibration_status : public comma::packed::packed_struct< magnetic_calibration_status, 3 >

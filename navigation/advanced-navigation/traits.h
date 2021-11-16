@@ -18,6 +18,21 @@ template < unsigned int Size, bool Signed, bool Floating, std::size_t N > struct
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::request >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::request& p, Visitor& v )
+    {
+        v.apply( "packet_id", p.packet_id() );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, snark::navigation::advanced_navigation::messages::request& p, Visitor& v )
+    {
+        auto a = p.packet_id();
+        v.apply( "packet_id", a );
+        p.packet_id = a;
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::system_state >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::system_state& p, Visitor& v )

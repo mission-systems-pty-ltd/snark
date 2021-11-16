@@ -42,6 +42,9 @@ void usage( bool verbose )
     std::cerr << "\n    output: acknowledgement, use --verbose for human readable message";
     std::cerr << "\n";
     std::cerr << "\n    commands:";
+    std::cerr << "\n        request: request a specific packet";
+    std::cerr << "\n            input field: packet_id";
+    std::cerr << "\n";
     std::cerr << "\n        magnetic-calibration: send magnetic calibration command";
     std::cerr << "\n            input fields: action";
     std::cerr << "\n            where <action> is:";
@@ -55,6 +58,9 @@ void usage( bool verbose )
         std::cerr << "\nexamples:";
         std::cerr << "\n    " << comma::verbose.app_name() << " --device tcp:certus.local:16718";
         std::cerr << "\n    " << comma::verbose.app_name() << " --device /dev/usb/ttyUSB0 --baud 57600";
+        std::cerr << "\n";
+        std::cerr << "\n  request satellites packet";
+        std::cerr << "\n    echo 13 | " << comma::verbose.app_name() << " --send request";
         std::cerr << "\n";
         std::cerr << "\n  send 2D magnetic calibration command and see status";
         std::cerr << "\n    " << comma::verbose.app_name() << " --send magnetic-calibration --input-fields";
@@ -285,7 +291,8 @@ int main( int argc, char** argv )
         if( opt_send )
         {
             std::unique_ptr< send_factory_i > sf;
-            if( *opt_send == "magnetic-calibration" ) { sf.reset( new send_factory_t< send_app< messages::magnetic_calibration_configuration >>() ); }
+            if( *opt_send == "request" ) { sf.reset( new send_factory_t< send_app< messages::request >>() ); }
+            else if( *opt_send == "magnetic-calibration" ) { sf.reset( new send_factory_t< send_app< messages::magnetic_calibration_configuration >>() ); }
             else { COMMA_THROW( comma::exception, "invalid send command: " << *opt_send ); }
 
             if( options.exists( "--input-fields" )) { sf->input_fields(); return 0; }

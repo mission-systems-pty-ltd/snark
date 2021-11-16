@@ -1,4 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2021 Mission Systems Pty Ltd
 
 #include "messages.h"
 #include <comma/application/verbose.h>
@@ -81,6 +82,15 @@ void header::reset( unsigned char i, unsigned char l, const char* buf )
     length = l;
     msg_crc = detail::calculate_crc( (const uint8_t*)buf, length() );
     LRC = detail::calculate_LRC( (uint8_t*)data() );
+}
+
+// -------
+// command
+// -------
+command::command( uint8_t id, const char* buf, unsigned int size )
+    : header( id, size, buf )
+{
+    std::memcpy( &msg_data[0], buf, size );
 }
 
 // ---------------
@@ -294,23 +304,6 @@ rtcm_corrections::rtcm_corrections( const char* buf, unsigned int size )
     : header( id, size, buf)
 {
     std::memcpy( &msg_data[0], buf,size );
-}
-
-// -------
-// command
-// -------
-command::command( uint8_t id, const char* buf, unsigned int size )
-    : header( id, size, buf )
-{
-    std::memcpy( &msg_data[0], buf, size );
-}
-
-// ----------------------------------
-// magnetic_calibration_configuration
-// ----------------------------------
-command magnetic_calibration_configuration::get_command() const
-{
-    return command( id, data(), size );
 }
 
 // ---------------------------
