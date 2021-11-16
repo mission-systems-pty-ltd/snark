@@ -191,6 +191,23 @@ struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections,
     rtcm_corrections( const char* buf, unsigned int size );
 };
 
+struct filter_options : public comma::packed::packed_struct< filter_options, 17 >
+{
+    enum { id = 186 };
+    comma::packed::uint8 permanent;
+    comma::packed::uint8 vehicle_types;
+    comma::packed::uint8 internal_gnss_enabled;
+    comma::packed::uint8 magnetic_heading_enabled;
+    comma::packed::uint8 atmospheric_altitude_enabled;
+    comma::packed::uint8 velocity_heading_enabled;
+    comma::packed::uint8 reversing_detection_enabled;
+    comma::packed::uint8 motion_analysis_enabled;
+    comma::packed::uint8 automatic_magnetic_calibration_enabled;
+    comma::packed::little_endian::uint64 reserved;
+
+    command get_command() const { return command( id, data(), size ); }
+};
+
 struct magnetic_calibration_configuration : public comma::packed::packed_struct< magnetic_calibration_configuration, 1 >
 {
     enum { id = 190 };

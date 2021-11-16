@@ -59,8 +59,8 @@ void usage( bool verbose )
         std::cerr << "\n    " << comma::verbose.app_name() << " --device tcp:certus.local:16718";
         std::cerr << "\n    " << comma::verbose.app_name() << " --device /dev/usb/ttyUSB0 --baud 57600";
         std::cerr << "\n";
-        std::cerr << "\n  request satellites packet";
-        std::cerr << "\n    echo 13 | " << comma::verbose.app_name() << " --send request";
+        std::cerr << "\n  request filter options packet";
+        std::cerr << "\n    echo 186 | " << comma::verbose.app_name() << " --send request";
         std::cerr << "\n";
         std::cerr << "\n  send 2D magnetic calibration command and see status";
         std::cerr << "\n    " << comma::verbose.app_name() << " --send magnetic-calibration --input-fields";

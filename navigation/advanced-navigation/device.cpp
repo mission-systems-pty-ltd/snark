@@ -1,6 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2017 The University of Sydney
-
+// Copyright (c) 2021 Mission Systems Pty Ltd
 
 #include "device.h"
 #include <comma/application/verbose.h>
@@ -109,6 +109,9 @@ void device::process()
                     break;
                 case messages::satellites::id:
                     handle( reinterpret_cast< messages::satellites* >( &buf[msg_start] ));
+                    break;
+                case messages::filter_options::id:
+                    handle( reinterpret_cast< messages::filter_options* >( &buf[msg_start] ));
                     break;
                 case messages::magnetic_calibration_status::id:
                     handle( reinterpret_cast< messages::magnetic_calibration_status* >( &buf[msg_start] ));

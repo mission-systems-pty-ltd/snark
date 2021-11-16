@@ -30,13 +30,14 @@ void usage( bool verbose )
     std::cerr << "\n       " << comma::verbose.app_name() << " --status-description=<packet>";
     std::cerr << "\n";
     std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
-    std::cerr << "\n        system-state:  system state packet (20)";
-    std::cerr << "\n        raw-sensors:   raw sensors packet (28)";
-    std::cerr << "\n        satellites:    satellites packet (30)";
-    std::cerr << "\n        magnetic-calibration: magnetic calibration status packet";
-    std::cerr << "\n        navigation:    navigation data from system-state packet (default)";
-    std::cerr << "\n        all:           combine several packets as described below";
-    std::cerr << "\n        packet-ids:    just display id's of all received packets";
+    std::cerr << "\n        system-state:   system state packet (20)";
+    std::cerr << "\n        raw-sensors:    raw sensors packet (28)";
+    std::cerr << "\n        satellites:     satellites packet (30)";
+    std::cerr << "\n        filter-options: filter options packet (186)";
+    std::cerr << "\n        magnetic-calibration: magnetic calibration status packet (191)";
+    std::cerr << "\n        navigation:     navigation data from system-state packet (default)";
+    std::cerr << "\n        all:            combine several packets as described below";
+    std::cerr << "\n        packet-ids:     just display id's of all received packets";
     std::cerr << "\n";
     std::cerr << "\n        all is a combination of system-state(20), raw-sensors(28),";
     std::cerr << "\n        velocity-std-dev(25), euler-orientation-std-dev(26) and satellites(30)";
@@ -474,6 +475,7 @@ int main( int argc, char** argv )
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
+        else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
         else { COMMA_THROW( comma::exception, packet << " is an unsupported packet. See help." );}
 

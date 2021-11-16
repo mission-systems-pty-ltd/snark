@@ -129,6 +129,24 @@ struct traits< snark::navigation::advanced_navigation::messages::satellites >
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::filter_options >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::filter_options& p, Visitor& v )
+    {
+        v.apply( "permanent", p.permanent() );
+        v.apply( "vehicle_types", p.vehicle_types() );
+        v.apply( "internal_gnss_enabled", p.internal_gnss_enabled() );
+        v.apply( "magnetic_heading_enabled", p.magnetic_heading_enabled() );
+        v.apply( "atmospheric_altitude_enabled", p.atmospheric_altitude_enabled() );
+        v.apply( "velocity_heading_enabled", p.velocity_heading_enabled() );
+        v.apply( "reversing_detection_enabled", p.reversing_detection_enabled() );
+        v.apply( "motion_analysis_enabled", p.motion_analysis_enabled() );
+        v.apply( "automatic_magnetic_calibration_enabled", p.automatic_magnetic_calibration_enabled() );
+        v.apply( "reserved", p.reserved() );
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::magnetic_calibration_configuration >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::magnetic_calibration_configuration& p, Visitor& v )

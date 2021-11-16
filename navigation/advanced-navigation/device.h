@@ -1,5 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2021 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -29,6 +30,7 @@ protected:
     virtual void handle( const messages::orientation_standard_deviation* msg ) {}
     virtual void handle( const messages::raw_sensors* msg ) {}
     virtual void handle( const messages::satellites* msg ) {}
+    virtual void handle( const messages::filter_options* msg ) {}
     virtual void handle( const messages::magnetic_calibration_status* msg ) {}
     virtual void handle_raw( messages::header* msg_header, const char* msg_data,std::size_t msg_data_length) {}
 
