@@ -45,6 +45,13 @@ void usage( bool verbose )
     std::cerr << "\n        request: request a specific packet";
     std::cerr << "\n            input field: packet_id";
     std::cerr << "\n";
+    std::cerr << "\n        filter-options: set filter options";
+    std::cerr << "\n            input fields: permanent, vehicle_types, internal_gnss_enabled,";
+    std::cerr << "\n                magnetic_heading_enabled, atmospheric_altitude_enabled,";
+    std::cerr << "\n                velocity_heading_enabled, reversing_detection_enabled,";
+    std::cerr << "\n                motion_analysis_enabled, automatic_magnetic_calibration_enabled,";
+    std::cerr << "\n                reserved";
+    std::cerr << "\n";
     std::cerr << "\n        magnetic-calibration: send magnetic calibration command";
     std::cerr << "\n            input fields: action";
     std::cerr << "\n            where <action> is:";
@@ -61,6 +68,9 @@ void usage( bool verbose )
         std::cerr << "\n";
         std::cerr << "\n  request filter options packet";
         std::cerr << "\n    echo 186 | " << comma::verbose.app_name() << " --send request";
+        std::cerr << "\n";
+        std::cerr << "\n  set filter options packet";
+        std::cerr << "\n    echo 1,0,0,0,1,0,1,0,0,0 | " << comma::verbose.app_name() << " --send filter-options";
         std::cerr << "\n";
         std::cerr << "\n  send 2D magnetic calibration command and see status";
         std::cerr << "\n    " << comma::verbose.app_name() << " --send magnetic-calibration --input-fields";
@@ -292,6 +302,7 @@ int main( int argc, char** argv )
         {
             std::unique_ptr< send_factory_i > sf;
             if( *opt_send == "request" ) { sf.reset( new send_factory_t< send_app< messages::request >>() ); }
+            else if( *opt_send == "filter-options" ) { sf.reset( new send_factory_t< send_app< messages::filter_options >>() ); }
             else if( *opt_send == "magnetic-calibration" ) { sf.reset( new send_factory_t< send_app< messages::magnetic_calibration_configuration >>() ); }
             else { COMMA_THROW( comma::exception, "invalid send command: " << *opt_send ); }
 

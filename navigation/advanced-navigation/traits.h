@@ -144,6 +144,39 @@ struct traits< snark::navigation::advanced_navigation::messages::filter_options 
         v.apply( "automatic_magnetic_calibration_enabled", p.automatic_magnetic_calibration_enabled() );
         v.apply( "reserved", p.reserved() );
     }
+    template < typename Key, class Visitor > static void visit( const Key&, snark::navigation::advanced_navigation::messages::filter_options& p, Visitor& v )
+    {
+        auto permanent = p.permanent();
+        v.apply( "permanent", permanent );
+        p.permanent = permanent;
+        auto vehicle_types = p.vehicle_types();
+        v.apply( "vehicle_types", vehicle_types );
+        p.vehicle_types = vehicle_types;
+        auto internal_gnss_enabled = p.internal_gnss_enabled();
+        v.apply( "internal_gnss_enabled", internal_gnss_enabled );
+        p.internal_gnss_enabled = internal_gnss_enabled;
+        auto magnetic_heading_enabled = p.magnetic_heading_enabled();
+        v.apply( "magnetic_heading_enabled", magnetic_heading_enabled );
+        p.magnetic_heading_enabled = magnetic_heading_enabled;
+        auto atmospheric_altitude_enabled = p.atmospheric_altitude_enabled();
+        v.apply( "atmospheric_altitude_enabled", atmospheric_altitude_enabled );
+        p.atmospheric_altitude_enabled = atmospheric_altitude_enabled;
+        auto velocity_heading_enabled = p.velocity_heading_enabled();
+        v.apply( "velocity_heading_enabled", velocity_heading_enabled );
+        p.velocity_heading_enabled = velocity_heading_enabled;
+        auto reversing_detection_enabled = p.reversing_detection_enabled();
+        v.apply( "reversing_detection_enabled", reversing_detection_enabled );
+        p.reversing_detection_enabled = reversing_detection_enabled;
+        auto motion_analysis_enabled = p.motion_analysis_enabled();
+        v.apply( "motion_analysis_enabled", motion_analysis_enabled );
+        p.motion_analysis_enabled = motion_analysis_enabled;
+        auto automatic_magnetic_calibration_enabled = p.automatic_magnetic_calibration_enabled();
+        v.apply( "automatic_magnetic_calibration_enabled", automatic_magnetic_calibration_enabled );
+        p.automatic_magnetic_calibration_enabled = automatic_magnetic_calibration_enabled;
+        auto reserved = p.reserved();
+        v.apply( "reserved", reserved );
+        p.reserved = reserved;
+    }
 };
 
 template <>
