@@ -110,6 +110,9 @@ void device::process()
                 case messages::satellites::id:
                     handle( reinterpret_cast< messages::satellites* >( &buf[msg_start] ));
                     break;
+                case messages::magnetic_calibration_status::id:
+                    handle( reinterpret_cast< messages::magnetic_calibration_status* >( &buf[msg_start] ));
+                    break;
                 default:
 //                     comma::verbose<<"unhandled msg id: "<<int(msg_header->id())<<" len "<<msg_header->len()<<" "<<head<<" "<<index<<std::endl;
                     break;
