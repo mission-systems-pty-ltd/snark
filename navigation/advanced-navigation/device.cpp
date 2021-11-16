@@ -136,7 +136,7 @@ void device::process()
     }
 }
 
-void device::send_ntrip( std::vector<char> buf )
+void device::send_ntrip( const std::vector<char>& buf )
 {
 //     comma::verbose<<"send_ntrip "<<buf.size()<<std::endl;
     unsigned int index = 0;
@@ -152,7 +152,7 @@ void device::send_ntrip( std::vector<char> buf )
     }
 }
 
-void device::send( const messages::command command )
+void device::send( const messages::command& command )
 {
     std::size_t to_write = command.header.len() + messages::header::size;
     std::size_t written = stream->write( command.data(), to_write );

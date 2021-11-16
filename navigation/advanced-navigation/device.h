@@ -17,8 +17,8 @@ public:
     device( const std::string& name, const advanced_navigation::options& options=advanced_navigation::options() );
     virtual ~device() {}
     void process();
-    void send_ntrip( std::vector<char> buf );
-    void send( const messages::command command );
+    void send_ntrip( const std::vector<char>& buf );
+    void send( const messages::command& command );
     comma::io::file_descriptor fd();
 
 protected:
