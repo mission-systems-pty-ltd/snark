@@ -14,8 +14,11 @@ lidar::~lidar()
 {
     if( handle != 0 )
     {
-        inno_lidar_stop( handle );
-        inno_lidar_close( handle );
+        // note that if there's no connection to the lidar, this call hangs
+        int result = inno_lidar_stop( handle );
+        if( result != 0 ) { std::cerr << "inno_lidar_stop() returned " << result << std::endl; }
+        result = inno_lidar_close( handle );
+        if( result != 0 ) { std::cerr << "inno_lidar_close() returned " << result << std::endl; }
     }
 }
 
@@ -40,7 +43,8 @@ void lidar::init( const std::string& name
 
 void lidar::start()
 {
-    if( inno_lidar_start( handle ) != 0 ) { COMMA_THROW( comma::exception, "inno_lidar_start() failed" ); }
+    int result = inno_lidar_start( handle );
+    if( result != 0 ) { COMMA_THROW( comma::exception, "inno_lidar_start() failed with result " << result ); }
 }
 
 } } // namespace snark { namespace innovusion {

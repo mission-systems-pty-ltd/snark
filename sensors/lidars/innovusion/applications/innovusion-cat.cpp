@@ -6,6 +6,7 @@
 #include <comma/application/signal_flag.h>
 #include <comma/csv/stream.h>
 #include <thread>
+#include <tbb/concurrent_queue.h>
 
 const std::string default_address( "172.168.1.10" );
 const unsigned int default_port( 8001 );
@@ -82,14 +83,62 @@ output_type_t output_type_from_string( const std::string& output_type_str )
     { COMMA_THROW( comma::exception, "unknown output type \"" << output_type_str << "\"" ); }
 }
 
+static std::atomic< bool > shutdown_requested = false;
 static output_type_t output_type = output_type_t::cooked;
 static bool fatal_error = false;
 static int64_t timeframe_offset_us = 0;
+
+// https://spec.oneapi.io/versions/latest/elements/oneTBB/source/containers/concurrent_queue_cls.html
+static tbb::concurrent_queue< inno_frame* > queue;
 
 namespace snark { namespace innovusion {
 struct raw_output {};
 struct null_output {};
 }; };
+
+template< typename T >
+struct writer
+{
+    static void process()
+    {
+        while( !shutdown_requested )
+        {
+            inno_frame* frame;
+            // non-blocking, as opposed to concurrent_bounded_queue::pop()
+            while( queue.try_pop( frame ))
+            {
+                output( frame );
+                free( frame );
+            }
+            std::this_thread::sleep_for( std::chrono::milliseconds( 40 ));
+        }
+    }
+
+    static void output( inno_frame* frame )
+    {
+        static inno_timestamp_us_t start_time = frame->ts_us_start;
+        comma::verbose << "frame " << frame->idx << "-" << frame->sub_idx << "-" << frame->sub_seq
+                       << ", timestamp(ms)=" << ( latest_frame_start_time - start_time ) / 1000 << ", num points=" << frame->points_number
+                       << std::endl;
+
+        // Implement these few lines as a lambda so they only get executed on
+        // the first run through when the static "os" is set.
+        // Making this a separate method would complicate the template
+        // overloading for raw_output and null_output
+        auto output_stream = []()
+        {
+            comma::csv::options output_csv;
+            output_csv.format( comma::csv::format::value< T >() );
+            return comma::csv::binary_output_stream< T >( std::cout, output_csv );
+        };
+        static comma::csv::binary_output_stream< T > os = output_stream();
+
+        for( unsigned int i = 0; i < frame->points_number; i++ )
+        {
+            os.write( T( frame, i, timeframe_offset_us ));
+        }
+    }
+};
 
 template< typename T >
 struct app
@@ -116,6 +165,8 @@ struct app
         comma::signal_flag is_shutdown;
         inno_lidar_setup_sig_handler();
 
+        std::thread output_thread( &writer<T>::process );
+
         snark::innovusion::lidar lidar;
         lidar.init( name, address, port, alarm_callback, frame_callback );
         lidar.start();
@@ -124,6 +175,8 @@ struct app
         {
             std::this_thread::sleep_for( std::chrono::milliseconds( 500 ));
         }
+        shutdown_requested = true;
+        output_thread.join();
         if( is_shutdown ) { std::cerr << comma::verbose.app_name() << ": interrupted by signal" << std::endl; }
         if( fatal_error ) { std::cerr << comma::verbose.app_name() << ": fatal error, exiting" << std::endl; return 1; }
         return 0;
@@ -140,31 +193,8 @@ struct app
 
     static int frame_callback( int lidar_handle, void* context, inno_frame* frame )
     {
-        static inno_timestamp_us_t start_time = frame->ts_us_start;
-        comma::verbose << "frame " << frame->idx << "-" << frame->sub_idx << "-" << frame->sub_seq
-                       << ", timestamp(ms)=" << ( frame->ts_us_start - start_time ) / 1000 << ", num points=" << frame->points_number
-                       << std::endl;
-        // TODO: to improve performance, don't output in the callback but just flag a separate thread
-        output( frame );
-        return 0;        // caller frees memory
-    }
-
-    static comma::csv::binary_output_stream< T > output_stream()
-    {
-        comma::verbose << "making output_stream" << std::endl;
-        comma::csv::options output_csv;
-        output_csv.format( comma::csv::format::value< T >() );
-        return comma::csv::binary_output_stream< T >( std::cout, output_csv );
-    }
-
-    static void output( inno_frame* frame )
-    {
-        static comma::csv::binary_output_stream< T > os = output_stream();
-
-        for( unsigned int i = 0; i < frame->points_number; i++ )
-        {
-            os.write( T( frame, i, timeframe_offset_us ));
-        }
+        queue.push( frame );
+        return 1;        // we free memory
     }
 };
 
@@ -173,7 +203,7 @@ template<> std::string app< snark::innovusion::raw_output >::output_fields()
 template<> std::string app< snark::innovusion::raw_output >::output_format()
     { COMMA_THROW( comma::exception, "raw data does not have output format" ); }
 
-template<> void app< snark::innovusion::raw_output >::output( inno_frame* frame )
+template<> void writer< snark::innovusion::raw_output >::output( inno_frame* frame )
 {
     std::cout.write( (const char*)&frame->points[0], frame->points_number * sizeof( inno_point ));
 }
@@ -182,7 +212,8 @@ template<> std::string app< snark::innovusion::null_output >::output_fields()
     { COMMA_THROW( comma::exception, "null data does not have output fields" ); }
 template<> std::string app< snark::innovusion::null_output >::output_format()
     { COMMA_THROW( comma::exception, "null data does not have output format" ); }
-template<> void app< snark::innovusion::null_output >::output( inno_frame* frame ) {}
+
+template<> void writer< snark::innovusion::null_output >::output( inno_frame* frame ) {}
 
 int main( int argc, char** argv )
 {
