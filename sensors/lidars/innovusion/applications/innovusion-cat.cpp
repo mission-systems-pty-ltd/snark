@@ -19,7 +19,7 @@ static void bash_completion( unsigned int const ac, char const* const* av )
         " --help -h --verbose -v --debug"
         " --output-fields --output-format --output-type"
         " --address --port --name"
-        " --sample-data"
+        " --sample-data --time-offset"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
