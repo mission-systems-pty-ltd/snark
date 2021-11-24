@@ -193,6 +193,20 @@ struct app
 
     static int frame_callback( int lidar_handle, void* context, inno_frame* frame )
     {
+        static inno_timestamp_us_t oldest_valid_time = 1609419600000000;        // 2021-01-01
+
+        if( frame->conf_level != 255 )
+        {
+            std::cerr << comma::verbose.app_name() << ": dropping frame " << frame->idx
+                      << ", confidence level = " << (int)frame->conf_level << std::endl;
+            return 1;
+        }
+        if( frame->ts_us_start < oldest_valid_time )
+        {
+            std::cerr << comma::verbose.app_name() << ": dropping frame " << frame->idx
+                      << ", start time of " << frame->ts_us_start/1000000 << " (seconds from epoch) too old" << std::endl;
+            return 1;
+        }
         queue.push( frame );
         return 1;        // we free memory
     }
