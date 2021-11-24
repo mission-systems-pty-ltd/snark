@@ -31,7 +31,7 @@ void lidar::init( const std::string& name
     handle = inno_lidar_open_live( name.c_str(), address.c_str(), port, 1 );
 
     // TODO: set model (not required for live?) and config yaml file
-    if( inno_lidar_set_parameters( handle, "", "", "" ) != 0 )
+    if( inno_lidar_set_parameters( handle, nullptr, nullptr, nullptr ) != 0 )
     { COMMA_THROW( comma::exception, "inno_lidar_set_parameters() failed" ); }
 
     if( inno_lidar_set_reflectance_mode( handle, REFLECTANCE_MODE_INTENSITY ) != 0 )
