@@ -12,6 +12,7 @@ const std::string default_address( "172.168.1.10" );
 const unsigned int default_port( 8001 );
 const std::string default_name( "innovusion_lidar" );
 const std::string default_output_type( "cooked" );
+const unsigned int default_max_latency( 0 );
 
 static void bash_completion( unsigned int const ac, char const* const* av )
 {
@@ -19,7 +20,7 @@ static void bash_completion( unsigned int const ac, char const* const* av )
         " --help -h --verbose -v --debug"
         " --output-fields --output-format --output-type"
         " --address --port --name"
-        " --sample-data --time-offset"
+        " --max-latency --sample-data --time-offset"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
@@ -37,6 +38,7 @@ static void usage( bool verbose = false )
     std::cerr << "\n    --debug;               even more output";
     std::cerr << "\n    --address=<ip>:        device address; default=" << default_address;
     std::cerr << "\n    --port=<num>:          device port; default=" << default_port;
+    std::cerr << "\n    --max-latency=<ms>:    maximum latency in ms; default=" << default_max_latency;
     std::cerr << "\n    --name=<name>:         device name (max 32 chars); default=" << default_name;
     std::cerr << "\n    --output-fields:       print output fields for cooked or full data and exit";
     std::cerr << "\n    --output-format:       print output format for cooked or full data and exit";
@@ -84,7 +86,9 @@ output_type_t output_type_from_string( const std::string& output_type_str )
 }
 
 static std::atomic< bool > shutdown_requested = false;
+static std::atomic< inno_timestamp_us_t > latest_frame_start_time;
 static output_type_t output_type = output_type_t::cooked;
+static inno_timestamp_us_t max_latency = 0;
 static bool fatal_error = false;
 static int64_t timeframe_offset_us = 0;
 
@@ -107,7 +111,16 @@ struct writer
             // non-blocking, as opposed to concurrent_bounded_queue::pop()
             while( queue.try_pop( frame ))
             {
-                output( frame );
+                // latest_frame is the latest frame received on the queue
+                // frame is the frame we are processing now
+                inno_timestamp_us_t latency = latest_frame_start_time - frame->ts_us_start;
+                if( comma::verbose )
+                {
+                    if( latency > 0 ) { std::cerr << comma::verbose.app_name() << ": latency = " << latency << "µs"; }
+                    if( latency > max_latency ) { std::cerr << "...dropping frame"; }
+                    if( latency > 0 ) { std::cerr << std::endl; }
+                }
+                if( latency <= max_latency ) { output( frame ); }
                 free( frame );
             }
             std::this_thread::sleep_for( std::chrono::milliseconds( 40 ));
@@ -116,11 +129,6 @@ struct writer
 
     static void output( inno_frame* frame )
     {
-        static inno_timestamp_us_t start_time = frame->ts_us_start;
-        comma::verbose << "frame " << frame->idx << "-" << frame->sub_idx << "-" << frame->sub_seq
-                       << ", timestamp(ms)=" << ( latest_frame_start_time - start_time ) / 1000 << ", num points=" << frame->points_number
-                       << std::endl;
-
         // Implement these few lines as a lambda so they only get executed on
         // the first run through when the static "os" is set.
         // Making this a separate method would complicate the template
@@ -207,6 +215,7 @@ struct app
                       << ", start time of " << frame->ts_us_start/1000000 << " (seconds from epoch) too old" << std::endl;
             return 1;
         }
+        latest_frame_start_time = frame->ts_us_start;
         queue.push( frame );
         return 1;        // we free memory
     }
@@ -236,7 +245,8 @@ int main( int argc, char** argv )
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
 
-        output_type = output_type_from_string(  options.value< std::string >( "--output-type", default_output_type ));
+        output_type = output_type_from_string( options.value< std::string >( "--output-type", default_output_type ));
+        max_latency = options.value< unsigned int >( "--max-latency", default_max_latency ) * 1000; // µs
 
         if( output_type == output_type_t::raw ) { return app< snark::innovusion::raw_output >::run( options ); }
         else if( output_type == output_type_t::cooked ) { return app< snark::innovusion::output_data_t >::run( options ); }
