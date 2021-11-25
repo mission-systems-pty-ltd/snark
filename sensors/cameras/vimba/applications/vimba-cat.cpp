@@ -75,6 +75,7 @@ static void usage( bool verbose = false )
     std::cerr << std::endl;
     std::cerr << "Options: " << std::endl;
     std::cerr << "    --help,-h:                         show this help, --help --verbose for more help" << std::endl;
+    std::cerr << "    --acquisition-start-delay,--acquisition-delay=<seconds>; default=10; wait for a given time before starting acquisition" << std::endl;
     std::cerr << "    --dont-check-frames:               don't check if we've stop receiving frames" << std::endl;
     std::cerr << "    --fields=<fields>:                 header fields; default: " << default_fields << std::endl;
     std::cerr << "    --frames-buffer-size,--num-frames: default=3; camera frame acquisition buffer size" << std::endl;
@@ -363,24 +364,20 @@ int main( int argc, char** argv )
         }
 
         comma::verbose << "starting as pid " << getpid() << std::endl;
-
         std::string fields = options.value< std::string >( "--fields", default_fields );
         comma::csv::format format = format_from_fields( fields );
         bool header_only = false;
         bool check_frames = !options.exists( "--dont-check-frames" );
         unsigned int retries_on_no_frames = options.value< unsigned int >( "--retries-on-no-frames", default_retries_on_no_frames );
-
         if( options.exists( "--no-header" )) { fields = ""; }
         else { header_only = ( options.exists( "--header" )); }
         unsigned int num_frames = options.value< unsigned int >( "--frames-buffer-size,--num-frames", 3 );
-
+        float acquisition_start_delay = options.value< unsigned int >( "--acquisition-start-delay,--acquisition-delay", 10. );
         snark::cv_mat::serialization serialization( fields, format, header_only );
-
         camera.set_acquisition_mode( snark::vimba::camera::ACQUISITION_MODE_CONTINUOUS );
-
         bool acquiring = true;
         unsigned int acquisition_restarts = 0;
-        long acquisition_time_elapsed = 0;
+        long long acquisition_time_elapsed = 0; // use timestamp instead
         int exit_code = 0;
         while( acquiring )
         {
@@ -389,9 +386,9 @@ int main( int argc, char** argv )
             long frames_delivered = 0;
             do {
                 sleep( 1 );
-                acquisition_time_elapsed++;
+                ++acquisition_time_elapsed;
                 // on the first time through, wait a few seconds before checking
-                if( check_frames && acquisition_time_elapsed > 3 )
+                if( check_frames && acquisition_time_elapsed >= acquisition_start_delay )
                 {
                     boost::optional< snark::vimba::attribute > frames_delivered_attribute = camera.get_attribute( "StatFrameDelivered" );
                     if( frames_delivered_attribute )
