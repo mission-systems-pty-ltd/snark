@@ -45,6 +45,8 @@ static void usage( bool verbose )
     std::cerr << "    --timeout=[<secs>]:        exit if no data for timeout secs" << std::endl;
     std::cerr << "    --nmea=[<sentence>]:       send nmea string" << std::endl;
     std::cerr << "    --protocol=[<version>]:    protocol version; default=" << default_protocol_version << std::endl;
+    std::cerr << "    --separator-repeats=<repeats>:  how many times to repeat \\r\\n separator; default: 1" << std::endl;
+    std::cerr << "                                    you may need 2 in some cases" << std::endl;
     std::cerr << "    --verbose,-v:              more output to stderr" << std::endl;
     std::cerr << std::endl;
     std::cerr << "If required, the nmea sentence can either be defined as a parameter," << std::endl;
@@ -90,48 +92,39 @@ int main( int ac, char** av )
     try
     {
         comma::command_line_options options( ac, av, usage );
-
         if( options.exists( "--bash-completion" ) ) bash_completion( ac, av );
-
         bool verbose = options.exists( "--verbose,-v" );
-
         const std::vector< std::string >& unnamed = options.unnamed( "--verbose,-v", "-.+" );
-
         if( unnamed.size() != 1 ) { COMMA_THROW( comma::exception, "server required" ); }
         std::vector< std::string > address_components = comma::split( unnamed[0], ':' );
         if( address_components.size() == 1 ) { address_components.push_back( default_port ); }
         address_components.insert( address_components.begin(), "tcp" );
-
         std::string address = comma::join< std::vector< std::string > >( address_components, ':' );
-
         std::string mountpoint = options.value< std::string >( "--mountpoint,-m", "" );
-
         std::string protocol_version = options.value< std::string >( "--protocol", default_protocol_version );
         std::vector< std::string > protocol_version_components = comma::split( protocol_version, '.' );
+        unsigned int separator_repeats = options.value( "--separator-repeats", 1 );
+        std::string separator_string = "";
+        for( unsigned int i = 0; i < separator_repeats; ++i ) { separator_string += "\r\n"; } // uber-quick and dirty for now
+        const char* separator = &separator_string[0];
         unsigned int protocol_version_major = boost::lexical_cast< unsigned int >( protocol_version_components[0] );
-
         comma::signal_flag is_shutdown;
         std::string nmea_line;
-
         bool done = false;
         while( !is_shutdown && !done )
         {
             comma::io::select select;
             select.read().add( comma::io::stdin_fd );
-
             comma::verbose << "opening " << address << std::endl;
             comma::io::iostream ios( address );
             select.read().add( ios.fd() );
-
             std::ostringstream request;
-
             request << "GET /" << mountpoint << " HTTP/1.1\r\n";
             request << "Host: " << address_components[1] << "\r\n";
             request << "User-Agent: NTRIP client/" << protocol_version << "\r\n";
             if( protocol_version_major > 1 ) { request << "Ntrip-Version: Ntrip/" << protocol_version << "\r\n"; }
             request << "Accept: */*\r\n";
             request << "Connection: close\r\n";
-
             if( options.exists( "--username,-u" ))
             {
                 std::string userpass( options.value< std::string >( "--username,-u" ));
@@ -139,7 +132,6 @@ int main( int ac, char** av )
                 userpass.append( options.value< std::string >( "--password,-p" ));
                 request << "Authorization: Basic " << base64( userpass ) << "\r\n";
             }
-
             if( options.exists( "--nmea" ))
             {
                 std::string nmea = options.value< std::string >( "--nmea" );
@@ -147,11 +139,8 @@ int main( int ac, char** av )
                 else { request << "\r\n" << nmea << "\r\n"; }
             }
             request << "\r\n";
-
             if( verbose ) { std::cerr << strip_cr( request.str() ) << std::flush; }
-
             *ios << request.str() << std::flush;
-
             // If we have an nmea line that we've previously sent we must have
             // lost connection and restarted, in which case, resend the last line.
             if( !nmea_line.empty() )
@@ -159,16 +148,13 @@ int main( int ac, char** av )
                 if( verbose ) { std::cerr << nmea_line << std::endl; }
                 *ios << nmea_line << "\r\n" << std::flush;
             }
-
             bool ntrip_stream_closed = false;
             bool in_header = true;
             unsigned int total_bytes_read = 0;
             std::vector< char > buffer( 4096 );
             boost::posix_time::ptime last_data_time = boost::posix_time::microsec_clock::universal_time();
             boost::optional< boost::posix_time::time_duration > data_timeout;
-
             if( options.exists( "--timeout" )) { data_timeout.reset(  boost::posix_time::seconds( options.value< int >( "--timeout" ))); }
-
             while( !is_shutdown && ios->good() && !ntrip_stream_closed )
             {
                 if( data_timeout )
@@ -189,7 +175,6 @@ int main( int ac, char** av )
                 {
                     select.wait();
                 }
-
                 // input ready
                 while( select.check() && select.read().ready( comma::io::stdin_fd ) && std::cin.good() )
                 {
@@ -198,7 +183,6 @@ int main( int ac, char** av )
                     if( verbose ) { std::cerr << nmea_line << std::endl; }
                     *ios << nmea_line << "\r\n" << std::flush;
                 }
-
                 // ntrip data ready
                 while( select.check() && select.read().ready( ios.fd() ) && ios->good() )
                 {
@@ -212,7 +196,6 @@ int main( int ac, char** av )
                         std::size_t actual_bytes_read = ios->gcount();
                         total_bytes_read += actual_bytes_read;
                         if( actual_bytes_read < size ) { ntrip_stream_closed = true; break; }
-                        const char* separator = "\r\n\r\n";
                         std::vector< char >::const_iterator separator_start =
                             std::search( buffer.begin(), buffer.begin() + total_bytes_read
                                        , separator, separator + strlen( separator ));
