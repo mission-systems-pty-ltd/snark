@@ -69,7 +69,7 @@ function nmea_latlon()
 {
     local angle=$1
     local is_longitude=$2
-    IFS=, read input degrees minutes <<< $( echo $1 | csv-eval --format d --fields=x "d=int(x);m=(x-int(x))*60" )
+    IFS=, read input degrees minutes <<< $( echo $1 | csv-eval --format d --fields=x "d=int64(x);m=(x-int64(x))*60" )
     local format="%02d%07.4f,%s"
     (( is_longitude )) && format="%03d%07.4f,%s"
     local hemisphere
