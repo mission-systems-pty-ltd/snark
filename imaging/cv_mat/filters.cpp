@@ -375,7 +375,7 @@ template < typename H > class crop_tile_impl_
             else { for( std::size_t i = 0; i < tiles.size(); ++i ) { copy_tile_( input.second, output.second, i, tiles[i].first, tiles[i].second, w, h, vertical ); } }
             return output;
         }
-        
+
     private:
         static void copy_tile_( const cv::Mat& input, cv::Mat& output, unsigned int n, unsigned int i, unsigned int j, unsigned int w, unsigned int h, bool vertical )
         {
@@ -411,9 +411,9 @@ template < typename H > struct untile_impl_
         }
         value_type output( input.first, cv::Mat( tile_height * count_y, tile_width * count_x, input.second.type() ) );
         for( unsigned int j( 0 ), n( 0 ); j < count_y; ++j )
-        { 
+        {
             for( unsigned int i = 0; i < count_x; ++i, ++n )
-            { 
+            {
                 cv::Mat tile( output.second, cv::Rect( i * tile_width, j * tile_height, tile_width, tile_height ) );
                 cv::Mat( input.second, cv::Rect( vertical ? 0 : n * tile_width, vertical ? n * tile_height : 0, tile_width, tile_height ) ).copyTo( tile );
             }
@@ -606,12 +606,12 @@ class accumulate_impl_
         typedef typename impl::filters< H >::value_type value_type;
         enum how_values { sliding = 0, fixed = 1 };
         class timestamping
-        { 
+        {
             public:
                 enum how { first = 0, last, mean, median };
-                
+
                 timestamping( how h, unsigned int size ): how_( h ), values_( size ), last_( values_.size() - 1 ), count_( 0 ) {}
-                
+
                 void update( H& h )
                 {
                     ++count_;
@@ -646,14 +646,14 @@ class accumulate_impl_
                     }
                     return h;
                 }
-                
+
             private:
                 how how_;
                 std::vector< H > values_;
                 unsigned int last_;
                 unsigned int count_;
         };
-        
+
         accumulate_impl_( unsigned int how_many
                         , how_values how
                         , bool reverse
@@ -783,7 +783,7 @@ struct tee_impl_
     boost::function< value_type( value_type ) > tee;
     tee_impl_( const boost::function< value_type( value_type ) >& tee ): tee( tee ) {}
     value_type operator()( value_type m )
-    { 
+    {
         value_type n;
         n.first = m.first;
         m.second.copyTo( n.second );
@@ -1142,7 +1142,7 @@ public:
             cv::setWindowTitle( &name[0], &t[0] );
         #endif
     }
-    
+
     typename impl::filters< H >::value_type operator()( typename impl::filters< H >::value_type m )
     {
         cv::imshow( &name[0], m.second );
@@ -1152,7 +1152,7 @@ public:
         if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( get_timestamp( m.first ), suffix, unsigned(c-'0') ), m.second ); }
         return m;
     }
-    
+
 private:
     static std::string make_name_() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // quick and dirty
 };
@@ -1348,7 +1348,7 @@ class save_impl_
             ++index_;
             return m;
         }
-        
+
     private:
         snark::cv_mat::serialization serialization_;
         std::string filename_;
@@ -1715,12 +1715,12 @@ class map_impl_
             return n;
         }
         #endif
-        
+
     private:
         typedef std::unordered_map< key_type, output_value_type > map_t_;
         map_t_ map_;
         bool permissive_;
-        
+
         template < typename T, int Size > static T get_channel_( const cv::Vec< T, Size >& pixel, int channel ) { return pixel[channel]; }
         template < typename T > static T get_channel_( const T& pixel, int channel ) { return pixel; }
         template < typename T, int Size > static void set_channel_( cv::Vec< T, Size >& pixel, int channel, T value ) { return pixel[channel] = value; }
@@ -1744,7 +1744,7 @@ class map_impl_
                             set_channel_( output.at< output_value_type >(i,j), channel, output_value_type( key ) ); // todo? implement value clipping to 0 or 1? refactor not-found behaviour!
                         }
                         else
-                        { 
+                        {
                             set_channel_( output.at< output_value_type >(i,j), channel, it->second );
                         }
                     }
@@ -2156,7 +2156,7 @@ struct make_filter {
     typedef typename filter_type::output_type output_type;
     typedef boost::function< input_type( input_type ) > functor_type;
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
-    
+
 static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp, unsigned int default_delay )
 {
     if( e[0] == "accumulate" )
@@ -2178,7 +2178,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         {
             if( w[i] == "reverse" ) { reverse = true; }
             else if( w[i].substr( 0, 5 ) == "time:" )
-            { 
+            {
                 std::string t = w[i].substr( 5 );
                 if( t == "first" ) { timestamping = accumulate_impl_< H >::timestamping::first; }
                 else if( t == "last" ) { timestamping = accumulate_impl_< H >::timestamping::last; }
@@ -2198,14 +2198,14 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         {
             if( s.front() == "average" ) { return std::make_pair(  boost::bind< value_type_t >( accumulated::average< H >(), _1 ), false ); }
             if( s.front() == "moving-average" )
-            { 
+            {
                 if( s.size() < 2 ){ COMMA_THROW(comma::exception, "accumulated: moving-average: please specify window size" ); }
-                return std::make_pair(  boost::bind< value_type_t >( accumulated::moving_average< H >( boost::lexical_cast< comma::uint32 >(s[1]) ), _1 ), false ); 
+                return std::make_pair(  boost::bind< value_type_t >( accumulated::moving_average< H >( boost::lexical_cast< comma::uint32 >(s[1]) ), _1 ), false );
             }
             if( s.front() == "ema" )
-            { 
+            {
                 if( s.size() < 2 ){ COMMA_THROW(comma::exception, "accumulated: ema: please specify alpha" ); }
-                return std::make_pair( boost::bind< value_type_t >( accumulated::ema< H >( boost::lexical_cast< float >( s[1] ), s.size() < 3 ? 1 : boost::lexical_cast< comma::uint32 >( s[2] ) ), _1 ), false ); 
+                return std::make_pair( boost::bind< value_type_t >( accumulated::ema< H >( boost::lexical_cast< float >( s[1] ), s.size() < 3 ? 1 : boost::lexical_cast< comma::uint32 >( s[2] ) ), _1 ), false );
             }
             if( s.front() == "min" ) { return std::make_pair( boost::bind< value_type_t >( accumulated::min< H >(), _1 ), false ); }
             if( s.front() == "max" ) { return std::make_pair( boost::bind< value_type_t >( accumulated::max< H >(), _1 ), false ); }
@@ -2854,7 +2854,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
 
     struct maker
     {
-        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' ) 
+        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' )
             : get_timestamp_( get_timestamp ), separator_( separator ), equal_sign_( equal_sign ) {}
         std::pair< functor_type, bool > operator()( const std::string & s ) const
         {
@@ -2862,15 +2862,15 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
             std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_, 1 );
             auto functor = g.first;
             bool parallel = g.second;
-            for( unsigned int k = 1; k < w.size(); ++k ) 
-            { 
+            for( unsigned int k = 1; k < w.size(); ++k )
+            {
                 auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_, 1 );
                 if( b.second == false ) { parallel = false; } // If any filter must be serial, then turn parallel off
-                functor = boost::bind( b.first , boost::bind( functor, _1 ) ); 
+                functor = boost::bind( b.first , boost::bind( functor, _1 ) );
             }
             return std::make_pair( functor, parallel );
         }
-        
+
         private:
             const get_timestamp_functor & get_timestamp_;
             char separator_, equal_sign_;
@@ -2884,13 +2884,13 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         typedef typename boost::static_visitor< std::pair< functor_type, bool > >::result_type result_type;
 
         result_type term( const std::string & s ) const { return m_( s ); };
-        result_type op_and( const result_type & opl, const result_type & opr ) const { 
+        result_type op_and( const result_type & opl, const result_type & opr ) const {
             return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second & r.second ); }, opl.second && opr.second ); }
-        result_type op_or( const result_type & opl, const result_type & opr ) const { 
-            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second | r.second ); }, opl.second && opr.second ); 
+        result_type op_or( const result_type & opl, const result_type & opr ) const {
+            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second | r.second ); }, opl.second && opr.second );
         }
-        result_type op_xor( const result_type & opl, const result_type & opr ) const { 
-            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second ^ r.second ); }, opl.second && opr.second ); 
+        result_type op_xor( const result_type & opl, const result_type & opr ) const {
+            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second ^ r.second ); }, opl.second && opr.second );
         }
         result_type op_not( const result_type & op ) const { return std::make_pair( [ op ]( const input_type & i ) -> input_type { const input_type & o = op.first( i ); composer::assert_integer( o ); return std::make_pair( i.first, ~o.second ); }, op.second ); }
 
@@ -3317,6 +3317,9 @@ static std::string usage_impl_()
     oss << "            <threshold|otsu>: threshold value; if 'otsu' then the optimum threshold value using the Otsu's algorithm is used (only for 8-bit images)" << std::endl;
     oss << "            <maxval>: maximum value to use with the binary and binary_inv thresholding types (default:255)" << std::endl;
     oss << "            <type>: binary, binary_inv, trunc, tozero, tozero_inv (default:binary)" << std::endl;
+    oss << "        tile=<ncols>,<nrows>[,horizontal]: input image split into tiles with <ncols>*<nrows> each; also see untile" << std::endl;
+    oss << "                                           if width or height of input image is not divisible by the corresponding count, the input image will be clipped" << std::endl;
+    oss << "                                           horizontal: if present, input tiles are considered stacked horizontally (by default, vertical stacking is used)" << std::endl;
     oss << "        timestamp: write timestamp on images" << std::endl;
     oss << "        transpose: transpose the image (swap rows and columns)" << std::endl;
     oss << "        undistort=<how>: undistort" << std::endl;
@@ -3328,7 +3331,7 @@ static std::string usage_impl_()
     oss << "            <format>: output pixel formats in quadbits" << std::endl;
     oss << "                where 'a' is high quadbit of byte 0, 'b' is low quadbit of byte 0, 'c' is high quadbit of byte 1, etc... and '0' means quadbit zero" << std::endl;
     oss << "        unpack12: convert from 12-bit packed (2 pixels in 3 bytes) to 16UC1; use before other filters; equivalent to unpack=12,abc0,efd0" << std::endl;
-    oss << "        untile=<ncols>,<nrows>[,horizontal]: inverse to tile; input image used as a stip of <ncols>*<nrows> tiles, output image will be be composed by <nrows> of tiles with <ncols> tiles per row" << std::endl;
+    oss << "        untile=<ncols>,<nrows>[,horizontal]: inverse to tile; input image used as a strip of <ncols>*<nrows> tiles, output image will be be composed by <nrows> of tiles with <ncols> tiles per row" << std::endl;
     oss << "                                             if width or height of input image is not divisible by the corresponding count, the input image will be clipped" << std::endl;
     oss << "                                             horizontal: if present, input tiles are considered stacked horizontally (by default, vertical stacking is used)" << std::endl;
     oss << "                                             example" << std::endl;
@@ -3336,7 +3339,7 @@ static std::string usage_impl_()
     oss << "                                                 > eog original.png" << std::endl;
     oss << "                                                 > ( yes 255 | head -n $(( 64 * 64 * 20 )) | csv-to-bin ub ) | cv-cat --input 'no-header;rows=64;cols=64;type=ub' 'count' | cv-cat --input 'no-header;rows=1280;cols=64;type=ub' 'untile=5,4;encode=png' > untiled.png" << std::endl;
     oss << "                                                 > eog untiled.png" << std::endl;
-    oss << "        view[=<wait-interval>[,<name>[,<suffix]]]: view image;" << std::endl; 
+    oss << "        view[=<wait-interval>[,<name>[,<suffix]]]: view image;" << std::endl;
     oss << "                                press <space> to save image (timestamp or system time as filename); " << std::endl;
     oss << "                                press <esc>: to close" << std::endl;
     oss << "                                press numerical '0' to '9' to add the id (0-9) to the file name: <timestamp>.<id>.<suffix>" << std::endl;
