@@ -2396,8 +2396,8 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
             if( !width ) { width = boost::lexical_cast< unsigned int >( s[i] ); continue; }
             height = boost::lexical_cast< unsigned int >( s[i] );
         }
-        if( !width ) { COMMA_THROW( comma::exception, "untile: expected tile count along x; got: \"" << e[1] << "\"" ); }
-        if( !height ) { COMMA_THROW( comma::exception, "untile: expected tile count along x and y; got: \"" << e[1] << "\"" ); }
+        if( !width ) { COMMA_THROW( comma::exception, "tile: expected tile count along x; got: \"" << e[1] << "\"" ); }
+        if( !height ) { COMMA_THROW( comma::exception, "tile: expected tile count along x and y; got: \"" << e[1] << "\"" ); }
         return std::make_pair( boost::bind< value_type_t >( tile_impl_< H >(), _1, *width, *height, vertical ), true );
     }
     if( e[0] == "untile" )
