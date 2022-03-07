@@ -3317,7 +3317,7 @@ static std::string usage_impl_()
     oss << "            <threshold|otsu>: threshold value; if 'otsu' then the optimum threshold value using the Otsu's algorithm is used (only for 8-bit images)" << std::endl;
     oss << "            <maxval>: maximum value to use with the binary and binary_inv thresholding types (default:255)" << std::endl;
     oss << "            <type>: binary, binary_inv, trunc, tozero, tozero_inv (default:binary)" << std::endl;
-    oss << "        tile=<ncols>,<nrows>[,horizontal]: input image split into tiles with <ncols>*<nrows> each; also see untile" << std::endl;
+    oss << "        tile=<ncols>,<nrows>[,horizontal]: input image split into <ncols>*<nrows> tiles; also see untile" << std::endl;
     oss << "                                           if width or height of input image is not divisible by the corresponding count, the input image will be clipped" << std::endl;
     oss << "                                           horizontal: if present, input tiles are considered stacked horizontally (by default, vertical stacking is used)" << std::endl;
     oss << "        timestamp: write timestamp on images" << std::endl;
