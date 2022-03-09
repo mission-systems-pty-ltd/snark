@@ -45,6 +45,9 @@ void usage( bool verbose )
     std::cerr << "\n        request: request a specific packet";
     std::cerr << "\n            input field: packet_id";
     std::cerr << "\n";
+    std::cerr << "\n        reset: send a hot (equivalent to power-cycle) or cold start reset ";
+    std::cerr << "\n            input field: sequence";
+    std::cerr << "\n";
     std::cerr << "\n        filter-options: set filter options";
     std::cerr << "\n            input fields: permanent, vehicle_types, internal_gnss_enabled,";
     std::cerr << "\n                magnetic_heading_enabled, atmospheric_altitude_enabled,";
@@ -68,6 +71,12 @@ void usage( bool verbose )
         std::cerr << "\n";
         std::cerr << "\n  request filter options packet";
         std::cerr << "\n    echo 186 | " << comma::verbose.app_name() << " --send request";
+        std::cerr << "\n";
+        std::cerr << "\n  reset device with standard hot start";
+        std::cerr << "\n    echo 554007166 | " << comma::verbose.app_name() << " --send reset";
+        std::cerr << "\n";
+        std::cerr << "\n  reset device with cold start";
+        std::cerr << "\n    echo 2589800631 | " << comma::verbose.app_name() << " --send reset";
         std::cerr << "\n";
         std::cerr << "\n  set filter options packet";
         std::cerr << "\n    echo 1,0,0,0,1,0,1,0,0,0 | " << comma::verbose.app_name() << " --send filter-options";
@@ -302,6 +311,7 @@ int main( int argc, char** argv )
         {
             std::unique_ptr< send_factory_i > sf;
             if( *opt_send == "request" ) { sf.reset( new send_factory_t< send_app< messages::request >>() ); }
+            else if( *opt_send == "reset" ) { sf.reset( new send_factory_t< send_app< messages::reset >>() ); }
             else if( *opt_send == "filter-options" ) { sf.reset( new send_factory_t< send_app< messages::filter_options >>() ); }
             else if( *opt_send == "magnetic-calibration" ) { sf.reset( new send_factory_t< send_app< messages::magnetic_calibration_configuration >>() ); }
             else { COMMA_THROW( comma::exception, "invalid send command: " << *opt_send ); }

@@ -61,6 +61,15 @@ struct request : public comma::packed::packed_struct< request, 1 >
     command get_command() const { return command( id, data(), size ); }
 };
 
+struct reset : public comma::packed::packed_struct< reset, 4 >
+{
+    enum { id = 5 };
+    // 0x21057A7E for hot start reset (equivalent to power cycle), 0x9A5D38B7 for cold start reset
+    comma::packed::little_endian::uint32 verification_sequence;
+
+    command get_command() const { return command( id, data(), size ); }
+};
+
 struct system_state : public comma::packed::packed_struct< system_state, 100 >
 {
     enum { id = 20 };

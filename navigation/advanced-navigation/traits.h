@@ -33,6 +33,21 @@ struct traits< snark::navigation::advanced_navigation::messages::request >
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::reset >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::reset& p, Visitor& v )
+    {
+        v.apply( "verification_sequence", p.verification_sequence() );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, snark::navigation::advanced_navigation::messages::reset& p, Visitor& v )
+    {
+        auto a = p.verification_sequence();
+        v.apply( "verification_sequence", a );
+        p.verification_sequence = a;
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::system_state >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::system_state& p, Visitor& v )
