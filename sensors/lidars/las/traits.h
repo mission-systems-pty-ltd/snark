@@ -41,8 +41,8 @@ template <> struct traits< snark::las::version >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::version& t, V& v ) // todo
     {
-        //v.apply( "major", t.major() ); // todo: somehow it does not compile
-        //v.apply( "minor", t.minor() ); // todo: somehow it does not compile
+        v.apply( "major", t.major() ); // todo: somehow it does not compile
+        v.apply( "minor", t.minor() ); // todo: somehow it does not compile
     }
 };
 
@@ -55,7 +55,7 @@ template < typename T > struct traits< snark::las::xyz< T > >
         v.apply( "z", t.z() );
     }
 };
-    
+
 template <> struct traits< snark::las::header >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::header& t, V& v )
@@ -91,5 +91,5 @@ template <> struct traits< snark::las::header >
         v.apply( "min_z", t.min_z() );
     }
 };
-    
+
 } } // namespace comma { namespace visiting {
