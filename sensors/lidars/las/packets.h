@@ -145,6 +145,8 @@ namespace variable_length_records
         struct body: public variable_length_records::record::body_t
         {
             std::string tag;
+
+            body( const std::string& tag = "" ): tag( tag ) {}
         };
     };
 } // namespace variable_length_records

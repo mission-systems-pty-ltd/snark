@@ -212,21 +212,26 @@ static int read_points( const snark::las::header& header, const comma::command_l
     return 0;
 }
 
+static void _read( std::istream& is, char* buf, unsigned int size, const std::string& name = "buffer" )
+{
+    is.read( reinterpret_cast< char* >( buf ), size );
+    int count = std::cin.gcount();
+    if( count < int( size ) ) { COMMA_THROW( comma::exception, "las-to-csv: expected " << name << " of " << snark::las::variable_length_records::header::size << " bytes, got only: " << count << std::endl ); }
+}
+
 static snark::las::header read_header( std::istream& is )
 {
     snark::las::header header;
-    is.read( reinterpret_cast< char* >( &header ), snark::las::header::size );
-    int count = std::cin.gcount();
-    if( count < snark::las::header::size ) { COMMA_THROW( comma::exception, "las-to-csv: expected las header of " << snark::las::header::size << " bytes, got only: " << count << std::endl ); }
+    _read( is, reinterpret_cast< char* >( &header ), snark::las::header::size, "las header" );
     return header;
 }
 
 static snark::las::variable_length_records::record read_variable_length_record( std::istream& is )
 {
     snark::las::variable_length_records::record record;
-    is.read( reinterpret_cast< char* >( &record.header ), snark::las::variable_length_records::header::size );
-    int count = std::cin.gcount();
-    if( count < snark::las::variable_length_records::header::size ) { COMMA_THROW( comma::exception, "las-to-csv: expected las header of " << snark::las::variable_length_records::header::size << " bytes, got only: " << count << std::endl ); }
+    _read( is, reinterpret_cast< char* >( &record.header ), snark::las::variable_length_records::header::size, "las variable length header" );
+    std::vector< char > body( record.header.record_length_after_header() );
+    _read( is, &body[0], record.header.record_length_after_header(), "variable length record body" );
     if( record.header.user_id() == "LASF_Projection" )
     {
         switch( record.header.record_id() )
@@ -235,7 +240,7 @@ static snark::las::variable_length_records::record read_variable_length_record( 
                 // todo
                 break;
             case 34737:
-                // todo
+                record.body.reset( new snark::las::variable_length_records::geo_ascii_params_tag::body( std::string( &body[0], record.header.record_length_after_header() ) ) );
                 break;
             default:
                 break;
