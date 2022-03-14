@@ -29,8 +29,7 @@
 
 /// @author vsevolod vlaskine
 
-#ifndef SNARK_SENSORS_LAS_PACKETS_H
-#define SNARK_SENSORS_LAS_PACKETS_H
+#pragma once
 
 #include <boost/array.hpp>
 #include <comma/base/types.h>
@@ -89,7 +88,54 @@ struct header: public comma::packed::packed_struct< header, 227 >
     comma::packed::float64 min_z;
 };
 
-/// @todo: variable length records
+namespace variable_length_records
+{
+    struct header: public comma::packed::packed_struct< variable_length_records::header, 54 >
+    {
+        comma::packed::little_endian::uint16 reserved;
+        comma::packed::string< 16 > user_id;
+        comma::packed::little_endian::uint16 record_id;
+        comma::packed::little_endian::uint16 record_length_after_header;
+        comma::packed::string< 32 > description;
+    };
+
+    struct geo_key_directory_tag
+    {
+        enum { record_id = 34735 };
+
+        struct header: public comma::packed::packed_struct< variable_length_records::geo_key_directory_tag::header, 8 >
+        {
+            comma::packed::little_endian::uint16 key_directory_version;
+            comma::packed::little_endian::uint16 key_revision;
+            comma::packed::little_endian::uint16 minor_revision;
+            comma::packed::little_endian::uint16 number_of_keys;
+        };
+
+        struct key: public comma::packed::packed_struct< variable_length_records::geo_key_directory_tag::key, 8 >
+        {
+            comma::packed::little_endian::uint16 id;
+            comma::packed::little_endian::uint16 tiff_tag_location;
+            comma::packed::little_endian::uint16 count;
+            comma::packed::little_endian::uint16 offset;
+        };
+
+        struct record
+        {
+            geo_key_directory_tag::header header;
+            std::vector< geo_key_directory_tag::key > keys;
+        };
+    };
+
+    struct geo_ascii_params_tag
+    {
+        enum { record_id = 34737 };
+
+        struct record
+        {
+            std::string tag;
+        };
+    };
+} // namespace variable_length_records
 
 /// @todo: other point data record formats
 template < unsigned int I > struct point;
@@ -156,5 +202,3 @@ template <> struct point< 3 > : public comma::packed::packed_struct< point< 3 >,
 };
 
 } }  // namespace snark { namespace las {
-
-#endif // SNARK_SENSORS_LAS_PACKETS_H
