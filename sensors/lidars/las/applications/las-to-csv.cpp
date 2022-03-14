@@ -300,6 +300,7 @@ int main( int ac, char** av )
         if( what == "header" ) { comma::write_json( header, std::cout ); return 0; }
         if( what == "variable-length-records" )
         {
+            std::cerr << "las-to-csv: variable-length-records: todo" << std::endl; exit( 1 );
             for( unsigned int i = 0; i < header.number_of_variable_length_records(); ++i ) { read_variable_length_record( std::cin ); } // todo! .to_json(); }
         }
         if( what == "points" )
