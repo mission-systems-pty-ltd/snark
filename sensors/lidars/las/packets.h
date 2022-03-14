@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include <memory>
 #include <boost/array.hpp>
 #include <comma/base/types.h>
 #include <comma/packed/bits.h>
@@ -99,6 +100,17 @@ namespace variable_length_records
         comma::packed::string< 32 > description;
     };
 
+    struct record
+    {
+        struct body_t
+        {
+            virtual ~body_t() {}
+        };
+
+        variable_length_records::header header;
+        std::unique_ptr< body_t > body;
+    };
+
     struct geo_key_directory_tag
     {
         enum { record_id = 34735 };
@@ -119,7 +131,7 @@ namespace variable_length_records
             comma::packed::little_endian::uint16 offset;
         };
 
-        struct record
+        struct body: public variable_length_records::record::body_t
         {
             geo_key_directory_tag::header header;
             std::vector< geo_key_directory_tag::key > keys;
@@ -130,7 +142,7 @@ namespace variable_length_records
     {
         enum { record_id = 34737 };
 
-        struct record
+        struct body: public variable_length_records::record::body_t
         {
             std::string tag;
         };

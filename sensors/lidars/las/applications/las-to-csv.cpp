@@ -29,6 +29,7 @@
 
 /// @author vsevolod vlaskine
 
+#include <memory>
 #include <Eigen/Core>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
@@ -86,7 +87,7 @@ template <> struct point< 0 >
     char scan_angle;
     unsigned char user_data;
     comma::uint16 point_source_id;
-    
+
     point< 0 >() {}
     template < typename P >
     point< 0 >( const P& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset )
@@ -109,7 +110,7 @@ template <> struct point< 0 >
 template <> struct point< 1 > : public point< 0 >
 {
     double gps_time;
-    
+
     point() {}
     point( const snark::las::point< 1 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ) {}
 };
@@ -117,7 +118,7 @@ template <> struct point< 1 > : public point< 0 >
 template <> struct point< 2 > : public point< 0 >
 {
     ::colour colour;
-    
+
     point() {}
     point( const snark::las::point< 2 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), colour( p.colour.red(), p.colour.green(), p.colour.blue() ) {}
 };
@@ -126,7 +127,7 @@ template <> struct point< 3 > : public point< 0 >
 {
     double gps_time;
     ::colour colour;
-    
+
     point() {}
     point( const snark::las::point< 3 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), colour( p.colour.red(), p.colour.green(), p.colour.blue() ) {}
 };
@@ -220,6 +221,29 @@ static snark::las::header read_header( std::istream& is )
     return header;
 }
 
+static snark::las::variable_length_records::record read_variable_length_record( std::istream& is )
+{
+    snark::las::variable_length_records::record record;
+    is.read( reinterpret_cast< char* >( &record.header ), snark::las::variable_length_records::header::size );
+    int count = std::cin.gcount();
+    if( count < snark::las::variable_length_records::header::size ) { COMMA_THROW( comma::exception, "las-to-csv: expected las header of " << snark::las::variable_length_records::header::size << " bytes, got only: " << count << std::endl ); }
+    if( record.header.user_id() == "LASF_Projection" )
+    {
+        switch( record.header.record_id() )
+        {
+            case 34735:
+                // todo
+                break;
+            case 34737:
+                // todo
+                break;
+            default:
+                break;
+        }
+    }
+    return record;
+}
+
 int main( int ac, char** av )
 {
     try
@@ -269,6 +293,10 @@ int main( int ac, char** av )
         snark::las::header header = read_header( std::cin );
         if( !point_format ) { point_format = header.point_data_format(); }
         if( what == "header" ) { comma::write_json( header, std::cout ); return 0; }
+        if( what == "variable-length-records" )
+        {
+            for( unsigned int i = 0; i < header.number_of_variable_length_records(); ++i ) { read_variable_length_record( std::cin ); } // todo! .to_json(); }
+        }
         if( what == "points" )
         {
             std::vector< char > offset( header.offset_to_point_data() - snark::las::header::size );
