@@ -20,11 +20,11 @@
       - libtbb-dev
       - zlib1g-dev
       - libbz2-dev
-      - libopencv-dev 
+      - libopencv-dev
       - libopencv-highgui-dev
       - libpcap-dev
-      - qtbase5-dev 
-      - qt5-default 
+      - qtbase5-dev
+      - qt5-default
       - qt3d5-dev
       - libassimp-dev
       - python3-opencv
@@ -41,24 +41,24 @@
     with_items:
         - src
         - build
-      
+
   - name: "snark: dependencies: clone comma"
     git:
         repo: "https://gitlab.com/orthographic/comma.git"
         dest: "{{ base }}/src/comma"
         clone: yes
         update: yes
-      
+
   - name: "snark: dependencies: install comma"
-    script: /usr/bin/ansible-playbook {{ base }}/src/comma/system/ansible/install.yml
-    
+    script: /usr/bin/ansible-playbook {{ base }}/src/comma/system/ansible/install.python3.yml
+
   - name: "snark: clone"
     git:
         repo: "https://gitlab.com/orthographic/snark.git"
         dest: "{{ base }}/src/snark"
         clone: yes
         update: yes
-        
+
   - name: "snark: make build directory at {{ base }}"
     file: dest="{{ base }}/build/snark" state=directory
 
@@ -76,7 +76,7 @@
     make:
         chdir: "{{ base }}/build/snark"
         target: "install"
-   
+
 #  - name: "snark: cmake"
 #    shell: "/usr/bin/cmake {{ snark_cmake_options }} {{ base }}/src/snark chdir={{ base }}/build/snark"
 #
