@@ -1815,9 +1815,9 @@ int main( int ac, char** av )
             std::string how = options.value< std::string >( "--how", "by-direction" );
             if( how == "by-direction" || how == "direction" ) // by-direction currently is the only policy
             {
+                if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; exit( 1 ); }
                 is_new_partition = [&]( const point_with_direction& v )->bool
                                    {
-                                       if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; }
                                        static double threshold = options.value( "--threshold,--angle-threshold", M_PI / 2 );
                                        static boost::optional< double > distance_tolerance = options.optional< double >( "--tolerance,--distance-tolerance,--distance-threshold" );
                                        static boost::optional< Eigen::Vector3d > partition_direction;
