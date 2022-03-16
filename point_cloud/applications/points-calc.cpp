@@ -1800,6 +1800,7 @@ int main( int ac, char** av )
         }
         if( operation == "trajectory-partition" || operation == "trajectory-partitions" )
         {
+            if( operation == "trajectory-partitions" ) { std::cerr << "points-calc: DEPRECATION WARNING: trajectory-partitions (plural) is deprecated; use trajectory-partition (as verb)" << std::endl; }
             if( options.exists( "--input-fields" )) { std::cout << comma::join( comma::csv::names< point_with_direction >( true ), ',' ) << std::endl; return 0; }
             if( options.exists( "--input-format" )) { std::cout << comma::csv::format::value< point_with_direction >() << std::endl; return 0; }
             if( options.exists( "--output-fields" )) { std::cout << "id" << std::endl; return 0; }
