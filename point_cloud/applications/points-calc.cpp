@@ -321,7 +321,7 @@ static void usage( bool verbose = false )
     std::cerr << "        trajectory-distance" << std::endl;
     std::cerr << "            alias for distance operation" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "        trajectory-partitions" << std::endl;
+    std::cerr << "        trajectory-partition" << std::endl;
     std::cerr << "            read input, append partition ids based on a rule or heuristic (see options below)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "            input fields: " << comma::join( comma::csv::names< point_with_direction >( true ), ',' ) << std::endl;
@@ -523,7 +523,7 @@ static void process( std::deque< record_t >& que
 {
     if( verbose ) { std::cerr << "points-calc: loading " << que.size() << " points into grid..." << std::endl; }
 
-    typedef std::multimap< double, record_t* > voxel_t; 
+    typedef std::multimap< double, record_t* > voxel_t;
     typedef snark::voxel_map< voxel_t, 3 > grid_t;
 
     grid_t grid( extents.min(), resolution );
@@ -872,7 +872,7 @@ static void trajectory_discretise( double step, double tolerance )
             previous_record = istream.last();
         }
         if( previous_point ) { ostream.append( previous_record, *previous_point ); }
-        
+
 //         while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
 //         {
 //             const Eigen::Vector3d* current_point = istream.read();
@@ -926,7 +926,7 @@ static int trajectory_cumulative_discretise( const comma::command_line_options& 
     if( !comma::math::equal( length, stepped ) ) { comma::csv::append( istream, ostream, previous_point ); }
     return 0;
 }
-    
+
 namespace trajectory_chord_operation {
 
 struct record
@@ -979,7 +979,7 @@ struct point
     comma::uint32 id;
     comma::uint32 block;
 //     uint8_t mask;
-    
+
     point() : coordinates( 0, 0, 0 ), scalar( 0 ), id( 0 ), block( 0 ) {}
     point( const Eigen::Vector3d& coordinates, double scalar ) : coordinates( coordinates ), scalar( scalar ), id( 0 ), block( 0 ) {}
 };
@@ -1000,9 +1000,9 @@ struct record // todo: it's a mess; remove code duplication: all information can
     comma::uint32 reference_id;
     double distance;
     record* reference_record;
-    
+
     static comma::uint32 invalid_id;
-    
+
     record() : is_extremum( true ), reference_id( invalid_id ), distance( std::numeric_limits< double >::max() ), reference_record( NULL ) {}
     record( const local_operation::point& p, const std::string& line ) : point( p ), line( line ), is_extremum( true ), reference_id( invalid_id ), distance( std::numeric_limits< double >::max() ), reference_record( NULL ) {}
     local_operation::output output( bool force = true ) const { return !force && reference_id == invalid_id ? local_operation::output( invalid_id, 0 ) : local_operation::output( reference_record->point.id, ( reference_record->point.coordinates - point.coordinates ).norm() ); }
@@ -1074,7 +1074,7 @@ static void process_nearest_extremum_block( std::deque< local_operation::record 
 
     grid_t grid( extents.min(), resolution );
     for( std::size_t i = 0; i < records.size(); ++i )
-    { 
+    {
 //         if(records[i].point.mask )
         ( grid.touch_at( records[i].point.coordinates ) )->second.push_back( &records[i] );
     }
@@ -1192,7 +1192,7 @@ static void output_nearest_extremum_block( const std::deque< local_operation::re
 namespace snark { namespace points_calc { namespace trajectory_partitions {
 
 typedef point_with_direction input;
-    
+
 struct output { comma::uint32 id; output( comma::uint32 id = 0 ): id( id ) {} };
 
 } } } // namespace snark { namespace points_calc { namespace trajectory_partitions {
@@ -1206,19 +1206,19 @@ template <> struct traits< point_with_direction >
         comma::visiting::traits< Eigen::Vector3d >::visit( k, static_cast< const Eigen::Vector3d& >( t ), v );
         v.apply( "direction", t.direction );
     }
-    
+
     template< typename K, typename V > static void visit( const K& k, point_with_direction& t, V& v )
     {
         comma::visiting::traits< Eigen::Vector3d >::visit( k, static_cast< Eigen::Vector3d& >( t ), v );
         v.apply( "direction", t.direction );
     }
 };
-    
+
 template <> struct traits< snark::points_calc::trajectory_partitions::output >
 {
     template< typename K, typename V > static void visit( const K&, const snark::points_calc::trajectory_partitions::output& t, V& v ) { v.apply( "id", t.id ); }
 };
-    
+
 template <> struct traits< point_with_block >
 {
     template< typename K, typename V > static void visit( const K&, const point_with_block& t, V& v )
@@ -1244,7 +1244,7 @@ template <> struct traits< local_operation::point >
         v.apply( "block", t.block );
 //         v.apply( "mask", t.mask );
     }
-    
+
     template< typename K, typename V > static void visit( const K&, local_operation::point& t, V& v )
     {
         v.apply( "coordinates", t.coordinates );
@@ -1280,7 +1280,7 @@ template <> struct traits< percentile_in_radius::input_t >
         v.apply( "block", t.block );
     }
 };
-    
+
 } } // namespace comma { namespace visiting {
 
 template < typename Traits > static int run( const comma::command_line_options& options )
@@ -1410,7 +1410,7 @@ int main( int ac, char** av )
                     passed.write();
                 }
                 return 0;
-            }    
+            }
             double distance = 0;
             while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
@@ -1507,11 +1507,11 @@ int main( int ac, char** av )
             for( std::size_t i = 0; i < records.size(); ++i )
             {
                 if( records[i].is_extremum )
-                { 
+                {
                     ( extrema.touch_at( records[i].point.coordinates ) )->second.push_back( &records[i] );
                 }
                 else
-                { 
+                {
                     records[i].reference_id = local_operation::record::invalid_id; // quick and dirty for now
 //                     if( records[i].reference_id == local_operation::record::invalid_id ) { continue; }
 //                     while( records[i].reference_record->point.id != records[i].reference_record->reference_record->point.id )
@@ -1534,7 +1534,7 @@ int main( int ac, char** av )
                             grid_t::iterator git = extrema.find( i );
                             if( git == extrema.end() ) { continue; }
                             for( std::size_t n = 0; n < it->second.size(); ++n )
-                            {                            
+                            {
                                 for( std::size_t k = 0; k < git->second.size(); ++k )
                                 {
                                     local_operation::update_nearest_extremum( it->second[n], git->second[k], radius, trace );
@@ -1556,11 +1556,11 @@ int main( int ac, char** av )
                     }
                 }
             }
-            
-            
+
+
             // todo: move output to a function
-            
-            
+
+
             if( verbose ) { std::cerr << "points-calc: " << operation << ": outputting..." << std::endl; }
             std::string endl;
             std::string delimiter;
@@ -1687,7 +1687,7 @@ int main( int ac, char** av )
             unsigned int size = options.value< unsigned int >( "--min-number-of-points-per-voxel,--size" );
             double r = options.value< double >( "--resolution" );
             Eigen::Vector3d resolution( r, r, r );
-            bool no_antialiasing = options.exists( "--no-antialiasing" );            
+            bool no_antialiasing = options.exists( "--no-antialiasing" );
             bool discard=options.exists("--discard");
             comma::csv::input_stream< remove_outliers::point > istream( std::cin, csv );
             remove_outliers::app app(csv,verbose);
@@ -1798,7 +1798,7 @@ int main( int ac, char** av )
             }
             return 0;
         }
-        if( operation == "trajectory-partitions" )
+        if( operation == "trajectory-partition" )
         {
             if( options.exists( "--input-fields" )) { std::cout << comma::join( comma::csv::names< point_with_direction >( true ), ',' ) << std::endl; return 0; }
             if( options.exists( "--input-format" )) { std::cout << comma::csv::format::value< point_with_direction >() << std::endl; return 0; }
@@ -1816,7 +1816,7 @@ int main( int ac, char** av )
             {
                 is_new_partition = [&]( const point_with_direction& v )->bool
                                    {
-                                       if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partitions --how=by-distance: please specify direction fields"; }
+                                       if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; }
                                        static double threshold = options.value( "--threshold,--angle-threshold", M_PI / 2 );
                                        static boost::optional< double > distance_tolerance = options.optional< double >( "--tolerance,--distance-tolerance,--distance-threshold" );
                                        static boost::optional< Eigen::Vector3d > partition_direction;
@@ -1836,7 +1836,7 @@ int main( int ac, char** av )
             }
             else
             {
-                std::cerr << "points-calc: trajectory-partitions: expected --how, got: '" << how << "'" << std::endl;
+                std::cerr << "points-calc: trajectory-partition: expected --how, got: '" << how << "'" << std::endl;
             }
             while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
