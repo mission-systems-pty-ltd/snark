@@ -91,7 +91,7 @@ static void usage( bool verbose = false )
     std::cerr << "    trajectory-cumulative-distance,cumulative-distance" << std::endl;
     std::cerr << "    trajectory-cumulative-discretise,trajectory-cumulative-discretize,cumulative-discretise,cumulative-discretize,sample" << std::endl;
     std::cerr << "    trajectory-discretize,trajectory-discretise,discretize,discretise" << std::endl;
-    std::cerr << "    trajectory-partition" << std::endl;
+    std::cerr << "    trajectory-partition, trajectory-partitions (deprecated)" << std::endl;
     std::cerr << "    trajectory-thin" << std::endl;
     std::cerr << "    triangles-area" << std::endl;
     std::cerr << "    triangles-discretise,triangles-discretize" << std::endl;
@@ -1798,7 +1798,7 @@ int main( int ac, char** av )
             }
             return 0;
         }
-        if( operation == "trajectory-partition" )
+        if( operation == "trajectory-partition" || operation == "trajectory-partitions" )
         {
             if( options.exists( "--input-fields" )) { std::cout << comma::join( comma::csv::names< point_with_direction >( true ), ',' ) << std::endl; return 0; }
             if( options.exists( "--input-format" )) { std::cout << comma::csv::format::value< point_with_direction >() << std::endl; return 0; }
