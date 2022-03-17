@@ -1815,22 +1815,26 @@ int main( int ac, char** av )
             std::string how = options.value< std::string >( "--how", "by-direction" );
             if( how == "by-direction" || how == "direction" ) // by-direction currently is the only policy
             {
-                if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; return 1; }
+                if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; return 1; } // todo? if direction field not present, calculate direction from trajectory
                 is_new_partition = [&]( const point_with_direction& v )->bool
                                    {
                                        static double threshold = options.value( "--threshold,--angle-threshold", M_PI / 2 );
                                        static boost::optional< double > distance_tolerance = options.optional< double >( "--tolerance,--distance-tolerance,--distance-threshold" );
                                        static boost::optional< Eigen::Vector3d > partition_direction;
-                                       static boost::optional< Eigen::Vector3d > first_point_over_threshold;
+                                       static boost::optional< Eigen::Vector3d > previous; // static boost::optional< Eigen::Vector3d > first_point_over_threshold;
+                                       static double distance = 0;
                                        if( !partition_direction ) { partition_direction = v.direction; return false; }
                                        double angle = std::abs( Eigen::AngleAxis< double >( Eigen::Quaternion< double >::FromTwoVectors( *partition_direction, v.direction ) ).angle() );
-                                       if( angle < threshold ) { first_point_over_threshold.reset(); return false; }
+                                       if( std::abs( angle ) < threshold ) { previous.reset(); distance=0; return false; } // todo? apply distance tolerance to 'good' angles, too? also, i don't think angle can be negative
                                        if( distance_tolerance )
                                        {
-                                           if( !first_point_over_threshold ) { first_point_over_threshold = v; return false; }
-                                           if( ( *first_point_over_threshold - v ).norm() < distance_tolerance ) { return false; }
+                                           if( !previous ) { previous = v; distance = 0; return false; }
+                                           distance += ( v - *previous ).norm();
+                                           previous = v;
+                                           if( distance < distance_tolerance ) { return false; }
                                        }
-                                       first_point_over_threshold.reset();
+                                       previous.reset();
+                                       distance = 0;
                                        partition_direction = v.direction;
                                        return true;
                                    };
