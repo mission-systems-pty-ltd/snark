@@ -16,8 +16,8 @@
 #include <comma/application/signal_flag.h>
 #include <comma/csv/stream.h>
 #include <comma/math/compare.h>
-#include "../../math/roll_pitch_yaw.h"
 #include "../../math/rotation_matrix.h"
+#include "../../math/traits.h"
 #include "../voxel_grid.h"
 #include "../voxel_map.h"
 #include "../../visiting/eigen.h"
@@ -1815,7 +1815,7 @@ int main( int ac, char** av )
             std::string how = options.value< std::string >( "--how", "by-direction" );
             if( how == "by-direction" || how == "direction" ) // by-direction currently is the only policy
             {
-                if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; exit( 1 ); }
+                if( !csv.has_paths( "direction" ) ) { std::cerr << "points-calc: trajectory-partition --how=by-distance: please specify direction fields"; return 1; }
                 is_new_partition = [&]( const point_with_direction& v )->bool
                                    {
                                        static double threshold = options.value( "--threshold,--angle-threshold", M_PI / 2 );
@@ -1838,6 +1838,7 @@ int main( int ac, char** av )
             else
             {
                 std::cerr << "points-calc: trajectory-partition: expected --how, got: '" << how << "'" << std::endl;
+                return 1;
             }
             while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {

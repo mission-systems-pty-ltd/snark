@@ -28,13 +28,14 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#ifndef SNARK_MATH_TRAITS_H_
-#define SNARK_MATH_TRAITS_H_
+#pragma once
 
 #include <boost/array.hpp>
 #include <Eigen/Core>
+#include "position.h"
+#include "roll_pitch_yaw.h"
 
-namespace snark{ namespace math{
+namespace snark { namespace math {
 
 template < typename T >
 struct traits
@@ -80,6 +81,40 @@ class traits< boost::array< T, Size > >
         }
 };
 
-} } // namespace snark{ namespace math{
+template <> struct traits< snark::roll_pitch_yaw > // quick and dirty
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, snark::roll_pitch_yaw& p, Visitor& v )
+    {
+        v.apply( "roll", p.x() );
+        v.apply( "pitch", p.y() );
+        v.apply( "yaw", p.z() );
+    }
 
-#endif //SNARK_MATH_TRAITS_H_
+    template < typename Key, class Visitor >
+    static void visit( const Key&, const snark::roll_pitch_yaw& p, Visitor& v )
+    {
+        v.apply( "roll", p.x() );
+        v.apply( "pitch", p.y() );
+        v.apply( "yaw", p.z() );
+    }
+};
+
+template <> struct traits< snark::position >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, snark::position& p, Visitor& v )
+    {
+        v.apply( "coordinates", p.coordinates );
+        v.apply( "orientation", p.orientation );
+    }
+
+    template < typename Key, class Visitor >
+    static void visit( const Key&, const snark::position& p, Visitor& v )
+    {
+        v.apply( "coordinates", p.coordinates );
+        v.apply( "orientation", p.orientation );
+    }
+};
+
+} } // namespace snark{ namespace math{
