@@ -1189,13 +1189,13 @@ static void output_nearest_extremum_block( const std::deque< local_operation::re
 
 } // namespace local_operation {
 
-namespace snark { namespace points_calc { namespace trajectory_partitions {
+namespace snark { namespace points_calc { namespace trajectory_partition {
 
 typedef point_with_direction input;
 
 struct output { comma::uint32 id; output( comma::uint32 id = 0 ): id( id ) {} };
 
-} } } // namespace snark { namespace points_calc { namespace trajectory_partitions {
+} } } // namespace snark { namespace points_calc { namespace trajectory_partition {
 
 namespace comma { namespace visiting {
 
@@ -1214,9 +1214,9 @@ template <> struct traits< point_with_direction >
     }
 };
 
-template <> struct traits< snark::points_calc::trajectory_partitions::output >
+template <> struct traits< snark::points_calc::trajectory_partition::output >
 {
-    template< typename K, typename V > static void visit( const K&, const snark::points_calc::trajectory_partitions::output& t, V& v ) { v.apply( "id", t.id ); }
+    template< typename K, typename V > static void visit( const K&, const snark::points_calc::trajectory_partition::output& t, V& v ) { v.apply( "id", t.id ); }
 };
 
 template <> struct traits< point_with_block >
@@ -1778,7 +1778,7 @@ int main( int ac, char** av )
                 }
 
                 // any points not updated by the above now have their correct target point,
-                // so we can output them (and take them off the queue)
+                // so we can output them (and take them off the queue)-
                 unsigned int records_processed = 0;
                 for( auto it = records.begin(); it != records.end(); ++it )
                 {
@@ -1808,8 +1808,10 @@ int main( int ac, char** av )
             csv.full_xpath = true;
             if( csv.fields.empty() ) { csv.fields = "x,y,z"; }
             comma::csv::input_stream< point_with_direction > istream( std::cin, csv );
-            comma::csv::output_stream< snark::points_calc::trajectory_partitions::output > ostream( std::cout );
-            comma::csv::tied< point_with_direction, snark::points_calc::trajectory_partitions::output > tied( istream, ostream );
+            comma::csv::options output_csv; // quick and dirty
+            if( csv.binary() ) { output_csv.format( "ui" ); }
+            comma::csv::output_stream< snark::points_calc::trajectory_partition::output > ostream( std::cout, output_csv );
+            comma::csv::tied< point_with_direction, snark::points_calc::trajectory_partition::output > tied( istream, ostream );
             unsigned int id = 0;
             std::function< bool( const point_with_direction& ) > is_new_partition;
             std::string how = options.value< std::string >( "--how", "by-direction" );
@@ -1849,7 +1851,7 @@ int main( int ac, char** av )
                 const point_with_direction* p = istream.read();
                 if( !p ) { break; }
                 if( is_new_partition( *p ) ) { ++id; }
-                tied.append( snark::points_calc::trajectory_partitions::output( id ) );
+                tied.append( snark::points_calc::trajectory_partition::output( id ) );
             }
             return 0;
         }
