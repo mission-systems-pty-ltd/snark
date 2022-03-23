@@ -56,6 +56,9 @@ template <> struct traits< snark::las::version >
         #ifdef major
         #undef major
         #endif
+        #ifdef minor
+        #undef minor
+        #endif
         v.apply( "major", t.major() ); // todo: somehow it does not compile
         v.apply( "minor", t.minor() ); // todo: somehow it does not compile
     }
