@@ -63,7 +63,7 @@ static void usage( bool more = false )
     std::cerr << "            --hemisphere=<what>: either 'north' or 'south', if --coordinates" << std::endl;
     std::cerr << "            --north; same as hemisphere=north" << std::endl;
     std::cerr << "            --south; same as hemisphere=south" << std::endl;
-    std::cerr << "            --zone=<zone>: zone, if --to ned; e.g. 56 for Sydney: default zone, in case zone field is not on stdin input" << std::endl;
+    std::cerr << "            --zone=<zone>; MGA zone, if --to ned; e.g. 56 for Sydney: default zone, in case zone field is not on stdin input" << std::endl;
     std::cerr << "        info options" << std::endl;
     std::cerr << "            --input-fields; print input fields for a given conversion to stdout and exit" << std::endl;
     std::cerr << "            --output-fields; print output fields for a given conversion to stdout and exit" << std::endl;
@@ -169,7 +169,7 @@ struct ned_
     Eigen::Vector3d coordinates;
     comma::int32 zone; // todo: is it uint or int?
     bool is_south;
-    
+
     ned_() : coordinates( 0, 0, 0 ), zone( 0 ), is_south( false ) {}
 };
 
@@ -177,7 +177,7 @@ struct coordinates_
 {
     snark::spherical::coordinates coordinates;
     double z;
-    
+
     coordinates_() : z( 0 ) {}
 };
 
@@ -192,7 +192,7 @@ template <> struct traits< convert_::coordinates_ >
         v.apply( "coordinates", p.coordinates );
         v.apply( "z", p.z );
     }
-    
+
     template < typename Key, class Visitor > static void visit( const Key&, const convert_::coordinates_& p, Visitor& v )
     {
         v.apply( "coordinates", p.coordinates );
@@ -208,7 +208,7 @@ template <> struct traits< convert_::ned_ >
         v.apply( "zone", p.zone );
         v.apply( "is_south", p.is_south );
     }
-    
+
     template < typename Key, class Visitor > static void visit( const Key&, const convert_::ned_& p, Visitor& v )
     {
         v.apply( "coordinates", p.coordinates );
@@ -235,21 +235,21 @@ int main( int ac, char **av )
         {
             std::string to = options.value< std::string >( "--to" );
             if( options.exists( "--input-fields" ) )
-            { 
+            {
                 if( to == "north-east-down" || to == "ned" ) { std::cout << comma::join( comma::csv::names< convert_::coordinates_ >( false ), ',' ) << std::endl; return 0; }
                 if( to == "coordinates" ) { std::cout << comma::join( comma::csv::names< convert_::ned_ >( false ), ',' ) << std::endl; return 0; }
                 std::cerr << "geo-calc: expected --what=<to>; got --what='" << to << "'" << std::endl;
                 return 1;
             }
             if( options.exists( "--output-fields" ) )
-            { 
+            {
                 if( to == "north-east-down" || to == "ned" ) { std::cout << comma::join( comma::csv::names< convert_::ned_ >( false ), ',' ) << std::endl; return 0; }
                 if( to == "coordinates" ) { std::cout << comma::join( comma::csv::names< convert_::coordinates_ >( false ), ',' ) << std::endl; return 0; }
                 std::cerr << "geo-calc: expected --what=<to>; got --what='" << to << "'" << std::endl;
                 return 1;
             }
             if( options.exists( "--output-format" ) )
-            { 
+            {
                 if( to == "north-east-down" || to == "ned" ) { std::cout << comma::csv::format().value< convert_::ned_ >() << std::endl; return 0; }
                 if( to == "coordinates" ) { std::cout << comma::csv::format().value< convert_::coordinates_ >() << std::endl; return 0; }
                 std::cerr << "geo-calc: expected --what=<to>; got --what='" << to << "'" << std::endl;
