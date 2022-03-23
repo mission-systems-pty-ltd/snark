@@ -41,8 +41,23 @@ template <> struct traits< snark::las::version >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::version& t, V& v ) // todo
     {
-        //v.apply( "major", t.major() ); // todo: somehow it does not compile
-        //v.apply( "minor", t.minor() ); // todo: somehow it does not compile
+        // a workaround for some systems
+        // todo: remove once deprecated (see the following compilation error)
+        //
+        // In file included from snark/sensors/lidars/las/applications/las-to-csv.cpp:42:0:
+        // snark/sensors/lidars/las/applications/../traits.h:44:13: warning: In the GNU C Library, "major" is defined
+        //  by <sys/sysmacros.h>. For historical compatibility, it is
+        //  currently defined by <sys/types.h> as well, but we plan to
+        //  remove this soon. To use "major", include <sys/sysmacros.h>
+        //  directly. If you did not intend to use a system-defined macro
+        //  "major", you should undefine it after including <sys/types.h>.
+        //          v.apply( "major", t.major() ); // todo: somehow it does not compile
+        //              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #ifdef major
+        #undef major
+        #endif
+        v.apply( "major", t.major() ); // todo: somehow it does not compile
+        v.apply( "minor", t.minor() ); // todo: somehow it does not compile
     }
 };
 
