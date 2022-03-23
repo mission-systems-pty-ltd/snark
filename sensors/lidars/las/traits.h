@@ -41,8 +41,8 @@ template <> struct traits< snark::las::version >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::version& t, V& v ) // todo
     {
-        v.apply( "major", t.major() ); // todo: somehow it does not compile
-        v.apply( "minor", t.minor() ); // todo: somehow it does not compile
+        //v.apply( "major", t.major() ); // todo: somehow it does not compile
+        //v.apply( "minor", t.minor() ); // todo: somehow it does not compile
     }
 };
 
