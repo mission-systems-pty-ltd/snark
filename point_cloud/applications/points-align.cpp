@@ -125,6 +125,7 @@ static void bash_completion( unsigned int const ac, char const * const * av )
     static const char* completion_options =
         " --help -h"
         " --verbose -v"
+        " --input-fields"
         " --output-fields"
         " --output-format"
         " --output-error"
@@ -159,10 +160,11 @@ static void usage( bool verbose = false )
     std::cerr << "options: " << std::endl;
     std::cerr << "    --help,-h:       show this help; --help --verbose for more help" << std::endl;
     std::cerr << "    --verbose,-v:    more output" << std::endl;
-    std::cerr << "    --output-fields: show output fields and exit" << std::endl;
-    std::cerr << "    --output-format: show output format and exit" << std::endl;
-    std::cerr << "    --output-error:  include the error estimate in output" << std::endl;
     std::cerr << "    --initial-error: don't run alignment, just output initial error" << std::endl;
+    std::cerr << "    --input-fields:  print input fields to stdout and exit" << std::endl;
+    std::cerr << "    --output-fields: print output fields to stdout and exit" << std::endl;
+    std::cerr << "    --output-format: print output format to stdout and exit" << std::endl;
+    std::cerr << "    --output-error:  include the error estimate in output" << std::endl;
     std::cerr << "    --with-scaling:  allow Umeyama algorithm to use scaling" << std::endl;
     std::cerr << std::endl;
     std::cerr << "examples: " << std::endl;
@@ -265,9 +267,7 @@ int main( int ac, char** av )
     try
     {
         comma::command_line_options options( ac, av, usage );
-
-        if( options.exists( "--bash-completion" ) ) bash_completion( ac, av );
-
+        if( options.exists( "--bash-completion" ) ) { bash_completion( ac, av ); }
         comma::csv::options csv( options );
         csv.full_xpath = true;
         if( csv.fields.empty() ) { csv.fields = default_fields; }
@@ -278,17 +278,9 @@ int main( int ac, char** av )
         std::string output_fields = get_output_fields( csv, output_error );
         std::string output_format = get_output_format( csv, output_error );
 
-        if( options.exists( "--output-fields" ))
-        {
-            std::cout << output_fields << std::endl;
-            return 0;
-        }
-
-        if( options.exists( "--output-format" ))
-        {
-            std::cout << output_format << std::endl;
-            return 0;
-        }
+        if( options.exists( "--input-fields" )) { std::cout << comma::join( comma::csv::names< input_points >(), ',' ) << std::endl; return 0; }
+        if( options.exists( "--output-format" )) { std::cout << output_format << std::endl; return 0; }
+        if( options.exists( "--output-fields" )) { std::cout << output_fields << std::endl; return 0; }
 
         comma::csv::options output_csv;
         output_csv.fields = output_fields;
@@ -304,27 +296,20 @@ int main( int ac, char** av )
         while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
         {
             const input_points* p = istream.read();
-            if( !p ) break;
+            if( !p ) { break; }
 
             // Discard any records that have a NaN value
             bool discard = false;
             for( int i = 0; i <=2; i++ )
             {
                 discard = ( std::isnan( p->points.first(i) ) || std::isnan( p->points.second(i) ));
-                if( discard )
-                {
-                    discarded_records++;
-                    break;
-                }
+                if( discard ) { ++discarded_records; break; }
             }
-            if( discard ) continue;
-
+            if( discard ) { continue; }
             if( p->block != block )
             {
-                if( initial_error )
-                    std::cout << error( source, target ) << std::endl;
-                else
-                    output_transform( source, target, with_scaling, block, output_csv );
+                if( initial_error ) { std::cout << error( source, target ) << std::endl; }
+                else { output_transform( source, target, with_scaling, block, output_csv ); }
                 source.resize( Eigen::NoChange, 0 );
                 target.resize( Eigen::NoChange, 0 );
                 block = p->block;
@@ -339,25 +324,12 @@ int main( int ac, char** av )
                 source(i, source.cols()-1) = p->points.second(i);
             }
         }
-        if( discarded_records > 0 )
-        {
-            std::cerr << comma::verbose.app_name()
-                      << ": discarded " << discarded_records
-                      << " out of " << ( target.cols() + discarded_records )
-                      << " records" << std::endl;
-        }
-
+        if( discarded_records > 0 ) { std::cerr << comma::verbose.app_name() << ": discarded " << discarded_records << " out of " << ( target.cols() + discarded_records ) << " records" << std::endl; }
         if( initial_error ) { std::cout << error( source, target ) << std::endl; }
         else { output_transform( source, target, with_scaling, block, output_csv ); }
         return 0;
     }
-    catch( std::exception& ex )
-    {
-        std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl;
-    }
-    catch( ... )
-    {
-        std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl;
-    }
+    catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
+    catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
     return 1;
 }
