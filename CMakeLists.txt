@@ -30,7 +30,7 @@ IF (UNIX AND NOT APPLE)
 		SET ( COMMITHASH "abc" )
 	ENDIF()
 ELSE() # Probably windows; gets hardcoded patch version
-	SET ( COMMITDATE 1 ) 
+	SET ( COMMITDATE 1 )
 	SET ( COMMITHASH "abc" )
 ENDIF()
 
@@ -222,7 +222,7 @@ IF( snark_BUILD_TESTS )
 
     # todo: maybe else clause is actually the right way to do things
     IF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-        FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/gtest DOC "source code of gtest" )
+        FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/googletest/googletest DOC "source code of gtest" ) # FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/gtest DOC "source code of gtest" )
         ADD_SUBDIRECTORY( ${GTest_SOURCE_DIR} gtest )
         INCLUDE_DIRECTORIES( src ${GTest_SOURCE_DIR}/include ${GTest_SOURCE_DIR} )
         SET( GTEST_BOTH_LIBRARIES gtest gtest_main )
@@ -230,7 +230,7 @@ IF( snark_BUILD_TESTS )
         FIND_PACKAGE( GTest )
         INCLUDE_DIRECTORIES( ${GTEST_INCLUDE_DIRS} )
     ENDIF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-	
+
 #TT: Install tests to dir. This allows them to be packed by CPack.
 #Note: if your source tree is dirty (eg you've already run tests there and have output/ directories)
 #those will also be installed too.
@@ -239,27 +239,27 @@ OPTION( INSTALL_TESTS "Install the tests into the nominated directory" OFF )
 IF( INSTALL_TESTS )
     SET ( snark_CPP_TESTS_INSTALL_DIR bin CACHE PATH "Install directory for cpp unit tests" )
     SET ( snark_INSTALL_SNARK_TESTS_DIR share/test )
-	
+
 # Get the list of test directories (using glob).
-FILE ( GLOB_RECURSE all_files 
+FILE ( GLOB_RECURSE all_files
 		# RELATIVE is tricky. When you use it, you need to specify the path you expect the output to be RELATIVE to. (Yes, that path could be considerably non-relative to the file that is found.)
-		RELATIVE ${CMAKE_SOURCE_DIR} 
+		RELATIVE ${CMAKE_SOURCE_DIR}
 		* )
-		
+
 SET ( test_dirs )
 FOREACH ( i ${all_files} )
 	if ( ${i} MATCHES "[\\/]test[\\/]" )
 		LIST (APPEND test_dirs ${i} )
 	endif ()
 ENDFOREACH (i)
-		
+
 # Add those directories
 	FOREACH (file ${test_dirs} )
 			# Determine the parent directories for a given file so to prefix the install location (otherwise they just all get installed in the destination root)
 			get_filename_component( dest_dir ${file} DIRECTORY )
 			# See that slash there? 		 vvv It's really important.
 			INSTALL ( 	DIRECTORY ${dest_dir}/
-						DESTINATION ${snark_INSTALL_SNARK_TESTS_DIR}/${CMAKE_PROJECT_NAME}/unit/${dest_dir} 
+						DESTINATION ${snark_INSTALL_SNARK_TESTS_DIR}/${CMAKE_PROJECT_NAME}/unit/${dest_dir}
 						USE_SOURCE_PERMISSIONS )
 	ENDFOREACH (file)
 
@@ -405,7 +405,7 @@ if( snark_build_sensors_kinect )
   #find_library( LIBUSB_LIBRARY NAMES usb PATH_SUFFIXES "lib" "lib32" "lib64" "x86_64-linux-gnu" )
   find_library( LIBUSB_LIBRARY NAMES usb HINTS /usr/lib/x86_64-linux-gnu )
 
-  
+
   find_package( OpenCL REQUIRED )
   find_package( freenect2 REQUIRED )
 endif( snark_build_sensors_kinect )
