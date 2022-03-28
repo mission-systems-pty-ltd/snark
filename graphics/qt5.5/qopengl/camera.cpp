@@ -89,7 +89,8 @@ void camera_transform::set_center(const QVector3D& v)
 void camera_transform::set_orientation(float roll,float pitch,float yaw)
 {
     world.setToIdentity();
-    world.rotate( QQuaternion::fromEulerAngles( -QVector3D( yaw, roll, pitch ) * 180 / M_PI ) ); // ??? * 180 / M_PI (documentation says: degrees...)
+    static QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    world.rotate( QQuaternion::fromEulerAngles( QVector3D( pitch, yaw, roll ) * 180 / M_PI ) * ned ); // ??? * 180 / M_PI (documentation says: degrees...)
     world.translate(-center);
 }
 QVector3D camera_transform::get_orientation() const // todo? fix?
