@@ -86,6 +86,24 @@ void camera_transform::set_center(const QVector3D& v)
 //     world.translate(-center);
 //}
 
+// todo
+//   ! set_orientation()
+//     ? should it be in camera frame?
+//     ? thus, move extra rotation to viewer?
+//     ? or (better?) add bool ned flag?
+//   ! get_orientation()
+//     ? bool ned flag?
+//   ! set_position(): fix
+//     ? bool ned flag?
+//   ! get_position
+//     ? bool ned flag?
+//     ? plug in?
+//   ! viewer
+//     - save/load json: make sure frame correct; ned preferred
+//       ? camera frame: good: transparent; bad: not readable
+//       ? ned: good: readable; bad: not transparent
+//     ! viewer::set_camera_position(): call with correct frame
+
 void camera_transform::set_orientation(float roll,float pitch,float yaw)
 {
     world.setToIdentity();
