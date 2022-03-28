@@ -36,8 +36,13 @@
 
 namespace snark { namespace graphics { namespace qopengl {
 
-camera_transform::camera_transform(bool orthographic,double field_of_view,const QVector3D& up,const QVector3D& c,float z) :
-    center(c), up(up), orthographic(orthographic),near_plane(0.01),far_plane(100),field_of_view(field_of_view)
+camera_transform::camera_transform(bool orthographic,double field_of_view,const QVector3D& up,const QVector3D& c,float z)
+    : center(c)
+    , up(up)
+    , orthographic(orthographic)
+    , near_plane(0.01)
+    , far_plane(100)
+    , field_of_view(field_of_view)
 {
     // The camera always points along the z-axis. Pan moves the camera in x,y
     // coordinates and zoom moves in and out on the z-axis.
@@ -48,10 +53,8 @@ camera_transform::camera_transform(bool orthographic,double field_of_view,const 
     world.setToIdentity();
     world.translate(-center);
 }
-void camera_transform::pan(float dx,float dy)
-{
-    camera.translate(dx,dy,0);
-}
+void camera_transform::pan(float dx,float dy) { camera.translate(dx,dy,0); }
+
 void camera_transform::zoom(float dz)
 {
     camera.translate(0,0,dz);
@@ -77,7 +80,7 @@ void camera_transform::set_center(const QVector3D& v)
 // void camera_transform::set_orientation(float roll,float pitch,float yaw)
 // {
 //     Eigen::Quaterniond  q=snark::rotation_matrix(Eigen::Vector3d(roll,pitch,yaw)).quaternion();
-// //     std::cerr<<"camera_transform::set_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
+// //     std::cerr<<"camera_transform::set_    orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
 //     world.setToIdentity();
 //     world.rotate(QQuaternion(q.w(),QVector3D(q.x(),q.y(),q.z())));
 //     world.translate(-center);
@@ -89,7 +92,7 @@ void camera_transform::set_orientation(float roll,float pitch,float yaw)
     world.rotate( QQuaternion::fromEulerAngles( -QVector3D( yaw, roll, pitch ) * 180 / M_PI ) ); // ??? * 180 / M_PI (documentation says: degrees...)
     world.translate(-center);
 }
-QVector3D camera_transform::get_orientation() const
+QVector3D camera_transform::get_orientation() const // todo? fix?
 {
     Eigen::Matrix3d m=Eigen::Matrix3d::Identity();
     for(unsigned row=0;row<3;row++)
