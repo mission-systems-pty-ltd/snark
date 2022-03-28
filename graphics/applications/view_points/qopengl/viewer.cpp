@@ -112,13 +112,14 @@ void viewer::look_at_center()
 //     camera.set_position(QVector3D(0,0,-p.norm()));    //camera is in 0,0,-z in world coordinate
 // }
 
-void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation)
+void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
 {
     const Eigen::Vector3d& p = position - *m_offset;
     //const Eigen::Vector3d& direction = snark::rotation_matrix( orientation ).rotation() * Eigen::Vector3d( 1, 0, 0 );
     camera.set_center( QVector3D( p.x(), p.y(), p.z() ) ); // set scene centre
-    camera.set_position( QVector3D( 0, 0, 0 ) ); // place ourselves in the scene centre
     camera.set_orientation( orientation.x(), orientation.y(), orientation.z() );
+    //camera.set_position( QVector3D( 0, 0, 0 ) ); // place ourselves in the scene centre
+    camera.set_position( QVector3D( p.x(), p.y(), p.z() ) ); // place ourselves in the scene centre
 }
 
 void viewer::load_camera_config(const std::string& file_name)
