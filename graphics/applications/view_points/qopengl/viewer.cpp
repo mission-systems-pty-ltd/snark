@@ -14,6 +14,7 @@
 #include <comma/name_value/ptree.h>
 #include <comma/visiting/apply.h>
 #endif
+#include "../../../../math/rotation_matrix.h"
 #include "viewer.h"
 
 namespace snark { namespace graphics { namespace view { namespace qopengl {
@@ -94,21 +95,30 @@ void viewer::look_at_center()
     camera.set_position(QVector3D(0,0,-2.6*scene_radius));
 }
 
+// void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation)
+// {
+//     Eigen::Vector3d p = position - *m_offset;
+//     double cos_yaw = std::cos( orientation.z() );
+//     double sin_yaw = std::sin( orientation.z() );
+//     double sin_pitch = std::sin( orientation.y() );
+//     double cos_pitch = std::cos( orientation.y() );
+//     Eigen::Vector3d direction( cos_pitch * cos_yaw, cos_pitch * sin_yaw, sin_pitch ); // todo: quick and dirty, forget about roll for now
+//     Eigen::Vector3d c = p + direction * 50; // quick and dirty
+//     scene_center=QVector3D(c.x(),c.y(),c.z());
+//     //to be tested
+//     camera.set_center(scene_center);    //set center
+// //     camera.set_orientation(orientation.x(),M_PI-orientation.y(),-M_PI/2-orientation.z());
+//     camera.set_orientation(orientation.x(),orientation.y(),orientation.z());
+//     camera.set_position(QVector3D(0,0,-p.norm()));    //camera is in 0,0,-z in world coordinate
+// }
+
 void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation)
 {
-    Eigen::Vector3d p = position - *m_offset;
-    double cos_yaw = std::cos( orientation.z() );
-    double sin_yaw = std::sin( orientation.z() );
-    double sin_pitch = std::sin( orientation.y() );
-    double cos_pitch = std::cos( orientation.y() );
-    Eigen::Vector3d direction( cos_pitch * cos_yaw, cos_pitch * sin_yaw, sin_pitch ); // todo: quick and dirty, forget about roll for now
-    Eigen::Vector3d c = p + direction * 50; // quick and dirty
-    scene_center=QVector3D(c.x(),c.y(),c.z());
-    //to be tested
-    camera.set_center(scene_center);    //set center
-//     camera.set_orientation(orientation.x(),M_PI-orientation.y(),-M_PI/2-orientation.z());
-    camera.set_orientation(orientation.x(),orientation.y(),orientation.z());
-    camera.set_position(QVector3D(0,0,-p.norm()));    //camera is in 0,0,-z in world coordinate
+    const Eigen::Vector3d& p = position - *m_offset;
+    //const Eigen::Vector3d& direction = snark::rotation_matrix( orientation ).rotation() * Eigen::Vector3d( 1, 0, 0 );
+    camera.set_center( QVector3D( p.x(), p.y(), p.z() ) ); // set scene centre
+    camera.set_position( QVector3D( 0, 0, 0 ) ); // place ourselves in the scene centre
+    camera.set_orientation( orientation.x(), orientation.y(), orientation.z() );
 }
 
 void viewer::load_camera_config(const std::string& file_name)
@@ -128,4 +138,3 @@ void viewer::write_camera_config(std::ostream& os)
 }
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
-

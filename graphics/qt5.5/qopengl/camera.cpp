@@ -36,7 +36,7 @@
 
 namespace snark { namespace graphics { namespace qopengl {
 
-camera_transform::camera_transform(bool orthographic,double field_of_view,const QVector3D& up,const QVector3D& c,float z) : 
+camera_transform::camera_transform(bool orthographic,double field_of_view,const QVector3D& up,const QVector3D& c,float z) :
     center(c), up(up), orthographic(orthographic),near_plane(0.01),far_plane(100),field_of_view(field_of_view)
 {
     // The camera always points along the z-axis. Pan moves the camera in x,y
@@ -73,12 +73,20 @@ void camera_transform::set_center(const QVector3D& v)
     center=v;
 //     world.translate(-center);
 }
+
+// void camera_transform::set_orientation(float roll,float pitch,float yaw)
+// {
+//     Eigen::Quaterniond  q=snark::rotation_matrix(Eigen::Vector3d(roll,pitch,yaw)).quaternion();
+// //     std::cerr<<"camera_transform::set_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
+//     world.setToIdentity();
+//     world.rotate(QQuaternion(q.w(),QVector3D(q.x(),q.y(),q.z())));
+//     world.translate(-center);
+//}
+
 void camera_transform::set_orientation(float roll,float pitch,float yaw)
 {
-    Eigen::Quaterniond  q=snark::rotation_matrix(Eigen::Vector3d(roll,pitch,yaw)).quaternion();
-//     std::cerr<<"camera_transform::set_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
     world.setToIdentity();
-    world.rotate(QQuaternion(q.w(),QVector3D(q.x(),q.y(),q.z())));
+    world.rotate( QQuaternion::fromEulerAngles( -QVector3D( yaw, roll, pitch ) * 180 / M_PI ) ); // ??? * 180 / M_PI (documentation says: degrees...)
     world.translate(-center);
 }
 QVector3D camera_transform::get_orientation() const
@@ -129,4 +137,3 @@ void camera_transform::update_projection(const QSize& vs)
 }
 
 } } } // namespace snark { namespace graphics { namespace qopengl {
-    
