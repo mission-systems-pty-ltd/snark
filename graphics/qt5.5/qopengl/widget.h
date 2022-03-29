@@ -63,19 +63,19 @@ public:
     std::vector<std::shared_ptr<label_shader>> label_shaders;
     std::vector<std::shared_ptr<texture_shader>> texture_shaders;
     std::vector<std::shared_ptr<mesh_shader>> mesh_shaders;
-    
+
     void begin_update();
     void end_update();
-    
+
     //viewer_base
     virtual void add_shape(const std::shared_ptr<shape>& shape);
     virtual void add_label_shader(const std::shared_ptr<label_shader>& label_shader);
     virtual void add_texture_shader(const std::shared_ptr<texture_shader>& texture_shader);
     virtual void add_mesh_shader(const std::shared_ptr<mesh_shader>& mesh_shader);
-    
+
 public slots:
     void cleanup();
-    
+
 protected:
     // this will be called in initializeGL
     virtual void init() { }
@@ -112,4 +112,3 @@ public:
 };
 
 } } } // namespace snark { namespace graphics { namespace qopengl {
-

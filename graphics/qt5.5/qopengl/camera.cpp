@@ -89,8 +89,9 @@ void camera_transform::set_center( const QVector3D& v )
 // todo
 //   ! move this backlog to wiki
 //   ! set_orientation(): fix
-//   ! set_position(): fix
-//   ! set_center(): fix
+//   ! output camera config
+//     - original orientation
+//     - check camera position
 //   ! camera reader: fix!
 //   ? camera reader: why polled so often?
 //   ? camera position to status line?
@@ -99,7 +100,20 @@ void camera_transform::set_center( const QVector3D& v )
 //   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
 //   ? controller: check whether camera position changed: move to viewer::set_camera_position()?
 //   ! --camera-position unit test
-//   - --output-camera-position: timestamped camera position to stdin
+//   - --output-camera-position: camera position to stdin
+
+bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
+{
+    return world == rhs.world
+        && camera == rhs.camera
+        && projection == rhs.projection
+        && center == rhs.center
+        && up == rhs.up
+        && near_plane == rhs.near_plane
+        && far_plane == rhs.far_plane
+        && field_of_view == rhs.field_of_view
+        && view_size == rhs.view_size;
+}
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {

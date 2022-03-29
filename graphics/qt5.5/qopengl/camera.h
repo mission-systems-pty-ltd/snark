@@ -73,6 +73,9 @@ struct camera_transform
     /// call this on window resize passing widget.size(); or after updating any projection fields
     void update_projection(const QSize& view_size=QSize(0,0));
 
+    bool operator==( const camera_transform& rhs ) const;
+    bool operator!=( const camera_transform& rhs ) const { return !operator==( rhs ); }
+
     QMatrix4x4 world;
     QMatrix4x4 camera;
     QMatrix4x4 projection;

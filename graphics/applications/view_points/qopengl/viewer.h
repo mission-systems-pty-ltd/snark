@@ -7,6 +7,7 @@
 #include <string>
 #include <QKeyEvent>
 #include <QMainWindow>
+#include <boost/optional.hpp>
 #include <comma/base/types.h>
 #include "../../../qt5.5/qopengl/widget.h"
 #include "../click_mode.h"
@@ -17,7 +18,7 @@ namespace snark { namespace graphics { namespace qt3d { class camera_options; } 
 namespace snark { namespace graphics { namespace view { namespace qopengl {
 
 typedef snark::graphics::qopengl::color_t color_t;
-    
+
 /**
  * render and camera functions
  * qt3d v2 specific rednering, most functions are implemented in widget
@@ -26,7 +27,7 @@ typedef snark::graphics::qopengl::color_t color_t;
 class viewer : public snark::graphics::qopengl::widget
 {
     Q_OBJECT
-    
+
 public:
     QVector3D scene_center;
     boost::optional< Eigen::Vector3d > m_offset;
@@ -44,18 +45,18 @@ public:
           , double scene_radius
           , const snark::graphics::view::click_mode& click_mode
           , QMainWindow* parent = nullptr );
-    
+
     void reset_handler(controller_base* h = nullptr);
     void look_at_center();
     void load_camera_config( const std::string& file_name );
     void set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation );
     void update_view( const QVector3D& min, const QVector3D& max );
-    void write_camera_config( std::ostream& os );
+    void write_camera_config( std::ostream& os, bool on_change = false );
 
 public slots:
     void toggle_block_mode( bool );
     void toggle_label_mode( bool );
-    
+
 protected:
     void init() Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
@@ -65,8 +66,8 @@ protected:
 private slots:
     void on_timeout();
 
-//     double scene_radius() const { return scene_radius_; }
+private:
+    boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
-
