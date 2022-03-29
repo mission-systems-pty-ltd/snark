@@ -79,6 +79,16 @@ void controller::shutdown( bool kill )
     for( auto& i: readers ) { i->shutdown(); }
 }
 
+void controller::_update_view()
+{
+    std::cerr << "--> controller::_update_view(): a" << std::endl;
+    if( !_extents ) { return; }
+    std::cerr << "--> controller::_update_view(): b" << std::endl;
+    QVector3D min( _extents->min().x(), _extents->min().y(), _extents->min().z() );
+    QVector3D max( _extents->max().x(), _extents->max().y(), _extents->max().z() );
+    viewer->update_view( min, max );
+}
+
 void controller::read()
 {
 //     if( viewer == NULL ) { return; }
@@ -102,9 +112,19 @@ void controller::read()
         m_shutdown = m_shutdown && readers[i]->isShutdown();
         ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->isStdIn() ) );
     }
+    bool extents_ready = readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 );
+    if( extents_ready )
+    {
+        if( !_extents || *_extents != *( readers[0]->m_extents ) ) // quick and dirty; // todo? call _update_view() on camera moves?
+        {
+            _extents = readers[0]->m_extents;
+            _update_view();
+        }
+    }
     if( !m_cameraReader && m_cameraposition )
     {
         viewer->set_camera_position( *m_cameraposition, *m_cameraorientation );
+        _update_view();
         m_cameraposition.reset();
         m_cameraorientation.reset();
         need_update = true;
@@ -113,19 +133,17 @@ void controller::read()
     {
         Eigen::Vector3d position = m_cameraReader->position();
         Eigen::Vector3d orientation = m_cameraReader->orientation();
-        if( !m_cameraposition || !m_cameraposition->isApprox( position ) || !m_cameraorientation->isApprox( orientation ) )
+        if( !m_cameraposition || !m_cameraposition->isApprox( position ) || !m_cameraorientation->isApprox( orientation ) ) // todo? move to viewer::set_camera_position()?
         {
             m_cameraposition = position;
             m_cameraorientation = orientation;
             viewer->set_camera_position( position, orientation );
+            _update_view();
             need_update = true;
         }
     }
-    else if( readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 ) )
+    else if( extents_ready )
     {
-        QVector3D min( readers[0]->m_extents->min().x(), readers[0]->m_extents->min().y(), readers[0]->m_extents->min().z() );
-        QVector3D max( readers[0]->m_extents->max().x(), readers[0]->m_extents->max().y(), readers[0]->m_extents->max().z() );
-        viewer->update_view( min, max );
         if( !m_cameraFixed && !m_lookAt )
         {
             m_lookAt = true;

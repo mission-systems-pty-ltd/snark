@@ -14,6 +14,7 @@
 #include <QMainWindow>
 #include <vector>
 #include <memory>
+#include "../../../math/interval.h"
 #include "reader.h"
 #ifndef Q_MOC_RUN
 #include <boost/property_tree/ptree.hpp>
@@ -25,7 +26,7 @@
 #include "types.h"
 
 namespace snark { namespace graphics { namespace view {
-    
+
 template < typename T > struct controller_traits;
 
 #if Qt3D_VERSION==1
@@ -47,7 +48,7 @@ class controller : public controller_base
 public:
     std::shared_ptr< viewer_t > viewer;
     std::vector< std::unique_ptr< snark::graphics::view::Reader > > readers;
-    
+
     /// @todo split into several constructors; make camera configuration a separate class
     controller( const color_t& background_color
               , const qt3d::camera_options& camera_options
@@ -79,7 +80,9 @@ private:
     bool m_cameraFixed;
     //add camera_position_output
     bool m_exit_on_end_of_input;
-    
+    boost::optional< snark::math::closed_interval< float, 3 > > _extents;
+    void _update_view();
+
 public:
     void add( std::unique_ptr< snark::graphics::view::Reader >&& reader );
     void init();
@@ -90,6 +93,5 @@ template <> struct controller_traits< controller >
     static viewer_t* get_widget( std::shared_ptr< controller >& t ) { return t->viewer.get(); }
 };
 #endif
-    
+
 } } } // namespace snark { namespace graphics { namespace view {
-    

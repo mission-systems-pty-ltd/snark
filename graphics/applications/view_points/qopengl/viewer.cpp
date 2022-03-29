@@ -80,11 +80,15 @@ void viewer::toggle_label_mode( bool flag ) { click_mode.double_right_click.togg
 
 void viewer::update_view(const QVector3D& min, const QVector3D& max)
 {
-    if( !scene_radius_fixed ) { scene_radius = 0.5 * ( max - min ).length(); }
-    if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); }
+    float r = 0.5 * ( max - min ).length();
+    if( !scene_radius_fixed ) { scene_radius = r; }
+    if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); camera.set_center( scene_center ); }
+    const auto& d = camera.get_position() - camera.center;
+    float radius = Eigen::Vector3d( d.x(), d.y(), d.z() ).norm() + r;
 //     std::cerr<<"viewer::update_view "<<min<<" "<<max<<"; "<<scene_radius<<"; "<<scene_center<<std::endl;
 //     update the position of the far plane so that the full scene is displayed
-    set_far_plane(4.6*scene_radius);
+    std::cerr << "--> scene_radius: " << scene_radius << " radius: " << radius << " far_plane: " << 4.6 * radius << std::endl;
+    set_far_plane( 4.6 * radius ); // vodoo: 4.6
 }
 
 void viewer::look_at_center()
