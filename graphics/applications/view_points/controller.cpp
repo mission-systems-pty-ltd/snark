@@ -81,9 +81,9 @@ void controller::shutdown( bool kill )
 
 void controller::_update_view()
 {
-    std::cerr << "--> controller::_update_view(): a" << std::endl;
+    //std::cerr << "--> controller::_update_view(): a" << std::endl;
     if( !_extents ) { return; }
-    std::cerr << "--> controller::_update_view(): b" << std::endl;
+    //std::cerr << "--> controller::_update_view(): b" << std::endl;
     QVector3D min( _extents->min().x(), _extents->min().y(), _extents->min().z() );
     QVector3D max( _extents->max().x(), _extents->max().y(), _extents->max().z() );
     viewer->update_view( min, max );

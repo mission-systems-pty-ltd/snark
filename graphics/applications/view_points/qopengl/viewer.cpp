@@ -87,7 +87,7 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
     float radius = Eigen::Vector3d( d.x(), d.y(), d.z() ).norm() + r;
 //     std::cerr<<"viewer::update_view "<<min<<" "<<max<<"; "<<scene_radius<<"; "<<scene_center<<std::endl;
 //     update the position of the far plane so that the full scene is displayed
-    std::cerr << "--> scene_radius: " << scene_radius << " radius: " << radius << " far_plane: " << 4.6 * radius << std::endl;
+    //std::cerr << "--> scene_radius: " << scene_radius << " radius: " << radius << " far_plane: " << 4.6 * radius << std::endl;
     set_far_plane( 4.6 * radius ); // vodoo: 4.6
 }
 
