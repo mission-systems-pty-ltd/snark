@@ -60,6 +60,7 @@ void camera_transform::zoom(float dz)
     camera.translate(0,0,dz);
     if(orthographic) { update_projection(); }
 }
+
 void camera_transform::pivot(float dx,float dy)
 {
     world.translate(center);
@@ -70,46 +71,37 @@ void camera_transform::pivot(float dx,float dy)
     world.rotate(dx, y_axis.toVector3D());
     world.translate(-center);
 }
-void camera_transform::set_center(const QVector3D& v)
+
+static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
+
+static QVector3D _from_ned( const QVector3D& v ) { return QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south
+
+void camera_transform::set_center( const QVector3D& v, bool from_ned )
 {
 //     world.translate(center);
-    center=v;
+    center = from_ned ? _from_ned( v ) : v;
 //     world.translate(-center);
 }
 
-// void camera_transform::set_orientation(float roll,float pitch,float yaw)
-// {
-//     Eigen::Quaterniond  q=snark::rotation_matrix(Eigen::Vector3d(roll,pitch,yaw)).quaternion();
-// //     std::cerr<<"camera_transform::set_    orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
-//     world.setToIdentity();
-//     world.rotate(QQuaternion(q.w(),QVector3D(q.x(),q.y(),q.z())));
-//     world.translate(-center);
-//}
-
 // todo
-//   ! set_orientation()
-//     ? should it be in camera frame?
-//     ? thus, move extra rotation to viewer?
-//     ? or (better?) add bool ned flag?
-//   ! get_orientation()
-//     ? bool ned flag?
+//   ! move this backlog to wiki
+//   ! set_orientation(): fix
 //   ! set_position(): fix
-//     ? bool ned flag?
-//   ! get_position
-//     ? bool ned flag?
-//     ? plug in?
-//   ! viewer
-//     - save/load json: make sure frame correct; ned preferred
-//       ? camera frame: good: transparent; bad: not readable
-//       ? ned: good: readable; bad: not transparent
-//     ! viewer::set_camera_position(): call with correct frame
+//   ! set_center(): fix
+//   ! camera reader: fix!
+//   ? camera reader: why polled so often?
+//   ? camera position to status line?
+//   ? viewer save/load json: use ned? (currently camera frame)
+//   ! confirm that initial camera position setting still works
+//   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
 
-void camera_transform::set_orientation(float roll,float pitch,float yaw)
+void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     world.setToIdentity();
-    static QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
-    world.rotate( QQuaternion::fromEulerAngles( QVector3D( pitch, yaw, roll ) * 180 / M_PI ) * ned ); // ??? * 180 / M_PI (documentation says: degrees...)
-    world.translate(-center);
+    static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
+    world.translate( -center );
+    //if( orthographic ) { update_projection(); } // do we need to do it?
 }
 QVector3D camera_transform::get_orientation() const // todo? fix?
 {
@@ -126,21 +118,19 @@ QVector3D camera_transform::get_orientation() const // todo? fix?
 //     std::cerr<<"camera_transform::get_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
     return QVector3D(roll,pitch,yaw);
 }
-void camera_transform::set_position(const QVector3D& v)
+
+void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {
     camera.setToIdentity();
-    camera.translate(v);
-    if(orthographic) { update_projection(); }
+    camera.translate( from_ned ? _from_ned( v ) : v );
+    if( orthographic ) { update_projection(); }
 }
-QVector3D camera_transform::get_position() const
-{
-    return camera.column(3).toVector3DAffine();
-}
-double camera_transform::distance()
-{
-    return std::abs(get_position().z());
-}
-void camera_transform::update_projection(const QSize& vs)
+
+QVector3D camera_transform::get_position() const { return camera.column(3).toVector3DAffine(); }
+
+double camera_transform::distance() { return std::abs(get_position().z()); }
+
+void camera_transform::update_projection( const QSize& vs )
 {
     if(vs!=QSize(0,0)) { view_size=vs; }
     double aspect_ratio = (double) view_size.width() / view_size.height();

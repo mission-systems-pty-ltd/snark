@@ -173,10 +173,11 @@ void widget::paintGL()
 //     glDisable( GL_DEPTH_TEST );
 
     program_->release();
-    
-    for(auto& i : label_shaders) { i->paint(camera.projection * camera.camera * camera.world, size()); }
-    for(auto& i : texture_shaders) { i->paint(camera.projection * camera.camera * camera.world, size()); }
-    for(auto& i : mesh_shaders) { i->paint(camera.projection * camera.camera * camera.world, size()); }
+
+    const auto& p = camera.projection * camera.camera * camera.world;
+    for(auto& i : label_shaders) { i->paint(p, size()); }
+    for(auto& i : texture_shaders) { i->paint(p, size()); }
+    for(auto& i : mesh_shaders) { i->paint(p, size()); }
 
     painter.endNativePainting();
 

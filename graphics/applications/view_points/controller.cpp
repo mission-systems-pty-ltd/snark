@@ -107,6 +107,7 @@ void controller::read()
         viewer->set_camera_position( *m_cameraposition, *m_cameraorientation );
         m_cameraposition.reset();
         m_cameraorientation.reset();
+        need_update = true;
     }
     else if( m_cameraReader )
     {
@@ -117,6 +118,7 @@ void controller::read()
             m_cameraposition = position;
             m_cameraorientation = orientation;
             viewer->set_camera_position( position, orientation );
+            need_update = true;
         }
     }
     else if( readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 ) )
