@@ -174,10 +174,10 @@ void widget::paintGL()
 
     program_->release();
 
-    const auto& p = camera.projection * camera.camera * camera.world;
-    for(auto& i : label_shaders) { i->paint(p, size()); }
-    for(auto& i : texture_shaders) { i->paint(p, size()); }
-    for(auto& i : mesh_shaders) { i->paint(p, size()); }
+    const auto& t = camera.transform();
+    for(auto& i : label_shaders) { i->paint(t, size()); }
+    for(auto& i : texture_shaders) { i->paint(t, size()); }
+    for(auto& i : mesh_shaders) { i->paint(t, size()); }
 
     painter.endNativePainting();
 

@@ -72,6 +72,8 @@ void camera_transform::pivot(float dx,float dy)
     world.translate(-center);
 }
 
+QMatrix4x4 camera_transform::transform() const { return projection * camera * world; }
+
 static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
 
 //static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
@@ -79,9 +81,9 @@ static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.
 
 void camera_transform::set_center( const QVector3D& v, bool from_ned )
 {
-//     world.translate(center);
+    //world.translate( center );
     center = from_ned ? _from_ned( v ) : v;
-//     world.translate(-center);
+    //world.translate( -center );
 }
 
 // todo
@@ -133,7 +135,7 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 
 QVector3D camera_transform::get_position() const { return camera.column(3).toVector3DAffine(); }
 
-double camera_transform::distance() { return std::abs(get_position().z()); }
+double camera_transform::distance() const { return std::abs(get_position().z()); }
 
 void camera_transform::update_projection( const QSize& vs )
 {

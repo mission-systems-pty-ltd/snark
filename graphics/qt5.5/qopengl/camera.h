@@ -49,6 +49,8 @@ struct camera_transform
     /// apparent rotation of view point around pivot point
     void pivot(float dx,float dy);
 
+    QMatrix4x4 transform() const;
+
     void set_center(const QVector3D& v, bool from_ned = false);
 
     void set_orientation(float roll,float pitch,float yaw, bool from_ned = false);
@@ -64,7 +66,7 @@ struct camera_transform
     QVector3D get_position() const;
 
     /// distance between camera and center
-    double distance();
+    double distance() const;
 
     /// updates projection matrix
     /// if called with no argument (default 0,0), it uses view_size data member

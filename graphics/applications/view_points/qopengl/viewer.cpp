@@ -84,16 +84,15 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
     if( !scene_radius_fixed ) { scene_radius = r; }
     if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); camera.set_center( scene_center ); }
     const auto& d = camera.get_position() - camera.center;
-    float radius = Eigen::Vector3d( d.x(), d.y(), d.z() ).norm() + r;
 //     std::cerr<<"viewer::update_view "<<min<<" "<<max<<"; "<<scene_radius<<"; "<<scene_center<<std::endl;
 //     update the position of the far plane so that the full scene is displayed
     //std::cerr << "--> scene_radius: " << scene_radius << " radius: " << radius << " far_plane: " << 4.6 * radius << std::endl;
-    set_far_plane( 4.6 * radius ); // vodoo: 4.6
+    set_far_plane( 4.6 * ( Eigen::Vector3d( d.x(), d.y(), d.z() ).norm() + r ) ); // vodoo: 4.6
 }
 
 void viewer::look_at_center()
 {
-//     std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
+    //std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
     camera.set_center(scene_center);
     camera.set_orientation(3*M_PI/4, -M_PI/4, -M_PI/4);
     camera.set_position(QVector3D(0,0,-2.6*scene_radius));
@@ -118,11 +117,12 @@ void viewer::look_at_center()
 
 void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation ) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
 {
+    //std::cerr << "--> viewer::set_camera_position" << std::endl;
     const Eigen::Vector3d& p = position - *m_offset;
     const QVector3D& c = QVector3D( p.x(), p.y(), p.z() );
-    //camera.set_center( c, true );
+    camera.set_center( c, true );
+    camera.set_position( QVector3D( 0, 0, 0 ) ); // camera.set_position( c, true );
     camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
-    camera.set_position( c, true );
 }
 
 void viewer::load_camera_config(const std::string& file_name)

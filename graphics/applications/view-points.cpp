@@ -767,8 +767,8 @@ int main( int argc, char** argv )
                                                                                                               , scene_radius
                                                                                                               , options.exists( "--output-camera-config,--output-camera" )
                                                                                                               , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) ) ) );
-        controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius" );
-        controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center" );
+        controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // --camera-position: quick and dirty for now
+        controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // --camera-position: quick and dirty for now
         #endif
         bool stdin_explicitly_defined = false;
         for( const auto& property : properties )
