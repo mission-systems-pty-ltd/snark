@@ -60,7 +60,7 @@ class closed_interval
         operator bool() const { return (bool)m_interval; }
 
         /// return value
-        const std::pair< vector_type, vector_type >& operator()() const { assert( m_interval ); return m_interval; }
+        const std::pair< vector_type, vector_type >& operator()() const { assert( m_interval ); return *m_interval; }
 
         /// return left boundary (convenience method)
         const vector_type& min() const { assert( m_interval ); return m_interval->first; }
