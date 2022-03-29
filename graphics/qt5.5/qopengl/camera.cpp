@@ -99,6 +99,7 @@ void camera_transform::set_center( const QVector3D& v )
 //   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
 //   ? controller: check whether camera position changed: move to viewer::set_camera_position()?
 //   ! --camera-position unit test
+//   - --output-camera-position: timestamped camera position to stdin
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
