@@ -115,9 +115,10 @@ void viewer::look_at_center()
 void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation ) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
 {
     const Eigen::Vector3d& p = position - *m_offset;
-    camera.set_center( QVector3D( p.x(), p.y(), p.z() ), true );
+    const QVector3D& c = QVector3D( p.x(), p.y(), p.z() );
+    //camera.set_center( c, true );
     camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
-    camera.set_position( QVector3D( p.x(), p.y(), p.z() ), true );
+    camera.set_position( c, true );
 }
 
 void viewer::load_camera_config(const std::string& file_name)

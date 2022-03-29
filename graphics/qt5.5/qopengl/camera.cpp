@@ -74,7 +74,8 @@ void camera_transform::pivot(float dx,float dy)
 
 static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
 
-static QVector3D _from_ned( const QVector3D& v ) { return QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south
+//static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
+static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 
 void camera_transform::set_center( const QVector3D& v, bool from_ned )
 {
@@ -94,6 +95,7 @@ void camera_transform::set_center( const QVector3D& v, bool from_ned )
 //   ? viewer save/load json: use ned? (currently camera frame)
 //   ! confirm that initial camera position setting still works
 //   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
+//   ? controller: check whether camera position changed: move to viewer::set_camera_position()?
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
@@ -119,10 +121,13 @@ QVector3D camera_transform::get_orientation() const // todo? fix?
     return QVector3D(roll,pitch,yaw);
 }
 
+std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << ',' << v.y() << ',' << v.z(); }
+
 void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {
     camera.setToIdentity();
     camera.translate( from_ned ? _from_ned( v ) : v );
+    //std::cerr << "--> set_position: v: " << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position() << std::endl;
     if( orthographic ) { update_projection(); }
 }
 
