@@ -51,7 +51,7 @@ struct camera_transform
 
     QMatrix4x4 transform() const;
 
-    void set_center(const QVector3D& v, bool from_ned = false);
+    void set_center(const QVector3D& v);
 
     void set_orientation(float roll,float pitch,float yaw, bool from_ned = false);
 
