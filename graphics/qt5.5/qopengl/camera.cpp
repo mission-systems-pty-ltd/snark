@@ -88,19 +88,14 @@ void camera_transform::set_center( const QVector3D& v )
 
 // todo
 //   ! move this backlog to wiki
-//   ! set_orientation(): fix
-//   ! output camera config
-//     - original orientation
-//     - check camera position
-//   ! camera reader: fix!
-//   ? camera reader: why polled so often?
+//   ! --camera-position: test on trajectories
 //   ? camera position to status line?
-//   ? viewer save/load json: use ned? (currently camera frame)
-//   ! confirm that initial camera position setting still works
 //   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
 //   ? controller: check whether camera position changed: move to viewer::set_camera_position()?
 //   ! --camera-position unit test
-//   - --output-camera-position: camera position to stdin
+//   - --camera-config: camera position from ned
+//   - --output-camera-config: camera position -> ned
+//   - --output-camera-position: camera position -> ned
 
 bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
 {
