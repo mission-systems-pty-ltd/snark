@@ -75,8 +75,6 @@ void camera_transform::pivot(float dx,float dy)
 
 QMatrix4x4 camera_transform::transform() const { return projection * camera * world; }
 
-static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
-
 //static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
@@ -112,9 +110,13 @@ bool camera_transform::operator==( const camera_transform& rhs ) const // todo? 
         && view_size == rhs.view_size;
 }
 
+//static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
+static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( r, y, p ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees; swapped pitch and roll for now (tired of thinking of the right transform)
+
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     world.setToIdentity();
+    // static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
     world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
     world.translate( -center );
