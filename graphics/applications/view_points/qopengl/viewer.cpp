@@ -52,6 +52,7 @@ void viewer::paintGL()
 {
     widget::paintGL();
     if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true ); }
+    if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
     painter.setPen( Qt::gray );
     painter.setFont( QFont( "Arial", 10 ) );
@@ -141,6 +142,15 @@ void viewer::write_camera_config( std::ostream& os, bool on_change )
     comma::to_ptree to_ptree( p );
     comma::visiting::apply( to_ptree ).to( camera );
     boost::property_tree::write_json( os, p );
+}
+
+void viewer::write_camera_position_( std::ostream& os, bool on_change )
+{
+    if( on_change && previous_camera_ && camera.camera == previous_camera_->camera && camera.world == previous_camera_->world ) { return; }
+    previous_camera_ = camera;
+    const auto& position = camera.get_position(); // todo: get position in ned frame
+    const auto& orientation = camera.get_orientation(); // todo: get orientation in ned frame
+    os << position.x() << ',' << position.y() << ',' << position.z() << ',' << orientation.x() << ',' << orientation.y() << ',' << orientation.z() << std::endl;
 }
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

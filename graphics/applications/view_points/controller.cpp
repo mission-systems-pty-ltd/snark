@@ -42,6 +42,7 @@ controller::controller( const color_t& background_color
                       , const QVector3D& scene_center
                       , double scene_radius
                       , bool output_camera_config
+                      , bool output_camera_position
                       , const snark::graphics::view::click_mode& click_mode )
     : m_lookAt( false )
     , m_cameraposition( cameraposition )
@@ -53,7 +54,8 @@ controller::controller( const color_t& background_color
     COMMA_THROW( comma::exception," not implemented ");
 #elif Qt3D_VERSION>=2
     viewer.reset( new viewer_t( this,background_color, camera_options, scene_center, scene_radius, click_mode ) );
-    viewer->output_camera_config = output_camera_config;
+    viewer->output_camera_config = output_camera_config; // super-quick and dirty
+    viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif
     if(!camera_config_file_name.empty()) { viewer->load_camera_config( camera_config_file_name ); }
     if( camera_csv ) { m_cameraReader.reset( new CameraReader( *camera_csv ) ); }

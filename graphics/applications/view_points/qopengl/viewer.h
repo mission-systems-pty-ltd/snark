@@ -36,6 +36,7 @@ public:
     bool scene_center_fixed;
     bool stdout_allowed;
     bool output_camera_config;
+    bool output_camera_position;
     snark::graphics::view::click_mode click_mode;
 
     viewer( controller_base* handler
@@ -68,6 +69,7 @@ private slots:
 
 private:
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
+    void write_camera_position_( std::ostream& os, bool on_change = false );
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

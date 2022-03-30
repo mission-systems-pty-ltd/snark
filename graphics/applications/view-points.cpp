@@ -53,6 +53,7 @@ static void bash_completion( unsigned const ac, char const * const * av )
         " --orthographic"
         " --background-colour --background-color"
         " --output-camera-config --output-camera"
+        " --output-camera-position"
         " --scene-center --center"
         " --scene-radius --radius"
         " --title"
@@ -233,6 +234,7 @@ static void usage( bool )
         "\n    --background-colour,--background-color=<colour> : default: black"
         "\n    --full-screen,--maximize; start view-points in full-screen"
         "\n    --output-camera-config,--output-camera: output camera config to stdout as stream of json structures"
+        "\n    --output-camera-position: output camera position as x,y,z,roll,pitch,yaw in the world frame, i.e. same as --camera-position"
         "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
         "\n    --scene-radius,--radius=<value>: fixed scene radius in metres, since sometimes it is hard to imply"
         "\n                                     scene size from the dataset (e.g. for streams)"
@@ -684,7 +686,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if( options.exists( "--version" ) ) { version(); exit( 0 ); }
         comma::csv::options csv_options( argc, argv, "", false );
-        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--pass-through,--pass,--exit-on-end-of-input,--fill", "-[^;].*" );
+        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill", "-[^;].*" );
         snark::graphics::view::color_t  background_color( QColor( QString( options.value< std::string >( "--background-colour,--background-color", "#000000" ).c_str() ) ) );
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;
@@ -740,9 +742,11 @@ int main( int argc, char** argv )
             }
         }
         #if Qt3D_VERSION==1
+        std::cerr << "view-points: support for Qt3D version 1 is DEPRECATED; some features may be missing" << std::endl;
         auto scene_radius = options.optional< double >( "--scene-radius,--radius" ); // todo: do something with the magic default
         boost::optional< Eigen::Vector3d > scene_center;
         if( options.exists( "--scene-center,--center") ) { scene_center = comma::csv::ascii< Eigen::Vector3d >( "x,y,z", ',').get( options.value< std::string >( "--scene-center,--center" ) ); }
+        if( options.exists( "--click-mode,--output-camera-position" ) ) { COMMA_THROW( comma::exception, "--click-mode,--output-camera-position not supported for Qt3D version 1" ); }
         std::shared_ptr< snark::graphics::view::Viewer > controller( new snark::graphics::view::Viewer( background_color
                                                                                                       , camera_options
                                                                                                       , options.exists( "--exit-on-end-of-input" )
@@ -756,6 +760,7 @@ int main( int argc, char** argv )
         #elif Qt3D_VERSION>=2
         double scene_radius = options.value( "--scene-radius,--radius", 10. );
         QVector3D scene_center = comma::csv::ascii< QVector3D >( "x,y,z", ',' ).get( options.value< std::string >( "--scene-center,--center", "0,0,0" ) );
+        options.assert_mutually_exclusive( "--output-camera-config,--output-camera", "--output-camera-position" );
         std::shared_ptr< snark::graphics::view::controller > controller( new snark::graphics::view::controller( background_color
                                                                                                               , camera_options
                                                                                                               , options.exists( "--exit-on-end-of-input" )
@@ -766,9 +771,10 @@ int main( int argc, char** argv )
                                                                                                               , scene_center
                                                                                                               , scene_radius
                                                                                                               , options.exists( "--output-camera-config,--output-camera" )
+                                                                                                              , options.exists( "--output-camera-position" )
                                                                                                               , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) ) ) );
-        controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // --camera-position: quick and dirty for now
-        controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // --camera-position: quick and dirty for now
+        controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene radius update properly
+        controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene center update properly
         #endif
         bool stdin_explicitly_defined = false;
         for( const auto& property : properties )
@@ -784,7 +790,7 @@ int main( int argc, char** argv )
         if( data_passed_through )
         {
             controller->inhibit_stdout();
-            if( options.exists( "--output-camera-config,--output-camera" ) ) { COMMA_THROW( comma::exception, "cannot use --output-camera-config whilst \"pass-through\" option is in use" ); }
+            if( options.exists( "--output-camera-config,--output-camera,--output-camera-position" ) ) { COMMA_THROW( comma::exception, "cannot use --output-camera-config or --output-camera-position whilst \"pass-through\" option is in use" ); }
         }
         snark::graphics::view::MainWindow main_window( comma::join( argv, argc, ' ' ), controller );
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();

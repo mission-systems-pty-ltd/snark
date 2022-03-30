@@ -60,6 +60,7 @@ public:
               , const QVector3D& scene_center
               , double scene_radius
               , bool output_camera_config
+              , bool output_camera_position
               , const snark::graphics::view::click_mode& click_mode );
     ~controller();
     void inhibit_stdout();
