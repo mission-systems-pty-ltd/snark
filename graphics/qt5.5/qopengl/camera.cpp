@@ -115,9 +115,29 @@ static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     world.setToIdentity();
-    // static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
-    world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
+    world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+
+    // if( from_ned )
+    // {
+    //     world.rotate( _quaternion( roll, pitch, yaw ) ); // world.rotate( _quaternion( -pitch, roll, yaw ) ); // sic... sick...
+    //     static const QQuaternion e = QQuaternion::fromEulerAngles( QVector3D( 0, 0, 90 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    //     world.rotate( e );
+    //     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    //     world.rotate( ned );
+    // }
+    // else
+    // {
+    //     world.rotate( _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    // }
+
+    // static const Eigen::Matrix3d ned = snark::rotation_matrix( Eigen::Vector3d( M_PI / 2, 0, -M_PI / 2 ) ).rotation(); // super-quick and dirty
+    // snark::rotation_matrix m( Eigen::Vector3d( roll, pitch, yaw ) );
+    // Eigen::Matrix3d p = ned * m.rotation();
+    // auto rpy = snark::rotation_matrix( p ).roll_pitch_yaw();
+    // //world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    // world.rotate( from_ned ? _quaternion( rpy.x(), rpy.y(), rpy.z() ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+
     world.translate( -center );
     //if( orthographic ) { update_projection(); } // todo? do we need to do it?
 }
@@ -126,13 +146,12 @@ QVector3D camera_transform::get_orientation( bool to_ned ) const // todo? fix?
 {
     Eigen::Matrix3d m = Eigen::Matrix3d::Identity();
     for( unsigned int row = 0; row < 3; ++row ) { for( unsigned int col = 0; col < 3; ++col ) { m( row, col ) = world( row, col ); } }
-    static const Eigen::Matrix3d ned = snark::rotation_matrix( Eigen::Vector3d( -M_PI / 2, 0, M_PI / 2 ) ).rotation(); // super-quick and dirty
+    static const Eigen::Matrix3d ned = snark::rotation_matrix( Eigen::Vector3d( M_PI / 2, M_PI / 2, 0 ) ).rotation().inverse(); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
     //std::cerr << "==> camera_transform::get_orientation:     rpy: " << snark::rotation_matrix::roll_pitch_yaw(m).transpose() << std::endl;
     //std::cerr << "==> camera_transform::get_orientation: (0) rpy: " << snark::rotation_matrix::roll_pitch_yaw(m*ned).transpose() << std::endl;
     //std::cerr << "==> camera_transform::get_orientation: (1) rpy: " << snark::rotation_matrix::roll_pitch_yaw(ned*m).transpose() << std::endl;
-    const auto& rpy = snark::rotation_matrix::roll_pitch_yaw( to_ned ? m * ned : m );
-    //double roll=rpy.x(), pitch=rpy.y(), yaw=rpy.z(); std::cerr<<"camera_transform::get_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
-    return QVector3D( rpy.x(), rpy.y(), rpy.z() );
+    const auto& rpy = snark::rotation_matrix::roll_pitch_yaw( to_ned ? ned * m : m ); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
+    return QVector3D( rpy.y(), rpy.x(), -rpy.z() );
 }
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << ',' << v.y() << ',' << v.z(); }
