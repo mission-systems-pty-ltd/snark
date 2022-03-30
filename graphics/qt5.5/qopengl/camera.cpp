@@ -136,7 +136,7 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {
     camera.setToIdentity();
     camera.translate( from_ned ? _from_ned( v ) : v );
-    //std::cerr << "--> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
+    //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
     if( orthographic ) { update_projection(); }
 }
 
