@@ -61,9 +61,9 @@ struct camera_transform
 
     /// sets camera position in world coordinate
     /// z is distance to center and (x,y) component is pan
-    void set_position(const QVector3D& v, bool from_ned = false);
+    void set_position( const QVector3D& v, bool from_ned = false );
 
-    QVector3D get_position() const;
+    QVector3D get_position( bool to_ned = false ) const;
 
     /// distance between camera and center
     double distance() const;

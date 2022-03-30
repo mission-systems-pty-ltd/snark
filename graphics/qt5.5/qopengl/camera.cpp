@@ -29,10 +29,11 @@
 
 /// @author Navid Pirmarzdashti
 
-#include "camera.h"
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include "../../../math/rotation_matrix.h"
+#include "camera.h"
 
 namespace snark { namespace graphics { namespace qopengl {
 
@@ -78,6 +79,7 @@ static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion
 
 //static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
+static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
 
 void camera_transform::set_center( const QVector3D& v )
 {
@@ -116,22 +118,16 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
     world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
     world.translate( -center );
-    //if( orthographic ) { update_projection(); } // do we need to do it?
+    //if( orthographic ) { update_projection(); } // todo? do we need to do it?
 }
+
 QVector3D camera_transform::get_orientation() const // todo? fix?
 {
-    Eigen::Matrix3d m=Eigen::Matrix3d::Identity();
-    for(unsigned row=0;row<3;row++)
-    {
-        for(unsigned col=0;col<3;col++)
-        {
-            m(row,col)=world(row,col);
-        }
-    }
-    auto rpy=snark::rotation_matrix::roll_pitch_yaw(m);
-    double roll=rpy.x(), pitch=rpy.y(), yaw=rpy.z();
-//     std::cerr<<"camera_transform::get_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
-    return QVector3D(roll,pitch,yaw);
+    Eigen::Matrix3d m = Eigen::Matrix3d::Identity();
+    for( unsigned int row = 0; row < 3; ++row ) { for( unsigned int col = 0; col < 3; ++col ) { m( row, col ) = world( row, col ); } }
+    const auto& rpy = snark::rotation_matrix::roll_pitch_yaw( m );
+    //double roll=rpy.x(), pitch=rpy.y(), yaw=rpy.z(); std::cerr<<"camera_transform::get_orientation "<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
+    return QVector3D( rpy.x(), rpy.y(), rpy.z() );
 }
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << ',' << v.y() << ',' << v.z(); }
@@ -140,11 +136,11 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {
     camera.setToIdentity();
     camera.translate( from_ned ? _from_ned( v ) : v );
-    //std::cerr << "--> set_position: v: " << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position() << std::endl;
+    //std::cerr << "--> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
     if( orthographic ) { update_projection(); }
 }
 
-QVector3D camera_transform::get_position() const { return camera.column(3).toVector3DAffine(); }
+QVector3D camera_transform::get_position( bool to_ned ) const { return to_ned ? _to_ned( camera.column(3).toVector3DAffine() ) : camera.column(3).toVector3DAffine(); }
 
 double camera_transform::distance() const { return std::abs(get_position().z()); }
 

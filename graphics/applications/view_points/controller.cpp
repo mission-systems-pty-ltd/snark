@@ -1,10 +1,9 @@
 // Copyright (c) 2016 The University of Sydney
 // Copyright (c) 2020 Vsevolod Vlaskine
 
-#include "controller.h"
-#include "reader.h"
-
 #include <signal.h>
+#include <iomanip>
+#include <iostream>
 #ifndef Q_MOC_RUN
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -13,6 +12,8 @@
 #include <comma/name_value/ptree.h>
 #include <comma/visiting/apply.h>
 #endif
+#include "controller.h"
+#include "reader.h"
 
 #if Qt3D_VERSION>=2
 
@@ -99,7 +100,7 @@ void controller::read()
         if( readers[i]->empty() ) { continue; }
         Eigen::Vector3d p = readers[i]->somePoint();
         viewer->m_offset = std::fabs( p.x() ) > 1000 || std::fabs( p.y() ) > 1000 || std::fabs( p.z() ) > 1000 ? p : Eigen::Vector3d( 0, 0, 0 );
-        std::cerr << "view-points: reader no. " << i << " scene offset (" << viewer->m_offset->transpose() << "); scene radius: " << viewer->scene_radius << std::endl;
+        std::cerr << "view-points: reader no." << i << std::setprecision( 16 ) << " scene offset: " << viewer->m_offset->x() << ',' << viewer->m_offset->y() << ',' << viewer->m_offset->z() << "; scene radius: " << viewer->scene_radius << std::endl;
     }
     if( !viewer->m_offset ) { return; }
     bool need_update = false;

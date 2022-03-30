@@ -49,27 +49,22 @@ Eigen::Vector3d rotation_matrix::roll_pitch_yaw( const ::Eigen::Matrix3d& m )
     double roll = 0;
     double pitch = std::asin( -m(2,0) );
     double yaw = 0;
-
-    // pitch == 90°
-    if( comma::math::equal( m(2,0), -1 ))
+    if( comma::math::equal( m(2,0), -1 )) // pitch == 90°
     {
         roll = 0;
         yaw = -std::atan2( m(0,1), m(0,2) );
     }
-    // pitch == -90°
-    else if( comma::math::equal( m(2,0), 1 ))
+    else if( comma::math::equal( m(2,0), 1 )) // pitch == -90°
     {
         roll = 0;
         yaw = std::atan2( -m(0,1), -m(0,2) );
     }
-    // everything else
-    else
+    else // everything else
     {
         roll = std::atan2( m(2,1), m(2,2) );
         yaw = std::atan2( m(1,0), m(0,0) );
     }
-    Eigen::Vector3d rpy( roll, pitch, yaw );
-    return rpy;
+    return Eigen::Vector3d( roll, pitch, yaw );
 }
 
 Eigen::Matrix3d rotation_matrix::rotation( double roll, double pitch, double yaw )
@@ -84,8 +79,8 @@ Eigen::Matrix3d rotation_matrix::rotation( double roll, double pitch, double yaw
     const double spsy = sp*sy;
     Eigen::Matrix3d m;
     m << cp*cy, -cr*sy+sr*spcy,  sr*sy+cr*spcy,
-            cp*sy,  cr*cy+sr*spsy, -sr*cy+cr*spsy,
-            -sp,          sr*cp,          cr*cp;
+         cp*sy,  cr*cy+sr*spsy, -sr*cy+cr*spsy,
+         -sp,    sr*cp,          cr*cp;
     return m;
 }
 
