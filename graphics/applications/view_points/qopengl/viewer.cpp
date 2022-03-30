@@ -148,8 +148,8 @@ void viewer::write_camera_position_( std::ostream& os, bool on_change )
 {
     if( on_change && previous_camera_ && camera.camera == previous_camera_->camera && camera.world == previous_camera_->world ) { return; }
     previous_camera_ = camera;
-    const auto& position = camera.get_position( true ); // todo: get position in ned frame
-    const auto& orientation = camera.get_orientation(); // todo: get orientation in ned frame
+    const auto& position = camera.get_position( true );
+    const auto& orientation = camera.get_orientation( true );
     os << std::setprecision( 16 ) << position.x() + m_offset->x() << ',' << position.y() + m_offset->y() << ',' << position.z() + m_offset->z() << ',' << orientation.x() << ',' << orientation.y() << ',' << orientation.z() << std::endl;
 }
 

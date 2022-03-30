@@ -57,7 +57,7 @@ struct camera_transform
 
     void set_orientation(const QVector3D& v, bool from_ned = false) { set_orientation( v.x(), v.y(), v.z(), from_ned); }
 
-    QVector3D get_orientation() const;
+    QVector3D get_orientation( bool to_ned = false ) const;
 
     /// sets camera position in world coordinate
     /// z is distance to center and (x,y) component is pan
