@@ -1,58 +1,4 @@
-// This file is provided in addition to snark and is not an integral
-// part of snark library.
 // Copyright (c) 2018 Vsevolod Vlaskine
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-// snark is a generic and flexible library for robotics research
-// Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /// @author vsevolod vlaskine
 
@@ -93,7 +39,7 @@ std::string traits::usage()
     oss << std::endl;
     oss << "      --linear: DEPRECATED; use trajectory-thin" << std::endl;
     oss << std::endl;
-    return oss.str();    
+    return oss.str();
 }
 
 struct point
@@ -134,7 +80,7 @@ namespace snark { namespace points_calc { namespace thin {
 std::string traits::input_fields() { return comma::join( comma::csv::names< input >( true ), ',' ); }
 
 std::string traits::input_format() { return comma::csv::format::value< input >(); }
-    
+
 std::string traits::output_fields() { return ""; } // appends no fields
 
 std::string traits::output_format() { return ""; } // appends no fields
@@ -151,7 +97,7 @@ class proportional
             count_ -= increment_;
             return true;
         }
-        
+
         const proportional& updated( const point& ) const { return *this; }
 
     private:
@@ -170,7 +116,7 @@ class points_per_voxel
             --available_;
             return true;
         }
-        
+
         const points_per_voxel& updated( const point& ) const { return *this; }
 
     private:
@@ -183,7 +129,7 @@ class id_filter
         id_filter(): keep_( true ) {}
         bool keep( const point& ) const { bool k = keep_; keep_ = false; return k; } // quick and dirty
         id_filter updated( const point& p ) const { return *this; }
-        
+
     private:
         mutable bool keep_; // quick and dirty
 };
@@ -195,7 +141,7 @@ class id_pass
         id_pass( comma::uint32 id ): id_( id ) {}
         bool keep( const point& p ) const { return p.id == id_; }
         id_pass updated( const point& p ) const { return id_pass( p.id ); }
-        
+
     private:
         comma::uint32 id_;
 };
@@ -207,7 +153,7 @@ class block_pass
         block_pass( comma::uint32 block ): block_( block ) {}
         bool keep( const point& p ) const { return p.block == block_; }
         block_pass updated( const point& p ) const { return block_pass( p.block ); }
-        
+
     private:
         comma::uint32 block_;
 };
