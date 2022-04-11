@@ -272,6 +272,10 @@ static void usage( bool )
         "\n    output"
         "\n        double right click: output 3d coordinates of the point under mouse"
         "\n        p: output current scene as png image; filename will be timestamped with current time, e.g. 20220411T053241.628164.png"
+        "\n        ctrl-p: start/stop output stream of scene snapshots as cv-cat compatible binary"
+        "\n                file will be called e.g. 20220411T053241.628164.bin; it can be very large"
+        "\n                todo: parametrise output to write, e.g. to a pipe or socket that can be plugged"
+        "\n                      into e.g. ffmpeg h.264 encoding"
         "\n        see click mode below for more keyboard shortcuts"
         "\n"
         qtold_unsupported_marker_start
