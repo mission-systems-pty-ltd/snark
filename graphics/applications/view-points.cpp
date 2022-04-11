@@ -264,11 +264,15 @@ static void usage( bool )
 
     static const char * const usage_examples =
         "\nkey presses and mouse clicks:"
-        "\n    general controls"
+        "\n    scene control controls"
         "\n        left press and hold: rotate the scene around the centre"
         "\n        right press and hold: translate the scene"
         "\n        double left click: change the centre of the scene"
         "\n        scroll wheel: zoom"
+        "\n    output"
+        "\n        double right click: output 3d coordinates of the point under mouse"
+        "\n        p: output current scene as png image; filename will be timestamped with current time, e.g. 20220411T053241.628164.png"
+        "\n        see click mode below for more keyboard shortcuts"
         "\n"
         qtold_unsupported_marker_start
         "\n    console/stdout output"

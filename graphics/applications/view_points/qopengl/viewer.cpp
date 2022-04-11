@@ -1,6 +1,7 @@
 // Copyright (c) 2017 The University of Sydney
 // Copyright (c) 2020 Vsevolod Vlaskine
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
@@ -52,6 +53,10 @@ void viewer::on_timeout() { if( handler != nullptr ) { handler->tick(); } }
 void viewer::paintGL()
 {
     widget::paintGL();
+    if( image_grab_ostream_ )
+    {
+        const auto& b = grabFramebuffer();
+        ( *image_grab_ostream_ )()->write( ( const char* )( b.bits() ), b.sizeInBytes() ); } // todo: plug in into menu and/or keyboard shortcuts
     if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true ); }
     if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
@@ -73,12 +78,23 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
 void viewer::keyPressEvent( QKeyEvent *event )
 {
     click_mode.double_right_click.on_key_press( event );
-    if( event->modifiers() == Qt::ControlModifier && event->key() == Qt::Key_P )
+    switch( event->key() )
     {
-        auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
-        s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
-        QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
-        std::cerr << "view-points: screenshot saved in " << s << std::endl;
+        case Qt::Key_P:
+            if( event->modifiers() == Qt::NoModifier )
+            {
+                auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+                s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
+                QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
+                std::cerr << "view-points: screenshot saved in " << s << std::endl;
+            }
+            else if( event->modifiers() == Qt::ControlModifier )
+            {
+                // todo
+            }
+            break;
+        default:
+            break;
     }
     update();
 }

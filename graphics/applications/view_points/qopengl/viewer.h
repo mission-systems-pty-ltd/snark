@@ -4,11 +4,13 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <QKeyEvent>
 #include <QMainWindow>
 #include <boost/optional.hpp>
 #include <comma/base/types.h>
+#include <comma/io/stream.h>
 #include "../../../qt5.5/qopengl/widget.h"
 #include "../click_mode.h"
 #include "../types.h"
@@ -70,6 +72,8 @@ private slots:
 private:
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
+    std::string image_grab_ostream_name_;
+    std::unique_ptr< comma::io::ostream > image_grab_ostream_;
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
