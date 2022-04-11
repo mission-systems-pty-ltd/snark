@@ -53,10 +53,7 @@ void viewer::on_timeout() { if( handler != nullptr ) { handler->tick(); } }
 void viewer::paintGL()
 {
     widget::paintGL();
-    if( image_grab_ostream_ )
-    {
-        const auto& b = grabFramebuffer();
-        ( *image_grab_ostream_ )()->write( ( const char* )( b.bits() ), b.sizeInBytes() ); } // todo: plug in into menu and/or keyboard shortcuts
+    _image_grab.grab( this );
     if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true ); }
     if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
@@ -90,7 +87,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
             }
             else if( event->modifiers() == Qt::ControlModifier )
             {
-                // todo
+                _image_grab.toggle();
             }
             break;
         default:
@@ -175,6 +172,49 @@ void viewer::write_camera_position_( std::ostream& os, bool on_change )
     const auto& position = camera.get_position( true );
     const auto& orientation = camera.get_orientation( true );
     os << std::setprecision( 16 ) << position.x() + m_offset->x() << ',' << position.y() + m_offset->y() << ',' << position.z() + m_offset->z() << ',' << orientation.x() << ',' << orientation.y() << ',' << orientation.z() << std::endl;
+}
+
+void viewer::_image_grab_t::_reopen()
+{
+    _close();
+    if( _name.empty() )
+    {
+        _current_name = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+        _current_name += _current_name.find( "." ) == std::string::npos ? ".000000.bin" : ".bin";
+    }
+    else
+    {
+        _current_name = _name;
+    }
+    _ostream.reset( new comma::io::ostream( _current_name ) );
+    std::cerr << "view-points: started recording screen to " << _current_name << " at " << _fps << "fps" << std::endl;
+}
+
+void viewer::_image_grab_t::_close()
+{
+    _last = boost::posix_time::ptime();
+    if( _ostream )
+    {
+        std::cerr << "view-points: stopped recording screen to " << _current_name << std::endl;
+        _ostream.reset();
+    }
+}
+
+void viewer::_image_grab_t::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
+
+void viewer::_image_grab_t::grab( QOpenGLWidget* w )
+{
+    if( !_ostream ) { return; }
+    auto t = boost::posix_time::microsec_clock::universal_time();
+    if( _last.is_not_a_date_time() && t - _last < _period ) { return; }
+    _last = t;
+    const auto& b = w->grabFramebuffer();
+    unsigned int width( b.width() ), height( b.height() ), cv_type( 24 ); // uber-quick and dirty
+    ( *_ostream )()->write( ( const char* )( &t ), sizeof( t ) ); // todo: put all in a buffer
+    ( *_ostream )()->write( ( const char* )( &height ), sizeof( unsigned int ) );
+    ( *_ostream )()->write( ( const char* )( &width ), sizeof( unsigned int ) );
+    ( *_ostream )()->write( ( const char* )( &cv_type ), sizeof( unsigned int ) );
+    ( *_ostream )()->write( ( const char* )( b.bits() ), b.sizeInBytes() );
 }
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

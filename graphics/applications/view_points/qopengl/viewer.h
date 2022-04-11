@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 #include <QMainWindow>
 #include <boost/optional.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <comma/base/types.h>
 #include <comma/io/stream.h>
 #include "../../../qt5.5/qopengl/widget.h"
@@ -72,8 +73,26 @@ private slots:
 private:
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
-    std::string image_grab_ostream_name_;
-    std::unique_ptr< comma::io::ostream > image_grab_ostream_;
+    class _image_grab_t // todo: move to a more generic location?
+    {
+        public:
+            _image_grab_t( unsigned int fps = 30, const std::string& name = "" ): _fps( fps ), _period( boost::posix_time::microseconds( 1000000 / fps ) ), _name( name ) {}
+            ~_image_grab_t() { _close(); }
+            operator bool() const { return bool( _ostream ); }
+            void toggle();
+            void grab( QOpenGLWidget* w );
+            void write( const char* buf, unsigned int size );
+        private:
+            unsigned int _fps;
+            boost::posix_time::time_duration _period;
+            boost::posix_time::ptime _last;
+            std::string _name;
+            std::string _current_name;
+            std::unique_ptr< comma::io::ostream > _ostream;
+            void _reopen();
+            void _close();
+    };
+    _image_grab_t _image_grab;
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
