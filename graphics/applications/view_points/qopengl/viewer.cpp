@@ -6,6 +6,7 @@
 #include <boost/lexical_cast.hpp>
 #include <QChar>
 #include <QGuiApplication>
+#include <QImageWriter>
 #include <QTimer>
 #include <QVector3D>
 #include "../../../qt5.5/qopengl/traits.h"
@@ -72,6 +73,13 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
 void viewer::keyPressEvent( QKeyEvent *event )
 {
     click_mode.double_right_click.on_key_press( event );
+    if( event->modifiers() == Qt::ControlModifier && event->key() == Qt::Key_P )
+    {
+        auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+        s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
+        QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
+        std::cerr << "view-points: screenshot saved in " << s << std::endl;
+    }
     update();
 }
 
