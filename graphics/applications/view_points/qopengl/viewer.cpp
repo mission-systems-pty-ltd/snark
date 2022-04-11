@@ -1,6 +1,7 @@
 // Copyright (c) 2017 The University of Sydney
 // Copyright (c) 2020 Vsevolod Vlaskine
 
+#include <array>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -13,6 +14,7 @@
 #include "../../../qt5.5/qopengl/traits.h"
 #ifndef Q_MOC_RUN
 #include <boost/property_tree/json_parser.hpp>
+#include <comma/csv/format.h>
 #include <comma/name_value/parser.h>
 #include <comma/name_value/ptree.h>
 #include <comma/visiting/apply.h>
@@ -225,6 +227,12 @@ void viewer::grab::_close()
 
 void viewer::grab::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
 
+// todo
+// ? encode=png
+// ? cv filters
+// - output to stdout
+// - configurable image size
+// ? no-header
 void viewer::grab::once( QOpenGLWidget* w )
 {
     if( !_ostream ) { return; }
@@ -233,7 +241,9 @@ void viewer::grab::once( QOpenGLWidget* w )
     _last = t;
     const auto& b = w->grabFramebuffer();
     unsigned int width( b.width() ), height( b.height() ), cv_type( 24 ); // uber-quick and dirty
-    ( *_ostream )()->write( ( const char* )( &t ), sizeof( t ) ); // todo: put all in a buffer
+    std::array< char, 8 > a;
+    comma::csv::format::traits< boost::posix_time::ptime >::to_bin( t, &a[0] ); // todo? uber-quick and dirty; to avoid dependency on snark::imaging
+    ( *_ostream )()->write( &a[0], a.size() ); // todo: put all in a buffer
     ( *_ostream )()->write( ( const char* )( &height ), sizeof( unsigned int ) );
     ( *_ostream )()->write( ( const char* )( &width ), sizeof( unsigned int ) );
     ( *_ostream )()->write( ( const char* )( &cv_type ), sizeof( unsigned int ) );
