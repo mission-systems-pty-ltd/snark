@@ -230,6 +230,14 @@ static void usage( bool )
         qt55_unsupported_marker_end
         "\n    --orthographic: use orthographic projection instead of perspective"
         "\n"
+        "\ngrab screen options"
+        "\n    --grab-images,--grab=[<options>]; options for grabbing stream of images as cv-cat-style images"
+        "\n                                      start capturing: ctrl-p; stop capturing: strl-p"
+        "\n                         <options>: [<filename>][;fps=<fps>]"
+        "\n                                    <filename>: save grabbed timestamped images in <filename>"
+        "\n                                                default: <current time>.bin, e.g: 20220411T053241.123456.bin"
+        "\n                                    fps=[<fpames per second>]: default=30"
+        "\n"
         "\nmore options"
         "\n    --background-colour,--background-color=<colour> : default: black"
         "\n    --full-screen,--maximize; start view-points in full-screen"
@@ -494,8 +502,8 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
                                                           , options.value< unsigned int>( "--font-size", 16 ) );
     if( !properties.empty() )
     {
-        comma::name_value::parser nameValue( "filename", ';', '=', false );
-        param.options = nameValue.get( properties, csv_options );
+        comma::name_value::parser name_value( "filename", ';', '=', false );
+        param.options = name_value.get( properties, csv_options );
         param.options.full_xpath = false;
         comma::name_value::map m( properties, "filename", ';', '=' );
         shape = m.value( "shape", shape );
@@ -780,7 +788,8 @@ int main( int argc, char** argv )
                                                                                                               , scene_radius
                                                                                                               , options.exists( "--output-camera-config,--output-camera" )
                                                                                                               , options.exists( "--output-camera-position" )
-                                                                                                              , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) ) ) );
+                                                                                                              , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) )
+                                                                                                              , options.value< std::string >( "--grab-images,--grab", "" ) ) ); // todo? construct grab from grab options here?
         controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene radius update properly
         controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene center update properly
         #endif

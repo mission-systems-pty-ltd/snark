@@ -42,12 +42,38 @@ public:
     bool output_camera_position;
     snark::graphics::view::click_mode click_mode;
 
+    class grab // todo: move to a more generic location?
+    {
+        public:
+            struct options
+            {
+                std::string filename;
+                unsigned int fps;
+                options( const std::string& filename = "", unsigned int fps = 30 ): filename( filename ), fps( fps ) {}
+            };
+            grab( const grab::options& options = grab::options() ): _options( options ), _period( boost::posix_time::microseconds( 1000000 / options.fps ) ) {}
+            ~grab() { _close(); }
+            operator bool() const { return bool( _ostream ); }
+            void toggle();
+            void once( QOpenGLWidget* w );
+            void write( const char* buf, unsigned int size );
+        private:
+            grab::options _options;
+            boost::posix_time::time_duration _period;
+            boost::posix_time::ptime _last;
+            std::string _current_filename;
+            std::unique_ptr< comma::io::ostream > _ostream;
+            void _reopen();
+            void _close();
+    };
+
     viewer( controller_base* handler
           , const color_t& background_color
           , const qt3d::camera_options& camera_options
           , const QVector3D& scene_center
           , double scene_radius
           , const snark::graphics::view::click_mode& click_mode
+          , const std::string& grab_options = ""
           , QMainWindow* parent = nullptr );
 
     void reset_handler(controller_base* h = nullptr);
@@ -73,26 +99,7 @@ private slots:
 private:
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
-    class _image_grab_t // todo: move to a more generic location?
-    {
-        public:
-            _image_grab_t( unsigned int fps = 30, const std::string& name = "" ): _fps( fps ), _period( boost::posix_time::microseconds( 1000000 / fps ) ), _name( name ) {}
-            ~_image_grab_t() { _close(); }
-            operator bool() const { return bool( _ostream ); }
-            void toggle();
-            void grab( QOpenGLWidget* w );
-            void write( const char* buf, unsigned int size );
-        private:
-            unsigned int _fps;
-            boost::posix_time::time_duration _period;
-            boost::posix_time::ptime _last;
-            std::string _name;
-            std::string _current_name;
-            std::unique_ptr< comma::io::ostream > _ostream;
-            void _reopen();
-            void _close();
-    };
-    _image_grab_t _image_grab;
+    viewer::grab _grab;
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

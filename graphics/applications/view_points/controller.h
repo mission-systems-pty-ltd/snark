@@ -61,7 +61,8 @@ public:
               , double scene_radius
               , bool output_camera_config
               , bool output_camera_position
-              , const snark::graphics::view::click_mode& click_mode );
+              , const snark::graphics::view::click_mode& click_mode
+              , const std::string& grab_options );
     ~controller();
     void inhibit_stdout();
     void shutdown( bool kill = true );

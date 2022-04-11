@@ -13,11 +13,32 @@
 #include "../../../qt5.5/qopengl/traits.h"
 #ifndef Q_MOC_RUN
 #include <boost/property_tree/json_parser.hpp>
+#include <comma/name_value/parser.h>
 #include <comma/name_value/ptree.h>
 #include <comma/visiting/apply.h>
+#include <comma/visiting/traits.h>
 #endif
 #include "../../../../math/rotation_matrix.h"
 #include "viewer.h"
+
+namespace comma { namespace visiting {
+
+template <> struct traits< snark::graphics::view::qopengl::viewer::grab::options >
+{
+    template < typename Key, class Visitor > static void visit( Key, snark::graphics::view::qopengl::viewer::grab::options& p, Visitor& v )
+    {
+        v.apply( "filename", p.filename );
+        v.apply( "fps", p.fps );
+    }
+
+    template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::grab::options& p, Visitor& v )
+    {
+        v.apply( "filename", p.filename );
+        v.apply( "fps", p.fps );
+    }
+};
+
+} } // namespace comma { namespace visiting {
 
 namespace snark { namespace graphics { namespace view { namespace qopengl {
 
@@ -29,6 +50,7 @@ viewer::viewer( controller_base* handler
               , const QVector3D& arg_scene_center
               , double arg_scene_radius
               , const snark::graphics::view::click_mode& click_mode
+              , const std::string& grab_options
               , QMainWindow* parent )
     : snark::graphics::qopengl::widget( background_color, camera_options, parent )
     , scene_center( arg_scene_center )
@@ -37,6 +59,7 @@ viewer::viewer( controller_base* handler
     , scene_center_fixed( false )
     , stdout_allowed( true )
     , click_mode( click_mode )
+    , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options() ) )
 {
     scene_radius = arg_scene_radius;
     QTimer* timer = new QTimer( this );
@@ -53,7 +76,7 @@ void viewer::on_timeout() { if( handler != nullptr ) { handler->tick(); } }
 void viewer::paintGL()
 {
     widget::paintGL();
-    _image_grab.grab( this );
+    _grab.once( this );
     if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true ); }
     if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
@@ -87,7 +110,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
             }
             else if( event->modifiers() == Qt::ControlModifier )
             {
-                _image_grab.toggle();
+                _grab.toggle();
             }
             break;
         default:
@@ -174,35 +197,35 @@ void viewer::write_camera_position_( std::ostream& os, bool on_change )
     os << std::setprecision( 16 ) << position.x() + m_offset->x() << ',' << position.y() + m_offset->y() << ',' << position.z() + m_offset->z() << ',' << orientation.x() << ',' << orientation.y() << ',' << orientation.z() << std::endl;
 }
 
-void viewer::_image_grab_t::_reopen()
+void viewer::grab::_reopen()
 {
     _close();
-    if( _name.empty() )
+    if( _options.filename.empty() )
     {
-        _current_name = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
-        _current_name += _current_name.find( "." ) == std::string::npos ? ".000000.bin" : ".bin";
+        _current_filename = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+        _current_filename += _current_filename.find( "." ) == std::string::npos ? ".000000.bin" : ".bin";
     }
     else
     {
-        _current_name = _name;
+        _current_filename = _options.filename;
     }
-    _ostream.reset( new comma::io::ostream( _current_name ) );
-    std::cerr << "view-points: started recording screen to " << _current_name << " at " << _fps << "fps" << std::endl;
+    _ostream.reset( new comma::io::ostream( _current_filename ) );
+    std::cerr << "view-points: started recording screen to " << _current_filename << " at " << _options.fps << "fps" << std::endl;
 }
 
-void viewer::_image_grab_t::_close()
+void viewer::grab::_close()
 {
     _last = boost::posix_time::ptime();
     if( _ostream )
     {
-        std::cerr << "view-points: stopped recording screen to " << _current_name << std::endl;
+        std::cerr << "view-points: stopped recording screen to " << _current_filename << std::endl;
         _ostream.reset();
     }
 }
 
-void viewer::_image_grab_t::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
+void viewer::grab::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
 
-void viewer::_image_grab_t::grab( QOpenGLWidget* w )
+void viewer::grab::once( QOpenGLWidget* w )
 {
     if( !_ostream ) { return; }
     auto t = boost::posix_time::microsec_clock::universal_time();
