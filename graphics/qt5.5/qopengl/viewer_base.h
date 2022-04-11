@@ -41,6 +41,7 @@ namespace snark { namespace graphics { namespace qopengl {
 /// this class is simplified interface of widget, passed to reader; each reader adds its required shaders to the widget (using this interface)
 struct viewer_base
 {
+    virtual ~viewer_base() {}
     virtual void add_shape(const std::shared_ptr<shape>& shape)=0;
     virtual void add_label_shader(const std::shared_ptr<label_shader>& label_shader)=0;
     virtual void add_texture_shader(const std::shared_ptr<texture_shader>& texture_shader)=0;
@@ -48,4 +49,3 @@ struct viewer_base
 };
 
 } } } // namespace snark { namespace graphics { namespace qopengl {
-    
