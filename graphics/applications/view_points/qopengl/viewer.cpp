@@ -247,7 +247,7 @@ void viewer::grab::once( QOpenGLWidget* w )
     ( *_ostream )()->write( ( const char* )( &height ), sizeof( unsigned int ) );
     ( *_ostream )()->write( ( const char* )( &width ), sizeof( unsigned int ) );
     ( *_ostream )()->write( ( const char* )( &cv_type ), sizeof( unsigned int ) );
-    ( *_ostream )()->write( ( const char* )( b.bits() ), b.sizeInBytes() );
+    ( *_ostream )()->write( ( const char* )( b.bits() ), width * height * 4 );
 }
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
