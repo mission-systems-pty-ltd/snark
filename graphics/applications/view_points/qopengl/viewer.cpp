@@ -25,18 +25,22 @@
 
 namespace comma { namespace visiting {
 
-template <> struct traits< snark::graphics::view::qopengl::viewer::grab::options >
+template <> struct traits< snark::graphics::view::qopengl::viewer::grab::options_t >
 {
-    template < typename Key, class Visitor > static void visit( Key, snark::graphics::view::qopengl::viewer::grab::options& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( Key, snark::graphics::view::qopengl::viewer::grab::options_t& p, Visitor& v )
     {
         v.apply( "filename", p.filename );
         v.apply( "fps", p.fps );
+        v.apply( "cols", p.cols );
+        v.apply( "rows", p.rows );
     }
 
-    template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::grab::options& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::grab::options_t& p, Visitor& v )
     {
         v.apply( "filename", p.filename );
         v.apply( "fps", p.fps );
+        v.apply( "cols", p.cols );
+        v.apply( "rows", p.rows );
     }
 };
 
@@ -61,8 +65,13 @@ viewer::viewer( controller_base* handler
     , scene_center_fixed( false )
     , stdout_allowed( true )
     , click_mode( click_mode )
-    , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options() ) )
+    , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options_t() ) )
 {
+    if( _grab.options().cols > 0 )
+    {
+        resize( _grab.options().cols, _grab.options().rows );
+        resizeGL( _grab.options().cols, _grab.options().rows );
+    }
     scene_radius = arg_scene_radius;
     QTimer* timer = new QTimer( this );
     connect( timer, SIGNAL( timeout() ), this, SLOT( on_timeout() ) );

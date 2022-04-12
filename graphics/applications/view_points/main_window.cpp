@@ -54,30 +54,29 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
     QGridLayout* layout = new QGridLayout;
     layout->setContentsMargins( 0, 0, 0, 0 );
     layout->setSpacing( 0 );
-    
+
     //QScrollArea* area = new QScrollArea( this );
     //area->setWidget( m_fileFrame );
     //area->show();
-    
+
     layout->addWidget( m_fileFrame, 0, 0 );
-    
     viewer_t* viewer = controller_traits< snark::graphics::view::controller >::get_widget( controller );
-    
     #if QT_VERSION >= 0x050000
-    #if Qt3D_VERSION==1
-    layout->addWidget( QWidget::createWindowContainer( viewer ), 0, 1 );
-    #elif Qt3D_VERSION>=2
-    layout->addWidget(viewer,0,1);
-    #endif
+        #if Qt3D_VERSION==1
+        layout->addWidget( QWidget::createWindowContainer( viewer ), 0, 1 );
+        #elif Qt3D_VERSION>=2
+        layout->addWidget( viewer, 0, 1 );
+        #endif
     #else
-    layout->addWidget( viewer , 0, 1 );
+        layout->addWidget( viewer, 0, 1 );
     #endif
     layout->setColumnStretch( 0, 0 );
     layout->setColumnStretch( 1, 1 );
+    layout->setRowMinimumHeight( 0, viewer->size().height() );
+    layout->setColumnMinimumWidth( 1, viewer->size().width() );
     frame->setLayout( layout );
+    //resize( viewer->size().width(), viewer->size().height() ); // resize( 640, 480 );
     setCentralWidget( frame );
-    resize( 640, 480 );
-
     m_viewMenu = menuBar()->addMenu( "View" );
     ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, _1 ) );
     action->setChecked( m_fileFrameVisible );
@@ -196,7 +195,7 @@ void MainWindow::update_view()
 {
     controller->update_view();
     controller_traits< snark::graphics::view::controller >::get_widget( controller )->setFocus();
-    
+
 }
 
 void MainWindow::toggleFileFrame( bool visible )

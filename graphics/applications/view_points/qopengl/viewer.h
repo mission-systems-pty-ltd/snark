@@ -45,20 +45,23 @@ public:
     class grab // todo: move to a more generic location?
     {
         public:
-            struct options
+            struct options_t
             {
                 std::string filename;
                 unsigned int fps;
-                options( const std::string& filename = "", unsigned int fps = 30 ): filename( filename ), fps( fps ) {}
+                unsigned int cols;
+                unsigned int rows;
+                options_t( const std::string& filename = "", unsigned int fps = 30, unsigned int cols = 0, unsigned int rows = 0 ): filename( filename ), fps( fps ), cols( cols ), rows( rows ) {}
             };
-            grab( const grab::options& options = grab::options() ): _options( options ), _period( boost::posix_time::microseconds( 1000000 / options.fps ) ) {}
+            grab( const grab::options_t& options = grab::options_t() ): _options( options ), _period( boost::posix_time::microseconds( 1000000 / options.fps ) ) {}
             ~grab() { _close(); }
+            const grab::options_t& options() const { return _options; }
             operator bool() const { return bool( _ostream ); }
             void toggle();
             void once( QOpenGLWidget* w );
             void write( const char* buf, unsigned int size );
         private:
-            grab::options _options;
+            grab::options_t _options;
             boost::posix_time::time_duration _period;
             boost::posix_time::ptime _last;
             std::string _current_filename;
