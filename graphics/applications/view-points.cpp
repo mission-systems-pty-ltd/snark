@@ -231,18 +231,24 @@ static void usage( bool )
         "\n    --orthographic: use orthographic projection instead of perspective"
         "\n"
         "\ngrab screen options"
-        "\n    --grab-images,--grab=[<options>]; options for grabbing stream of timestamped 4-channel images as cv-cat-style"
+        "\n    --grab-frames,--grab=[<options>]; options for grabbing stream of timestamped 4-channel images as cv-cat-style"
         "\n                                      stream; start capturing: ctrl-p; stop capturing: strl-p"
         "\n                         <options>: [<filename>][;fps=<fps>]"
         "\n                                    <filename>: save grabbed timestamped images in <filename>"
         "\n                                                default: <current time>.bin, e.g: 20220411T053241.123456.bin"
         "\n                                    fps=[<fpames per second>]: default=30"
-        "\n                         example: convert to mp4 online"
+        "\n                         example: convert to high-quality mp4 online"
         "\n                             - run:"
-        "\n                                 mkfifo /tmp/pipe"
-        "\n                                 cat /tmp/pipe | cv-cat 'shuffle=b,g,r;encode=png' --output=no-header --fps 25 \\"
-        "\n                                               | ffmpeg -y -f image2pipe -r 25 -c:v png -i pipe: -c:v libx264 \\"
-        "\n                                                        -threads 0 -b:v 2000k -r 25 -preset slow -crf 22 video.mp4 &"
+        "\n                                 output grabbed frames to stdout"
+        "\n                                     view-points points.csv --grab='/tmp/pipe;fps=25' \\"
+        "\n                                         | cv-cat 'shuffle=b,g,r;encode=png' --output=no-header --fps 25 \\"
+        "\n                                         | ffmpeg -y -f image2pipe -r 25 -c:v png -i pipe: -c:v libx264 \\"
+        "\n                                                  -threads 0 -b:v 2000k -r 25 -preset slow -crf 22 video.mp4"
+        "\n                                 or using named pipe, if you need view-points stdout for other things"
+        "\n                                     mkfifo /tmp/pipe"
+        "\n                                     cat /tmp/pipe | cv-cat 'shuffle=b,g,r;encode=png' --output=no-header --fps 25 \\"
+        "\n                                                   | ffmpeg -y -f image2pipe -r 25 -c:v png -i pipe: -c:v libx264 \\"
+        "\n                                                            -threads 0 -b:v 2000k -r 25 -preset slow -crf 22 video.mp4 &"
         "\n                                 view-points points.csv --grab='/tmp/pipe;fps=25'"
         "\n                             - prepare your scene in view-points"
         "\n                             - press ctrl-p to start video capture"
@@ -800,7 +806,7 @@ int main( int argc, char** argv )
                                                                                                               , options.exists( "--output-camera-config,--output-camera" )
                                                                                                               , options.exists( "--output-camera-position" )
                                                                                                               , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) )
-                                                                                                              , options.value< std::string >( "--grab-images,--grab", "" ) ) ); // todo? construct grab from grab options here?
+                                                                                                              , options.value< std::string >( "--grab-frames,--grab", "" ) ) ); // todo? construct grab from grab options here?
         controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene radius update properly
         controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene center update properly
         #endif
