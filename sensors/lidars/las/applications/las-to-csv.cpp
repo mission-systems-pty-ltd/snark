@@ -267,10 +267,12 @@ int main( int ac, char** av )
                 case 3: std::cout << comma::join( comma::csv::names< point< 3 > >( false ), ',' ) << std::endl; return 0;
                 case 4:
                 case 5:
+                case 6:
+                case 7:
                     std::cerr << "las-to-csv: output fields for point data format " << *point_format << ": todo" << std::endl;
                     return 1;
                 default:
-                    std::cerr << "las-to-csv: expected point data format between 0 and 5, got: " << *point_format << std::endl;
+                    std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << *point_format << std::endl;
                     return 1;
             }
             return 0;
@@ -286,10 +288,12 @@ int main( int ac, char** av )
                 case 3: std::cout << comma::csv::format::value< point< 3 > >() << std::endl; return 0;
                 case 4:
                 case 5:
+                case 6:
+                case 7:
                     std::cerr << "las-to-csv: output fields for point data format " << *point_format << ": todo" << std::endl;
                     return 1;
                 default:
-                    std::cerr << "las-to-csv: expected point data format between 0 and 5, got: " << *point_format << std::endl;
+                    std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << *point_format << std::endl;
                     return 1;
             }
             return 0;
@@ -317,10 +321,12 @@ int main( int ac, char** av )
                 case 3: return read_points< 3 >( header, options );
                 case 4:
                 case 5:
+                case 6:
+                case 7:
                     std::cerr << "las-to-csv: point data format " << point_format << ": todo" << std::endl;
                     return 1;
                 default:
-                    std::cerr << "las-to-csv: expected point data format between 0 and 5, got: " << point_format << std::endl;
+                    std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << point_format << std::endl;
                     return 1;
             }
             return 0;
