@@ -201,7 +201,7 @@ template <> struct point< 3 > : public comma::packed::packed_struct< point< 3 >,
 // GPS Time double 8 bytes yes
 // Minimum PDRF Size 30 bytes
 // see http://www.asprs.org/wp-content/uploads/2019/07/LAS_1_4_r15.pdf
-template <> struct point< 6 > : public comma::packed::packed_struct< point< 6 >, 34 >
+template <> struct point< 6 > : public comma::packed::packed_struct< point< 6 >, 60 >
 {
     struct returns_t : public comma::packed::packed_struct< returns, 2 >
     {
@@ -216,7 +216,7 @@ template <> struct point< 6 > : public comma::packed::packed_struct< point< 6 >,
     returns_t returns;
     comma::packed::byte classification;
     comma::packed::byte user_data;
-    comma::packed::byte scan_angle; // -90 to 90
+    comma::packed::little_endian::uint16 scan_angle; // -90 to 90
     comma::packed::little_endian::uint16 point_source_id;
     comma::packed::float64 gps_time; // todo? order of gps_time and colour: las spec says: colour, gps_time, but shows in the table gps_time, colour
     comma::packed::string< 30 > pdrf;
