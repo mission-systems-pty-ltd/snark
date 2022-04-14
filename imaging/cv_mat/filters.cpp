@@ -1,32 +1,5 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
 // Copyright (c) 2018 Vsevolod Vlaskine
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <fstream>
@@ -91,6 +64,7 @@
 #include "filters/file.h"
 #include "filters/hard_edge.h"
 #include "filters/load.h"
+#include "filters/map.h"
 #include "filters/morphology.h"
 #include "filters/pad.h"
 #include "filters/partitions.h"
@@ -101,15 +75,6 @@
 #include "filters/warp.h"
 
 namespace {
-
-    struct map_input_t
-    {
-        typedef double value_type;
-        typedef comma::int32 key_type;
-        key_type key;
-        value_type value;
-    };
-
     struct normalization
     {
         typedef std::pair< int, int > key_t;            // from type, to type
@@ -1623,137 +1588,6 @@ class max_impl_ // experimental, to debug
 };
 
 template < typename H >
-class map_impl_
-{
-    typedef typename impl::filters< H >::value_type value_type;
-    typedef map_input_t::key_type key_type;
-    typedef map_input_t::value_type output_value_type;
-    public:
-        map_impl_( const std::string& map_filter_options, bool permissive ) : permissive_ ( permissive )
-        {
-            comma::csv::options csv_options = comma::name_value::parser( "filename", '&' , '=' ).get< comma::csv::options >( map_filter_options );
-            if( csv_options.fields.empty() ) { csv_options.fields = "value"; }
-            if( !csv_options.has_field( "value" ) ) { COMMA_THROW( comma::exception, "map filter: fields option is given but \"value\" field is not found" ); }
-            bool no_key_field = !csv_options.has_field( "key" );
-            std::ifstream ifs( &csv_options.filename[0] );
-            if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "map filter: failed to open \"" << csv_options.filename << "\"" ); }
-            comma::csv::input_stream< map_input_t > map_stream( ifs , csv_options );
-            for( key_type counter = 0; map_stream.ready() || ( ifs.good() && !ifs.eof() ) ; ++counter )
-            {
-                const map_input_t* map_input = map_stream.read();
-                if( !map_input ) { break; }
-                map_[ no_key_field ? counter : map_input->key ] = map_input->value;
-            }
-        }
-
-        #if ( defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 ) || ( !defined( CV_VERSION_EPOCH ) && ( ( CV_VERSION_MAJOR == 3 && ( CV_VERSION_MINOR < 3 || ( CV_VERSION_MINOR == 3 && CV_VERSION_REVISION < 1 ) ) ) ) )
-        value_type operator()( value_type m ) // todo: support multiple channels
-        {
-            value_type n( m.first, cv::Mat( m.second.size(), cv::DataType< output_value_type >::type ) );
-            try
-            {
-                switch( m.second.type() ) // quick and dirty; opencv really got their design wrong: type is known in runtime whereas handling types is a compile-time thing
-                {
-                    case cv::DataType< unsigned char >::type : apply_map_< unsigned char >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< unsigned char, 2 > >::type : apply_map_< cv::Vec< unsigned char, 2 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< unsigned char, 3 > >::type : apply_map_< cv::Vec< unsigned char, 3 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< unsigned char, 4 > >::type : apply_map_< cv::Vec< unsigned char, 4 > >( m.second, n.second ); break;
-                    case cv::DataType< comma::uint16 >::type : apply_map_< comma::uint16 >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::uint16, 2 > >::type : apply_map_< cv::Vec< comma::uint16, 2 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::uint16, 3 > >::type : apply_map_< cv::Vec< comma::uint16, 3 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::uint16, 4 > >::type : apply_map_< cv::Vec< comma::uint16, 4 > >( m.second, n.second ); break;
-                    case cv::DataType< char >::type : apply_map_< char >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< char, 2 > >::type : apply_map_< cv::Vec< char, 2 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< char, 3 > >::type : apply_map_< cv::Vec< char, 3 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< char, 4 > >::type : apply_map_< cv::Vec< char, 4 > >( m.second, n.second ); break;
-                    case cv::DataType< comma::int16 >::type : apply_map_< comma::int16 >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int16, 2 > >::type : apply_map_< cv::Vec< comma::int16, 2 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int16, 3 > >::type : apply_map_< cv::Vec< comma::int16, 3 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int16, 4 > >::type : apply_map_< cv::Vec< comma::int16, 4 > >( m.second, n.second ); break;
-                    case cv::DataType< comma::int32 >::type : apply_map_< comma::int32 >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int32, 2 > >::type : apply_map_< cv::Vec< comma::int32, 2 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int32, 3 > >::type : apply_map_< cv::Vec< comma::int32, 3 > >( m.second, n.second ); break;
-                    case cv::DataType< cv::Vec< comma::int32, 4 > >::type : apply_map_< cv::Vec< comma::int32, 4 > >( m.second, n.second ); break;
-                    default: std::cerr << "map filter: expected integer cv type, got " << m.second.type() << std::endl; return value_type();
-                }
-            }
-            catch ( std::out_of_range ) { return value_type(); }
-            return n;
-        }
-        #else
-        value_type operator()( value_type m ) // todo: support multiple channels
-        {
-            value_type n( m.first, cv::Mat( m.second.size(), cv::traits::Type< output_value_type >::value ) );
-            try
-            {
-                switch( m.second.type() ) // quick and dirty; opencv really got their design wrong: type is known in runtime whereas handling types is a compile-time thing
-                {
-                    case cv::traits::Type< unsigned char >::value: apply_map_< unsigned char >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< unsigned char, 2 > >::value : apply_map_< cv::Vec< unsigned char, 2 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< unsigned char, 3 > >::value : apply_map_< cv::Vec< unsigned char, 3 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< unsigned char, 4 > >::value : apply_map_< cv::Vec< unsigned char, 4 > >( m.second, n.second ); break;
-                    case cv::traits::Type< comma::uint16 >::value : apply_map_< comma::uint16 >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::uint16, 2 > >::value : apply_map_< cv::Vec< comma::uint16, 2 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::uint16, 3 > >::value : apply_map_< cv::Vec< comma::uint16, 3 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::uint16, 4 > >::value : apply_map_< cv::Vec< comma::uint16, 4 > >( m.second, n.second ); break;
-                    case cv::traits::Type< char >::value : apply_map_< char >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< char, 2 > >::value : apply_map_< cv::Vec< char, 2 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< char, 3 > >::value : apply_map_< cv::Vec< char, 3 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< char, 4 > >::value : apply_map_< cv::Vec< char, 4 > >( m.second, n.second ); break;
-                    case cv::traits::Type< comma::int16 >::value : apply_map_< comma::int16 >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int16, 2 > >::value : apply_map_< cv::Vec< comma::int16, 2 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int16, 3 > >::value : apply_map_< cv::Vec< comma::int16, 3 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int16, 4 > >::value : apply_map_< cv::Vec< comma::int16, 4 > >( m.second, n.second ); break;
-                    case cv::traits::Type< comma::int32 >::value : apply_map_< comma::int32 >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int32, 2 > >::value : apply_map_< cv::Vec< comma::int32, 2 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int32, 3 > >::value : apply_map_< cv::Vec< comma::int32, 3 > >( m.second, n.second ); break;
-                    case cv::traits::Type< cv::Vec< comma::int32, 4 > >::value : apply_map_< cv::Vec< comma::int32, 4 > >( m.second, n.second ); break;
-                    default: std::cerr << "map filter: expected integer cv type, got " << m.second.type() << std::endl; return value_type();
-                }
-            }
-            catch ( std::out_of_range& ) { return value_type(); }
-            return n;
-        }
-        #endif
-
-    private:
-        typedef std::unordered_map< key_type, output_value_type > map_t_;
-        map_t_ map_;
-        bool permissive_;
-
-        template < typename T, int Size > static T get_channel_( const cv::Vec< T, Size >& pixel, int channel ) { return pixel[channel]; }
-        template < typename T > static T get_channel_( const T& pixel, int channel ) { return pixel; }
-        template < typename T, int Size > static void set_channel_( cv::Vec< T, Size >& pixel, int channel, T value ) { return pixel[channel] = value; }
-        template < typename T > static void set_channel_( T& pixel, int channel, T value ) { pixel = value; }
-
-        template < typename input_value_type >
-        void apply_map_( const cv::Mat& input, cv::Mat& output ) // todo: certainly reimplement with tbb::parallel_for
-        {
-            for( int i = 0; i < input.rows; ++i )
-            {
-                for( int j = 0; j < input.cols; ++j )
-                {
-                    const auto& keys = input.at< input_value_type >(i,j);
-                    for( int channel = 0; channel < input.channels(); ++channel )
-                    {
-                        auto key = get_channel_( keys, channel );
-                        map_t_::const_iterator it = map_.find( key );
-                        if( it == map_.end() )
-                        {
-                            if( permissive_ ) { std::cerr << "map filter: expected a pixel value from the map, got: pixel at " << i << "," << j << " with value " << key << std::endl; throw std::out_of_range(""); }
-                            set_channel_( output.at< output_value_type >(i,j), channel, output_value_type( key ) ); // todo? implement value clipping to 0 or 1? refactor not-found behaviour!
-                        }
-                        else
-                        {
-                            set_channel_( output.at< output_value_type >(i,j), channel, it->second );
-                        }
-                    }
-                }
-            }
-        }
-};
-
-template < typename H >
 static typename impl::filters< H >::value_type magnitude_impl_( typename impl::filters< H >::value_type m )
 {
     if( m.second.channels() != 2 ) { std::cerr << "cv filters: magnitude: expected 2 channels, got " << m.second.channels() << std::endl; return typename impl::filters< H >::value_type(); }
@@ -2748,7 +2582,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         std::string map_filter_options = s.str();
         std::vector< std::string > items = comma::split( map_filter_options, '&' );
         bool permissive = std::find( items.begin()+1, items.end(), "permissive" ) != items.end();
-        return std::make_pair( map_impl_ < H >( map_filter_options, permissive ), true );
+        return std::make_pair( filters::map< H >( map_filter_options, permissive ), true ); // return std::make_pair( map_impl_ < H >( map_filter_options, permissive ), true );
     }
     if( e[0] == "inrange" )
     {
@@ -3567,21 +3401,7 @@ const std::string& impl::filters< H >::usage( const std::string & operation )
 
 namespace comma { namespace visiting {
 
-template <> struct traits< map_input_t >
-{
-    template< typename K, typename V > static void visit( const K&, map_input_t& t, V& v )
-    {
-        v.apply( "key", t.key );
-        v.apply( "value", t.value );
-    }
-    template< typename K, typename V > static void visit( const K&, const map_input_t& t, V& v )
-    {
-        v.apply( "key", t.key );
-        v.apply( "value", t.value );
-    }
-};
-
-template < >
+template <>
 struct traits< typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::logger::indexer >
 {
     template < typename K, typename V > static void visit( const K&, const typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::logger::indexer& t, V& v )
@@ -3599,7 +3419,7 @@ struct traits< typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::lo
     }
 };
 
-template < >
+template <>
 struct traits< typename snark::cv_mat::log_impl_< snark::cv_mat::header_type >::logger::indexer >
 {
     template < typename K, typename V > static void visit( const K&, const typename snark::cv_mat::log_impl_< snark::cv_mat::header_type >::logger::indexer& t, V& v )
