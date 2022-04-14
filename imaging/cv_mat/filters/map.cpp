@@ -103,7 +103,7 @@ typename map< H >::value_type map< H >::operator()( typename map< H >::value_typ
 }
 #else
 template < typename H >
-typename map< H >::value_type map< H >::operator()( tyename map< H >::value_type m ) // todo: support multiple channels
+typename map< H >::value_type map< H >::operator()( typename map< H >::value_type m ) // todo: support multiple channels
 {
     value_type n( m.first, cv::Mat( m.second.size(), cv::traits::Type< output_value_type >::value ) );
     try
@@ -146,7 +146,7 @@ void map< H >::apply_map_( const cv::Mat& input, cv::Mat& output ) // todo: cert
     {
         for( int j = 0; j < input.cols; ++j )
         {
-            const auto& keys = input.at< input_value_type >(i,j);
+            const auto& keys = input.at< input_value_type >( i, j );
             for( int channel = 0; channel < input.channels(); ++channel )
             {
                 auto key = get_channel_( keys, channel );
@@ -154,11 +154,11 @@ void map< H >::apply_map_( const cv::Mat& input, cv::Mat& output ) // todo: cert
                 if( it == map_.end() )
                 {
                     if( permissive_ ) { std::cerr << "map filter: expected a pixel value from the map, got: pixel at " << i << "," << j << " with value " << key << std::endl; throw std::out_of_range(""); }
-                    set_channel_( output.at< output_value_type >(i,j), channel, output_value_type( key ) ); // todo? implement value clipping to 0 or 1? refactor not-found behaviour!
+                    set_channel_( output.at< output_value_type >( i, j ), channel, output_value_type( key ) ); // todo? implement value clipping to 0 or 1? refactor not-found behaviour!
                 }
                 else
                 {
-                    set_channel_( output.at< output_value_type >(i,j), channel, it->second );
+                    set_channel_( output.at< output_value_type >( i, j ), channel, it->second );
                 }
             }
         }

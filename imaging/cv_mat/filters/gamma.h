@@ -7,13 +7,14 @@
 #include <string>
 #include <vector>
 #include <boost/function.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "map.h"
 
 namespace snark { namespace cv_mat { namespace filters {
 
-template < typename H >
+template < typename H = boost::posix_time::ptime >
 class gamma
 {
     typedef boost::function< std::pair< H, cv::Mat >( std::pair< H, cv::Mat > ) > functor_t;

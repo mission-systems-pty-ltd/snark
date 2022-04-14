@@ -1894,53 +1894,53 @@ struct overlay_impl_
     }
 };
 
-template < unsigned int Depth > struct gamma_traits {};
-
-template <> struct gamma_traits< CV_8U >
-{
-    typedef unsigned char type;
-    enum { is_signed = false };
-    static const type min = 0;
-    static const type max = 255;
-};
-
-template <> struct gamma_traits< CV_8S >
-{
-    typedef char type;
-    enum { is_signed = true };
-    static const type min = -128;
-    static const type max = 127;
-};
-
-template < unsigned int Depth > static cv::Mat lut_matrix_gamma_( double gamma )
-{
-    double num_states = gamma_traits< Depth >::max - gamma_traits< Depth >::min; //std::numeric_limits< gamma_traits< Depth >::type >::max();
-    cv::Mat lut_matrix( 1, num_states + 1, Depth );
-    uchar * ptr = lut_matrix.ptr();
-    double scale = std::abs( gamma_traits< Depth >::max );
-    for( unsigned int i = 0, j = gamma_traits< Depth >::min; i <= num_states; ++i, ++j ) { ptr[i] = std::pow( j / scale, 1.0 / gamma ) * scale; }
-    return lut_matrix;
-}
-
-template < typename H, unsigned int Depth >
-static typename impl::filters< H >::value_type gamma_( const typename impl::filters< H >::value_type m, const double gamma )
-{
-    static cv::Mat lut_matrix = lut_matrix_gamma_< Depth >( gamma );
-    cv::LUT( m.second, lut_matrix, m.second );
-    return m;
-}
-
-// todo! refactor as class
-// todo! support multichannel images
-template < typename H >
-static typename impl::filters< H >::value_type gamma_impl_(const typename impl::filters< H >::value_type m, const double gamma )
-{
-    switch( m.second.depth() )
-    {
-        case CV_8U: { return gamma_< H, CV_8U >( m, gamma ); break; }
-        default: COMMA_THROW( comma::exception, "gamma: expected single-channel CV_8U, got: " << m.second.depth() );;
-    }
-}
+// template < unsigned int Depth > struct gamma_traits {};
+//
+// template <> struct gamma_traits< CV_8U >
+// {
+//     typedef unsigned char type;
+//     enum { is_signed = false };
+//     static const type min = 0;
+//     static const type max = 255;
+// };
+//
+// template <> struct gamma_traits< CV_8S >
+// {
+//     typedef char type;
+//     enum { is_signed = true };
+//     static const type min = -128;
+//     static const type max = 127;
+// };
+//
+// template < unsigned int Depth > static cv::Mat lut_matrix_gamma_( double gamma )
+// {
+//     double num_states = gamma_traits< Depth >::max - gamma_traits< Depth >::min; //std::numeric_limits< gamma_traits< Depth >::type >::max();
+//     cv::Mat lut_matrix( 1, num_states + 1, Depth );
+//     uchar * ptr = lut_matrix.ptr();
+//     double scale = std::abs( gamma_traits< Depth >::max );
+//     for( unsigned int i = 0, j = gamma_traits< Depth >::min; i <= num_states; ++i, ++j ) { ptr[i] = std::pow( j / scale, 1.0 / gamma ) * scale; }
+//     return lut_matrix;
+// }
+//
+// template < typename H, unsigned int Depth >
+// static typename impl::filters< H >::value_type gamma_( const typename impl::filters< H >::value_type m, const double gamma )
+// {
+//     static cv::Mat lut_matrix = lut_matrix_gamma_< Depth >( gamma );
+//     cv::LUT( m.second, lut_matrix, m.second );
+//     return m;
+// }
+//
+// // todo! refactor as class
+// // todo! support multichannel images
+// template < typename H >
+// static typename impl::filters< H >::value_type gamma_impl_(const typename impl::filters< H >::value_type m, const double gamma )
+// {
+//     switch( m.second.depth() )
+//     {
+//         case CV_8U: { return gamma_< H, CV_8U >( m, gamma ); break; }
+//         default: COMMA_THROW( comma::exception, "gamma: expected single-channel CV_8U, got: " << m.second.depth() );;
+//     }
+// }
 
 template < typename H >
 static typename impl::filters< H >::value_type pow_impl_(const typename impl::filters< H >::value_type m, const double value )
@@ -2343,7 +2343,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         }
         return std::make_pair( boost::bind< value_type_t >( save_impl_< H >( s[0], no_header, quality, do_index ), _1 ), false );
     }
-    if( e[0] == "gamma" ) { return std::make_pair( boost::bind< value_type_t >( gamma_impl_< H >, _1, boost::lexical_cast< double >( e[1] ) ), true ); }
+    if( e[0] == "gamma" ) { return filters::gamma< H >::make( e[1] ); } //if( e[0] == "gamma" ) { return std::make_pair( boost::bind< value_type_t >( gamma_impl_< H >, _1, boost::lexical_cast< double >( e[1] ) ), true ); }
     if( e[0] == "pow" || e[0] == "power" ) { return std::make_pair( boost::bind< value_type_t >( pow_impl_< H >, _1, boost::lexical_cast< double >( e[1] ) ), true ); }
     if( e[0] == "remove-mean")
     {
@@ -3093,7 +3093,7 @@ static std::string usage_impl_()
     oss << "                      cv-cat --file image.jpg \"split;crop-tile=2,5,0,0,1,3;convert-to=f,0.0039;fft=magnitude;convert-to=f,40000;view;null\"" << std::endl;
     oss << "        flip: flip vertically" << std::endl;
     oss << "        flop: flip horizontally" << std::endl;
-    oss << filters::gamma< boost::posix_time::ptime >::usage( 8 ) << std::endl;
+    oss << filters::gamma<>::usage( 8 ) << std::endl;
     oss << "        grab=<format>[,<quality>]: write an image to file with timestamp as name in the specified format. <format>: jpg|ppm|png|tiff..., if no timestamp, system time is used" << std::endl;
     oss << "                                   <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)" << std::endl;
     oss << filters::hard_edge< boost::posix_time::ptime >::usage( 8 ) << std::endl;
