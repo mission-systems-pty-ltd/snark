@@ -47,7 +47,7 @@ template <> struct traits< snark::cv_mat::filters::map_input_t >
 namespace snark { namespace cv_mat { namespace filters {
 
 template < typename H >
-map< H >::map( const std::string& map_filter_options, bool permissive ) : permissive_ ( permissive )
+map< H >::map( const std::string& map_filter_options, bool permissive ): permissive_ ( permissive )
 {
     comma::csv::options csv_options = comma::name_value::parser( "filename", '&' , '=' ).get< comma::csv::options >( map_filter_options );
     if( csv_options.fields.empty() ) { csv_options.fields = "value"; }
@@ -63,6 +63,8 @@ map< H >::map( const std::string& map_filter_options, bool permissive ) : permis
         map_[ no_key_field ? counter : map_input->key ] = map_input->value;
     }
 }
+
+template < typename H > map< H >::map( const map_t& map, bool permissive ): map_( map ), permissive_ ( permissive ) {}
 
 #if ( defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 ) || ( !defined( CV_VERSION_EPOCH ) && ( ( CV_VERSION_MAJOR == 3 && ( CV_VERSION_MINOR < 3 || ( CV_VERSION_MINOR == 3 && CV_VERSION_REVISION < 1 ) ) ) ) )
 template < typename H >
@@ -148,7 +150,7 @@ void map< H >::apply_map_( const cv::Mat& input, cv::Mat& output ) // todo: cert
             for( int channel = 0; channel < input.channels(); ++channel )
             {
                 auto key = get_channel_( keys, channel );
-                map_t_::const_iterator it = map_.find( key );
+                map_t::const_iterator it = map_.find( key );
                 if( it == map_.end() )
                 {
                     if( permissive_ ) { std::cerr << "map filter: expected a pixel value from the map, got: pixel at " << i << "," << j << " with value " << key << std::endl; throw std::out_of_range(""); }

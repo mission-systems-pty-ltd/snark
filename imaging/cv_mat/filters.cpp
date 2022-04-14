@@ -62,6 +62,7 @@
 #include "filters/contraharmonic.h"
 #include "filters/convolution.h"
 #include "filters/file.h"
+#include "filters/gamma.h"
 #include "filters/hard_edge.h"
 #include "filters/load.h"
 #include "filters/map.h"
@@ -3062,6 +3063,8 @@ static std::string usage_impl_()
     oss << "                kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7" << std::endl;
     oss << "        color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail" << std::endl;
     oss << "            <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot" << std::endl;
+    oss << filters::contraharmonic< boost::posix_time::ptime >::usage(8) << std::endl;
+    oss << "        count: write frame number on images" << std::endl;
     oss << "        convert-to,convert_to=<type>[,<scale>[,<offset>]]: convert to given type; should be the same number of channels; see opencv cvtColor() for details; values will not overflow" << std::endl;
     oss << "        convert-color=<how>; convert from colour space to new colour space" << std::endl;
     oss << "            <how>" << std::endl;
@@ -3069,7 +3072,7 @@ static std::string usage_impl_()
     oss << "                <n>: index of color conversion, see color conversion enumeration in opencv2/improc/types_c.h" << std::endl;
     oss << "                     e.g: 'convert-color=6' is same as 'convert-color=BGR,GRAY'" << std::endl;
     oss << "                     quick and dirty for now, but lets use dozens of conversions" << std::endl;
-    oss << "        count: write frame number on images" << std::endl;
+    oss << filters::convolution< boost::posix_time::ptime >::usage(8) << std::endl;
     oss << "        crop=[<x>,<y>],<width>,<height>: crop the portion of the image starting at x,y with size width x height" << std::endl;
     oss << "        crop-tile=<ncols>,<nrows>[,<i>,<j>,...[,horizontal]]: divide the image into a grid of tiles (ncols-by-nrows), and output an image made of the croped tiles defined by i,j (count from zero)" << std::endl;
     oss << "                                                              if width or height of input image is not divisible by the corresponding count, the image will be clipped" << std::endl;
@@ -3090,6 +3093,7 @@ static std::string usage_impl_()
     oss << "                      cv-cat --file image.jpg \"split;crop-tile=2,5,0,0,1,3;convert-to=f,0.0039;fft=magnitude;convert-to=f,40000;view;null\"" << std::endl;
     oss << "        flip: flip vertically" << std::endl;
     oss << "        flop: flip horizontally" << std::endl;
+    oss << filters::gamma< boost::posix_time::ptime >::usage( 8 ) << std::endl;
     oss << "        grab=<format>[,<quality>]: write an image to file with timestamp as name in the specified format. <format>: jpg|ppm|png|tiff..., if no timestamp, system time is used" << std::endl;
     oss << "                                   <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)" << std::endl;
     oss << filters::hard_edge< boost::posix_time::ptime >::usage( 8 ) << std::endl;
@@ -3143,8 +3147,6 @@ static std::string usage_impl_()
     //oss << "        warp=<how>: todo: warp image" << std::endl;
     //oss << "        unwarp=<how>: todo: unwarp image" << std::endl;
     //oss << "            <how>: todo" << std::endl;
-    oss << filters::contraharmonic< boost::posix_time::ptime >::usage(8) << std::endl;
-    oss << filters::convolution< boost::posix_time::ptime >::usage(8) << std::endl;
     oss << filters::pad::pad< boost::posix_time::ptime >::usage(8) << std::endl;
     oss << filters::text< boost::posix_time::ptime >::usage( 8 ) << std::endl;
     oss << "        threshold=<threshold|otsu>[,<maxval>[,<type>]]: threshold image; same semantics as cv::threshold()" << std::endl;
