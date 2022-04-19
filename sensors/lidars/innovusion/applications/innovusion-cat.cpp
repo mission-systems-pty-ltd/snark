@@ -109,7 +109,7 @@ struct writer
         {
             inno_frame* frame;
             // non-blocking, as opposed to concurrent_bounded_queue::pop()
-            while( queue.try_pop( frame ))
+            while( queue.try_pop( frame ) && !shutdown_requested )
             {
                 // latest_frame is the latest frame received on the queue
                 // frame is the frame we are processing now
