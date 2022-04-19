@@ -1,4 +1,5 @@
 // Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2022 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 
@@ -31,6 +32,7 @@ struct xyz : public comma::packed::packed_struct< xyz< T >, sizeof( T ) * 3 >
 };
 
 /// version 1.3-R11, see http://www.asprs.org/a/society/committees/standards/LAS_1_3_r11.pdf
+// version 1.4-R15: see e.g. http://www.asprs.org/wp-content/uploads/2019/07/LAS_1_4_r15.pdf
 struct header: public comma::packed::packed_struct< header, 227 >
 {
     comma::packed::string< 4 > signature;
@@ -123,11 +125,9 @@ namespace variable_length_records
 /// @todo: other point data record formats
 template < unsigned int I > struct point;
 
-struct returns { unsigned char number: 3, size: 3, scan_direction: 1, edge_of_flight_line: 1; };
-
 template <> struct point< 0 > : public comma::packed::packed_struct< point< 0 >, 20 >
 {
-    typedef las::returns returns_t;
+    struct returns_t { unsigned char number: 3, size: 3, scan_direction: 1, edge_of_flight_line: 1; };
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
@@ -139,7 +139,7 @@ template <> struct point< 0 > : public comma::packed::packed_struct< point< 0 >,
 
 template <> struct point< 1 > : public comma::packed::packed_struct< point< 1 >, 28 >
 {
-    typedef las::returns returns_t;
+    typedef typename point< 0 >::returns_t returns_t;
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
@@ -150,7 +150,7 @@ template <> struct point< 1 > : public comma::packed::packed_struct< point< 1 >,
     comma::packed::float64 gps_time;
 };
 
-struct colour : public comma::packed::packed_struct< colour, 6 >
+struct color : public comma::packed::packed_struct< color, 6 >
 {
     comma::packed::little_endian::uint16 red;
     comma::packed::little_endian::uint16 green;
@@ -159,7 +159,7 @@ struct colour : public comma::packed::packed_struct< colour, 6 >
 
 template <> struct point< 2 > : public comma::packed::packed_struct< point< 2 >, 26 >
 {
-    typedef las::returns returns_t;
+    typedef typename point< 0 >::returns_t returns_t;
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
@@ -167,12 +167,12 @@ template <> struct point< 2 > : public comma::packed::packed_struct< point< 2 >,
     comma::packed::byte scan_angle; // -90 to 90
     comma::packed::byte user_data;
     comma::packed::little_endian::uint16 point_source_id;
-    las::colour colour;
+    las::color color;
 };
 
 template <> struct point< 3 > : public comma::packed::packed_struct< point< 3 >, 34 >
 {
-    typedef las::returns returns_t;
+    typedef typename point< 0 >::returns_t returns_t;
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
@@ -180,67 +180,38 @@ template <> struct point< 3 > : public comma::packed::packed_struct< point< 3 >,
     comma::packed::byte scan_angle; // -90 to 90
     comma::packed::byte user_data;
     comma::packed::little_endian::uint16 point_source_id;
-    comma::packed::float64 gps_time; // todo? order of gps_time and colour: las spec says: colour, gps_time, but shows in the table gps_time, colour
-    las::colour colour;
+    comma::packed::float64 gps_time; // todo? order of gps_time and color: las spec says: color, gps_time, but shows in the table gps_time, color
+    las::color color;
 };
 
-// X long 4 bytes yes
-// Y long 4 bytes yes
-// Z long 4 bytes yes
-// Intensity unsigned short 2 bytes no
-// Return Number 4 bits (bits 0-3) 4 bits yes
-// Number of Returns (Given Pulse) 4 bits (bits 4-7) 4 bits yes
-// Classification Flags 4 bits (bits 0-3) 4 bits no
-// Scanner Channel 2 bits (bits 4-5) 2 bits yes
-// Scan Direction Flag 1 bit (bit 6) 1 bit yes
-// Edge of Flight Line 1 bit (bit 7) 1 bit yes
-// Classification unsigned char 1 byte yes
-// User Data unsigned char 1 byte no
-// Scan Angle short 2 bytes yes
-// Point Source ID unsigned short 2 bytes yes
-// GPS Time double 8 bytes yes
-// Minimum PDRF Size 30 bytes
-// see http://www.asprs.org/wp-content/uploads/2019/07/LAS_1_4_r15.pdf
 template <> struct point< 6 > : public comma::packed::packed_struct< point< 6 >, 60 >
 {
-    struct returns_t : public comma::packed::packed_struct< returns, 2 >
-    {
-        struct byte_0_t { unsigned char number: 4, size: 4; };
-        struct byte_1_t { unsigned char classification: 4, channel: 2, scan_direction: 1, edge_of_flight_line: 1; };
-        comma::packed::bits< byte_0_t > byte_0;
-        comma::packed::bits< byte_1_t > byte_1;
-    };
-
+    struct returns_t { comma::uint16 number: 4, size: 4; unsigned char classification: 4, channel: 2, scan_direction: 1, edge_of_flight_line: 1; };
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
-    returns_t returns;
+    comma::packed::bits< returns_t > returns;
     comma::packed::byte classification;
     comma::packed::byte user_data;
     comma::packed::little_endian::uint16 scan_angle; // -90 to 90
     comma::packed::little_endian::uint16 point_source_id;
-    comma::packed::float64 gps_time; // todo? order of gps_time and colour: las spec says: colour, gps_time, but shows in the table gps_time, colour
+    comma::packed::float64 gps_time;
     comma::packed::string< 30 > pdrf;
 };
 
-// X long 4 bytes yes
-// Y long 4 bytes yes
-// Z long 4 bytes yes
-// Intensity unsigned short 2 bytes no
-// Return Number 4 bits (bits 0-3) 4 bits yes
-// Number of Returns (Given Pulse) 4 bits (bits 4-7) 4 bits yes
-// Classification Flags 4 bits (bits 0-3) 4 bits no
-// Scanner Channel 2 bits (bits 4-5) 2 bits yes
-// Scan Direction Flag 1 bit (bit 6) 1 bit yes
-// Edge of Flight Line 1 bit (bit 7) 1 bit yes
-// Classification unsigned char 1 byte yes
-// User Data unsigned char 1 byte no
-// Scan Angle short 2 bytes yes
-// Point Source ID unsigned short 2 bytes yes
-// GPS Time double 8 bytes yes
-// Red unsigned short 2 bytes yes
-// Green unsigned short 2 bytes yes
-// Blue unsigned short 2 bytes yes
-// Minimum PDRF Size 36 bytes
-//template <> struct point< 7 > : public comma::packed::packed_struct< point< 7 >, 34 >
+// same as 6 + rgb + 36-byte pdrf instead of 30-byte pdrf
+template <> struct point< 7 > : public comma::packed::packed_struct< point< 7 >, 72 >
+{
+    typedef typename point< 6 >::returns_t returns_t;
+    las::xyz< comma::packed::little_endian32 > coordinates;
+    comma::packed::little_endian::uint16 intensity;
+    comma::packed::bits< returns_t > returns;
+    comma::packed::byte classification;
+    comma::packed::byte user_data;
+    comma::packed::little_endian::uint16 scan_angle; // -90 to 90
+    comma::packed::little_endian::uint16 point_source_id;
+    comma::packed::float64 gps_time; // todo? order of gps_time and color: las spec says: color, gps_time, but shows in the table gps_time, color
+    las::color color;
+    comma::packed::string< 36 > pdrf;
+};
 
 } }  // namespace snark { namespace las {

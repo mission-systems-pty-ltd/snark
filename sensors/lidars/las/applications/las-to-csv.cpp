@@ -1,31 +1,5 @@
-// This file is part of comma, a generic and flexible library
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright (c) 2022 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 
@@ -64,13 +38,13 @@ static void usage( bool verbose = false )
     exit( 0 );
 }
 
-struct colour
+struct color
 {
     comma::uint16 red;
     comma::uint16 green;
     comma::uint16 blue;
-    colour() : red( 0 ), green( 0 ), blue( 0 ) {};
-    colour( comma::uint16 red, comma::uint16 green, comma::uint16 blue ) : red( red ), green( green ), blue( blue ) {};
+    color() : red( 0 ), green( 0 ), blue( 0 ) {};
+    color( comma::uint16 red, comma::uint16 green, comma::uint16 blue ) : red( red ), green( green ), blue( blue ) {};
 };
 
 template < unsigned int I > struct point;
@@ -89,8 +63,7 @@ template <> struct point< 0 >
     comma::uint16 point_source_id;
 
     point< 0 >() {}
-    template < typename P >
-    point< 0 >( const P& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset )
+    template < typename P > point< 0 >( const P& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset )
         : coordinates( Eigen::Vector3d( factor.x() * p.coordinates.x()
                                       , factor.y() * p.coordinates.y()
                                       , factor.z() * p.coordinates.z() ) + offset )
@@ -117,19 +90,40 @@ template <> struct point< 1 > : public point< 0 >
 
 template <> struct point< 2 > : public point< 0 >
 {
-    ::colour colour;
+    ::color color;
 
     point() {}
-    point( const snark::las::point< 2 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), colour( p.colour.red(), p.colour.green(), p.colour.blue() ) {}
+    point( const snark::las::point< 2 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
 };
 
 template <> struct point< 3 > : public point< 0 >
 {
     double gps_time;
-    ::colour colour;
+    ::color color;
 
     point() {}
-    point( const snark::las::point< 3 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), colour( p.colour.red(), p.colour.green(), p.colour.blue() ) {}
+    point( const snark::las::point< 3 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
+};
+
+// todo: template <> struct point< 4 >
+
+// todo: template <> struct point< 5 >
+
+template <> struct point< 6 > : public point< 0 >
+{
+    double gps_time;
+
+    point() {}
+    point( const snark::las::point< 6 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ) {}
+};
+
+template <> struct point< 7 > : public point< 0 >
+{
+    double gps_time;
+    ::color color;
+
+    point() {}
+    point( const snark::las::point< 7 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
 };
 
 namespace comma { namespace visiting {
@@ -151,9 +145,9 @@ template <> struct traits< point< 0 > >
     }
 };
 
-template <> struct traits< colour >
+template <> struct traits< color >
 {
-    template< typename K, typename V > static void visit( const K&, const colour& t, V& v ) // todo
+    template< typename K, typename V > static void visit( const K&, const color& t, V& v ) // todo
     {
         v.apply( "red", t.red );
         v.apply( "green", t.green );
@@ -175,7 +169,7 @@ template <> struct traits< point< 2 > >
     template< typename K, typename V > static void visit( const K& k, const point< 2 >& t, V& v ) // todo
     {
         traits< point< 0 > >::visit( k, t, v );
-        v.apply( "colour", t.colour );
+        v.apply( "color", t.color );
     }
 };
 
@@ -185,20 +179,42 @@ template <> struct traits< point< 3 > >
     {
         traits< point< 0 > >::visit( k, t, v );
         v.apply( "gps_time", t.gps_time );
-        v.apply( "colour", t.colour );
+        v.apply( "color", t.color );
+    }
+};
+
+template <> struct traits< point< 6 > >
+{
+    template< typename K, typename V > static void visit( const K& k, const point< 6 >& t, V& v ) // todo
+    {
+        traits< point< 0 > >::visit( k, t, v );
+        v.apply( "gps_time", t.gps_time );
+    }
+};
+
+template <> struct traits< point< 7 > >
+{
+    template< typename K, typename V > static void visit( const K& k, const point< 7 >& t, V& v ) // todo
+    {
+        traits< point< 0 > >::visit( k, t, v );
+        v.apply( "gps_time", t.gps_time );
+        v.apply( "color", t.color );
     }
 };
 
 } } // namespace comma { namespace visiting {
 
-template < unsigned int I >
-static int read_points( const snark::las::header& header, const comma::command_line_options& options )
+template < unsigned int I > static void check_point_data_version( const comma::command_line_options& options ) {}
+template <> void check_point_data_version< 6 >( const comma::command_line_options& options ) { if( !options.exists( "--force" ) ) { COMMA_THROW( comma::exception, "point data format 6: not all packet fields get extracted (todo); please run with --force" ); } }
+template <> void check_point_data_version< 7 >( const comma::command_line_options& options ) { if( !options.exists( "--force" ) ) { COMMA_THROW( comma::exception, "point data format 7: not all packet fields get extracted (todo); please run with --force" ); } }
+
+template < unsigned int I > static int read_points( const snark::las::header& header, const comma::command_line_options& options )
 {
+    check_point_data_version< I >( options );
     comma::csv::options csv( options );
     csv.full_xpath = false;
     Eigen::Vector3d factor( header.scale_factor.x(), header.scale_factor.y(), header.scale_factor.z() );
-    auto offset = options.exists( "--no-offset" ) ? Eigen::Vector3d::Zero()
-                                                  : Eigen::Vector3d( header.offset.x(), header.offset.y(), header.offset.z() );
+    auto offset = options.exists( "--no-offset" ) ? Eigen::Vector3d::Zero() : Eigen::Vector3d( header.offset.x(), header.offset.y(), header.offset.z() );
     comma::csv::output_stream< point< I > > os( std::cout, csv );
     while( std::cin.good() && !std::cin.eof() )
     {
@@ -267,10 +283,10 @@ int main( int ac, char** av )
                 case 3: std::cout << comma::join( comma::csv::names< point< 3 > >( false ), ',' ) << std::endl; return 0;
                 case 4:
                 case 5:
-                case 6:
-                case 7:
                     std::cerr << "las-to-csv: output fields for point data format " << *point_format << ": todo" << std::endl;
                     return 1;
+                case 6: std::cout << comma::join( comma::csv::names< point< 6 > >( false ), ',' ) << std::endl; return 0;
+                case 7: std::cout << comma::join( comma::csv::names< point< 7 > >( false ), ',' ) << std::endl; return 0;
                 default:
                     std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << *point_format << std::endl;
                     return 1;
@@ -288,10 +304,10 @@ int main( int ac, char** av )
                 case 3: std::cout << comma::csv::format::value< point< 3 > >() << std::endl; return 0;
                 case 4:
                 case 5:
-                case 6:
-                case 7:
                     std::cerr << "las-to-csv: output fields for point data format " << *point_format << ": todo" << std::endl;
                     return 1;
+                case 6: std::cout << comma::csv::format::value< point< 6 > >() << std::endl; return 0;
+                case 7: std::cout << comma::csv::format::value< point< 7 > >() << std::endl; return 0;
                 default:
                     std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << *point_format << std::endl;
                     return 1;
@@ -321,10 +337,10 @@ int main( int ac, char** av )
                 case 3: return read_points< 3 >( header, options );
                 case 4:
                 case 5:
-                case 6:
-                case 7:
                     std::cerr << "las-to-csv: point data format " << point_format << ": todo" << std::endl;
                     return 1;
+                case 6: return read_points< 6 >( header, options );
+                case 7: return read_points< 7 >( header, options );
                 default:
                     std::cerr << "las-to-csv: expected point data format between 0 and 7, got: " << point_format << std::endl;
                     return 1;
