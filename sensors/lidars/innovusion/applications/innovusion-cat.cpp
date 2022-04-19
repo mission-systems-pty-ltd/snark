@@ -20,7 +20,7 @@ static void bash_completion( unsigned int const ac, char const* const* av )
         " --help -h --verbose -v --debug"
         " --output-fields --output-format --output-type"
         " --address --port --name"
-        " --max-latency --sample-data --time-offset"
+        " --max-latency --sample-data --time-offset --checksum"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
@@ -40,6 +40,7 @@ static void usage( bool verbose = false )
     std::cerr << "\n    --port=<num>:          device port; default=" << default_port;
     std::cerr << "\n    --max-latency=<ms>:    maximum latency in ms; default=" << default_max_latency;
     std::cerr << "\n    --name=<name>:         device name (max 32 chars); default=" << default_name;
+    std::cerr << "\n    --checksum:            add crc checksum to output (cooked data only)";
     std::cerr << "\n    --output-fields:       print output fields for cooked or full data and exit";
     std::cerr << "\n    --output-format:       print output format for cooked or full data and exit";
     std::cerr << "\n    --output-type=<type>:  one of none, raw, cooked, full; default=" << default_output_type;
@@ -151,7 +152,7 @@ struct writer
 template< typename T >
 struct app
 {
-    static std::string output_fields() { return comma::join( comma::csv::names< T >( true ), ',' ); }
+    static std::string output_fields() { return comma::join( comma::csv::names< T >( T::full_xpath ), ',' ); }
     static std::string output_format() { return comma::csv::format::value< T >(); }
 
     static int run( const comma::command_line_options& options )
@@ -247,11 +248,26 @@ int main( int argc, char** argv )
 
         output_type = output_type_from_string( options.value< std::string >( "--output-type", default_output_type ));
         max_latency = options.value< unsigned int >( "--max-latency", default_max_latency ) * 1000; // µs
+        bool checksum = options.exists( "--checksum" );
 
-        if( output_type == output_type_t::raw ) { return app< snark::innovusion::raw_output >::run( options ); }
-        else if( output_type == output_type_t::cooked ) { return app< snark::innovusion::output_data_t >::run( options ); }
-        else if( output_type == output_type_t::full ) { return app< snark::innovusion::output_data_full_t >::run( options ); }
-        else if( output_type == output_type_t::none ) { return app< snark::innovusion::null_output >::run( options ); }
+        if( checksum )
+        {
+            switch( output_type )
+            {
+                case output_type_t::cooked: return app< snark::innovusion::checksummed< snark::innovusion::output_data_t > >::run( options );
+                default: std::cerr << "--checksum only supported for --output-type=cooked" << std::endl; return 1;
+            }
+        }
+        else
+        {
+            switch( output_type )
+            {
+                case output_type_t::raw:    return app< snark::innovusion::raw_output >::run( options );
+                case output_type_t::cooked: return app< snark::innovusion::output_data_t >::run( options );
+                case output_type_t::full:   return app< snark::innovusion::output_data_full_t >::run( options );
+                case output_type_t::none:   return app< snark::innovusion::null_output >::run( options );
+            }
+        }
     }
     catch( std::exception& ex )
     {

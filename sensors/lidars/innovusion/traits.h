@@ -117,4 +117,19 @@ template <> struct traits< snark::innovusion::output_data_full_t >
     }
 };
 
+template< typename T > struct traits< snark::innovusion::checksummed< T > >
+{
+    template< typename K, typename V > static void visit( const K&, snark::innovusion::checksummed< T >& p, V& v )
+    {
+        v.apply( "data", p.data );
+        v.apply( "crc", p.crc );
+    }
+
+    template< typename K, typename V > static void visit( const K&, const snark::innovusion::checksummed< T >& p, V& v )
+    {
+        v.apply( "data", p.data );
+        v.apply( "crc", p.crc );
+    }
+};
+
 } } // namespace comma { namespace visiting {

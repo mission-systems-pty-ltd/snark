@@ -79,6 +79,24 @@ output_data_t::output_data_t( const inno_frame* frame, unsigned int index, int64
     t = inno_time_to_ptime( frame->ts_us_start, frame->points[index].ts_100us, timeframe_offset_us );
 }
 
+template< typename T >
+void add_to_buf( T v, char** buf )
+{
+    comma::csv::format::traits< T, comma::csv::format::type_to_enum< T >::value >::to_bin( v, *buf );
+    *buf += comma::csv::format::traits< T, comma::csv::format::type_to_enum< T >::value >::size;
+}
+
+void output_data_t::to_bin( char* buf ) const
+{
+    add_to_buf< boost::posix_time::ptime >( t, &buf );
+    add_to_buf< comma::uint32 >( block, &buf );
+    add_to_buf< float >( x, &buf );
+    add_to_buf< float >( y, &buf );
+    add_to_buf< float >( z, &buf );
+    add_to_buf< float >( radius, &buf );
+    add_to_buf< comma::uint16 >( value, &buf );
+}
+
 output_data_full_t::output_data_full_t()
     : block( 0 )
 {}

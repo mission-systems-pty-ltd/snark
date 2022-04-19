@@ -4,6 +4,8 @@
 
 #include <inno_lidar_api.h>
 #include <comma/base/types.h>
+#include <comma/csv/format.h>
+#include <boost/crc.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 
@@ -56,6 +58,20 @@ struct output_data_t
 
     output_data_t();
     output_data_t( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us );
+
+    void to_bin( char* buf ) const;
+
+    // struct size when serialised as binary
+    static const std::size_t bin_size =
+          comma::csv::format::traits< boost::posix_time::ptime, comma::csv::format::time >::size
+        + comma::csv::format::traits< comma::uint32, comma::csv::format::uint32 >::size
+        + comma::csv::format::traits< float, comma::csv::format::float_t >::size
+        + comma::csv::format::traits< float, comma::csv::format::float_t >::size
+        + comma::csv::format::traits< float, comma::csv::format::float_t >::size
+        + comma::csv::format::traits< float, comma::csv::format::float_t >::size
+        + comma::csv::format::traits< comma::uint16, comma::csv::format::uint16 >::size;
+
+    static const bool full_xpath = false;
 };
 
 // all of the point and frame data
@@ -68,6 +84,40 @@ struct output_data_full_t
 
     output_data_full_t();
     output_data_full_t( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us );
+
+    static const bool full_xpath = true;
+};
+
+template< typename T >
+struct checksummed
+{
+    T data;
+    boost::crc_ccitt_type::value_type crc;    // uint16
+
+    checksummed() : crc( 0 ) {}
+    checksummed( const T& data )
+        : data( data )
+    {
+        calc_crc();
+    }
+    checksummed( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us )
+        : data( frame, index, timeframe_offset_us )
+    {
+        calc_crc();
+    }
+
+    static const bool full_xpath = T::full_xpath;   // use underlying setting
+
+private:
+    void calc_crc()
+    {
+        static char buf[ T::bin_size ];
+        data.to_bin( &buf[0] );
+
+        boost::crc_ccitt_type crc_calc;
+        crc_calc.process_bytes( buf, T::bin_size );
+        crc = crc_calc.checksum();
+    }
 };
 
 std::string alarm_type_to_string( inno_alarm alarm_type );
