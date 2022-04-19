@@ -37,6 +37,23 @@ template <> struct traits< snark::las::version >
     }
 };
 
+struct _global_encoding
+{
+    unsigned char gps_time_type;
+    unsigned char waveform_data_packets_internal;
+    unsigned char waveform_data_packets_external;
+    unsigned char syntetic_return_numbers;
+    unsigned char wkt;
+
+    _global_encoding( const snark::las::header::global_encoding_t& g )
+        : gps_time_type( g.gps_time_type )
+        , waveform_data_packets_internal( g.waveform_data_packets_internal )
+        , waveform_data_packets_external( g.waveform_data_packets_external )
+        , syntetic_return_numbers( g.syntetic_return_numbers )
+        , wkt( g.wkt )
+    {}
+};
+
 template < typename T > struct traits< snark::las::xyz< T > >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::xyz< T >& t, V& v )
@@ -47,13 +64,25 @@ template < typename T > struct traits< snark::las::xyz< T > >
     }
 };
 
+template <> struct traits< snark::las::header::global_encoding_t >
+{
+    template< typename K, typename V > static void visit( const K&, const snark::las::header::global_encoding_t& t, V& v )
+    {
+        v.apply( "gps_time_type", t.gps_time_type );
+        v.apply( "waveform_data_packets_internal", t.waveform_data_packets_internal );
+        v.apply( "waveform_data_packets_external", t.waveform_data_packets_external );
+        v.apply( "syntetic_return_numbers", t.syntetic_return_numbers );
+        v.apply( "wkt", t.wkt );
+    }
+};
+
 template <> struct traits< snark::las::header >
 {
     template< typename K, typename V > static void visit( const K&, const snark::las::header& t, V& v )
     {
         v.apply( "signature", t.signature() );
         v.apply( "source_id", t.source_id() );
-        v.apply( "global_encoding", t.global_encoding() ); // todo: do bit decoding
+        v.apply( "global_encoding", t.global_encoding.fields() );
         v.apply( "guid_1", t.guid_1() );
         v.apply( "guid_2", t.guid_2() );
         v.apply( "guid_3", t.guid_3() );

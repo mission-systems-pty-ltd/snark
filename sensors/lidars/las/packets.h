@@ -35,9 +35,10 @@ struct xyz : public comma::packed::packed_struct< xyz< T >, sizeof( T ) * 3 >
 // version 1.4-R15: see e.g. http://www.asprs.org/wp-content/uploads/2019/07/LAS_1_4_r15.pdf
 struct header: public comma::packed::packed_struct< header, 227 >
 {
+    struct global_encoding_t { comma::uint16 gps_time_type: 1, waveform_data_packets_internal: 1, waveform_data_packets_external: 1, syntetic_return_numbers: 1, wkt: 1, reserved: 11; };
     comma::packed::string< 4 > signature;
     comma::packed::little_endian::uint16 source_id;
-    comma::packed::little_endian::uint16 global_encoding; // todo: do bit decoding
+    comma::packed::bits< global_encoding_t > global_encoding; // todo: do bit decoding
     comma::packed::little_endian::uint32 guid_1;
     comma::packed::little_endian::uint16 guid_2;
     comma::packed::little_endian::uint16 guid_3;
