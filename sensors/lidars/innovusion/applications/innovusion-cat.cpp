@@ -35,7 +35,7 @@ static void usage( bool verbose = false )
     std::cerr << "\nOptions:";
     std::cerr << "\n    --help,-h:             show this help";
     std::cerr << "\n    --verbose,-v:          more output to stderr";
-    std::cerr << "\n    --debug;               even more output";
+    std::cerr << "\n    --debug:               even more output";
     std::cerr << "\n    --address=<ip>:        device address; default=" << default_address;
     std::cerr << "\n    --port=<num>:          device port; default=" << default_port;
     std::cerr << "\n    --max-latency=<ms>:    maximum latency in ms; default=" << default_max_latency;
@@ -43,8 +43,8 @@ static void usage( bool verbose = false )
     std::cerr << "\n    --output-fields:       print output fields for cooked or full data and exit";
     std::cerr << "\n    --output-format:       print output format for cooked or full data and exit";
     std::cerr << "\n    --output-type=<type>:  one of none, raw, cooked, full; default=" << default_output_type;
-    std::cerr << "\n    --sample-data=[<dir>]; TODO: read saved data from <dir>";
-    std::cerr << "\n    --time-offset=[<sec>]; offset timestamps by given seconds";
+    std::cerr << "\n    --sample-data=[<dir>]: TODO: read saved data from <dir>";
+    std::cerr << "\n    --time-offset=[<sec>]: offset timestamps by given seconds";
     std::cerr << "\n";
     std::cerr << "\nOutput types:";
     std::cerr << "\n    none:   no output, useful for benchmarking the underlying SDK";
