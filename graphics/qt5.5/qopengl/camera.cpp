@@ -86,17 +86,6 @@ void camera_transform::set_center( const QVector3D& v )
     //world.translate( -center );
 }
 
-// todo
-//   ! move this backlog to wiki
-//   ! --camera-position: test on trajectories
-//   ? camera position to status line?
-//   ! --no-stdin: fix: seems to still allocate 2 million-points buffer
-//   ? controller: check whether camera position changed: move to viewer::set_camera_position()?
-//   ! --camera-position unit test
-//   - --camera-config: camera position from ned
-//   - --output-camera-config: camera position -> ned
-//   - --output-camera-position: camera position -> ned
-
 bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
 {
     return world == rhs.world
@@ -181,8 +170,8 @@ void camera_transform::update_projection( const QSize& vs )
     else
     {
         // add camera translation (zoom)
-        double fp=far_plane+distance();
-        projection.perspective(field_of_view, aspect_ratio,near_plane,fp);
+        double fp = far_plane + distance();
+        projection.perspective( field_of_view, aspect_ratio, near_plane, fp );
     }
 }
 
