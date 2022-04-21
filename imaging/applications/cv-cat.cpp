@@ -254,9 +254,9 @@ int main( int argc, char** argv )
             std::cerr << "    print image header (e.g. to figure out the image size or type)" << std::endl;
             std::cerr << std::endl;
             std::cerr << "        gige-cat --output=\"header-only;fields=rows,cols,size,type\" | csv-from-bin 4ui | head" << std::endl;
-            std::cerr << "    create a video with ffmpeg a.k.a. avconv; -b: bitrate, -r: input/output framerate:" << std::endl;
-            std::cerr << "        gige-cat | cv-cat \"encode=ppm\" --output=no-header | avconv -y -f image2pipe -vcodec ppm -r 25 -i pipe: -vcodec libx264  -threads 0 -b 2000k -r 25 video.mkv" << std::endl;
-            std::cerr << "        gige-cat encode=png --output=no-header | avconv -y -f image2pipe -r 5 -c:v png -i pipe: -c:v libx264 -threads 0 -b:v 2000k -r 5 -preset slow -crf 22 video.avi" << std::endl;
+            std::cerr << "    create a video with ffmpeg; -b: bitrate, -r: input/output framerate:" << std::endl;
+            std::cerr << "        gige-cat | cv-cat \"encode=ppm\" --output=no-header | ffmpeg -y -f image2pipe -vcodec ppm -r 25 -i pipe: -vcodec libx264  -threads 0 -b 2000k -r 25 video.mkv" << std::endl;
+            std::cerr << "        gige-cat encode=png --output=no-header | ffmpeg -y -f image2pipe -r 5 -c:v png -i pipe: -c:v libx264 -threads 0 -b:v 2000k -r 5 -preset slow -crf 22 video.avi" << std::endl;
             std::cerr << std::endl;
             std::cerr << "    overlay a ruler on input stream to show scale (the overlay image can be created in a script using csv-to-svg)" << std::endl;
             std::cerr << std::endl;
