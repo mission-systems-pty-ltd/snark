@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <iostream>
@@ -42,7 +15,7 @@
 #include "morphology.h"
 
 namespace snark{ namespace cv_mat { namespace morphology {
-    
+
 
 const std::map< std::string, int >& operations()
 {
@@ -69,7 +42,7 @@ parameters::parameters( const std::vector< std::string >& e )
     std::string eltype = p[0];
     try
     {
-        if( eltype == "rectangle" || eltype == "ellipse" || eltype == "cross" ) 
+        if( eltype == "rectangle" || eltype == "ellipse" || eltype == "cross" )
         {
             if ( p.size() != 5 && p.size() != 3 && p.size() != 6 ) { COMMA_THROW( comma::exception, "structuring element of " << eltype << " type for the " << e[0] << " operation takes either 2, or 4 or 5 parameters" ); }
             while ( p.size() < 6 ) { p.push_back( "" ); }
@@ -81,8 +54,8 @@ parameters::parameters( const std::vector< std::string >& e )
             int shape = ( eltype == "rectangle" ? cv::MORPH_RECT : ( eltype == "ellipse" ? cv::MORPH_ELLIPSE : cv::MORPH_CROSS ) );
             kernel = cv::getStructuringElement( shape, cv::Size( size_x, size_y ), cv::Point( anchor_x, anchor_y ) );
             iterations = p[5].empty() ? 1 : boost::lexical_cast< comma::uint32 >( p[5] );
-        } 
-        else if( eltype == "square" || eltype == "circle" ) 
+        }
+        else if( eltype == "square" || eltype == "circle" )
         {
             if ( p.size() > 5 ) { COMMA_THROW( comma::exception, "structuring element of " << eltype << " type for the " << e[0] << " operation takes either 0, or 1, or 2, or 3 parameters" ); }
             while ( p.size() < 5 ) { p.push_back( "" ); }
@@ -99,7 +72,7 @@ parameters::parameters( const std::vector< std::string >& e )
             COMMA_THROW( comma::exception, "the '" << eltype << "' type of the structuring element is not one of rectangle,square,ellipse,circle,cross" );
         }
     }
-    catch( boost::bad_lexical_cast blc )
+    catch( boost::bad_lexical_cast& blc )
     {
         COMMA_THROW( comma::exception, "failed to cast parameter(s) for structuring element '" << eltype << "': " << blc.what() );
     }
@@ -109,7 +82,7 @@ template < typename H >
 skeleton< H >::skeleton( const parameters& p ): kernel_( p.kernel ), iterations_( p.iterations ) {}
 
 template < typename H >
-typename skeleton< H >::value_type skeleton< H >::operator()( value_type m ) 
+typename skeleton< H >::value_type skeleton< H >::operator()( value_type m )
 {
     if ( m.second.channels() != 1 ) { COMMA_THROW( comma::exception, "skeleton operations supports only single-channel (grey-scale) images" ); }
     typename std::pair< H, cv::Mat > result( m.first, cv::Mat( m.second.size(), CV_8UC1, cv::Scalar(0) ) );
@@ -169,7 +142,7 @@ struct by_nearest
 static std::vector< std::pair< float, cv::Point > > make_offsets( cv::Mat kernel )
 {
     std::multimap< float, cv::Point > distances;
-    cv::Point anchor( kernel.cols / 2, kernel.rows / 2 );    
+    cv::Point anchor( kernel.cols / 2, kernel.rows / 2 );
     cv::Point p( 0, 0 );
     for( ; p.y < kernel.rows; ++p.y )
     {
