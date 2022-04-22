@@ -2193,7 +2193,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         const std::vector< std::string >& s = comma::split( e[1], ',' );
         bool vertical = true;
         boost::optional< unsigned int > count_x = boost::make_optional< unsigned int >( false, 0 );
-        boost::optional< unsigned int > count_y;
+        boost::optional< unsigned int > count_y = boost::make_optional< unsigned int >( false, 0 );
         boost::optional< unsigned int > x;
         boost::optional< unsigned int > y;
         std::vector< tile_t > tiles;
