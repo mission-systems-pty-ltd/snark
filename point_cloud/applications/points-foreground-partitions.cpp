@@ -1,32 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 /// @author vsevolod vlaskine
 
@@ -41,12 +13,6 @@
 #include <map>
 #include <sstream>
 #include <vector>
-#include <tbb/version.h>
-#if TBB_VERSION_MAJOR < 2021
-#include <tbb/pipeline.h>
-#else
-#include <tbb/parallel_pipeline.h>
-#endif
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -267,18 +233,9 @@ static block_t* partition_( block_t* block )
 
     for( std::size_t i = 1; i < block->points->size(); i++ )
     {
-        if( block->points->at(i).first.point(0) - block->points->at(i-1).first.point(0) > foreground_threshold )
-        {
-            block->points->at(i).first.foreground = rising;
-        }
-        else if( block->points->at(i).first.point(0) - block->points->at(i-1).first.point(0) < -foreground_threshold )
-        {
-            block->points->at(i).first.foreground = falling;
-        }
-        else
-        {
-            block->points->at(i).first.foreground = no_transition;
-        }
+        if( block->points->at(i).first.point(0) - block->points->at(i-1).first.point(0) > foreground_threshold ) { block->points->at(i).first.foreground = rising; }
+        else if( block->points->at(i).first.point(0) - block->points->at(i-1).first.point(0) < -foreground_threshold ) { block->points->at(i).first.foreground = falling; }
+        else { block->points->at(i).first.foreground = no_transition; }
 
         comma::uint32 foreground_current = block->points->at(i).first.foreground;
         comma::uint32 foreground_last = block->points->at(last_transition).first.foreground;
@@ -297,44 +254,27 @@ static block_t* partition_( block_t* block )
         }
         else if( foreground_current == rising && foreground_last == falling )
         {
-            if( i - last_transition >= min_points_per_partition )
-            {
-                foreground = foreground_t;
-            }
-            else
-            {
-                foreground = forebackground_t;
-            }
+            foreground = i - last_transition >= min_points_per_partition ? foreground_t : forebackground_t;
         }
         else if( i == ( block->points->size() - 1 ) )
         {
             // is this the last point?
             block->points->at(i).first.foreground = unknown_t;
-            if( foreground_current != no_transition )
-            {
-                block->points->at(i).first.id = id+1;
-            }
-            else
-            {
-                block->points->at(i).first.id = id;
-            }
+            block->points->at(i).first.id = foreground_current == no_transition ? id : id + 1;
             foreground = unknown_t;
         }
         else
         {
-            // do nothing
-            continue;
+            continue; // do nothing
         }
-
         for( std::size_t j = last_transition; j < i; j++ )
         {
             block->points->at(j).first.foreground = foreground;
             block->points->at(j).first.id = id;
         }
-        id++;
+        ++id;
         last_transition = i;
     }
-
     return block;
 }
 

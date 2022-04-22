@@ -1,11 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
 
 #include <boost/bind.hpp>
-// #if TBB_VERSION_MAJOR >= 2021
-// #include <thread>
-// #else
-// #include <tbb/tbb_thread.h>
-// #endif
 #include <comma/base/last_error.h>
 #include "pipeline.h"
 

@@ -436,17 +436,24 @@ if( snark_build_control )
                              optimized snark_control )
 endif( snark_build_control )
 
-
 IF(WIN32)
     SET( snark_ALL_EXTERNAL_LIBRARIES Ws2_32.lib )
 ENDIF(WIN32)
 
-IF( WIN32 )
-    INCLUDE( CMakeFiles/FindTBB.cmake REQUIRED )
-    INCLUDE( CMakeFiles/FindTBB.cmake REQUIRED )
-    INCLUDE_DIRECTORIES(${TBB_INCLUDE_DIRS})
-    LINK_DIRECTORIES(${TBB_LIBRARY_DIRS})
-ENDIF( WIN32 )
+include( CMakeFiles/FindTBB.cmake REQUIRED )
+include_directories( ${TBB_INCLUDE_DIRS} )
+link_directories( ${TBB_LIBRARY_DIRS} )
+find_file( TBB_VERSION_H ${TBB_INCLUDE_DIR}/version.h )
+if( NOT TBB_VERSION_H STREQUAL "TBB_VERSION_H-NOTFOUND" )
+    add_definitions( -D TBB_VERSION_H_EXISTS )
+endif( NOT TBB_VERSION_H STREQUAL "TBB_VERSION_H-NOTFOUND" )
+
+#IF( WIN32 )
+#    INCLUDE( CMakeFiles/FindTBB.cmake REQUIRED )
+#    INCLUDE_DIRECTORIES(${TBB_INCLUDE_DIRS})
+#    LINK_DIRECTORIES(${TBB_LIBRARY_DIRS})
+#ENDIF( WIN32 )
+
 SET( CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -DTBB_USE_EXCEPTIONS" )
 SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTBB_USE_EXCEPTIONS" )
 

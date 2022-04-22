@@ -187,7 +187,7 @@ set (TBB_INC_SEARCH_DIR ${_TBB_INSTALL_DIR}/include)
 # Jiri: tbbvars now sets the CPATH environment variable to the directory
 #       containing the headers.
 find_path(TBB_INCLUDE_DIR
-    tbb/task_scheduler_init.h
+    tbb/task_scheduler_init.h tbb/version.h
     PATHS ${TBB_INC_SEARCH_DIR} ENV CPATH
 )
 mark_as_advanced(TBB_INCLUDE_DIR)

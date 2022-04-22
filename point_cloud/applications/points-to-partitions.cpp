@@ -13,12 +13,6 @@
 #include <map>
 #include <sstream>
 #include <vector>
-#include <tbb/version.h>
-#if TBB_VERSION_MAJOR < 2021
-#include <tbb/pipeline.h>
-#else
-#include <tbb/parallel_pipeline.h>
-#endif
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/scoped_ptr.hpp>

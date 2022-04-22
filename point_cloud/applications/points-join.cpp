@@ -20,13 +20,6 @@
 
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>
-#include <tbb/version.h>
-#if TBB_VERSION_MAJOR >= 2021
-#include <tbb/parallel_pipeline.h>
-#include <tbb/task_group.h>
-#else
-#include <tbb/pipeline.h>
-#endif
 
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
@@ -718,15 +711,11 @@ template < typename V > struct join_impl_
                 if( !stdin_csv.binary() ) { ::write_( 1, '\n' ); }
             });
             if( stdin_csv.flush || !stdin_csv.binary() ) { ::fflush( stdout ); }
-            #if TBB_VERSION_MAJOR >= 2021
-            if( container.strict_and_nearest_point_not_found ) { strict_and_nearest_point_not_found = true; tbb::task_group_context().cancel_group_execution(); } // todo! fix properly and test
-            #else
-            if( container.strict_and_nearest_point_not_found ) { strict_and_nearest_point_not_found = true; tbb::task::self().cancel_group_execution(); }
-            #endif
+            if( container.strict_and_nearest_point_not_found ) { strict_and_nearest_point_not_found = true; snark::tbb::cancel_group_execution(); } // todo! fix properly and test
         };
-        typename snark::tbb::filter< void, input_container >::type read_points_filter( tbb::filter_mode::serial_in_order, read_points );
-        typename snark::tbb::filter< input_container, output_container >::type join_points_filter( tbb::filter_mode::parallel, join_points );
-        typename snark::tbb::filter< output_container, void >::type write_points_filter( tbb::filter_mode::serial_in_order, write_points );
+        typename snark::tbb::filter< void, input_container >::type read_points_filter( snark::tbb::filter_mode::serial_in_order, read_points );
+        typename snark::tbb::filter< input_container, output_container >::type join_points_filter( snark::tbb::filter_mode::parallel, join_points );
+        typename snark::tbb::filter< output_container, void >::type write_points_filter( snark::tbb::filter_mode::serial_in_order, write_points );
         while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
         {
             tbb::parallel_pipeline( parallel_threads, read_points_filter & join_points_filter & write_points_filter );

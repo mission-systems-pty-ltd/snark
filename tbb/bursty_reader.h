@@ -8,13 +8,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
-#include <tbb/version.h>
-#if TBB_VERSION_MAJOR >= 2021
-#include <tbb/parallel_pipeline.h>
-#else
-#include <tbb/pipeline.h>
-#include <tbb/tbb_exception.h>
-#endif
 #include "types.h"
 
 namespace snark { namespace tbb {
