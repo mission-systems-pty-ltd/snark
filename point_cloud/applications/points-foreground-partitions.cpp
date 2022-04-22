@@ -41,7 +41,12 @@
 #include <map>
 #include <sstream>
 #include <vector>
+#include <tbb/version.h>
+#if TBB_VERSION_MAJOR < 2021
 #include <tbb/pipeline.h>
+#else
+#include <tbb/parallel_pipeline.h>
+#endif
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -55,6 +60,7 @@
 #include <comma/visiting/traits.h>
 #include "../../math/interval.h"
 #include "../../tbb/bursty_reader.h"
+#include "../../tbb/types.h"
 
 #ifdef PROFILE
 #include <google/profiler.h>
@@ -348,22 +354,22 @@ int main( int ac, char** av )
         verbose = options.exists( "--verbose,-v" );
         discard = options.exists( "--discard,-d" );
         output_all = options.exists( "--output-all" );
-        ::tbb::filter_t< block_t*, block_t* > partition_filter( ::tbb::filter::serial_in_order, &partition_ );
-        ::tbb::filter_t< block_t*, void > write_filter( ::tbb::filter::serial_in_order, &write_block_ );
+        snark::tbb::filter< block_t*, block_t* >::type partition_filter( snark::tbb::filter_mode::serial_in_order, &partition_ );
+        snark::tbb::filter< block_t*, void >::type write_filter( snark::tbb::filter_mode::serial_in_order, &write_block_ );
         #ifdef PROFILE
         ProfilerStart( "points-foreground-partitions.prof" ); {
         #endif
         if( discard )
         {
             bursty_reader.reset( new snark::tbb::bursty_reader< block_t* >( &read_block_bursty_ ) );
-            ::tbb::filter_t< void, void > filters = bursty_reader->filter() & partition_filter & write_filter;
+            snark::tbb::filter< void, void >::type filters = bursty_reader->filter() & partition_filter & write_filter;
             ::tbb::parallel_pipeline( 3, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
             bursty_reader->join();
         }
         else
         {
-            ::tbb::filter_t< void, block_t* > read_filter( ::tbb::filter::serial_in_order, &read_block_ );
-            ::tbb::filter_t< void, void > filters = read_filter & partition_filter & write_filter;
+            snark::tbb::filter< void, block_t* >::type read_filter( snark::tbb::filter_mode::serial_in_order, &read_block_ );
+            snark::tbb::filter< void, void >::type filters = read_filter & partition_filter & write_filter;
             ::tbb::parallel_pipeline( 3, filters );
         }
         #ifdef PROFILE

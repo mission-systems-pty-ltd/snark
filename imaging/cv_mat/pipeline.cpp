@@ -1,12 +1,16 @@
 // Copyright (c) 2011 The University of Sydney
 
 #include <boost/bind.hpp>
-#include <tbb/tbb_thread.h>
+// #if TBB_VERSION_MAJOR >= 2021
+// #include <thread>
+// #else
+// #include <tbb/tbb_thread.h>
+// #endif
 #include <comma/base/last_error.h>
 #include "pipeline.h"
 
 namespace snark { namespace imaging { namespace applications {
-    
+
 namespace filters {
 
 /// constructor
@@ -50,7 +54,7 @@ void pipeline< H >::write_( pair p )
     // We use write_to_stdout() rather than write() because we saw issues with using std::cout.
     // See serialization.cpp for details.
     try
-    { 
+    {
         m_output.write_to_stdout( p );
     }
     catch( const comma::last_error::exception& ex )
@@ -78,20 +82,20 @@ void pipeline< H >::setup_pipeline_()
 {
     if( m_filters.empty() )
     {
-        m_filter = ::tbb::filter_t< pair, void >( ::tbb::filter::serial_in_order, boost::bind( &pipeline< H >::write_, this, _1 ) );
+        m_filter = typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( &pipeline< H >::write_, this, _1 ) );
     }
     else
     {
-        ::tbb::filter_t< pair, pair > all_filters;
+        typename tbb::filter< pair, pair >::type all_filters;
         bool has_null = false;
         for( std::size_t i = 0; i < m_filters.size(); ++i )
         {
-            ::tbb::filter::mode mode = m_filters[i].parallel ? ::tbb::filter::parallel : ::tbb::filter::serial_in_order;
+            tbb::filter_mode mode = m_filters[i].parallel ? tbb::filter_mode::parallel : tbb::filter_mode::serial_in_order;
             if( !m_filters[i].filter_function ) { has_null = true; break; }
-            ::tbb::filter_t< pair, pair > filter( mode, boost::bind( m_filters[i].filter_function, _1 ) );
+            typename tbb::filter< pair, pair >::type filter( mode, boost::bind( m_filters[i].filter_function, _1 ) );
             all_filters = i == 0 ? filter : ( all_filters & filter );
         }
-        m_filter = all_filters & ::tbb::filter_t< pair, void >( ::tbb::filter::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, _1 ) );
+        m_filter = all_filters & typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, _1 ) );
     }
 }
 
@@ -108,4 +112,3 @@ template class pipeline< snark::cv_mat::serialization::header::buffer_t >;
 } // namespace filters {
 
 } } } // namespace snark { namespace imaging { namespace applications {
-
