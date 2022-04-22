@@ -158,7 +158,7 @@ namespace ratios
     {
         std::ostringstream o; 
         std::string w( offset, ' ' );
-        o << w << "input syntax for the ratio and linear-combination operations:" << std::endl;
+        o << w << "input syntax for the ratio and linear-combination operations:\n";
         w = std::string( offset + 4, ' ' );
         o << w << "the input string specifies a ratio of linear combinations of signal channels in algebraic form\n";
         o << w << "\n";

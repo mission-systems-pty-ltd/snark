@@ -296,18 +296,18 @@ template < typename H >
 typename std::string partition< H >::usage(unsigned int indent) {
     std::string offset(indent, ' ');
     std::ostringstream oss;
-    oss << offset << "partition=<options>" << std::endl;
-    oss << offset << "    <options>" << std::endl;
-    oss << offset << "        degrees:<value>: 4: pixels connected top/down, left/right; 8: pixels connected through diagonals, too; default: 8" << std::endl;
-    oss << offset << "        do-not-visit:<value>: value that does not represent any class; e.g. 0: do not" << std::endl;
-    oss << offset << "                              partition black pixels" << std::endl;
-    oss << offset << "        keep-id: keep incrementing id from image to image; otherwise, for each image, " << std::endl;
-    oss << offset << "                 start id with the value of start-with option" << std::endl;
-    oss << offset << "        merge: if present and image is of type i (32-bit int), output two-channel image:" << std::endl;
-    oss << offset << "               first channel: original image, second: partition ids" << std::endl;
-    oss << offset << "        min-size:<pixels>: min partition size to keep; set output pixels of smaller partitions to none id" << std::endl;
-    oss << offset << "        none:<id>: id that does not represent any class in output; default: -1" << std::endl;
-    oss << offset << "        start-with:<id>: start id numbers from <id>; default: 0" << std::endl;
+    oss << offset << "partition=<options>\n";
+    oss << offset << "    <options>\n";
+    oss << offset << "        degrees:<value>: 4: pixels connected top/down, left/right; 8: pixels connected through diagonals, too; default: 8\n";
+    oss << offset << "        do-not-visit:<value>: value that does not represent any class; e.g. 0: do not\n";
+    oss << offset << "                              partition black pixels\n";
+    oss << offset << "        keep-id: keep incrementing id from image to image; otherwise, for each image, \n";
+    oss << offset << "                 start id with the value of start-with option\n";
+    oss << offset << "        merge: if present and image is of type i (32-bit int), output two-channel image:\n";
+    oss << offset << "               first channel: original image, second: partition ids\n";
+    oss << offset << "        min-size:<pixels>: min partition size to keep; set output pixels of smaller partitions to none id\n";
+    oss << offset << "        none:<id>: id that does not represent any class in output; default: -1\n";
+    oss << offset << "        start-with:<id>: start id numbers from <id>; default: 0\n";
     return oss.str();
 }
 

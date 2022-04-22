@@ -59,14 +59,14 @@ std::string convolution< H >::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "convolution=<kernel>,<rows>,<cols>[,<options>]: convolution on a given kernel, see cv::filter2d for details" << std::endl;
-    oss << i << "    <kernel>: filename of binary file containing <rows>x<cols> 4-byte floats" << std::endl;
-    oss << i << "    <rows>: number of rows in kernel" << std::endl;
-    oss << i << "    <cols>: number of columns in kernel" << std::endl;
-    oss << i << "    <options> (see cv::filter2d for details)" << std::endl;
-    oss << i << "        <delta>:<value>: offset to add to convolved values, e.g. delta:0.3" << std::endl;
-    oss << i << "        <depth>:<value>: todo" << std::endl;
-    oss << i << "        <anchor>:<value>: todo" << std::endl;
+    oss << i << "convolution=<kernel>,<rows>,<cols>[,<options>]: convolution on a given kernel, see cv::filter2d for details\n";
+    oss << i << "    <kernel>: filename of binary file containing <rows>x<cols> 4-byte floats\n";
+    oss << i << "    <rows>: number of rows in kernel\n";
+    oss << i << "    <cols>: number of columns in kernel\n";
+    oss << i << "    <options> (see cv::filter2d for details)\n";
+    oss << i << "        <delta>:<value>: offset to add to convolved values, e.g. delta:0.3\n";
+    oss << i << "        <depth>:<value>: todo\n";
+    oss << i << "        <anchor>:<value>: todo\n";
     return oss.str();
 }
 

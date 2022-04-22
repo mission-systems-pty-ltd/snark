@@ -47,10 +47,10 @@ template < typename H >
 typename std::string pad< H >::usage(unsigned int indent) {
     std::string offset(indent, ' ');
     std::ostringstream oss;
-    oss << offset << "pad=<top>,<bottom>,<left>,<right>[,<border_type>][,<fill>]; see cv::copyMakeBorder for details" << std::endl;
-    oss << offset << "    <top>,<bottom>,<left>,<right>: number of pixels to pad on each side" << std::endl;
-    oss << offset << "    <border_type>: one of: 'constant', 'replicate', 'wrap', 'reflect'" << std::endl;
-    oss << offset << "    <fill>: vector of ints (colour) to fill the padding with" << std::endl;
+    oss << offset << "pad=<top>,<bottom>,<left>,<right>[,<border_type>][,<fill>]; see cv::copyMakeBorder for details\n";
+    oss << offset << "    <top>,<bottom>,<left>,<right>: number of pixels to pad on each side\n";
+    oss << offset << "    <border_type>: one of: 'constant', 'replicate', 'wrap', 'reflect'\n";
+    oss << offset << "    <fill>: vector of ints (colour) to fill the padding with\n";
     return oss.str();
 }
 
