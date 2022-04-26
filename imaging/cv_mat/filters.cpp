@@ -3189,6 +3189,11 @@ static std::string usage_impl_()
     oss << "                       therefore, unfortunately:\n";
     oss << "                           instead of: cv-cat 'view;do-something;view'\n";
     oss << "                                  use: cv-cat 'view;do-something' | cv-cat 'view'\n";
+    oss << "    save=<filename>[,<quality>][,index][,no-header]: write images to files in the specified format.\n";
+    oss << "        <filename>: <base>.<format>: bin|jpg|ppm|png|tiff...\n";
+    oss << "        <format>: anything that opencv imwrite can take or 'bin' to write image as binary in cv-cat format\n";
+    oss << "        <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)\n";
+    oss << "        index: if present, for each image, files will be named as: <base>.<index>.<extension>, e.g: my-file.0.png, my-file.1.png, etc\n";
     oss << "\n";
     oss << "    file read/write operations or generating images\n";
     oss << "        blank=<rows>,<cols>,<type>: create black image of a given size and type\n";
@@ -3203,10 +3208,6 @@ static std::string usage_impl_()
     oss << "            log=<dirname>,period:<seconds>: write images to files in a given directory, each file containing frames for a given period of time\n";
     oss << "                                            e.g. for log=tmp,period:1.5 each file will contain 1.5 seconds worth of images\n";
     oss << "            log=<options>,index: write binary index file, with format t,uw,ul and fields: timestamp, file number, and offset of each frame\n";
-    oss << "        save=<filename>[,<quality>][,index][,no-header]: write images to files with timestamp as name in the specified format. <filename>: <base>.<format>: bin|jpg|ppm|png|tiff...; if no timestamp, system time is used\n";
-    oss << "            <format>: anything that opencv imwrite can take or 'bin' to write image as binary in cv-cat format\n";
-    oss << "            <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)\n";
-    oss << "            index: if present, for each image, files will be named as: <base>.<index>.<extension>, e.g: my-file.0.png, my-file.1.png, etc\n";
     oss << "\n";
     oss << "    operations on channels\n";
     oss << "        clone-channels=<n>: take 1-channel image, output n-channel image, with each channel a copy of the input\n";
