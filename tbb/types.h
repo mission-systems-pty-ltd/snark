@@ -22,7 +22,7 @@ typedef ::tbb::filter_mode filter_mode;
 
 inline unsigned int default_concurrency() { return ::tbb::info::default_concurrency(); } // quick and dirty
 
-inline bool cancel_group_execution() { return tbb::task_group_context().cancel_group_execution(); }
+inline bool cancel_group_execution() { return ::tbb::task_group_context().cancel_group_execution(); }
 
 } } // namespace snark { namespace tbb {
 
