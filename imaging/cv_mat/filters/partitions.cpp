@@ -298,9 +298,10 @@ typename std::string partition< H >::usage(unsigned int indent) {
     std::ostringstream oss;
     oss << offset << "partition=<options>\n";
     oss << offset << "    <options>\n";
-    oss << offset << "        degrees:<value>: 4: pixels connected top/down, left/right; 8: pixels connected through diagonals, too; default: 8\n";
-    oss << offset << "        do-not-visit:<value>: value that does not represent any class; e.g. 0: do not\n";
-    oss << offset << "                              partition black pixels\n";
+    oss << offset << "        degrees:<value>: 4: pixels connected top/down, left/right\n";
+    oss << offset << "                         8: pixels connected through diagonals, too (default)\n";
+    oss << offset << "        do-not-visit:<value>: value that does not represent any class\n";
+    oss << offset << "                              e.g. 0: do not partition black pixels\n";
     oss << offset << "        keep-id: keep incrementing id from image to image; otherwise, for each image, \n";
     oss << offset << "                 start id with the value of start-with option\n";
     oss << offset << "        merge: if present and image is of type i (32-bit int), output two-channel image:\n";

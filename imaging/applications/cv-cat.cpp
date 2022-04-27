@@ -211,6 +211,7 @@ int main( int argc, char** argv )
         {
             std::string command = vm[ "help" ].as< std::string >();
             if ( ! command.empty() ) { std::cerr << snark::cv_mat::command_specific_help( "cv-cat", command ) << std::endl; return 0; }
+            std::cerr << "\n";
             std::cerr << "read images from stdin or a camera supported by opencv, apply filters and output to stdout\n";
             if( !vm.count( "verbose" ) ) { std::cerr << "see --help --verbose for filters usage\n"; }
             std::cerr << "\n";
@@ -229,13 +230,14 @@ int main( int argc, char** argv )
             std::cerr << "          - input has arbitrary fields, output has no header (no-header option)\n";
             std::cerr << "          anything more sophisticated than that can be easily achieved e.g. by piping cv-cat to csv-shuffle\n";
             std::cerr << "\n";
-            std::cerr << description << "\n";
+            std::cerr << description;
             std::cerr << "\n";
-            std::cerr << "examples\n";
+            std::cerr << "examples:\n";
             std::cerr << "    take bayer-encoded images with 1000 rows and 500 columns, no header\n";
             std::cerr << "    do bayer conversion, transpose, and output without header to the file converted.bin\n";
             std::cerr << "\n";
-            std::cerr << "        cat images.bin | cv-cat --input=\"rows=1000;cols=500;no-header;type=ub\" \"bayer=1;transpose\" --output=no-header > converted.bin\n";
+            std::cerr << "        cat images.bin | cv-cat --input=\"rows=1000;cols=500;no-header;type=ub\" \\\n";
+            std::cerr << "                                        \"bayer=1;transpose\" --output=no-header > converted.bin\n";
             std::cerr << "\n";
             std::cerr << "    view the result of the previous example\n";
             std::cerr << "\n";
@@ -254,22 +256,26 @@ int main( int argc, char** argv )
             std::cerr << "    print image header (e.g. to figure out the image size or type)\n";
             std::cerr << "\n";
             std::cerr << "        gige-cat --output=\"header-only;fields=rows,cols,size,type\" | csv-from-bin 4ui | head\n";
+            std::cerr << "\n";
             std::cerr << "    create a video with ffmpeg; -b: bitrate, -r: input/output framerate:\n";
-            std::cerr << "        gige-cat | cv-cat \"encode=ppm\" --output=no-header | ffmpeg -y -f image2pipe -vcodec ppm -r 25 -i pipe: -vcodec libx264  -threads 0 -b 2000k -r 25 video.mkv\n";
-            std::cerr << "        gige-cat encode=png --output=no-header | ffmpeg -y -f image2pipe -r 5 -c:v png -i pipe: -c:v libx264 -threads 0 -b:v 2000k -r 5 -preset slow -crf 22 video.avi\n";
+            std::cerr << "        gige-cat | cv-cat \"encode=ppm\" --output=no-header \\\n";
+            std::cerr << "            | ffmpeg -y -f image2pipe -vcodec ppm -r 25 -i pipe: -vcodec libx264  -threads 0 -b 2000k -r 25 video.mkv\n";
+            std::cerr << "\n";
+            std::cerr << "        gige-cat encode=png --output=no-header \\\n";
+            std::cerr << "            | ffmpeg -y -f image2pipe -r 5 -c:v png -i pipe: -c:v libx264 -threads 0 -b:v 2000k \\\n";
+            std::cerr << "                     -r 5 -preset slow -crf 22 video.avi\n";
             std::cerr << "\n";
             std::cerr << "    overlay a ruler on input stream to show scale (the overlay image can be created in a script using csv-to-svg)\n";
             std::cerr << "\n";
             std::cerr << "        create_ruler_svg > tmp/r.svg\n";
             std::cerr << "        convert -background transparent tmp/r.svg tmp/r.png\n";
             std::cerr << "        ...  | cv-cat \"overlay=tmp/r.png,10,10;view;null\" \n";
-            std::cerr << "\n";
             if( vm.count( "verbose" ) )
             {
                 std::cerr << "\n";
-                std::cerr << snark::cv_mat::serialization::options::usage() << "\n";
+                std::cerr << snark::cv_mat::serialization::options::usage();
                 std::cerr << "\n";
-                std::cerr << snark::cv_mat::impl::filters<>::usage() << "\n";
+                std::cerr << snark::cv_mat::impl::filters<>::usage();
             }
             std::cerr << std::endl;
             return 0;

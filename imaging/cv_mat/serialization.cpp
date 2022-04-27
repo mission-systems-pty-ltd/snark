@@ -412,7 +412,8 @@ serialization::header serialization::options::get_header() const
 std::string serialization::options::usage()
 {
     std::stringstream stream;
-    stream << "cv::mat serialization options: ';'-separated name=value options\n";
+    stream << "cv::mat serialization options:\n";
+    stream << "    ';'-separated name=value options\n";
     stream << "    fields=<fields>; default: t,cols,rows,type\n";
     stream << "        note: shall describe only the image header, not the data\n";
     stream << "    binary=<format>; default: t,3ui\n";

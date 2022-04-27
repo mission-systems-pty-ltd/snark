@@ -155,11 +155,13 @@ typename std::string text< H >::usage( unsigned int indent )
 {
     std::string offset( indent, ' ' );
     std::ostringstream oss;
-    oss << offset << "text=<text>,[<x>,<y>],[<colour>],[filename:<filename>],[ranges:<ranges>]: print text; default x,y: 10,10; default colour: yellow\n";
+    oss << offset << "text=<text>,[<x>,<y>],[<colour>],[filename:<filename>],[ranges:<ranges>]: print text; default x,y: 10,10\n";
+    oss << offset << "                                                                          default colour: yellow\n";
     oss << offset << "     <x>,<y>: text origin pixel coordinates; default x,y: 10,10\n";
     oss << offset << "     <colour>: text colour: red, green, blue, black, white, yellow, cyan, magenta; default: yellow\n";
     oss << offset << "     filename:<filename>]: read text from a file line by line, new line for each new frame\n";
-    oss << offset << "     ranges:<filename>]: file containing sorted list of non-intersecting desired ranges of frame numbers to put text on; <begin>,<end> pairs, where <end> is not included\n";
+    oss << offset << "     ranges:<filename>]: file containing sorted list of non-intersecting desired ranges of frame numbers\n";
+    oss << offset << "                         to put text on; <begin>,<end> pairs, where <end> is not included\n";
     oss << offset << "     scale:<factor>]: font scale, default: 1.0, see opencv putText() for more\n";
     return oss.str();
 }

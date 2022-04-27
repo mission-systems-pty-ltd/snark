@@ -64,7 +64,9 @@ template < typename H >
 std::string hard_edge< H >::usage( unsigned int indent )
 {
     std::ostringstream oss;
-    oss << std::string( indent, ' ' ) << "hard-edge[=<background>]: find hard edge (currently only single-channel images supported); set all non-edge pixels to <background>";
+    std::string i( indent, ' ' );
+    oss << i << "hard-edge[=<background>]: find hard edge (currently only single-channel images supported)\n";
+    oss << i << "                          set all non-edge pixels to <background>\n";
     return oss.str();
 }
 

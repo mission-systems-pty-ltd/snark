@@ -160,9 +160,13 @@ boost::optional< typename impl::filters< H >::filter > impl::filters< H >::make(
 static std::string usage_impl_()
 {
     std::ostringstream oss;
-    oss << "    cv::Mat vegetation-specific filters" << std::endl;
-    oss << "        ndvi: calculate normalized difference vegetation index with formula (R<nir> - R<red>) / (R<nir> + R<red>); expect input to be 4-channel, 32-bit float  " << std::endl;
-    oss << "        exponential-combination=<e1>,<e2>,<e3>,...: output single channel float/double: multiplication of each channel powered to the exponent; expect input to be 32-bit float or 64-bit double" << std::endl;
+    oss << "cv::Mat vegetation-specific filters:\n";
+    oss << "    ndvi:\n";
+    oss << "        calculate normalized difference vegetation index with formula (R<nir> - R<red>) / (R<nir> + R<red>);\n";
+    oss << "        expect input to be 4-channel, 32-bit float\n";
+    oss << "    exponential-combination=<e1>,<e2>,<e3>,...:\n";
+    oss << "        output single channel float/double: multiplication of each channel powered to the exponent;\n";
+    oss << "        expect input to be 32-bit float or 64-bit double\n";
     return oss.str();
 }
 

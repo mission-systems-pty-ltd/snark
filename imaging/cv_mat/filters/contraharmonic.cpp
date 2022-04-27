@@ -344,16 +344,11 @@ typename std::string contraharmonic<H>::usage(unsigned int indent) {
     std::string offset(indent, ' ');
     std::ostringstream oss;
     oss << offset << "contraharmonic=<power>,<kernel_shape>,<kernel_geometry>, e.g: contraharmonic=3,square,5\n";
-    oss << offset
-        << "               <power>: order of the filter; positive values remove pepper noise; negative values "
-           "remove "
-           "salt noise\n";
-    oss << offset
-        << "               <kernel_shape>: shape of kernel filter; default: square; todo: support other shapes, "
-           "e.g. "
-           "rectangle\n";
-    oss << offset << "               <kernel_geometry>:\n";
-    oss << offset << "                   square,<side>, e.g: 'square,5'\n";
+    oss << offset << "               <power>: order of the filter; positive values remove pepper noise;\n";
+    oss << offset << "                        negative values remove salt noise\n";
+    oss << offset << "               <kernel_shape>: shape of kernel filter; default: square;\n";
+    oss << offset << "                               todo: support other shapes, e.g. rectangle\n";
+    oss << offset << "               <kernel_geometry>: square,<side>, e.g: 'square,5'\n";
     return oss.str();
 }
 

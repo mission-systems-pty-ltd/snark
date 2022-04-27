@@ -223,7 +223,8 @@ std::string file< H >::usage( unsigned int i )
     std::ostringstream oss;
     std::string indent( i, ' ' );
     oss << indent << "file=<format>[,<quality>][,<options>]:\n";
-    oss << indent << "    write images to files with timestamp as name in the specified format; if input images have no timestamp, system time is used\n";
+    oss << indent << "    write images to files with timestamp as name in the specified format;\n";
+    oss << indent << "    if input images have no timestamp, system time is used\n";
     oss << indent << "    <format>\n";
     oss << indent << "        - anything that opencv imwrite can take, e.g. jpg, ppm, png, tiff etc\n";
     oss << indent << "        - 'bin' to write image as binary in cv-cat format\n";
@@ -231,13 +232,15 @@ std::string file< H >::usage( unsigned int i )
     oss << indent << "    <quality>: for jpg files only, compression quality from 0 (smallest) to 100 (best)\n";
     oss << indent << "    <options>\n";
     oss << indent << "        exit-if-done: exit if filenames, ranges, or frames specified and the end of one of those lists is reached\n";
-    oss << indent << "        index: for each timestamp, files will be named as: <timestamp>.<index>.<extension>, e.g: 20170101T000000.123456.0.png, 20170101T000000.123456.1.png, etc\n";
+    oss << indent << "        index: for each timestamp, files will be named as: <timestamp>.<index>.<extension>,\n";
+    oss << indent << "               e.g: 20170101T000000.123456.0.png, 20170101T000000.123456.1.png, etc\n";
     oss << indent << "        no-header: makes sense only for 'bin' format; if present, write image without header\n";
     oss << indent << "        numbered: output filenames will look like 0.png, 1.png, etc, i.e. <filename>: <frame-number>.<extension>\n";
     oss << indent << "        prefix:<prefix>: if numbered, output filenames like blah.0.png, blah.1.png, etc\n";
     oss << indent << "        filenames:<filenames>: file with a list of filenames\n";
     oss << indent << "        frames:<filename>: file with a sorted list of unique desired frame numbers to save\n";
-    oss << indent << "        ranges:<filename>: file with a sorted list of non-intersecting (but see ranges-union) desired ranges of frame numbers to save as <begin>,<end> pairs, where <end> is not included\n";
+    oss << indent << "        ranges:<filename>: file with a sorted list of non-intersecting (but see ranges-union) desired ranges\n";
+    oss << indent << "                           of frame numbers to save as <begin>,<end> pairs, where <end> is not included\n";
     oss << indent << "        ranges-union,union: find union of ranges, even if they are not sorted and intersecting\n";
     return oss.str();
 }

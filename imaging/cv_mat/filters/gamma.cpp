@@ -21,7 +21,14 @@ std::unordered_map< comma::int32, double > _make_map( double gamma, unsigned int
     return m;
 }
 
-template < typename H > std::string gamma< H >::usage( unsigned int indent ) { return "gamma=<value>; convert image gamma; output will be floating point image; todo: optionally convert to original type\n"; }
+template < typename H > std::string gamma< H >::usage( unsigned int indent )
+{
+    std::ostringstream oss;
+    std::string i( indent, ' ' );
+    oss << i << "gamma=<value>: convert image gamma; output will be floating point image\n";
+    oss << i << "               todo: optionally convert to original type\n";
+    return oss.str();
+}
 template < typename H > gamma< H >::gamma( double value ): _map_8( _make_map( value, 256 ), true ), _map_16( _make_map( value, 256 * 256 ), true ) {}
 template < typename H > std::pair< typename gamma< H >::functor_t, bool > gamma< H >::make( const std::string& options ) { return std::make_pair( gamma( boost::lexical_cast< double >( options ) ), true ); }
 
