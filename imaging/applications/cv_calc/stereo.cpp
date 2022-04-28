@@ -19,9 +19,11 @@
 #include <comma/csv/ascii.h>
 #include <comma/visiting/traits.h>
 #include "../../../visiting/eigen.h"
-#include "rectify_map.h"
+#include "stereo.h"
 
-namespace snark { namespace cv_calc { namespace rectify_map {
+namespace snark { namespace cv_calc { namespace stereo {
+
+namespace rectify_map {
 
 // cv::stereoRectify( m_leftCamera, m_leftDistortion, m_rightCamera, m_rightDistortion, m_imageSize, m_rotation, m_translation,
 //                    m_R1, m_R2, m_P1, m_P2, m_Q );
@@ -49,8 +51,10 @@ std::string options()
 
 int run( const comma::command_line_options& options )
 {
-    COMMA_THROW( comma::exception, "todo" );
+    COMMA_THROW( comma::exception, "todo; coming soon..." );
     return 0;
 }
 
-} } } // namespace snark { namespace cv_calc { namespace rectify_map {
+} // namespace rectify_map {
+
+} } } // namespace snark { namespace cv_calc { namespace stereo {

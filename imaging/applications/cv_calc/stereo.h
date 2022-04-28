@@ -6,10 +6,14 @@
 
 #include <comma/application/command_line_options.h>
 
-namespace snark { namespace cv_calc { namespace rectify_map {
+namespace snark { namespace cv_calc { namespace stereo {
+
+namespace rectify_map {
 
 std::string options();
 
 int run( const comma::command_line_options& options );
 
-} } } // namespace snark { namespace cv_calc { namespace rectify_map {
+} // namespace rectify_map {
+
+} } } // namespace snark { namespace cv_calc { namespace stereo {
