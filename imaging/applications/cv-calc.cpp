@@ -35,6 +35,7 @@
 #include "../../visiting/eigen.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
+#include "cv_calc/rectify_map.h"
 #include "cv_calc/unstride.h"
 
 const char* name = "cv-calc: ";
@@ -64,6 +65,7 @@ static void usage( bool verbose=false )
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
     std::cerr << "    mean: output image means for all image channels appended to image header" << std::endl;
+    std::cerr << "    rectify-map: output rectification map for a stereo pair" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
     std::cerr << "    thin: thin image stream by discarding some images" << std::endl;
@@ -146,12 +148,8 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "        fields: t,rows,cols,type,circles,labels,rectangles" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    enumerate" << std::endl;
-    std::cerr << snark::cv_calc::enumerate::options() << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    equirectangular-map" << std::endl;
-    std::cerr << snark::cv_calc::equirectangular_map::options() << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "    enumerate" << std::endl << snark::cv_calc::enumerate::options() << std::endl;
+    std::cerr << "    equirectangular-map" << std::endl << snark::cv_calc::equirectangular_map::options() << std::endl;
     std::cerr << "    grep" << std::endl;
     std::cerr << "        --filter,--filters=[<filters>]; apply --non-zero logic to the image with filters applied, not to image itself" << std::endl;
     std::cerr << "                                        run cv-cat --help --verbose for filters available" << std::endl;
@@ -187,6 +185,7 @@ static void usage( bool verbose=false )
     std::cerr << "        default output fields: t,rows,cols,type,mean,count" << std::endl;
     std::cerr << "                               count: total number of non-zero pixels used in calculating the mean" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "    rectify-map" << std::endl << snark::cv_calc::rectify_map::options() << std::endl;
     std::cerr << "    roi" << std::endl;
     std::cerr << "        --crop: crop to roi and output instead of setting region outside of roi to zero" << std::endl;
     std::cerr << "        --no-discard; do not discards frames where the roi is not seen" << std::endl;
@@ -242,64 +241,69 @@ static void usage( bool verbose=false )
     std::cerr << "            --from-fps,--input-fps=<fps>; input fps (since it is impossible to know it upfront)" << std::endl;
     std::cerr << "            --to-fps,--fps=<fps>; thin to a given <fps>, same as --rate=<to-fps>/<from-fps> --deterministic" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    unstride" << std::endl;
-    std::cerr << snark::cv_calc::unstride::options() << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "    unstride" << snark::cv_calc::unstride::options() << std::endl;
     std::cerr << "examples" << std::endl;
-    std::cerr << "    draw" << std::endl;
-    std::cerr << "        # read rectangles and labels from header and cirles from file" << std::endl;
-    std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
-    std::cerr << "            | csv-paste 'value=50,100,100,200,150,150,250,250,250,150,some_text;binary=10ui,s[64]' \"-;binary=t,3ui,s[$image_size_in_bytes]\" \\" << std::endl;
-    std::cerr << "            | cv-calc draw --binary=10ui,s[64],t,3ui \\" << std::endl;
-    std::cerr << "                           --fields rectangles,labels,t,rows,cols,type  \\" << std::endl;
-    std::cerr << "                           --rectangles=2,weight=3,color/r=255 \\" << std::endl;
-    std::cerr << "                           --circles=circles.csv;fields=t,index,centre/x,centre/y,radius;weight=3,color/b=255 \\" << std::endl;
-    std::cerr << "                           --labels=1,weight=2,color/r=255 \\" << std::endl;
-    std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
-    std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    header" << std::endl;
-    std::cerr << "        cat data.bin | cv-calc header" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    format" << std::endl;
-    std::cerr << "        cat data.bin | cv-calc format" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    life" << std::endl;
-    std::cerr << "        a combination of parameters producing fairly long-living colony:" << std::endl;
-    std::cerr << "        cv-cat --file ~/tmp/some-image.jpg | cv-calc life --procreation 3 --stability 5.255 --step 0.02 | cv-cat \"count;view;null\"" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    roi" << std::endl;
-    std::cerr << "        Setting everything but the roi rectangle to 0 for all images" << std::endl;
-    std::cerr << "        ROI fields must be pre-pended. This roi is is a square of (100,100) to (300,300)" << std::endl;
-    std::cerr << "        Given a cv-cat image stream with format 't,3ui,s[1572864]'." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        cat data.bin | csv-paste \"value=100,100,300,300;binary=4i\" \"-;binary=t,3ui,s[1572864]\" \\" << std::endl;
-    std::cerr << "            | cv-calc roi -v | csv-bin-cut '4i,t,3ui,s[1572864]' --fields 5-9 >output.bin" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        Explicity specifying fields. Image payload data field is not specified for cv-calc, not set for --binary either" << std::endl;
-    std::cerr << "        The user must explcitly list all four roi fields. Using 'min,max' is not possible." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        cat data.bin | csv-paste \"value=100,100,999,300,300;binary=5i\" \"-;binary=t,3ui,s[1572864]\" \\" << std::endl;
-    std::cerr << "            | cv-calc roi --fields min/x,min/y,,max/x,max/y,t,rows,cols,type --binary '5i,t,3ui' \\" << std::endl;
-    std::cerr << "            | csv-bin-cut '5i,t,3ui,s[1572864]' --fields 6-10 >output.bin" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        Multiple roi" << std::endl;
-    std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
-    std::cerr << "            | cv-calc roi --rectangles=\"boxes.bin;fields=t,index,min/x,min/y,max/x,max/y;binary=t,ui,4d;normalized\" \\" << std::endl;
-    std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
-    std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        Multiple roi (deprecated)" << std::endl;
-    std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
-    std::cerr << "            | csv-paste 'value=50,100,100,200,150,150,250,250;binary=8ui' \"-;binary=t,3ui,s[$image_size_in_bytes]\" \\" << std::endl;
-    std::cerr << "            | cv-calc roi --binary=8ui,t,3ui --fields rectangles,t,rows,cols,type --rectangles=2 \\" << std::endl;
-    std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
-    std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    unstride-positions" << std::endl;
-    std::cerr << "        <process strides, output stride index and rectangle> |" << std::endl;
-    std::cerr << "            cv-calc unstride-positions --fields index,positions --positions 2 --size 600,400 --strides 300,200 --unstrided-size 1200,800" << std::endl;
+    if( verbose )
+    {
+        std::cerr << "    draw" << std::endl;
+        std::cerr << "        # read rectangles and labels from header and cirles from file" << std::endl;
+        std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
+        std::cerr << "            | csv-paste 'value=50,100,100,200,150,150,250,250,250,150,some_text;binary=10ui,s[64]' \"-;binary=t,3ui,s[$image_size_in_bytes]\" \\" << std::endl;
+        std::cerr << "            | cv-calc draw --binary=10ui,s[64],t,3ui \\" << std::endl;
+        std::cerr << "                           --fields rectangles,labels,t,rows,cols,type  \\" << std::endl;
+        std::cerr << "                           --rectangles=2,weight=3,color/r=255 \\" << std::endl;
+        std::cerr << "                           --circles=circles.csv;fields=t,index,centre/x,centre/y,radius;weight=3,color/b=255 \\" << std::endl;
+        std::cerr << "                           --labels=1,weight=2,color/r=255 \\" << std::endl;
+        std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
+        std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    header" << std::endl;
+        std::cerr << "        cat data.bin | cv-calc header" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    format" << std::endl;
+        std::cerr << "        cat data.bin | cv-calc format" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    life" << std::endl;
+        std::cerr << "        a combination of parameters producing fairly long-living colony:" << std::endl;
+        std::cerr << "        cv-cat --file ~/tmp/some-image.jpg | cv-calc life --procreation 3 --stability 5.255 --step 0.02 | cv-cat \"count;view;null\"" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    roi" << std::endl;
+        std::cerr << "        Setting everything but the roi rectangle to 0 for all images" << std::endl;
+        std::cerr << "        ROI fields must be pre-pended. This roi is is a square of (100,100) to (300,300)" << std::endl;
+        std::cerr << "        Given a cv-cat image stream with format 't,3ui,s[1572864]'." << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "        cat data.bin | csv-paste \"value=100,100,300,300;binary=4i\" \"-;binary=t,3ui,s[1572864]\" \\" << std::endl;
+        std::cerr << "            | cv-calc roi -v | csv-bin-cut '4i,t,3ui,s[1572864]' --fields 5-9 >output.bin" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "        Explicity specifying fields. Image payload data field is not specified for cv-calc, not set for --binary either" << std::endl;
+        std::cerr << "        The user must explcitly list all four roi fields. Using 'min,max' is not possible." << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "        cat data.bin | csv-paste \"value=100,100,999,300,300;binary=5i\" \"-;binary=t,3ui,s[1572864]\" \\" << std::endl;
+        std::cerr << "            | cv-calc roi --fields min/x,min/y,,max/x,max/y,t,rows,cols,type --binary '5i,t,3ui' \\" << std::endl;
+        std::cerr << "            | csv-bin-cut '5i,t,3ui,s[1572864]' --fields 6-10 >output.bin" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "        Multiple roi" << std::endl;
+        std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
+        std::cerr << "            | cv-calc roi --rectangles=\"boxes.bin;fields=t,index,min/x,min/y,max/x,max/y;binary=t,ui,4d;normalized\" \\" << std::endl;
+        std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
+        std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "        Multiple roi (deprecated)" << std::endl;
+        std::cerr << "        cv-cat --file image.jpg \\" << std::endl;
+        std::cerr << "            | csv-paste 'value=50,100,100,200,150,150,250,250;binary=8ui' \"-;binary=t,3ui,s[$image_size_in_bytes]\" \\" << std::endl;
+        std::cerr << "            | cv-calc roi --binary=8ui,t,3ui --fields rectangles,t,rows,cols,type --rectangles=2 \\" << std::endl;
+        std::cerr << "            | tail -c<original image size + 20> \\" << std::endl;
+        std::cerr << "            | cv-cat --output no-header 'encode=jpg' > output.jpg" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    unstride-positions" << std::endl;
+        std::cerr << "        <process strides, output stride index and rectangle> |" << std::endl;
+        std::cerr << "            cv-calc unstride-positions --fields index,positions --positions 2 --size 600,400 --strides 300,200 --unstrided-size 1200,800" << std::endl;
+    }
+    else
+    {
+        std::cerr << "    to see examples, run: cv-calc --help --verbose" << std::endl;
+    }
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -1103,7 +1107,7 @@ int main( int ac, char** av )
             unsigned int number = options.value( "--number,-n", 1 );
             bool forever = options.exists( "--forever" );
             options.assert_mutually_exclusive( "--timestamp,--time", "--realtime" );
-            std::pair< boost::posix_time::ptime, cv::Mat > p( boost::posix_time::ptime(), cv::Mat::zeros( output_options.rows, output_options.cols, snark::cv_mat::type_from_string( output_options.type ) ) );            
+            std::pair< boost::posix_time::ptime, cv::Mat > p( boost::posix_time::ptime(), cv::Mat::zeros( output_options.rows, output_options.cols, snark::cv_mat::type_from_string( output_options.type ) ) );
             if( options.exists( "--timestamp,--time" ) ) { p.first = boost::posix_time::from_iso_string( options.value< std::string >( "--timestamp,--time" ) ); }
             bool realtime = options.exists( "--realtime" );
             for( unsigned int i = 0; std::cout.good() && ( forever || i < number ); ++i )
@@ -1338,6 +1342,7 @@ int main( int ac, char** av )
             }
             return 0;
         }
+        if( operation == "rectify-map" ) { return snark::cv_calc::rectify_map::run( options ); }
         if( operation == "stride" )
         {
             snark::cv_mat::serialization input_serialization( input_options );
@@ -1478,14 +1483,14 @@ int main( int ac, char** av )
                 const stride_positions_t* p = is.read();
                 if( !p ) { break; }
                 if( p->index >= num_strides )
-                { 
+                {
                     if( permissive )
-                    { 
+                    {
                         if( verbose ) { std::cerr << "cv-calc: unstride-positions: expected stride index less than : " << num_strides << "; got: " << p->index << "; discarded" << std::endl; }
                         continue;
                     }
                     else
-                    { 
+                    {
                         std::cerr << "cv-calc: unstride-positions: expected stride index less than : " << num_strides << "; got: " << p->index << "; use --permissive to discard" << std::endl;
                         return 1;
                     }
