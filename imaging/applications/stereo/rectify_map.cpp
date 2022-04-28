@@ -85,34 +85,20 @@ rectify_map::rectify_map ( const Eigen::Matrix3d& leftCamera, const Eigen::Matri
                        m_R1, m_R2, m_P1, m_P2, m_Q );
 }
 
-/// remap left image
 cv::Mat rectify_map::remap_left ( const cv::Mat& left ) const
 {
-    if( m_map11.cols != 0 )
-    {
-        cv::Mat result;
-        cv::remap( left, result, m_map11, m_map12, cv::INTER_LINEAR );
-        return result;
-    }
-    else
-    {
-        return left;
-    }
+    if( m_map11.cols == 0 ) { return left; }
+    cv::Mat result;
+    cv::remap( left, result, m_map11, m_map12, cv::INTER_LINEAR );
+    return result;
 }
 
-/// remap right image
 cv::Mat rectify_map::remap_right ( const cv::Mat& right ) const
 {
-    if( m_map21.cols != 0 )
-    {
-        cv::Mat result;
-        cv::remap( right, result, m_map21, m_map22, cv::INTER_LINEAR );
-        return result;
-    }
-    else
-    {
-        return right;
-    }
+    if( m_map21.cols == 0 ) { return right; }
+    cv::Mat result;
+    cv::remap( right, result, m_map21, m_map22, cv::INTER_LINEAR );
+    return result;
 }
 
 } }
