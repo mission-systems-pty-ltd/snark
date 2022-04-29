@@ -200,15 +200,16 @@ int main( int ac, char** av )
         {
             if( options.exists( "--output-first" ) || options.exists( "--output-second" ) ) { std::cerr << "image-stereo: rectify-map: --output-first, --output-second: todo" << std::endl; return 1; }
             const std::string& t = options.value< std::string >( "--type", "w" );
+            unsigned int width, height;
+            std::tie( width, height ) = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--image-size" ) );
             int type;
             if( t == "w" || t == "CV_16SC2" ) { type = CV_16SC2; }
             else if( t == "f" || t == "CV_32FC1" ) { type = CV_32FC1; }
             else if( t == "2f" || t == "CV_32FC2" ) { type = CV_32FC2; }
             else { std::cerr << "image-stereo: rectify-map: expected --type=<type>; got: \"" << t << "\"" << std::endl; return 1; }
-            unsigned int width, height;
-            std::tie( width, height ) = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--image-size" ) );
             const auto& maps = make_pair( options ).rectify_map( width, height, type );
-
+            for( const auto& m: maps.first ) { std::cout.write( reinterpret_cast< const char* >( m.datastart ), m.dataend - m.datastart ); }
+            for( const auto& m: maps.second ) { std::cout.write( reinterpret_cast< const char* >( m.datastart ), m.dataend - m.datastart ); }
             return 0;
         }
         std::cerr << "image-stereo: expected operation; got: '"<< operation << "'" << std::endl;

@@ -35,9 +35,11 @@ class pair
 
         pair( const pinhole::config_t& first, const pinhole::config_t& second, double baseline );
 
-        const camera_t& first() const { return first_; }
+        const std::pair< camera_t, camera_t >& cameras() const { return _cameras; }
 
-        const camera_t& second() const { return second_; }
+        const camera_t& first() const { return _cameras.first; }
+
+        const camera_t& second() const { return _cameras.second; }
 
         std::pair< Eigen::Vector3d, Eigen::Vector3d > to_cartesian( const Eigen::Vector2d& first, const Eigen::Vector2d& second ) const;
 
@@ -48,8 +50,7 @@ class pair
         std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > rectify_map( unsigned int width, unsigned int height, int type ) const;
 
     private:
-        camera_t first_;
-        camera_t second_;
+        std::pair< camera_t, camera_t > _cameras;
 };
 
 } } } // namespace snark { namespace camera { namespace stereo {

@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
@@ -39,42 +12,36 @@ namespace snark { namespace frame_transforms {
 struct dh_transform
 {
     double d;
-    
     double theta;
-    
     double r;
-    
     double alpha;
-    
+
     dh_transform() : d(0), theta(0), r(0), alpha(0) {}
-    
+
     dh_transform(double d_, double theta_, double r_, double alpha_) : d(d_), theta(theta_), r(r_), alpha(alpha_) {}
 };
 
 struct transform
 {
     Eigen::Vector3d translation;
-    
     snark::roll_pitch_yaw rotation;
-    
+
     transform() : translation( Eigen::Vector3d::Zero() ), rotation( 0, 0, 0 ) {}
-    
+
     transform( const Eigen::Vector3d& translation, const snark::roll_pitch_yaw& rotation ): translation( translation ), rotation( rotation ) {}
-    
+
     ::Eigen::Affine3d affine() const;
-    
+
     ::Eigen::Affine3d inverse_affine() const;
 };
 
 struct tr_transform
 {
-    tr_transform() : translation(Eigen::Vector3d::Zero()), rotation(1,0,0,0){}
-    
     Eigen::Vector3d translation;
-    
     Eigen::Quaternion<double> rotation;
-    
     Eigen::Matrix4d to_matrix() const;
+
+    tr_transform() : translation(Eigen::Vector3d::Zero()), rotation(1,0,0,0){}
 };
 
 /// inverts a homogeneous transform using transpose formula
@@ -99,4 +66,3 @@ namespace snark {
 typedef frame_transforms::transform pose;
 
 } // namespace snark {
-

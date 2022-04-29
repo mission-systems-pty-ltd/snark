@@ -84,6 +84,8 @@ Eigen::Matrix3d rotation_matrix::rotation( double roll, double pitch, double yaw
     return m;
 }
 
+Eigen::Matrix3d rotation_matrix::rotation( const snark::roll_pitch_yaw& rpy ) { return rotation( rpy.roll(), rpy.pitch(), rpy.yaw() ); }
+
 Eigen::Matrix3d rotation_matrix::rotation( const ::Eigen::Vector3d& rpy ) { return rotation( rpy.x(), rpy.y(), rpy.z() ); }
 
 } // namespace snark {
