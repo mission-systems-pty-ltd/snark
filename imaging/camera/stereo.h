@@ -45,6 +45,8 @@ class pair
 
         std::pair< Eigen::Vector3d, Eigen::Vector3d > to_cartesian( const Eigen::Vector2d& first, const Eigen::Vector2d& second, const snark::pose& first_pose, const snark::pose& second_pose ) const;
 
+        std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > rectify_map( unsigned int width, unsigned int height, int type ) const;
+
     private:
         camera_t first_;
         camera_t second_;

@@ -1,62 +1,9 @@
-// This file is provided in addition to snark and is not an integral
-// part of snark library.
 // Copyright (c) 2019 Vsevolod Vlaskine
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-// snark is a generic and flexible library for robotics research
-// Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /// @author vsevolod vlaskine
 
 #include <comma/application/command_line_options.h>
+#include <comma/csv/ascii.h>
 #include <comma/csv/stream.h>
 #include <comma/name_value/serialize.h>
 #include "../../visiting/traits.h"
@@ -73,15 +20,23 @@ void usage( bool verbose )
     std::cerr << "operations" << std::endl;
     std::cerr << "    to-cartesian: take on stdin pixels on stereo pair, undistort image, append pixel's cartesian coordinates in a given frame" << std::endl;
     std::cerr << "        fields: default: first/x,first/y,second/x,second/y" << std::endl;
+    std::cerr << "        options" << std::endl;
+    std::cerr << "            --force,--permissive: discard invalid input instead of exiting with error" << std::endl;
+    std::cerr << "            --input-fields: output input fields to stdout and exit" << std::endl;
+    std::cerr << "            --output-fields: output appended fields for given operation and exit" << std::endl;
+    std::cerr << "            --output-format: output appended fields for given operation and exit" << std::endl;
     std::cerr << "        examples" << std::endl;
     std::cerr << "            basics" << std::endl;
     std::cerr << "                echo 0,500,1000,500 | image-stereo to-cartesian --camera-config <( echo '{\"image_size\":{\"x\":1000,\"y\":1000},\"focal_length\":500}' ) --first-pose 0,-10,0,0,0,0 --second-pose 0,10,0,0,0,0" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "    rectify-map: output opencv-style image rectification maps" << std::endl;
+    std::cerr << "        options" << std::endl;
+    std::cerr << "            --image-size=[<size>]; output image size as <width>,<height>, default: same as input image size" << std::endl;
+    //std::cerr << "            --output-first; todo: output maps only for the first camera; convenience option" << std::endl;
+    //std::cerr << "            --output-second; todo: output maps only for the second camera; convenience option" << std::endl;
+    std::cerr << "            --type=<type>; default=CV_16SC2; map element type, values: CV_16SC2 or w, CV_32FC1 or f, CV_32FC2 or 2f" << std::endl;
+    std::cerr << std::endl;
     std::cerr << "options" << std::endl;
-    std::cerr << "    --force,--permissive: discard invalid input instead of exiting with error" << std::endl;
-    std::cerr << "    --input-fields: output input fields to stdout and exit" << std::endl;
-    std::cerr << "    --output-fields: output appended fields for given operation and exit" << std::endl;
-    std::cerr << "    --output-format: output appended fields for given operation and exit" << std::endl;
     std::cerr << "    --verbose,-v: more output" << std::endl;
     std::cerr << std::endl;
     std::cerr << "configuration options" << std::endl;
@@ -138,7 +93,7 @@ static snark::camera::stereo::pair::config_t make_sample_config()
 {
     snark::camera::stereo::pair::config_t config;
     config.first.pinhole = config.second.pinhole = make_sample_pinhole_config();
-    config.first.pose = config.second.pose = snark::pose( Eigen::Vector3d( 1, 2, 3 ), snark::roll_pitch_yaw( 0.1, 0.2, 0.3 ) );    
+    config.first.pose = config.second.pose = snark::pose( Eigen::Vector3d( 1, 2, 3 ), snark::roll_pitch_yaw( 0.1, 0.2, 0.3 ) );
     return config;
 }
 
@@ -239,6 +194,21 @@ int main( int ac, char** av )
                 }
                 tied.append( pair.to_cartesian( p->first, p->second, p->first.pose, p->second.pose ) );
             }
+            return 0;
+        }
+        if( operation == "rectify-map" )
+        {
+            if( options.exists( "--output-first" ) || options.exists( "--output-second" ) ) { std::cerr << "image-stereo: rectify-map: --output-first, --output-second: todo" << std::endl; return 1; }
+            const std::string& t = options.value< std::string >( "--type", "w" );
+            int type;
+            if( t == "w" || t == "CV_16SC2" ) { type = CV_16SC2; }
+            else if( t == "f" || t == "CV_32FC1" ) { type = CV_32FC1; }
+            else if( t == "2f" || t == "CV_32FC2" ) { type = CV_32FC2; }
+            else { std::cerr << "image-stereo: rectify-map: expected --type=<type>; got: \"" << t << "\"" << std::endl; return 1; }
+            unsigned int width, height;
+            std::tie( width, height ) = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--image-size" ) );
+            const auto& maps = make_pair( options ).rectify_map( width, height, type );
+
             return 0;
         }
         std::cerr << "image-stereo: expected operation; got: '"<< operation << "'" << std::endl;

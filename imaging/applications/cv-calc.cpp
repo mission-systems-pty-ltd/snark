@@ -35,7 +35,6 @@
 #include "../../visiting/eigen.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
-#include "cv_calc/stereo.h"
 #include "cv_calc/unstride.h"
 
 const char* name = "cv-calc: ";
@@ -65,7 +64,6 @@ static void usage( bool verbose=false )
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
     std::cerr << "    mean: output image means for all image channels appended to image header" << std::endl;
-    std::cerr << "    stereo-rectify-map, rectify-map: output rectification map for a stereo pair" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
     std::cerr << "    thin: thin image stream by discarding some images" << std::endl;
@@ -221,7 +219,6 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "        fields: t,rows,cols,type,rectangles" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    stereo-rectify-map, rectify-map" << std::endl << snark::cv_calc::stereo::rectify_map::options() << std::endl;
     std::cerr << "    stride" << std::endl;
     std::cerr << "        --filter,--filters=[<filters>]; see grep operation; added to stride for performance" << std::endl;
     std::cerr << "        --fit-last; fit last stride exactly to the image size, i.e. last stride may be irregular" << std::endl;
@@ -1342,7 +1339,6 @@ int main( int ac, char** av )
             }
             return 0;
         }
-        if( operation == "stereo-rectify-map" || operation == "rectify-map" ) { return snark::cv_calc::stereo::rectify_map::run( options ); }
         if( operation == "stride" )
         {
             snark::cv_mat::serialization input_serialization( input_options );
