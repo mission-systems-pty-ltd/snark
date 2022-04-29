@@ -85,8 +85,10 @@ std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > pair::rectify_map( u
     const auto& translation = _cameras.second.pose.translation - _cameras.first.pose.translation;
     const auto& rotation = snark::rotation_matrix::rotation( _cameras.second.pose.rotation ) * snark::rotation_matrix::rotation( _cameras.first.pose.rotation ).transpose();
     std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > maps = {{ cv::Mat(), cv::Mat() }, { cv::Mat(), cv::Mat() }};
+    cv::Size image_size( width, height );
+    cv::Mat r1, r2, p1, p2, q;
 
-
+    // Vector5d distortion( Vector5d::Zero() );
     // cv::Mat m_leftCamera;
     // cv::Mat m_leftDistortion;
     // cv::Mat m_rightCamera;
