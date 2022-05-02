@@ -16,16 +16,12 @@ class pair
 
         struct camera_t
         {
-            /// pinhole camera
             snark::camera::pinhole pinhole;
 
-            /// pose in north-east-down frame
             snark::pose pose;
 
-            /// constructor
             camera_t( const snark::camera::config& config ): pinhole( config.pinhole ), pose( config.pose ) {}
 
-            /// constructor
             camera_t( const snark::camera::pinhole::config_t& config, const snark::pose& pose ): pinhole( config ), pose( pose ) {}
         };
 

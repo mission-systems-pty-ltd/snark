@@ -22,8 +22,8 @@ pair::pair( const config_t& config ): _cameras( config.first, config.second ) {}
 pair::pair( const pinhole::config_t& pinhole, double baseline ) : pair( pinhole, pinhole, baseline ) {}
 
 pair::pair( const pinhole::config_t& first, const pinhole::config_t& second, double baseline )
-    : _cameras( camera_t( first, snark::pose( Eigen::Vector3d( baseline / 2, 0, 0 ), snark::roll_pitch_yaw( 0, 0, 0 ) ) )
-              , camera_t( first, snark::pose( Eigen::Vector3d( -baseline / 2, 0, 0 ), snark::roll_pitch_yaw( 0, 0, 0 ) ) ) )
+    : _cameras( camera_t( first, snark::pose( Eigen::Vector3d( baseline / 2, 0, 0 ), snark::roll_pitch_yaw() ) )
+              , camera_t( first, snark::pose( Eigen::Vector3d( -baseline / 2, 0, 0 ), snark::roll_pitch_yaw() ) ) )
 {
 }
 
@@ -82,59 +82,21 @@ std::pair< Eigen::Vector3d, Eigen::Vector3d > pair::to_cartesian( const Eigen::V
 std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > pair::rectify_map( unsigned int width, unsigned int height, int type ) const
 {
     if( type == CV_32FC2 ) { COMMA_THROW( comma::exception, "type: CV_32FC2 (2f): todo" ); }
-    const auto& translation = _cameras.second.pose.translation - _cameras.first.pose.translation;
-    const auto& rotation = snark::rotation_matrix::rotation( _cameras.second.pose.rotation ) * snark::rotation_matrix::rotation( _cameras.first.pose.rotation ).transpose();
+    if( _cameras.first.pinhole.config().distortion && !_cameras.first.pinhole.config().distortion->map_filename.empty() ) { COMMA_THROW( comma::exception, "got non-empty distortion map for the first camera; not supported" ); }
+    if( _cameras.second.pinhole.config().distortion && !_cameras.second.pinhole.config().distortion->map_filename.empty() ) { COMMA_THROW( comma::exception, "got non-empty distortion map for the first camera; not supported" ); }
     std::pair< std::vector< cv::Mat >, std::vector< cv::Mat > > maps = {{ cv::Mat(), cv::Mat() }, { cv::Mat(), cv::Mat() }};
     cv::Size image_size( width, height );
-    cv::Mat r1, r2, p1, p2, q;
-
-    // Vector5d distortion( Vector5d::Zero() );
-    // cv::Mat m_leftCamera;
-    // cv::Mat m_leftDistortion;
-    // cv::Mat m_rightCamera;
-    // cv::Mat m_rightDistortion;
-    // cv::Size m_imageSize;
-    // cv::Mat m_rotation;
-    // cv::Mat m_translation;
-    //
-    // cv::Mat m_R1;
-    // cv::Mat m_R2;
-    // cv::Mat m_P1;
-    // cv::Mat m_P2;
-    // cv::Mat m_Q;
-    //
-    // cv::Mat m_map11;
-    // cv::Mat m_map12;
-    // cv::Mat m_map21;
-    // cv::Mat m_map22;
-    // cv::eigen2cv( leftCamera, m_leftCamera );
-    // cv::eigen2cv( leftDistortion, m_leftDistortion );
-    // cv::eigen2cv( rightCamera, m_rightCamera );
-    // cv::eigen2cv( rightDistortion, m_rightDistortion );
-    // m_imageSize.width = imageWidth;
-    // m_imageSize.height = imageHeight;
-    // cv::eigen2cv( rotation, m_rotation );
-    // cv::eigen2cv( translation, m_translation );
-    //
-    // cv::stereoRectify( m_leftCamera, m_leftDistortion, m_rightCamera, m_rightDistortion, m_imageSize, m_rotation, m_translation,
-    //                    m_R1, m_R2, m_P1, m_P2, m_Q );
-    //
-    // if ( !rectified && ( leftDistortion.norm() > 1e-5 || rightDistortion.norm() > 1e-5 || !rotation.isApprox( Eigen::Matrix3d::Identity() ) ) )
-    // {
-    //     cv::initUndistortRectifyMap( m_leftCamera, m_leftDistortion, m_R1, m_P1, m_imageSize, CV_16SC2, m_map11, m_map12 );
-    //     cv::initUndistortRectifyMap( m_rightCamera, m_rightDistortion, m_R2, m_P2, m_imageSize, CV_16SC2, m_map21, m_map22);
-    // }
-    // cv::stereoRectify( m_leftCamera, m_leftDistortion, m_rightCamera, m_rightDistortion, m_imageSize, m_rotation, m_translation,
-    //                    m_R1, m_R2, m_P1, m_P2, m_Q );
-    //
-    // if ( !rectified && ( leftDistortion.norm() > 1e-5 || rightDistortion.norm() > 1e-5 || !rotation.isApprox( Eigen::Matrix3d::Identity() ) ) )
-    // {
-    //     cv::initUndistortRectifyMap( m_leftCamera, m_leftDistortion, m_R1, m_P1, m_imageSize, CV_16SC2, m_map11, m_map12 );
-    //     cv::initUndistortRectifyMap( m_rightCamera, m_rightDistortion, m_R2, m_P2, m_imageSize, CV_16SC2, m_map21, m_map22);
-    // }
-    //std::cout.write( reinterpret_cast< const char* >( x.datastart ), x.dataend - x.datastart );
-    //std::cout.write( reinterpret_cast< const char* >( y.datastart ), y.dataend - y.datastart );
-
+    cv::Mat r1, r2, p1, p2, q, translation, rotation;
+    std::pair< cv::Mat, cv::Mat > distortions;
+    typedef Eigen::Matrix< double, 5, 1 > Vector5d;
+    cv::eigen2cv( Eigen::Vector3d( _cameras.second.pose.translation - _cameras.first.pose.translation ), translation );
+    cv::eigen2cv( Eigen::Matrix< double, 3, 3 >( snark::rotation_matrix::rotation( _cameras.second.pose.rotation ) * snark::rotation_matrix::rotation( _cameras.first.pose.rotation ).transpose() ), rotation );
+    cv::eigen2cv( _cameras.first.pinhole.config().distortion ? _cameras.first.pinhole.config().distortion->as< Vector5d >() : Vector5d::Zero(), distortions.first );
+    cv::eigen2cv( _cameras.second.pinhole.config().distortion ? _cameras.second.pinhole.config().distortion->as< Vector5d >() : Vector5d::Zero(), distortions.second );
+    const auto& matrices = std::make_pair( _cameras.first.pinhole.config().camera_matrix(), _cameras.second.pinhole.config().camera_matrix() );
+    cv::stereoRectify( matrices.first, distortions.first, matrices.second, distortions.second, image_size, rotation, translation, r1, r2, p1, p2, q );
+    cv::initUndistortRectifyMap( matrices.first, distortions.first, r1, p1, image_size, type, maps.first[0], maps.first[1] );
+    cv::initUndistortRectifyMap( matrices.second, distortions.second, r1, p1, image_size, type, maps.second[0], maps.second[1] );
     return maps;
 }
 
