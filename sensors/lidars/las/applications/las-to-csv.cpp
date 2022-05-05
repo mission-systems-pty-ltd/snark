@@ -231,7 +231,7 @@ template < unsigned int I > static int read_points( const snark::las::header& he
 static void _read( std::istream& is, char* buf, unsigned int size, const std::string& name = "buffer" )
 {
     is.read( reinterpret_cast< char* >( buf ), size );
-    int count = std::cin.gcount();
+    int count = is.gcount();
     if( count < int( size ) ) { COMMA_THROW( comma::exception, "las-to-csv: expected " << name << " of " << snark::las::variable_length_records::header::size << " bytes, got only: " << count << std::endl ); }
 }
 
