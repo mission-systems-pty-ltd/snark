@@ -1,6 +1,19 @@
-PROJECT( "snark"  )
-
 cmake_minimum_required( VERSION 3.1 )
+if( POLICY CMP0048 )
+    cmake_policy( SET CMP0048 NEW )
+    project( snark VERSION 1.0.0 LANGUAGES CXX )
+else( POLICY CMP0048 )
+    project( snark )
+    set( CMAKE_PROJECT_VERSION_MAJOR "1" CACHE STRING "comma version major" )
+    set( CMAKE_PROJECT_VERSION_MINOR "0" CACHE STRING "comma version minor" )
+    set( CMAKE_PROJECT_VERSION_PATCH "0" CACHE STRING "comma version patch" )
+    set( CMAKE_PROJECT_VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}" )
+endif( POLICY CMP0048 )
+
+set( snark_version_major "${CMAKE_PROJECT_VERSION_MAJOR}" ) # quick and dirty
+set( snark_version_minor "${CMAKE_PROJECT_VERSION_MINOR}" ) # quick and dirty
+set( snark_version_patch "${CMAKE_PROJECT_VERSION_PATCH}" ) # quick and dirty
+set( snark_version "${CMAKE_PROJECT_VERSION}" ) # quick and dirty
 
 ENABLE_TESTING()
 INCLUDE( CMakeDependentOption )
@@ -98,7 +111,7 @@ SET( EXECUTABLE_OUTPUT_PATH
      ${PROJECT_BINARY_DIR}/bin CACHE PATH
      "Single output directory for building all executables." )
 
-SET( snark_LIBRARY_PROPERTIES ${snark_LIBRARY_PROPERTIES} DEBUG_POSTFIX "-d" )
+SET( snark_LIBRARY_PROPERTIES ${snark_LIBRARY_PROPERTIES} DEBUG_POSTFIX "-d" SOVERSION ${CMAKE_PROJECT_VERSION} LINK_FLAGS_RELEASE -s )
 
 IF( NOT snark_INSTALL_BIN_DIR )
   SET( snark_INSTALL_BIN_DIR bin )
@@ -115,10 +128,6 @@ ENDIF( NOT snark_INSTALL_LIB_DIR )
 IF( NOT snark_INSTALL_PACKAGE_DIR )
   SET( snark_INSTALL_PACKAGE_DIR CMakeFiles )
 ENDIF( NOT snark_INSTALL_PACKAGE_DIR )
-
-set( snark_version_major "1" ) # quick and dirty
-set( snark_version_minor "0" ) # quick and dirty
-set( snark_version_patch "0" ) # quick and dirty
 
 #INCLUDE_DIRECTORIES( ${SOURCE_CODE_BASE_DIR}/../ )
 #INCLUDE_DIRECTORIES( ${snark_INSTALL_INCLUDE_DIR}/../ )
