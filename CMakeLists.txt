@@ -54,7 +54,8 @@ if( NOT CMAKE_BUILD_TYPE )
   set( CMAKE_BUILD_TYPE Release CACHE STRING "options are: None Debug Release RelWithDebInfo MinSizeRel" FORCE )
 endif( NOT CMAKE_BUILD_TYPE )
 
-find_package( comma PATHS ${comma_DIR} /usr/local/CMakeFiles )
+set( comma_DIR "/usr/local/CMakeFiles" CACHE STRING "location of comma cmake files" )
+find_package( comma PATHS ${comma_DIR} )
 
 if( UNIX )
     include( ${comma_DIR}/check.c++.standard.cmake REQUIRED )

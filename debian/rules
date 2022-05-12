@@ -14,6 +14,7 @@ build:
 							 -DBUILD_TESTS=OFF \
 							 -DINSTALL_BASH_COMPLETION=OFF \
 							 -DINSTALL_TESTS=OFF \
+							 -Dcomma_DIR=/usr/CMakeFiles \
 							 -Dsnark_build_control=ON \
 							 -Dsnark_build_graph=ON \
 							 -Dsnark_build_graphics=ON \
