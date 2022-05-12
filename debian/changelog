@@ -1,5 +1,5 @@
-snark (1.0.0-0ppa0) jammy; urgency=low
+snark (1.0.2-0ppa0) jammy; urgency=low
 
-  * initial upload
+  * fixing dependencies
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Thu, 12 May 2022 12:24:53 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Fri, 13 May 2022 02:45:05 +1000
