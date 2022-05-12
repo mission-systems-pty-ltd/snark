@@ -1,3 +1,5 @@
+generic c++ libraries and command line utilities for robotics,
+image and point cloud processing, computer vision, etc
 Copyright (c) 2011 The University of Sydney
 Copyright (c) 2018 Vsevolod Vlaskine
 All rights reserved.

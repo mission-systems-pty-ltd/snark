@@ -1,4 +1,5 @@
-generic c++ libraries and utilities for robotics
+generic c++ libraries and command line utilities for robotics,
+image and point cloud processing, computer vision, etc
 
 INSTALLATION
 
@@ -33,4 +34,3 @@ not need them all.
 
 If you want to turn on/off various bits of snark, use snark/system/ansible/install.yml
 and snark/system/docker/Dockerfile to create your own playbook and docker image.
-
