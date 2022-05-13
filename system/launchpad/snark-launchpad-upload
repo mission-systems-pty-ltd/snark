@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# todo
+#   - manual steps (automate if possible)
+#     - update changelog
+#       - version
+#       - changes
+#     - update default version in cmake
+#     - tag repo with version
+#     - commit
+#     - push
+#   ? check current version at launchpad
+
+function say() { echo "usage: $0: $@" >&2; }; function die() { say "$@"; exit 1; }
+[[ -n "$2" ]] || { echo "usage: $0 <what> <ubuntu-name> <snark-version>" >&2; exit 1; }
+what=$1
+snark_version=$2
+name=snark_${snark_version}
+[[ -d snark ]] || die "snark directory not found; please run in something like ~/src"
+if [[ "$what" == "orig" ]]; then
+    rm -f snark/debian/files
+    tar -acf $name.orig.tar.gz snark || die "tar failed"
+    ( cd snark && debuild -S -sa ) || die "debuild failed"
+    dput ppa:orthographic/snark $name-0ppa0_source.changes || die "dput failed"
+elif [[ "$what" == "update" ]]; then # todo! fix! need to tar on update as well; the only difference seems to be -sa vs -sd
+    ( cd snark && debuild -S -sd ) || die "debuild failed"
+    dput ppa:orthographic/snark $name-0ppa0_source.changes || die "dput failed"
+else
+    die "expected <what>: orig or update; got \"$what\""
+fi

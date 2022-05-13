@@ -1,0 +1,38 @@
+#!/bin/bash
+
+function say() { echo "usage: $0: $@" >&2; }; function die() { say "$@"; exit 1; }
+
+#comma_py_version='1.0.0'
+
+add-apt-repository -y ppa:orthographic/comma || die "add-apt-repository ppa:orthographic/comma failed"
+add-apt-repository -y ppa:orthographic/snark || die "add-apt-repository ppa:orthographic/snark failed"
+add-apt-repository -y multiverse || die "add-apt-repository multiverse failed"
+apt-get update || die "apt-get update failed"
+apt-get -y install comma || die "apt-get install comma failed"
+apt-get -y install snark || die "apt-get install snark failed"
+pip3 install comma-py #==$comma_py_version
+
+say "testing basic csv utilities: todo"
+# output=$( csv-paste line-number | head | csv-to-bin ui | csv-from-bin ui ) || die "failed: failed to run"
+# expected=$( seq 0 9 )
+# [[ "$output" == "$expected" ]] || die "failed: unexpected output: $output"
+# say "testing basic csv utilities: done"
+#
+# say "testing bash utils..."
+# type -p comma-application-util || die "failed: failed"
+# say "testing bash utils: done"
+#
+# say "running csv-eval --help (for reference)"
+# csv-eval --help
+#
+# say "testing comma-pi..."
+# output=$( python3 -c "import comma; print( comma.version.__version__ )" ) || die "failed: failed to run"
+# expected=$comma_py_version
+# [[ "$output" == "$expected" ]] || die "failed: expected: $expected; got: $output"
+# say "testing comma-pi: done"
+#
+# say "testing csv-eval..."
+# output=$( seq 0 9 | csv-eval --fields a "a+=1" || exit ) || die "failed: failed to run"
+# expected=$( seq 1 10 )
+# [[ "$output" == "$expected" ]] || die "failed: unexpected output: $output"
+# say "testing csv-eval: done"
