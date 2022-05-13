@@ -3,11 +3,11 @@ Standards-Version: 4.6.0.1
 Section: devel
 Priority: optional
 Maintainer: Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>
-Build-Depends: cmake, libboost-all-dev (>=1.65), libeigen3-dev, libfftw3-dev, libtbb-dev, zlib1g-dev, libbz2-dev, libopencv-dev, libopencv-highgui-dev, libpcap-dev, qtbase5-dev, qtchooser, qt5-qmake, qtbase5-dev-tools, qt3d5-dev, libassimp-dev, libqt5charts5-dev, comma
+Build-Depends: cmake, libboost-all-dev (>=1.65), libeigen3-dev, libfftw3-dev, libtbb-dev, zlib1g-dev, libbz2-dev, libopencv-dev, libopencv-highgui-dev, libpcap-dev, qtbase5-dev, qtchooser, qt5-qmake, qtbase5-dev-tools, qt3d5-dev, libassimp-dev, libqt5opengl5-dev, libqt5charts5-dev, comma
 Homepage: https://gitlab.com/orthographic/snark/-/wikis/home
 
 Package: snark
 Architecture: any
-Depends: libc-dev, libboost-all-dev (>=1.65), libeigen3-dev, libfftw3-dev, libtbb-dev, zlib1g-dev, libbz2-dev, libopencv-dev, libopencv-highgui-dev, libpcap-dev, qtbase5-dev, qtchooser, qt5-qmake, qtbase5-dev-tools, qt3d5-dev, libassimp-dev, libqt5charts5-dev, expect, comma
+Depends: libc-dev, libboost-all-dev (>=1.65), libeigen3-dev, libfftw3-dev, libtbb-dev, zlib1g-dev, libbz2-dev, libopencv-dev, libopencv-highgui-dev, libpcap-dev, qtbase5-dev, qtchooser, qt5-qmake, qtbase5-dev-tools, qt3d5-dev, libassimp-dev, libqt5opengl5-dev, libqt5charts5-dev, expect, comma
 Description: todo
   todo
