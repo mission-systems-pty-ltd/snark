@@ -14,7 +14,9 @@ build:
 							 -DBUILD_TESTS=OFF \
 							 -DINSTALL_BASH_COMPLETION=OFF \
 							 -DINSTALL_TESTS=OFF \
-							 -Dcomma_DIR=/usr/CMakeFiles \
+							 -Dcomma_DIR=/usr/lib/x86_64-linux-gnu/cmake \
+							 -Dsnark_INSTALL_LIB_DIR=lib/x86_64-linux-gnu \
+							 -Dsnark_INSTALL_PACKAGE_DIR=lib/x86_64-linux-gnu/cmake \
 							 -Dsnark_build_control=ON \
 							 -Dsnark_build_graph=ON \
 							 -Dsnark_build_graphics=ON \

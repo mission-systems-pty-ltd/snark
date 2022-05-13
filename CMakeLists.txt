@@ -1,14 +1,6 @@
 cmake_minimum_required( VERSION 3.1 )
-if( POLICY CMP0048 )
-    cmake_policy( SET CMP0048 NEW )
-    project( snark VERSION 1.0.4 LANGUAGES CXX )
-else( POLICY CMP0048 )
-    project( snark )
-    set( CMAKE_PROJECT_VERSION_MAJOR "1" CACHE STRING "comma version major" )
-    set( CMAKE_PROJECT_VERSION_MINOR "0" CACHE STRING "comma version minor" )
-    set( CMAKE_PROJECT_VERSION_PATCH "4" CACHE STRING "comma version patch" )
-    set( CMAKE_PROJECT_VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}" )
-endif( POLICY CMP0048 )
+cmake_policy( SET CMP0048 NEW )
+project( snark VERSION 1.0.5 LANGUAGES CXX )
 
 set( snark_version_major "${CMAKE_PROJECT_VERSION_MAJOR}" ) # quick and dirty
 set( snark_version_minor "${CMAKE_PROJECT_VERSION_MINOR}" ) # quick and dirty
@@ -112,27 +104,12 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 SET( SOURCE_CODE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR} )
 SET( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib )
 
-SET( EXECUTABLE_OUTPUT_PATH
-     ${PROJECT_BINARY_DIR}/bin CACHE PATH
-     "Single output directory for building all executables." )
+set( snark_INSTALL_BIN_DIR "bin" CACHE STRING "installation directory for binaries" )
+set( snark_INSTALL_INCLUDE_DIR "include/comma" CACHE STRING "installation directory for include directories" )
+set( snark_INSTALL_LIB_DIR "lib" CACHE STRING "installation directory for libraries" )
+set( snark_INSTALL_PACKAGE_DIR "CMakeFiles" CACHE STRING "installation directory for cmake files" )
 
 SET( snark_LIBRARY_PROPERTIES ${snark_LIBRARY_PROPERTIES} DEBUG_POSTFIX "-d" SOVERSION ${CMAKE_PROJECT_VERSION} LINK_FLAGS_RELEASE -s )
-
-IF( NOT snark_INSTALL_BIN_DIR )
-  SET( snark_INSTALL_BIN_DIR bin )
-ENDIF( NOT snark_INSTALL_BIN_DIR )
-
-IF( NOT snark_INSTALL_INCLUDE_DIR )
-    SET( snark_INSTALL_INCLUDE_DIR include/${PROJECT_NAME} )
-ENDIF( NOT snark_INSTALL_INCLUDE_DIR )
-
-IF( NOT snark_INSTALL_LIB_DIR)
-  SET( snark_INSTALL_LIB_DIR lib )
-ENDIF( NOT snark_INSTALL_LIB_DIR )
-
-IF( NOT snark_INSTALL_PACKAGE_DIR )
-  SET( snark_INSTALL_PACKAGE_DIR CMakeFiles )
-ENDIF( NOT snark_INSTALL_PACKAGE_DIR )
 
 #INCLUDE_DIRECTORIES( ${SOURCE_CODE_BASE_DIR}/../ )
 #INCLUDE_DIRECTORIES( ${snark_INSTALL_INCLUDE_DIR}/../ )
