@@ -17,11 +17,13 @@ build:
 							 -Dcomma_DIR=/usr/lib/x86_64-linux-gnu/cmake \
 							 -Dsnark_INSTALL_LIB_DIR=lib/x86_64-linux-gnu \
 							 -Dsnark_INSTALL_PACKAGE_DIR=lib/x86_64-linux-gnu/cmake \
+							 -Dsnark_build_actuators_wheels=ON \
 							 -Dsnark_build_control=ON \
 							 -Dsnark_build_graph=ON \
 							 -Dsnark_build_graphics=ON \
 							 -Dsnark_build_math_fft=ON \
 							 -Dsnark_build_geometry=ON \
+							 -Dsnark_build_navigation=ON \
 							 -Dsnark_build_point_cloud=ON \
 							 -Dsnark_build_python=OFF \
 							 -Dsnark_build_sensors_dc1394=ON \

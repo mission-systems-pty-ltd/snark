@@ -50,7 +50,7 @@
 #include "../../math/applications/frame.h"
 #include "../../visiting/eigen.h"
 #include "../../visiting/traits.h"
-#include "points-grep/n_sphere.h"
+#include "points_grep/n_sphere.h"
 
 static void usage( bool verbose = false )
 {
