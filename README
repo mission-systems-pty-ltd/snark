@@ -1,6 +1,6 @@
 generic c++ libraries and command line utilities for robotics,
-image and point cloud processing, computer vision, etc
-
+image and point cloud processing, computer vision, sensor
+data acquisition, and much more
 INSTALLATION
 
 Currently only building from source using CMake is available. (After building

@@ -1,5 +1,5 @@
-snark (1.0.3-0ppa0) jammy; urgency=low
+snark (1.0.4-0ppa0) jammy; urgency=low
 
   * fixing dependencies
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Fri, 13 May 2022 11:36:50 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Fri, 13 May 2022 13:03:22 +1000
