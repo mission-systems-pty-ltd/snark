@@ -1,5 +1,5 @@
-snark (1.0.7-0ppa0) jammy; urgency=low
+snark (1.0.8-0ppa0) jammy; urgency=low
 
-  * directory structure fixed (launchpad got upset with points-calc.cpp vs points-calc directory)
+  * fixed cmake installation paths
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Sat, 14 May 2022 01:48:47 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Sat, 14 May 2022 13:13:15 +1000
