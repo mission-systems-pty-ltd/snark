@@ -758,7 +758,7 @@ static void angle_axis()
 
 static void angle_axis_next()
 {
-    comma::csv::input_stream< Eigen::Vector3d > istream( std::cin, csv );
+    comma::csv::input_stream< Eigen::Vector3d > istream( std::cin, csv, Eigen::Vector3d::Zero() );
     boost::optional< Eigen::Vector3d > last;
     while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
     {
@@ -827,7 +827,7 @@ static void trajectory_discretise( double step, double tolerance )
 {
     if( csv.has_some_of_fields( "first,first/x,first/y,first/z,second,second/x,second/y,second/z" ) )
     {
-        comma::csv::input_stream< std::pair< Eigen::Vector3d, Eigen::Vector3d > > istream( std::cin, csv );
+        comma::csv::input_stream< std::pair< Eigen::Vector3d, Eigen::Vector3d > > istream( std::cin, csv, std::make_pair( Eigen::Vector3d( 0, 0, 0 ), Eigen::Vector3d( 0, 0, 0 ) ) );
         comma::csv::options output_csv;
         if( csv.binary() ) { output_csv.format( "3d" ); }
         output_csv.flush = csv.flush;
