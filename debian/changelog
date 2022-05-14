@@ -1,5 +1,5 @@
-snark (1.0.8-0ppa0) jammy; urgency=low
+snark (1.0.9-0ppa0) jammy; urgency=low
 
   * fixed cmake installation paths
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Sat, 14 May 2022 23:44:12 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Sun, 15 May 2022 00:49:11 +1000
