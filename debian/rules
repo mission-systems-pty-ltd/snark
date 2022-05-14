@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-BUILDDIR = build
+BUILDDIR = build_dir
 
 # secondly called by launchpad
 build:
@@ -42,15 +42,28 @@ binary: binary-indep binary-arch
 binary-indep:
 	# nothing to be done
 
+# binary-arch:
+# 	cd $(BUILDDIR); make install
+# 	mkdir debian/tmp/DEBIAN
+# 	dpkg-gencontrol -psnark
+# 	dpkg --build debian/tmp ..
+# super quick and dirty:
+#     mkdir debian/tmp/usr/lib -p
+#     cp -r $(BUILDDIR)/lib/x86_64-linux-gnu debian/tmp/usr/lib
+# there seems to be a bug, most likely in generate_comma_config.cmake
+# that installs libraries in build instead of debian/tmp
+# (cannot reproduce it locally: locally, installation works,
+# but on launchpad it does not
 binary-arch:
-	cd $(BUILDDIR); cmake -P cmake_install.cmake
+	cd $(BUILDDIR); make install
+	mkdir debian/tmp/usr/lib -p
+	cp -r $(BUILDDIR)/lib/x86_64-linux-gnu debian/tmp/usr/lib
 	mkdir debian/tmp/DEBIAN
 	dpkg-gencontrol -psnark
 	dpkg --build debian/tmp ..
 
 # firstly called by launchpad
 clean:
-	rm -f build
 	rm -rf $(BUILDDIR)
 	rm -f debian/files
 
