@@ -54,10 +54,11 @@ binary-indep:
 # that installs libraries in build instead of debian/tmp
 # (cannot reproduce it locally: locally, installation works,
 # but on launchpad it does not
+
+#mkdir debian/tmp/usr/lib -p
+#cp -r $(BUILDDIR)/lib/x86_64-linux-gnu debian/tmp/usr/lib
 binary-arch:
 	cd $(BUILDDIR); make install
-	mkdir debian/tmp/usr/lib -p
-	cp -r $(BUILDDIR)/lib/x86_64-linux-gnu debian/tmp/usr/lib
 	mkdir debian/tmp/DEBIAN
 	dpkg-gencontrol -psnark
 	dpkg --build debian/tmp ..
