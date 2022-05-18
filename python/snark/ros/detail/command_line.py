@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 def lengths_of_strings( fields, formats, delimiter=',' ):
     """

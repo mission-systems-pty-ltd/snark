@@ -9,7 +9,7 @@ comma_path_value_to_var --prefix=input
 function generate()
 {
     local size=$1
-    python -c "
+    python3 -c "
 from __future__ import print_function
 def generate( size ):
     for i in range( size ):
@@ -29,9 +29,9 @@ output_dir="output"
 mkdir -p "$output_dir" || exit 1
 
 echo "size=$input_size"
-size0_25=$( python -c "from __future__ import print_function; print( $input_size // 4 )" )
+size0_25=$( python3 -c "from __future__ import print_function; print( $input_size // 4 )" )
 echo "limit/lower=$size0_25"
-size0_75=$( python -c "from __future__ import print_function; print( 3 * $input_size // 4 )" )
+size0_75=$( python3 -c "from __future__ import print_function; print( 3 * $input_size // 4 )" )
 echo "limit/upper=$size0_75"
 
 generate $input_size > "$output_dir/square.csv"

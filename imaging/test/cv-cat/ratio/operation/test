@@ -40,7 +40,7 @@ function generate()
     local nx=$1
     local ny=$2
     local t=$3
-    python -c "
+    python3 -c "
 from __future__ import print_function
 import math
 
@@ -111,7 +111,7 @@ for otype in "${otypes[@]}" ; do
             | ( cd "$odir"; cv-cat "convert-to=$otype;ratio=${formula};convert-to=3ub;file=png;null" )
         comma_status_ok || { echo "$scriptname: pipeline to create '$odir/$timestamp.png' failed" >&2; exit 1 ; }
         [[ -f "$odir/$timestamp.png" ]] || { echo "$scriptname: file '$odir/$timestamp.png' not found" >&2; exit 1; }
-        cv-cat --file "$odir/$timestamp.png" | image-to-csv > "$odir/$timestamp.csv"        
+        cv-cat --file "$odir/$timestamp.png" | image-to-csv > "$odir/$timestamp.csv"
         comma_status_ok || { echo "$scriptname: pipeline to create '$odir/$timestamp.csv' failed" >&2; exit 1 ; }
         [[ -f "$odir/$timestamp.csv" ]] || { echo "$scriptname: file '$odir/$timestamp.csv' not found" >&2; exit 1; }
         # todo: competely rewrite in a linear explicit way; for now quick and dirty, just to fix the bloody test

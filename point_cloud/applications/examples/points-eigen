@@ -52,7 +52,7 @@ for each input point output eigen vectors and eigen values for all the points
 of the filter in a given radius
 
 for each input point, eigen vectors and eigen values are ordered in descending order of eigen values
-    
+
 usage: cat points.bin | points-eigen <filter filename>[;<csv_options>] <options> > eigen.bin
 
 options
@@ -99,7 +99,7 @@ function expand_fields()
         local full_count=$( echo $line | tr ',' '\n' | wc -l )
     fi
     local diff=$(( $full_count - $count ))
-    echo "$fields$( python -c "print ',' * $diff" )"
+    echo "$fields$( python3 -c "print ',' * $diff" )"
 }
 
 function do_cat() { [[ -z "$2" ]] || echo $2 ; cat $1 ; }

@@ -1,21 +1,13 @@
-SET( KIT velodyne )
-
-FILE( GLOB source *test.cpp )
-FILE( GLOB extras *.cpp
-    *.h )
-LIST( REMOVE_ITEM extras ${source} )
-
-ADD_EXECUTABLE( ${CMAKE_PROJECT_NAME}_test_${KIT} ${source} ${extras} )
-TARGET_LINK_LIBRARIES( ${CMAKE_PROJECT_NAME}_test_${KIT}
-    snark_velodyne
-    ${snark_ALL_EXTERNAL_LIBRARIES}
-    ${GTEST_BOTH_LIBRARIES}
-    )
-IF( INSTALL_TESTS )
-	INSTALL (
-    FILES ${PROJECT_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}_test_${KIT}
-    PERMISSIONS WORLD_READ GROUP_READ OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
-    DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} )
-ENDIF( INSTALL_TESTS )
-
-add_test( NAME ${CMAKE_PROJECT_NAME}_test_${KIT} COMMAND ${CMAKE_PROJECT_NAME}_test_${KIT} WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin )
+set( KIT velodyne )
+file( GLOB source ${SOURCE_CODE_BASE_DIR}/sensors/lidars/${KIT}/test/*.cpp )
+set( test_name ${CMAKE_PROJECT_NAME}_test_sensors_lidars_${KIT} )
+add_executable( ${test_name} ${source} )
+target_link_libraries( ${test_name} snark_${KIT} ${GTEST_BOTH_LIBRARIES} pthread )
+add_test( NAME ${test_name} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin )
+if( INSTALL_TESTS )
+    install( TARGETS ${test_name} RUNTIME DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} COMPONENT Runtime )
+    #INSTALL (
+    #    FILES ${PROJECT_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}_test_${KIT}
+    #    PERMISSIONS WORLD_READ GROUP_READ OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
+    #    DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} )
+endif( INSTALL_TESTS )

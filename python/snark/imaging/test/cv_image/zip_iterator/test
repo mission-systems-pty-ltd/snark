@@ -4,7 +4,7 @@ set -e
 mapfile -t INPUTS <input
 function test_zip_iterator
 {
-    python -c "$( cat <<END
+    python3 -c "$( cat <<END
 from __future__ import print_function
 import sys
 from snark.imaging import cv_image
@@ -27,7 +27,7 @@ mapfile -t OUTPUT < <( test_zip_iterator \
     <(csv-to-bin t,3ui,6ub <<< "${INPUTS[2]}") | csv-from-bin t,3ui,6ub )
 status=$?
 echo "test/zip_iterator/from_stream/status=$status"
-for i in $(seq 0 $(( ${#OUTPUT[@]} - 1 )) ); do 
+for i in $(seq 0 $(( ${#OUTPUT[@]} - 1 )) ); do
     echo "test/zip_iterator/from_stream/output[$i]=\"${OUTPUT[$i]}\""
 done
 
@@ -39,6 +39,6 @@ mapfile -t OUTPUT < <( test_zip_iterator \
     <(csv-to-bin t,3ui,6ub <<< "${INPUTS[2]}") | csv-from-bin 6ub,t,3ui,6ub,t,3ui,6ub | sed 's#,2020#\n2020#g' )
 status=$?
 echo "test/zip_iterator/mixed/status=$status"
-for i in $(seq 0 $(( ${#OUTPUT[@]} - 1 )) ); do 
+for i in $(seq 0 $(( ${#OUTPUT[@]} - 1 )) ); do
     echo "test/zip_iterator/mixed/output[$i]=\"${OUTPUT[$i]}\""
 done

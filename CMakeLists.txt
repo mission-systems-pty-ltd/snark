@@ -217,17 +217,19 @@ INCLUDE_DIRECTORIES( ${Eigen_INCLUDE_DIR} )
 ENDIF( NOT EXISTS ${Eigen_INCLUDE_DIR} )
 
 IF( snark_BUILD_TESTS )
+find_package( GTest REQUIRED )
+include_directories( ${GTEST_INCLUDE_DIRS} )
 
     # todo: maybe else clause is actually the right way to do things
-    IF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-        FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/googletest/googletest DOC "source code of gtest" ) # FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/gtest DOC "source code of gtest" )
-        ADD_SUBDIRECTORY( ${GTest_SOURCE_DIR} gtest )
-        INCLUDE_DIRECTORIES( src ${GTest_SOURCE_DIR}/include ${GTest_SOURCE_DIR} )
-        SET( GTEST_BOTH_LIBRARIES gtest gtest_main )
-    ELSE( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-        FIND_PACKAGE( GTest )
-        INCLUDE_DIRECTORIES( ${GTEST_INCLUDE_DIRS} )
-    ENDIF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+#    IF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+#        FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/googletest/googletest DOC "source code of gtest" ) # FIND_PATH( GTest_SOURCE_DIR NAMES CMakeLists.txt HINTS /usr/src/gtest DOC "source code of gtest" )
+#        ADD_SUBDIRECTORY( ${GTest_SOURCE_DIR} gtest )
+#        INCLUDE_DIRECTORIES( src ${GTest_SOURCE_DIR}/include ${GTest_SOURCE_DIR} )
+#        SET( GTEST_BOTH_LIBRARIES gtest gtest_main )
+#    ELSE( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+#        FIND_PACKAGE( GTest )
+#        INCLUDE_DIRECTORIES( ${GTEST_INCLUDE_DIRS} )
+#    ENDIF( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
 
 #TT: Install tests to dir. This allows them to be packed by CPack.
 #Note: if your source tree is dirty (eg you've already run tests there and have output/ directories)

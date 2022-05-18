@@ -1,12 +1,16 @@
-snark_test_filter
-snark_test_gaussian_process
-snark_test_geometry
+snark_test_control
 snark_test_math
+snark_test_math_filter
+snark_test_math_gaussian_process
+snark_test_math_geometry
+snark_test_math_spherical_geometry
+snark_test_navigation_nmea
 snark_test_point_cloud
-snark_test_spherical_geometry
+snark_test_wheels
 snark_test_timing
+snark_test_wheels
 
 # following tests are not installed
 #snark_test_hokuyo
 #snark_test_sick
-#snark_test_velodyne
+#snark_test_sensors_lidars_velodyne

@@ -26,7 +26,7 @@ function generate()
     local nx=$1
     local ny=$2
     local t=$3
-    python -c "
+    python3 -c "
 from __future__ import print_function
 import math
 
@@ -105,6 +105,6 @@ for k in "${!combinations[@]}" ; do
     # todo: competely rewrite in a linear explicit way; for now quick and dirty, just to fix the bloody test
     if (( $( head -n1 $odir/$timestamp.csv | csv-fields numbers --size ) == 4 )); then cat $odir/$timestamp.csv | csv-shuffle --fields t,x,y,r --output-fields t,x,y,r,r,r | sponge $odir/$timestamp.csv; fi
     opath=$( printf "combination[%d]" $k )
-    
+
     csv_to_path_value "$odir/$timestamp.csv" "$opath" || { echo "$scriptname: conversion of '$odir/$timestamp.csv' to path-value failed" >&2; exit 1 ; }
 done

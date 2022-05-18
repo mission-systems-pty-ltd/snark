@@ -1,12 +1,13 @@
-SET( KIT nmea )
-
-add_executable( ${CMAKE_PROJECT_NAME}_test_${KIT} test_nmea.cpp )
-target_link_libraries( ${CMAKE_PROJECT_NAME}_test_${KIT} snark_navigation_nmea ${snark_ALL_EXTERNAL_LIBRARIES} ${GTEST_BOTH_LIBRARIES} )
-IF( INSTALL_TESTS )
-INSTALL (
-    FILES ${PROJECT_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}_test_${KIT}
-    PERMISSIONS WORLD_READ GROUP_READ OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
-    DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} )
-ENDIF( INSTALL_TESTS )
-
-add_test( NAME ${CMAKE_PROJECT_NAME}_test_${KIT} COMMAND ${CMAKE_PROJECT_NAME}_test_${KIT} WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin )
+set( KIT nmea )
+file( GLOB source ${SOURCE_CODE_BASE_DIR}/navigation/${KIT}/test/*test.cpp )
+set( test_name ${CMAKE_PROJECT_NAME}_test_navigation_${KIT} )
+add_executable( ${test_name} ${source} )
+target_link_libraries( ${test_name} snark_math snark_navigation_nmea ${GTEST_BOTH_LIBRARIES} pthread )
+add_test( NAME ${test_name} COMMAND ${CMAKE_PROJECT_NAME}_test_${KIT} WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin )
+if( INSTALL_TESTS )
+    install( TARGETS ${test_name} RUNTIME DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} COMPONENT Runtime )
+    #INSTALL (
+    #    FILES ${PROJECT_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}_test_${KIT}
+    #    PERMISSIONS WORLD_READ GROUP_READ OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE
+    #    DESTINATION ${snark_CPP_TESTS_INSTALL_DIR} )
+endif( INSTALL_TESTS )

@@ -2,7 +2,7 @@
 
 function test_iterator
 {
-    python -c "$( cat <<END
+    python3 -c "$( cat <<END
 from __future__ import print_function
 import sys
 from snark.imaging import cv_image

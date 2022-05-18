@@ -11,7 +11,7 @@ comma_path_value_to_var --prefix=input --export
 
 function format_output()
 {
-    python -c "
+    python3 -c "
 import sys, yaml
 
 def pretty_print( di, prefix ):

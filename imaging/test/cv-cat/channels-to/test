@@ -9,7 +9,7 @@ function generate()
 {
     local nx=$1
     local ny=$2
-    python -c "
+    python3 -c "
 from __future__ import print_function
 import math
 

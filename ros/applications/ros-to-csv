@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse, datetime, numpy, sys
 from signal import signal, SIGPIPE, SIG_DFL

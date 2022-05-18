@@ -54,7 +54,7 @@ function usage
 
     $name provides a suite of operations for managing the robotic arm
 
-usage: 
+usage:
     $name <operation> [options]
 
 operations:
@@ -63,7 +63,7 @@ $( operation_description | sed 's/^/    /g' )
 options:
 $( option_description | sed 's/^/    /g' )
 
-to see further details use: 
+to see further details use:
     $name -h -v
 
 EOF
@@ -178,7 +178,7 @@ function wait_for_target
         if [[ -z "${actual_values[@]}" ]]; then return ${wait_error[status_unavailable]}; fi
         local -i target_reached=1
         for (( i=0; i<$number_of_values; i++ )); do
-            python -c "exit(1) if abs(${target_values[$i]}-(${actual_values[$i]})) > $tolerance else exit(0)" || { target_reached=0; break; }
+            python3 -c "exit(1) if abs(${target_values[$i]}-(${actual_values[$i]})) > $tolerance else exit(0)" || { target_reached=0; break; }
         done
         if (( target_reached )); then return 0; fi
     done
@@ -221,7 +221,7 @@ function turn_on
     local mode="$( get 'mode' )"
     if [[ -z "$mode" ]]; then echo "$name: $FUNCNAME: failed to get mode, check if status daemon is publishing on port $publisher_port" >&2; exit -1; fi
     if [[ "$mode" != "$mode_no_power" ]]; then echo "$name: $FUNCNAME: expected the arm to be in mode $mode_no_power (no-power), got mode $mode" >&2; exit -1; fi
-    if [[ $( get 'arm/modes' | tr ',' '\n' | wc -l ) != $number_of_joints ]]; then echo "$name: $FUNCNAME: failed to get $number_of_joints joint modes" >&2; exit -1; fi 
+    if [[ $( get 'arm/modes' | tr ',' '\n' | wc -l ) != $number_of_joints ]]; then echo "$name: $FUNCNAME: failed to get $number_of_joints joint modes" >&2; exit -1; fi
     local -r timeout=${options_timeout}
     if [[ -n "$timeout" ]]; then
         if (( $( echo "$timeout <= 0" | bc -l ) )); then echo "$name: $FUNCNAME: expected positive timeout, got $timeout" >&2; exit -1; fi
@@ -309,7 +309,7 @@ function init
         if [[ "${joint_modes[joint]}" == "$joint_mode_run" ]]; then
             echo "joint $joint (${joint_names[joint]}) is already initialised" >&2
         else
-            if [[ "${joint_modes[joint]}" == "$joint_mode_init" ]]; then 
+            if [[ "${joint_modes[joint]}" == "$joint_mode_init" ]]; then
                 echo -n "initialising joint $joint (${joint_names[joint]}) ... " >&2
                 initialise_joint $joint && echo " succeeded" >&2 || { echo " failed" >&2; init_status=1; }
             else echo "$name: $FUNCNAME: expected joint $joint (${joint_names[joint]}) to be in mode $joint_mode_init (init), got ${joint_modes[joint]}" >&2; exit -1; fi
@@ -356,7 +356,7 @@ declare -r allowed_operations=$( operation_description | cut -d';' -f1 | tr '\n'
 declare -r operation="$1"
 comma_path_value_to_var --prefix=options < <( option_description | comma-options-to-name-value "$@" )
 
-if (( `comma_options_has "$operation" "$allowed_operations"` )); then 
+if (( `comma_options_has "$operation" "$allowed_operations"` )); then
     shift
 else
     if [[ -z "$operation" ]]; then usage; fi
