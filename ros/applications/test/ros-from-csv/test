@@ -15,7 +15,7 @@ function format_output()
 import sys, yaml
 
 def pretty_print( di, prefix ):
-    for k, v in di.iteritems():
+    for k, v in di.items():
         if type(v) == dict:
             pretty_print( v, prefix + k + '/' )
         elif type(v) == str:
