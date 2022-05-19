@@ -42,7 +42,7 @@ def ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays 
 def from_csv_supported_types( v ):
     if type( v ) != numpy.datetime64: return v
     microseconds = numpy.int64( v )
-    return rospy.Time( microseconds / 1000000, ( microseconds % 1000000 ) * 1000 )
+    return rospy.Time( microseconds // 1000000, ( microseconds % 1000000 ) * 1000 )
 
 def is_binary_type( field_type ):
     """
