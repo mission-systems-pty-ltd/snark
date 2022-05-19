@@ -19,13 +19,13 @@ def pretty_print( di, prefix ):
         if type(v) == dict:
             pretty_print( v, prefix + k + '/' )
         elif type(v) == str:
-            print '%s=\"%s\"' % ( prefix + k, v )
+            print( '%s=\"%s\"' % ( prefix + k, v ))
         else:
             try:
                 _ = iter( v )
             except TypeError:
                 # not iterable
-                print '%s=%s' % ( prefix + k, str(v) )
+                print( '%s=%s' % ( prefix + k, str(v) ))
             else:
                 # iterable
                 # numpy.array by default does not comma-separate array elements (as opposed to list); yaml wants commas
@@ -34,7 +34,7 @@ def pretty_print( di, prefix ):
                     v = v[0].split()
                 n = 0
                 for e in v:
-                    print '%s[%d]=%s' % ( prefix + k, n, str(e) )
+                    print( '%s[%d]=%s' % ( prefix + k, n, str(e) ))
                     n = n + 1
 
 lines = yaml.load_all( sys.stdin, Loader=yaml.SafeLoader ) # this is a generator, not actual load to memory

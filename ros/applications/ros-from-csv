@@ -27,7 +27,7 @@ examples
             ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush
         print to stdout
             ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush --dry-run
-        
+
     using message types offline, try it
         imply package from message type
             echo 1,2,3 | ros-from-csv --type geometry_msgs.msg.Point --format 3f --dry
@@ -84,7 +84,7 @@ def main():
         package = '.'.join( args.message_type.split( '.' )[:-1] ) if args.package is None else args.package
         if len( package ) > 0: exec( 'import ' + package )
     if args.topic is None and not args.dry_run and args.message_type is None:
-        print >> sys.stderr, "ros-from-csv: please specify --topic"
+        print( "ros-from-csv: please specify --topic", file=sys.stderr )
         sys.exit( 1 )
     if args.message_type is None: message_type = rostopic.get_topic_class( args.topic )[0]
     else: exec( 'message_type = ' + args.message_type )
@@ -95,22 +95,22 @@ def main():
         fields = args.fields if args.fields else detail.command_line.fields_of_record( record_type, args.index_output_fields )
         lengths = detail.command_line.lengths_of_strings( fields, comma.csv.format.expand( formats ))
         record_type, record_ctor = convert.ros_message_to_csv_record( message_type(), lengths )
-    if args.output_fields: print ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields ) ); sys.exit( 0 )
-    if args.output_format: print ','.join( [ comma.csv.format.from_numpy( f ) for f in record_type.format.split(',') ] ); sys.exit( 0 )
+    if args.output_fields: print( ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields ))); sys.exit( 0 )
+    if args.output_format: print( ','.join( [ comma.csv.format.from_numpy( f ) for f in record_type.format.split(',') ] )); sys.exit( 0 )
     format = ','.join( comma.csv.format.to_numpy( args.binary and args.binary or args.format, compress=True ) )
     binary = not not args.binary
     istream = comma.csv.stream( record_type, delimiter = args.delimiter, fields = args.fields, format = format, binary = binary, default_values = None, flush = args.flush )
     assign = record_type.assign( message, convert.from_csv_supported_types )
     if args.dry_run:
-        if args.verbose: print >> sys.stderr, "ros-from-csv: dry run, printing messages to stdout"
+        if args.verbose: print( "ros-from-csv: dry run, printing messages to stdout", file=sys.stderr )
     else:
         publisher = rospy.Publisher( args.topic, message_type, queue_size = args.ros_queue_size )
         rospy.init_node( 'ros_from_csv', anonymous = True )
-        if args.verbose: print >> sys.stderr, "ros-from-csv: publishing to topic '%s'..." % args.topic
+        if args.verbose: print( "ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr )
     for records in istream:
         for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
             assign( record )
-            if args.dry_run: print message
+            if args.dry_run: print( message )
             else: publisher.publish( message )
 
 if __name__ == '__main__': main()
