@@ -12,14 +12,17 @@ comma_path_value_to_var --prefix=input --export
 function format_output()
 {
     python3 -c "
-import sys, yaml
+import re, sys, yaml
 
 def pretty_print( di, prefix ):
     for k, v in di.items():
         if type(v) == dict:
             pretty_print( v, prefix + k + '/' )
         elif type(v) == str:
-            print( '%s=\"%s\"' % ( prefix + k, v ))
+            # ROS Melodic returns b'string' as a string type, for strings. Strip that out.
+            m = re.search( r'b\'(.*)\'', v )
+            cleaned_str = ( v if m is None else m.group(1) )
+            print( '%s=\"%s\"' % ( prefix + k, cleaned_str ))
         else:
             try:
                 _ = iter( v )
