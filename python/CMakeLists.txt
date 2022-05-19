@@ -54,7 +54,7 @@ ENDIF( NOT snark_build_python )
 FIND_PROGRAM( PYTHON "python3" )
 
 IF( NOT PYTHON )
-    MESSAGE( WARNING "python3 not found" )
+    MESSAGE( WARNING "${PYTHON} not found" )
     MESSAGE( STATUS "snark/python modules and scripts will not be installed" )
     disable_python_testing()
     RETURN()
