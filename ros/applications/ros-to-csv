@@ -90,7 +90,7 @@ class rostopic_subscriber:
 
 def main():
     parser = argparse.ArgumentParser( description=help_description, epilog=help_examples, formatter_class=argparse.RawDescriptionHelpFormatter, conflict_handler='resolve' )
-    parser.add_argument( '--bag', help='input bag file', type=argparse.FileType('r'), nargs='*' )
+    parser.add_argument( '--bag', help='input bag file', type=str, nargs='*' )
     parser.add_argument( '--flush', help='flush stdout after each message' )
     parser.add_argument( '--index-output-fields', '--index-fields', '--index', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
     parser.add_argument( '--output-fields', help='print output fields and exit', action='store_true' )
