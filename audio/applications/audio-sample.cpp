@@ -1,31 +1,5 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright (c) 2022 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 
@@ -66,9 +40,8 @@ static void usage( bool verbose )
     std::cerr << "    --realtime: output sample until next block available on stdin" << std::endl;
     std::cerr << "                experimental feature, implementation in progress..." << std::endl;
     #endif // #ifndef WIN32
-    std::cerr << "    todo" << std::endl;
     std::cerr << "    --verbose,-v: more output" << std::endl;
-    if( verbose ) { std::cerr << std::endl << "csv options" << std::endl << comma::csv::options::usage() << std::endl; }
+    std::cerr << std::endl << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     std::cerr << std::endl;
     std::cerr << "examples" << std::endl;
     std::cerr << "    play from stdin" << std::endl;
@@ -89,7 +62,7 @@ struct input
     double amplitude;
     double duration;
     comma::uint32 block;
-    
+
     input() : block( 0 ) {}
     input( double frequency, double amplitude, double duration, comma::uint32 block = 0 ) : frequency( frequency ), amplitude( amplitude ), duration( duration ), block( block ) {}
 };
@@ -137,8 +110,7 @@ int main( int ac, char** av )
         bool antiphase = options.exists( "--antiphase-randomization,--antiphase" );
         bool anticlick = options.exists( "--anticlick" );
         double attack = options.value< double >( "--attack", 0 );
-        bool realtime = false;
-        realtime = options.exists( "--realtime" );
+        bool realtime = options.exists( "--realtime" );
         #ifdef WIN32
         if( realtime ) { std::cerr << "audio-sample: --realtime not supported on windows" << std::endl; return 1; }
         #else
@@ -186,8 +158,8 @@ int main( int ac, char** av )
                             }
                             if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &a ), sizeof( double ) ); }
                             else { std::cout << a << std::endl; }
+                            std::cout.flush();
                         }
-                        
                         select.wait( boost::posix_time::microseconds( static_cast< unsigned int >( microseconds_per_sample ) ) );
                         if( select.read().ready( 0 ) ) { v.clear(); break; }
                         boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
@@ -208,6 +180,7 @@ int main( int ac, char** av )
                         }
                         if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &a ), sizeof( double ) ); }
                         else { std::cout << a << std::endl; }
+                        if( csv.flush ) { std::cout.flush(); }
                     }
                     v.clear();
                 }
@@ -219,13 +192,7 @@ int main( int ac, char** av )
         }
         return 0;
     }
-    catch( std::exception& ex )
-    {
-        std::cerr << "audio-sample: " << ex.what() << std::endl;
-    }
-    catch( ... )
-    {
-        std::cerr << "audio-sample: unknown exception" << std::endl;
-    }
+    catch( std::exception& ex ) { std::cerr << "audio-sample: " << ex.what() << std::endl; }
+    catch( ... ) { std::cerr << "audio-sample: unknown exception" << std::endl; }
     return 1;
 }
