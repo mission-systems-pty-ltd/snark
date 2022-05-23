@@ -6,7 +6,6 @@ snark_test_math_geometry
 snark_test_math_spherical_geometry
 snark_test_navigation_nmea
 snark_test_point_cloud
-snark_test_wheels
 snark_test_timing
 snark_test_wheels
 
