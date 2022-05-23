@@ -7,9 +7,8 @@ readonly output_dir=output
 declare count=0
 mkdir -p $output_dir
 
-for unit_test in $( grep -v "^#" ); do
+grep "^[^#]" | while read unit_test; do
     $unit_test >&2
     [[ $? == 0 ]] && echo "test[$count]/status=\"$unit_test:success\"" || echo "test[$count]/status=\"$unit_test:failed\""
     (( count++ ))
 done
-
