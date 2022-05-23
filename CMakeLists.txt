@@ -421,10 +421,10 @@ IF( snark_build_actuators_quickset )
                          optimized snark_quickset_ptcr )
 ENDIF( snark_build_actuators_quickset )
 
-IF( snark_build_actuators_wheels )
-  SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_wheels-d
-                         optimized snark_wheels )
-ENDIF( snark_build_actuators_wheels )
+if( snark_build_actuators_wheels )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_wheels-d
+                                                    optimized snark_wheels )
+endif( snark_build_actuators_wheels )
 
 if( snark_build_batteries_ocean )
     SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_ocean-d
@@ -478,6 +478,22 @@ SET( snark_PACKAGE_CMAKEFILES ${snark_PACKAGE_CMAKEFILES} ${PROJECT_BINARY_DIR}/
 INSTALL( FILES ${snark_PACKAGE_CMAKEFILES}
          DESTINATION ${snark_INSTALL_PACKAGE_DIR} )
 
+macro( toggle_tests what path )
+    set( filename ${CMAKE_SOURCE_DIR}/${path}/disabled )
+    if( ${what} )
+        if( EXISTS ${filename} )
+            execute_process( COMMAND rm "${filename}" )
+            message( STATUS "${filename} removed: testing is enabled" )
+        endif( EXISTS ${filename} )
+    else( ${what} )
+        if( NOT EXISTS ${filename} )
+            execute_process( COMMAND bash -c "echo \"this module is not built in cmake hence test is disabled\" > ${filename}" )
+            message( STATUS "${filename} added: testing is disabled" )
+        endif( NOT EXISTS ${filename} )
+     endif( ${what} )
+endmacro()
+
+toggle_tests( snark_build_actuators_wheels "actuators/wheels/test" )
 if( snark_build_actuators )
     add_subdirectory( actuators )
 endif()

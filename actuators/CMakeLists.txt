@@ -6,8 +6,8 @@ IF( snark_build_actuators_quickset )
     ADD_SUBDIRECTORY( quickset )
 ENDIF( snark_build_actuators_quickset )
 
-IF( snark_build_actuators_wheels )
-    ADD_SUBDIRECTORY( wheels )
-ENDIF( snark_build_actuators_wheels )
+if( snark_build_actuators_wheels )
+    add_subdirectory( wheels )
+endif( snark_build_actuators_wheels )
 
-ADD_SUBDIRECTORY( universal_robots )
+add_subdirectory( universal_robots )
