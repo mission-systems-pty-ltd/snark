@@ -1,8 +1,6 @@
 #python
 #
-#check all the google test
-#prerequisites: install google unit tests and set add install path to PATH (PATH=$PATH:/usr/local/share/test)
+#check all the google tests
 
 for ii in range( 0, number_of( test ) ):
     expect ends_with( test[ii]/status, ":success" )
-

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#set environment PATH=$PATH:/usr/local/shared/test
+#prerequisites: install google unit tests and set add install path to PATH
+#(e.g. PATH=$PATH:/usr/local/share/test)
 
 readonly output_dir=output
 readonly input_file=$output_dir/input.backup
