@@ -533,6 +533,7 @@ ENDIF( snark_build_graph )
 
 add_subdirectory( audio )
 add_subdirectory( control )
+toggle_tests( snark_build_control "control/test" )
 add_subdirectory( geodesy )
 add_subdirectory( machine_learning )
 add_subdirectory( render )
