@@ -4,14 +4,12 @@
 #(e.g. PATH=$PATH:/usr/local/share/test)
 
 readonly output_dir=output
-readonly input_file=$output_dir/input.backup
 declare count=0
 mkdir -p $output_dir
 
-for ii in $( cat | grep -v "^#" )
-do
-    $ii >&2
-    [[ $? == 0 ]] && echo "test[$count]/status=\"$ii:success\"" || echo "test[$count]/status=\"$ii:failed\""
+for unit_test in $( cat | grep -v "^#" ); do
+    $unit_test >&2
+    [[ $? == 0 ]] && echo "test[$count]/status=\"$unit_test:success\"" || echo "test[$count]/status=\"$unit_test:failed\""
     (( count++ ))
 done
 
