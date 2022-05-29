@@ -26,6 +26,7 @@ static void usage( bool verbose )
     std::cerr << "    --help,-h: --help --verbose for more help" << std::endl;
     std::cerr << "    --amplitude,--volume=[<value>]: if amplitude field absent, use this amplitude for all the samples" << std::endl;
     //std::cerr << "    --attenuation=[<rate>]: attenuation rate per second (currently square root only; todo: implement properly)" << std::endl;
+    std::cerr << "    --anticlick; smoothen clicks; lame, but helps a bit" << std::endl;
     std::cerr << "    --attack=<duration>: attack/decline duration, quick and dirty, simple linear attack used; default 0" << std::endl;
     std::cerr << "    --duration=[<seconds>]: if duration field absent, use this duration for all the samples" << std::endl;
     std::cerr << "    --frequency=[<frequency>]: if frequency field absent, use this frequency for all the samples" << std::endl;
@@ -107,6 +108,7 @@ int main( int ac, char** av )
         csv.full_xpath = false;
         input default_input( options.value( "--frequency", 0.0 ), options.value( "--amplitude,--volume", 0.0 ), options.value( "--duration", 0.0 ) );
         double attack = options.value< double >( "--attack", 0 );
+        bool anticlick = options.exists( "--anticlick" );
         bool realtime = options.exists( "--realtime" );
         #ifdef WIN32
         if( realtime ) { std::cerr << "audio-sample: --realtime not supported on windows" << std::endl; return 1; }
@@ -133,6 +135,7 @@ int main( int ac, char** av )
             {
                 std::vector< double > start( v.size(), 0 );
                 std::vector< double > finish( v.size(), std::numeric_limits< double >::max() );
+                if( anticlick ) { for( unsigned int i = 0; i < finish.size(); ++i ) { finish[i] = start[i] + static_cast< unsigned int >( ( v[i].duration - start[i] ) * v[i].frequency ) / v[i].frequency; } }
                 double step = 1.0 / rate;
                 if( previous.empty() )
                 {
