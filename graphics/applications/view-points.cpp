@@ -692,7 +692,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     else if( shape == "arc" )
     {
         snark::graphics::view::arc< 20 > sample; // quick and dirty
-        if( param.options.has_field( "middle" ) || param.options.has_field( "middle/x" ) || param.options.has_field( "middle/y" ) || param.options.has_field( "middle/z" ) ) { sample.middle = Eigen::Vector3d(); }
+        if( param.options.has_field( "middle" ) || param.options.has_field( "middle/x" ) || param.options.has_field( "middle/y" ) || param.options.has_field( "middle/z" ) ) { sample.middle = Eigen::Vector3d( 0, 0, 0 ); }
         std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::arc< 20 > >( param, colored, label, sample ) );
         reader->show( show );
         return reader;
