@@ -39,7 +39,8 @@ static void usage( bool more = false )
     std::cerr << "            --zone=<zone>; MGA zone" << std::endl;
     std::cerr << "                           --to coordinates: ; e.g. 56 for Sydney: default zone, in case zone field is not on stdin input" << std::endl;
     std::cerr << "                           --to ned: enforce using a given zone rather than calculating zone from latitude/longitude" << std::endl;
-    std::cerr << "            --zone-use-first; use zone from the first latitude/longitude pair for all the subsequent input" << std::endl;
+    std::cerr << "            --zone-allow-change,--allow-zone-change; allow lat/lon belonging to different zones; default: if zone changes, exit with error" << std::endl;
+    std::cerr << "            --zone-use-first,--use-first-zone; use zone from the first latitude/longitude pair for all the subsequent input" << std::endl;
     std::cerr << "        info options" << std::endl;
     std::cerr << "            --input-fields; print input fields for a given conversion to stdout and exit" << std::endl;
     std::cerr << "            --output-fields; print output fields for a given conversion to stdout and exit" << std::endl;
@@ -205,7 +206,7 @@ int main( int ac, char **av )
         csv.full_xpath = true;
         std::string geoid_name = options.value< std::string >( "--geoid", "wgs84" );
         const snark::spherical::ellipsoid& geoid = snark::geodesy::geoids::select( geoid_name );
-        const std::vector<std::string> &operations = options.unnamed( "--verbose,-v,--degrees,--north,--south", "-.*" );
+        const std::vector<std::string> &operations = options.unnamed( "--verbose,-v,--north,--south,--zone-allow-change,--allow-zone-change,--zone-use-first,--use-first-zone", "-.*" );
         if( operations.empty() ) { std::cerr << "geo-calc: please specify operation" << std::endl; return 1; }
         if( operations[0] == "convert" )
         {
@@ -246,8 +247,10 @@ int main( int ac, char **av )
                 if( csv.binary() ) { ocsv.format( comma::csv::format().value< convert_::ned_ >() ); }
                 comma::csv::output_stream< convert_::ned_ > os( std::cout, ocsv );
                 comma::csv::tied< convert_::coordinates_, convert_::ned_ > tied( is, os );
-                auto zone = options.optional< unsigned int >( "--zone" );
-                bool zone_use_first = options.exists( "--zone-use-first" );
+                auto zone = options.optional< unsigned int >( "--zone" ); // todo? quick and dirty; wrap zone behaviour and calculations in a class?
+                bool allow_zone_change = options.exists( "--zone-allow-change,--allow-zone-change" );
+                bool zone_use_first = options.exists( "--zone-use-first,--use-first-zone" );
+                boost::optional< unsigned int > first_zone;
                 while ( is.ready() || ( std::cin.good() && !std::cin.eof() ) )
                 {
                     const convert_::coordinates_* p = is.read();
@@ -263,6 +266,8 @@ int main( int ac, char **av )
                                                 , scale
                                                 , zone );
                     if( !zone && zone_use_first ) { zone = q.zone; }
+                    if( !first_zone ) { first_zone = q.zone; }
+                    if( first_zone && !allow_zone_change && int( *first_zone ) != q.zone ) { std::cerr << "geo-calc: convert: expected zone the same as in first input record (" << *zone << "); got zone " << q.zone << "; use --allow-zone-change to override" << std::endl; return 1; }
                     q.is_south = p->coordinates.latitude < 0;
                     if( !q.is_south ) { north -= 10000000; }
                     q.coordinates = Eigen::Vector3d( north, east, -p->z );
