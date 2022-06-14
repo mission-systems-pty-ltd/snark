@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <comma/application/command_line_options.h>
 #include <comma/csv/stream.h>
@@ -63,7 +36,10 @@ static void usage( bool more = false )
     std::cerr << "            --hemisphere=<what>: either 'north' or 'south', if --coordinates" << std::endl;
     std::cerr << "            --north; same as hemisphere=north" << std::endl;
     std::cerr << "            --south; same as hemisphere=south" << std::endl;
-    std::cerr << "            --zone=<zone>; MGA zone, if --to ned; e.g. 56 for Sydney: default zone, in case zone field is not on stdin input" << std::endl;
+    std::cerr << "            --zone=<zone>; MGA zone" << std::endl;
+    std::cerr << "                           --to coordinates: ; e.g. 56 for Sydney: default zone, in case zone field is not on stdin input" << std::endl;
+    std::cerr << "                           --to ned: enforce using a given zone rather than calculating zone from latitude/longitude" << std::endl;
+    std::cerr << "            --zone-use-first; use zone from the first latitude/longitude pair for all the subsequent input" << std::endl;
     std::cerr << "        info options" << std::endl;
     std::cerr << "            --input-fields; print input fields for a given conversion to stdout and exit" << std::endl;
     std::cerr << "            --output-fields; print output fields for a given conversion to stdout and exit" << std::endl;
@@ -270,6 +246,8 @@ int main( int ac, char **av )
                 if( csv.binary() ) { ocsv.format( comma::csv::format().value< convert_::ned_ >() ); }
                 comma::csv::output_stream< convert_::ned_ > os( std::cout, ocsv );
                 comma::csv::tied< convert_::coordinates_, convert_::ned_ > tied( is, os );
+                auto zone = options.optional< unsigned int >( "--zone" );
+                bool zone_use_first = options.exists( "--zone-use-first" );
                 while ( is.ready() || ( std::cin.good() && !std::cin.eof() ) )
                 {
                     const convert_::coordinates_* p = is.read();
@@ -282,7 +260,9 @@ int main( int ac, char **av )
                                                 , east
                                                 , north
                                                 , convergence
-                                                , scale );
+                                                , scale
+                                                , zone );
+                    if( !zone && zone_use_first ) { zone = q.zone; }
                     q.is_south = p->coordinates.latitude < 0;
                     if( !q.is_south ) { north -= 10000000; }
                     q.coordinates = Eigen::Vector3d( north, east, -p->z );

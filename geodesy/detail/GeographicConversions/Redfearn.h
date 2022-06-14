@@ -29,10 +29,10 @@
 
 /// @author andrew maclean
 
-#if !defined(REDFEARN_H)
-#define REDFEARN_H
+#pragma once
 
 #include <cmath>
+#include <boost/optional.hpp>
 #include "Ellipsoid.h"
 #include "MapGrid.h"
 
@@ -104,11 +104,12 @@ namespace snark { namespace detail { namespace GeographicGeodeticRectangular {
       @param Northing - in meters.
       @param GridConvergence
       @param PointScale
+      @param FixedZone - enforce a given zone
     */
     void GetGridCoordinates ( 
         double const & Latitude, double const & Longitude, 
         int & Zone, double & Easting, double & Northing,
-        double & GridConvergence, double & PointScale);
+        double & GridConvergence, double & PointScale, boost::optional< unsigned int > FixedZone = boost::none );
 
     //! Convert geographic coordinates to grid coordinates for a specified zone.
     /*!
@@ -160,5 +161,3 @@ namespace snark { namespace detail { namespace GeographicGeodeticRectangular {
   };
 
 } } } // namespace snark { namespace detail { namespace GeographicGeodeticRectangular {
-
-#endif

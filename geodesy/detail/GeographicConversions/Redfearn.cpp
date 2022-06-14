@@ -39,7 +39,7 @@ using namespace std;
 void CRedfearn::GetGridCoordinates ( 
     double const & Latitude, double const & Longitude, 
     int & Zone, double & Easting, double & Northing,
-    double & GridConvergence, double & PointScale)
+    double & GridConvergence, double & PointScale, boost::optional< unsigned int > FixedZone )
 {
   // Degrees to radians and vice versa.
   static const double dtr = atan((double)1.0)/45.0;
@@ -77,7 +77,7 @@ void CRedfearn::GetGridCoordinates (
 
   // Geographical to Grid
 
-  Zone = int((Longitude-this->M.LWEZone0())/this->M.ZoneWidth());
+  Zone = int( FixedZone ? *FixedZone : ( Longitude - this->M.LWEZone0() ) / this->M.ZoneWidth() );
   double LongCMZone = Zone * this->M.ZoneWidth() + this->M.CMZone0();
   double w = (Longitude - LongCMZone)*dtr;
   double w2 = w*w;
