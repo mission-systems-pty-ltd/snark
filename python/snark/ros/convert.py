@@ -56,7 +56,7 @@ def is_binary_type( field_type ):
     except AttributeError:
         return mc.is_ros_binary_type( field_type, None )
 
-def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
+def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """
     Private implementation of ros_message_to_csv_record. Called recursively.
 """
@@ -74,23 +74,20 @@ def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays
         if is_binary_type( field_type ):
             ctor = lambda msg, field_name=field_name, field_type=field_type: mc._convert_to_ros_binary( field_type, getattr( msg, field_name ) )
             current_path = full_path( field_name )
-            try:
-                l = lengths[ current_path ]
-            except KeyError:
-                l = len( ctor( message ) )
+            try: l = lengths[ current_path ]
+            except KeyError: l = len( ctor( message ) )
             element_t = "S%d" % l
         elif field_type in mc.ros_primitive_types:
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             if field_type == 'string':
                 current_path = full_path( field_name )
-                try:
-                    l = lengths[ current_path ]
-                except KeyError:
-                    l = len( ctor( message ) )
+                try: l = lengths[ current_path ]
+                except KeyError: l = len( ctor( message ) )
                 element_t = "S%d" % l
             else:
                 element_t = field_type
         elif field_type == 'time':
+            #continue
             def ctor( msg, field_name=field_name ):
                 ts = getattr( msg, field_name )
                 return numpy.datetime64( datetime.datetime.utcfromtimestamp( ts.secs + 1.0e-9 * ts.nsecs ) )
@@ -109,7 +106,7 @@ def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays
             if size == 0 and ignore_variable_size_arrays: continue
             element_t = ( field_type[:m.start()], ( size, ) )
         else:
-            element_t, element_ctor = _ros_message_to_csv_record( getattr( message, field_name ), lengths=lengths, ignore_variable_size_arrays = ignore_variable_size_arrays, prefix=full_path( field_name ) )
+            element_t, element_ctor = _ros_message_to_csv_record_impl( getattr( message, field_name ), lengths=lengths, ignore_variable_size_arrays = ignore_variable_size_arrays, prefix=full_path( field_name ) )
             ctor = lambda msg, field_name=field_name, element_ctor=element_ctor: element_ctor( getattr( msg, field_name ) )
         # todo? don't output empty elements?
         fields.append( field_name )
@@ -117,4 +114,8 @@ def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays
         types.append( element_t )
 
     new_t = comma.csv.struct( ','.join( fields ), *types )
-    return ( new_t, lambda msg, new_t=new_t: numpy.array( [ tuple( [ c(msg) for c in ctors ] ) ], dtype = new_t ) )
+    return new_t, lambda msg, new_t=new_t: tuple( [ c(msg) for c in ctors ] )
+
+def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
+    t, f = _ros_message_to_csv_record_impl( message, lengths, ignore_variable_size_arrays, prefix )
+    return t, lambda msg: numpy.array( [ f( msg ) ], dtype=t )
