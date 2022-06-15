@@ -1,6 +1,7 @@
 // Copyright (c) 2019 The University of Sydney
 // Copyright (c) 2021 Mission Systems Pty Ltd
 
+#include <unordered_map>
 #include "detail/file-util.h"
 #include "../../imaging/cv_mat/serialization.h"
 #include <comma/io/stream.h>
