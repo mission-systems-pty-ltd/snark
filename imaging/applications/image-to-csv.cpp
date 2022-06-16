@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <memory>
@@ -222,9 +195,10 @@ bool output_t< T >::process_image()
     out.t = header.timestamp;
     std::size_t size = ::channels * sizeof( T );
     set_discard_pixels< T >();
+    static std::vector< char > buffer;
+    buffer.resize( header.cols * size );
     for( out.y = 0; out.y < header.rows && std::cin.good(); ++out.y )
     {
-        std::vector< char > buffer( header.cols * size );
         std::cin.read( &buffer[0], buffer.size() );
         if( std::size_t( std::cin.gcount() ) != buffer.size() ) { return false; }
         char* ptr = &buffer[0];
@@ -246,18 +220,18 @@ bool output_t< T >::process_image()
 struct get_app
 {
     app_t* app;
-    get_app() : app( NULL )
+    get_app(): app( NULL )
     {
-        switch(depth)
+        switch( depth )
         {
             case CV_8U: app = new output_t< unsigned char >(); break;
-            case CV_8S: app = new output_t< char >(); break;
+            case CV_8S: app = new output_t< signed char >(); break;
             case CV_16U: app = new output_t< comma::uint16 >(); break;
             case CV_16S: app = new output_t< comma::int16 >(); break;
             case CV_32S: app = new output_t< comma::int32 >(); break;
             case CV_32F: app = new output_t< float >(); break;
             case CV_64F: app = new output_t< double >(); break;
-            default: COMMA_THROW( comma::exception, "unsupported depth " << depth );
+            default: COMMA_THROW( comma::exception, "expected depth; got: " << depth );
         }
     }
     ~get_app() { if( app != NULL ) { delete app; } }
