@@ -90,7 +90,7 @@ static void usage( bool detail )
                     << "                            with first channel equal to -1 or second channel" << std::endl
                     << "                            equal to 0 or third channel equal to 0" << std::endl
                     << "                   todo: support empty values" << std::endl
-                    << "    --discard-zero,--output-non-zero: output only values with non-zero data, same as --discard=0" << std::endl
+                    << "    --discard-zero,--output-non-zero,--non-zero: output only values with non-zero data, same as --discard=0" << std::endl
                     << "    --input: input options if image has no header (see details)" << std::endl
                     << "    --output-fields: output fields and exit need to feed in image header through stdin or specify --input options" << std::endl
                     << "    --output-format: output format string and exit need to feed in image header through stdin or specify --input options" << std::endl
@@ -275,7 +275,7 @@ int main( int ac, char** av )
         unique = options.exists( "--unique,-u" );
         discard_any = options.exists( "--discard-any" );
         *cverbose << app_name << ": type: " << header.type << " channels: " << channels << " depth: " << int( CV_MAT_DEPTH( header.type ) ) << std::endl;
-        std::vector< std::string > unnamed = options.unnamed( "--output-fields,--output-format,--verbose,-v,--output-header-fields,--output-header-format,--discard-zero,--output-non-zero,--flush,--some,--unique,-u,--discard-any", 
+        std::vector< std::string > unnamed = options.unnamed( "--output-fields,--output-format,--verbose,-v,--output-header-fields,--output-header-format,--discard-zero,--output-non-zero,--non-zero,--flush,--some,--unique,-u,--discard-any", 
                                                               "--input,--channels,--binary,-b,--fields,-f,--precision,--quote,--delimiter,-d,--discard");
         if( !unnamed.empty() ) { std::cerr<<"invalid option"<<((unnamed.size()>1)?"s":"")<<": "<< comma::join(unnamed, ',') <<std::endl; return 1; }
         get_app g;
@@ -283,8 +283,8 @@ int main( int ac, char** av )
         if( options.exists( "--output-format") ) { g.app->output_format(); return 0; }
         if( options.exists( "--output-header-fields") ) { std::cout<<comma::join( comma::csv::names< snark::cv_mat::serialization::header >( input_options.fields ), ','  ) << std::endl; return 0; }
         if( options.exists( "--output-header-format") ) { std::cout<<comma::csv::format::value< snark::cv_mat::serialization::header >( input_options.fields, false ) << std::endl; return 0; }
-        options.assert_mutually_exclusive( "--discard-zero,--output-non-zero", "--discard" );
-        if( options.exists( "--discard-zero,--output-non-zero" ) ) { discard.push_back( std::vector< float >( 4, 0 ) ); }
+        options.assert_mutually_exclusive( "--discard-zero,--output-non-zero,--non-zero", "--discard" );
+        if( options.exists( "--discard-zero,--output-non-zero,--non-zero" ) ) { discard.push_back( std::vector< float >( 4, 0 ) ); }
         const auto& d = comma::split( options.value< std::string >( "--discard", "" ), ';', true );
         for( const auto& v: d )
         { 
