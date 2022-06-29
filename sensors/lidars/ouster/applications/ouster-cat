@@ -20,6 +20,7 @@ function description()
 --output-format;     show output format and exit
 --packet-size;       show packet size and exit
 --port=<port>;       default=7501; command port
+--use-host-time;     apply system time from host to data
 EOF
 }
 
@@ -425,6 +426,24 @@ function publish_bandwidth_stats()
     io-bandwidth 2> >( io-publish tcp:$port )
 }
 
+# we need to convert the host time to 64 bit unsigned integer of nanoseconds from epoch
+#
+# TODO: replace with option to udp-client or csv-time-stamp to directly drop in
+# the nanosecond timestamp in the right place in the data
+function use_host_time()
+{
+    [[ $operation == "lidar" ]] || die "--use-host-time only supported for lidar data"
+    local fields=$( output_fields lidar )
+    local format=$( output_format lidar )
+    # prepend with host time
+    # replace device time with host time
+    # change host time from microseconds to nanoseconds from epoch, to match device data format
+    csv-time-stamp --binary $format \
+        | csv-shuffle --fields host_time,$fields --binary t,$format \
+                      --output $( echo $fields | tr , '\n' | sed 's/^timestamp$/host_time/' | paste -s -d, ) \
+        | csv-eval --fields $fields --binary $format "timestamp=timestamp*1000"
+}
+
 function stream()
 {
     verbose "streaming..."
@@ -450,7 +469,10 @@ function stream()
         verbose "sending bandwidth data to port $bandwidth_monitor_port"
     fi
 
-    udp-client $port | $bandwidth_fn
+    local timestamp_fn=cat
+    (( options_use_host_time )) && timestamp_fn=use_host_time
+
+    udp-client $port | $bandwidth_fn | $timestamp_fn
 }
 
 case $operation in
