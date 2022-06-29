@@ -25,7 +25,8 @@ EOF
 
 available_operations="command,config,init,lidar,imu,alerts,stream_alerts"
 azimuth_blocks_per_packet=16
-tested_firmware="v1.13.0"
+tested_firmware="1.12.0,1.13.0"
+tested_firmware_re="^v($( tr , '|' <<< $tested_firmware ))$"
 
 function usage()
 {
@@ -430,7 +431,7 @@ function stream()
     ping_lidar
 
     local firmware=$( run_cmd -q get_sensor_info | name-value-get build_rev 2> /dev/null )
-    [[ $firmware == "$tested_firmware" ]] || say "warning: $scriptname tested against firmware version $tested_firmware but this device is $firmware"
+    [[ $firmware =~ $tested_firmware_re ]] || { say "warning: verified against firmware versions $tested_firmware"; say "         this device is $firmware"; }
 
     local active_udp_ip=$( get_parameter udp_ip )
     if [[ $active_udp_ip != $host_ip ]]; then
