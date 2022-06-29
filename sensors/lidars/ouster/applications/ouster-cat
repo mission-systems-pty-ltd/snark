@@ -450,9 +450,7 @@ function stream()
         verbose "sending bandwidth data to port $bandwidth_monitor_port"
     fi
 
-    local transfer_block_option=
-    (( packet_size > 8192 )) && transfer_block_option="-b$packet_size"
-    socat $transfer_block_option -u udp-listen:$port - | $bandwidth_fn
+    udp-client $port | $bandwidth_fn
 }
 
 case $operation in
