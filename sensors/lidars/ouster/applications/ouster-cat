@@ -23,7 +23,7 @@ function description()
 EOF
 }
 
-available_operations="command,config,init,lidar,imu"
+available_operations="command,config,init,lidar,imu,alerts,stream_alerts"
 azimuth_blocks_per_packet=16
 tested_firmware="v1.13.0"
 
