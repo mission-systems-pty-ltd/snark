@@ -289,8 +289,13 @@ template <> struct traits< Eigen::Vector3d >
             const boost::optional< Eigen::Vector3d >& n = records[k]->nearest_to( rhs );
             if( !n ) { return boost::none; }
             double d = ( *n - rhs.value ).squaredNorm();
-            double m = use_filter_radius ? ( records[k]->radius + rhs.radius ) * ( records[k]->radius + rhs.radius ) : max_squared_norm; // quick and dirty
-            if( d > m ) { return boost::none; }
+            if( use_filter_radius )
+            {
+                double r = records[k]->radius + rhs.radius;
+                if( r > ::radius ) { std::cerr << "points-join: expected sum of input and filter radius less or equal " << ::radius << "; got: " << r << " on input radius: " << rhs.radius << " and filter radius: " << records[k]->radius << std::endl; exit( 1 ); }
+                max_squared_norm = r * r;
+            }
+            if( d > max_squared_norm ) { return boost::none; }
             return std::make_pair( *n, d );
         }
     };
