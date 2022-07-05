@@ -36,6 +36,8 @@
 
 namespace snark { namespace test {
 
+static const double eps = 1e-12;
+
 TEST( pid, constructor )
 {
     snark::control::pid p( 0.1, 0.01, 0.001 );
@@ -67,7 +69,7 @@ TEST( pid, zero_time_increment )
     snark::control::pid pid( 0, 0, 1 );
     boost::posix_time::ptime t = initial_time;
     pid( 1, t );
-    EXPECT_NEAR( 0, pid( 1, t ), 1e-12 );
+    EXPECT_NEAR( 0, pid( 1, t ), eps );
 }
 
 TEST( pid, proportional )
@@ -76,13 +78,13 @@ TEST( pid, proportional )
     snark::control::pid pid( p, 0, 0 );
     boost::posix_time::ptime t = initial_time;
     double error = 0.1;
-    EXPECT_EQ( p*error, pid( error, t ) );
+    EXPECT_NEAR( p*error, pid( error, t ), eps );
     t += boost::posix_time::microseconds( 1 );
     error = 0.11;
-    EXPECT_EQ( p*error, pid( error, t ) );
+    EXPECT_NEAR( p*error, pid( error, t ), eps );
     t += boost::posix_time::microseconds( 2 );
     error = 0.12;
-    EXPECT_EQ( p*error, pid( error, t ) );
+    EXPECT_NEAR( p*error, pid( error, t ), eps );
 }
 
 double to_seconds( double microseconds ) { return microseconds/1e6; }
@@ -94,17 +96,17 @@ TEST( pid, integral )
     boost::posix_time::ptime t = initial_time;
     double error = 0.1;
     double integral = 0;
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
     int microseconds = 10;
     t += boost::posix_time::microseconds( microseconds );
     error = 0.11;
     integral += error * to_seconds( microseconds );
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
     microseconds = 20;
     t += boost::posix_time::microseconds( microseconds );
     error = -0.12;
     integral += error * to_seconds( microseconds );
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
 }
 
 TEST( pid, threshold )
@@ -114,11 +116,11 @@ TEST( pid, threshold )
     snark::control::pid pid( 0, i, 0, threshold );
     boost::posix_time::ptime t = initial_time;
     double error = 0;
-    EXPECT_EQ( 0, pid( error, t ) );
+    EXPECT_NEAR( 0, pid( error, t ), eps );
     int microseconds = 2000;
     t += boost::posix_time::microseconds( microseconds );
     error = -0.1;
-    EXPECT_EQ( i*(-threshold), pid( error, t ) );
+    EXPECT_NEAR( i*(-threshold), pid( error, t ), eps );
 }
 
 TEST( pid, derivative_internal )
@@ -127,19 +129,19 @@ TEST( pid, derivative_internal )
     snark::control::pid pid( 0, 0, d );
     boost::posix_time::ptime t = initial_time;
     double error = 0.1;
-    EXPECT_EQ( 0, pid( error, t ) );
+    EXPECT_NEAR( 0, pid( error, t ), eps );
     int microseconds = 1;
     t += boost::posix_time::microseconds( microseconds );
     double previous_error = error;
     error = 0.11;
     double derivative = ( error - previous_error )/ to_seconds( microseconds );
-    EXPECT_EQ( d*derivative, pid( error, t ) );
+    EXPECT_NEAR( d*derivative, pid( error, t ), eps );
     microseconds = 2;
     t += boost::posix_time::microseconds( microseconds );
     previous_error = error;
     error = 0.12;
     derivative = ( error - previous_error )/ to_seconds( microseconds );
-    EXPECT_EQ( d*derivative, pid( error, t ) );
+    EXPECT_NEAR( d*derivative, pid( error, t ), eps );
 }
 
 TEST( pid, derivative_external )
@@ -148,13 +150,13 @@ TEST( pid, derivative_external )
     snark::control::pid pid( 0, 0, d );
     boost::posix_time::ptime t = initial_time;
     double error = 0;
-    EXPECT_EQ( 0, pid( error, t ) );
+    EXPECT_NEAR( 0, pid( error, t ), eps );
     t += boost::posix_time::microseconds( 1 );
     double derivative = 0.1;
-    EXPECT_EQ( d*derivative, pid( error, derivative, t ) );
+    EXPECT_NEAR( d*derivative, pid( error, derivative, t ), eps );
     t += boost::posix_time::microseconds( 2 );
     derivative = 0.2;
-    EXPECT_EQ( d*derivative, pid( error, derivative, t ) );
+    EXPECT_NEAR( d*derivative, pid( error, derivative, t ), eps );
 }
 
 TEST( pid, reset )
@@ -164,20 +166,20 @@ TEST( pid, reset )
     boost::posix_time::ptime t = initial_time;
     double error = 0.1;
     double integral = 0;
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
     int microseconds = 2;
     t += boost::posix_time::microseconds( microseconds );
     error = 0.2;
     integral += error * to_seconds( microseconds );
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
     pid.reset();
     integral = 0;
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
     microseconds = 3;
     t += boost::posix_time::microseconds( microseconds );
     error = 0.3;
     integral = error * to_seconds( microseconds );
-    EXPECT_EQ( i*integral, pid( error, t ) );
+    EXPECT_NEAR( i*integral, pid( error, t ), eps );
 }
 
 TEST( pid, combination )
@@ -190,24 +192,22 @@ TEST( pid, combination )
     double error = 0.1;
     double integral = 0;
     double derivative = 0;
-    EXPECT_EQ( p*error + i*integral + d*derivative, pid( error, t ) );
+    EXPECT_NEAR( p*error + i*integral + d*derivative, pid( error, t ), eps );
     int microseconds = 2;
     t += boost::posix_time::microseconds( microseconds );
     double previous_error = error;
     error = -0.2;
     integral += error * to_seconds( microseconds );
     derivative = ( error - previous_error ) / to_seconds( microseconds );
-    EXPECT_EQ( p*error + i*integral + d*derivative, pid( error, t ) );
+    EXPECT_NEAR( p*error + i*integral + d*derivative, pid( error, t ), eps );
     microseconds = 3;
     t += boost::posix_time::microseconds( microseconds );
     previous_error = error;
     error = 0.3;
     integral += error * to_seconds( microseconds );
     derivative = ( error - previous_error ) / to_seconds( microseconds );
-    EXPECT_EQ( p*error + i*integral + d*derivative, pid( error, t ) );
+    EXPECT_NEAR( p*error + i*integral + d*derivative, pid( error, t ), eps );
 }
-
-static const double eps = 1e-12;
 
 struct shift
 {
