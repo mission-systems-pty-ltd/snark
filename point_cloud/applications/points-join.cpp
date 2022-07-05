@@ -89,17 +89,22 @@ static void usage( bool more = false )
     #endif
     std::cerr << std::endl;
     std::cerr << "points filter (default): for each input point find the nearest point of the filter in given radius" << std::endl;
-    std::cerr << "    input: points; fields: x,y,z,[block],[normal/x,normal/y,normal/z]" << std::endl;
-    std::cerr << "    filter: points; fields: x,y,z,[block],[normal/x,normal/y,normal/z]" << std::endl;
+    std::cerr << "    input: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]" << std::endl;
+    std::cerr << "    filter: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]" << std::endl;
     std::cerr << "    output: concatenated input and corresponding line of filter" << std::endl;
     std::cerr << "            if the angle between the input and filter point normals is greater than 90 degrees" << std::endl;
     std::cerr << "            then the filter point will not be considered" << std::endl;
+    std::cerr << "    radius logic" << std::endl;
+    std::cerr << "        - input: no radius field;  filter: no radius field:  points not farther than --radius are considered" << std::endl;
+    std::cerr << "        - input: has radius field; filter: no radius field:  points not farther than input radius are considered" << std::endl;
+    std::cerr << "        - input: no radius field;  filter: has radius field: points not farther than filter radius are considered" << std::endl;
+    std::cerr << "        - input: has radius field; filter: has radius field: points not farther than input radius plus filter radius are considered" << std::endl;
     std::cerr << std::endl;
     std::cerr << "triangulated filter: for each input point find the nearest triangle of the filter, if any, in given radius; i.e." << std::endl;
     std::cerr << "                     nearest point of a triangle is the input point projection onto the triangle plane" << std::endl;
     std::cerr << "                     if the projection is inside of the triangle, border included" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    input fields: x,y,z,[block]" << std::endl;
+    std::cerr << "    input fields: x,y,z,[block],[radius]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    filter: triangles; fields: corners; or corners[0],corners[1],corners[2]; or corners[0]/x,or corners[0]/y,or corners[0]/z etc" << std::endl;
     std::cerr << "    output: concatenated input, corresponding line of filter, and nearest point of triangle (3d in binary)" << std::endl;
@@ -110,6 +115,9 @@ static void usage( bool more = false )
     std::cerr << "                              the point to the origin greater or equal 90 degrees, the triangle" << std::endl;
     std::cerr << "                              will not be considered" << std::endl;
     std::cerr << "                              default: 0,0,0" << std::endl;
+    std::cerr << "    radius logic" << std::endl;
+    std::cerr << "        input: no radius field;  triangles not farther than --radius are considered" << std::endl;
+    std::cerr << "        input: has radius field; triangles not farther than input radius are considered" << std::endl;
     std::cerr << std::endl;
     if( more ) { std::cerr << "csv options" << std::endl << comma::csv::options::usage() << std::endl << std::endl; }
     std::cerr << "examples: todo" << std::endl;
