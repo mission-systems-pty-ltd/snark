@@ -123,6 +123,7 @@ static bool permissive;
 static bool use_normal;
 static bool use_block;
 static bool use_radius;
+static bool use_filter_radius;
 static double radius;
 static double squared_radius;
 static double min_radius;
@@ -209,19 +210,15 @@ template <> struct traits< triangle_input >
 
 } }
 
-// todo: add block field
-struct record
+struct record: public point_input // todo: watch memory; by deriving from point_input, increased class size by 16 bytes or around 30%
 {
-    Eigen::Vector3d value;
-    Eigen::Vector3d normal;
-    comma::uint32 id;
     std::string line;
-    record() : value( Eigen::Vector3d::Zero() ), normal( Eigen::Vector3d::Zero() ), id( 0 ) {}
-    record( const point_input& input, std::string line ) : value( input.value ), normal( input.normal ), id( input.id ), line( std::move( line ) ) {}
+    record() = default;
+    record( const point_input& input, std::string line ): point_input( input ), line( std::move( line ) ) {}
     boost::optional< Eigen::Vector3d > nearest_to( const point_input& rhs ) const
     {
         if( ( rhs.id == id ) != matching_id ) { return boost::none; }
-        if( use_normal ) { return !comma::math::less( normal.dot( rhs.normal ), 0 ) ? boost::make_optional( value ) : boost::none; }
+        if( use_normal && !comma::math::less( normal.dot( rhs.normal ), 0 ) ) { return boost::none; }
         return value;
     } // watch performance
     bool is_valid() const { return true; }
@@ -277,7 +274,7 @@ template <> struct traits< Eigen::Vector3d >
             void calculate_squared_norms( const Eigen::Vector3d& rhs ) { snark::cuda::squared_norms( rhs, buffer ); }
             boost::optional< std::pair< Eigen::Vector3d, double > > nearest_to( const point_input& rhs, unsigned int k ) const { return std::make_pair( records[k]->value, use_cuda ? buffer.out[k] : (records[k]->value - rhs.value ).squaredNorm() ); }
         #else // SNARK_USE_CUDA
-            boost::optional< std::pair< Eigen::Vector3d, double > > nearest_to( const point_input& rhs, unsigned int k ) const
+            boost::optional< std::pair< Eigen::Vector3d, double > > nearest_to( const point_input& rhs, unsigned int k ) const // todo? return vector by reference, not by value
             {
                 const boost::optional< Eigen::Vector3d >& n = records[k]->nearest_to( rhs );
                 if( !n ) { return boost::none; }
@@ -495,7 +492,7 @@ template < typename V > struct join_impl_
         grid_t grid = read_filter_block( self_join );
         bool empty_filter_and_matching = !block && !self_join && matching;
         if( empty_filter_and_matching && !strict ) { return 0; }
-        if( self_join && use_radius ) { std::cerr << "points-join: self-join: radius field: not supported" << std::endl; return 1; }
+        if( self_join && use_radius ) { std::cerr << "points-join: self-join: radius field: todo" << std::endl; return 1; }
         comma::csv::input_stream< input_t > istream( std::cin, stdin_csv ); // quick and dirty, don't mind self_join
         #ifdef WIN32
         if( stdin_csv.binary() ) { _setmode( _fileno( stdout ), _O_BINARY ); }
@@ -579,11 +576,11 @@ template < typename V > struct join_impl_
                                 {
                                     typename grid_t::iterator it = grid.find( i );
                                     if( it == grid.end() ) { continue; }
-                                    const auto& voxel_map = it->second;
-                                    if( fast ) { c += voxel_map.records.size(); continue; }
-                                    for( std::size_t k = 0; k < voxel_map.records.size(); ++k )
+                                    const auto& voxel = it->second;
+                                    if( fast ) { c += voxel.records.size(); continue; }
+                                    for( std::size_t k = 0; k < voxel.records.size(); ++k )
                                     {
-                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel_map.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
+                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
                                         if( q && q->second <= current_squared_radius && q->second >= squared_min_radius ) { ++c; }
                                     }
                                 }
@@ -605,12 +602,12 @@ template < typename V > struct join_impl_
                                     #ifdef SNARK_USE_CUDA
                                     if( use_cuda ) { it->second.calculate_squared_norms( p.value ); }
                                     #endif
-                                    const auto& voxel_map = it->second;
-                                    for( std::size_t k = 0; k < voxel_map.records.size(); ++k )
+                                    const auto& voxel = it->second;
+                                    for( std::size_t k = 0; k < voxel.records.size(); ++k )
                                     {
-                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel_map.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
+                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
                                         if( !q || q->second > current_squared_radius || q->second < squared_min_radius ) { continue; }
-                                        const std::string& join_line = voxel_map.records[k]->line;
+                                        const std::string& join_line = voxel.records[k]->line;
                                         if( stdin_csv.binary() ) { outputs.emplace_back( left_line, join_line ); continue; }
                                         if( filter_csv.binary() ) { outputs.emplace_back( left_line, bin_to_csv_( join_line ) ); continue; }
                                         outputs.emplace_back( left_line, join_line );
@@ -636,22 +633,22 @@ template < typename V > struct join_impl_
                                 #ifdef SNARK_USE_CUDA
                                 if( use_cuda ) { it->second.calculate_squared_norms( p.value ); }
                                 #endif
-                                const auto& voxel_map = it->second;
+                                const auto& voxel = it->second;
                                 if( size == 1 ) // have to handle size 1 separately due to poorer performance of std::map
                                 {
-                                    for( std::size_t k = 0; k < voxel_map.records.size(); ++k )
+                                    for( std::size_t k = 0; k < voxel.records.size(); ++k )
                                     {
-                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel_map.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
+                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
                                         if( !q || q->second > current_squared_radius || q->second < squared_min_radius ) { continue; }
-                                        if( !nearest || nearest->squared_distance > q->second ) { nearest.emplace( voxel_map.records[k], q->first, q->second ); }
+                                        if( !nearest || nearest->squared_distance > q->second ) { nearest.emplace( voxel.records[k], q->first, q->second ); }
                                         if( !append_nearest ) { enough = true; break; }
                                     }
                                 }
                                 else
                                 {
-                                    for( std::size_t k = 0; k < voxel_map.records.size(); ++k )
+                                    for( std::size_t k = 0; k < voxel.records.size(); ++k )
                                     {
-                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel_map.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
+                                        const boost::optional< std::pair< Eigen::Vector3d, double > >& q = voxel.nearest_to( p, k ); // todo: fix! currently, visiting each triangle 3 times
                                         if( !q || q->second > current_squared_radius || q->second < squared_min_radius ) { continue; }
                                         if( nearest_map->size() >= size )
                                         {
@@ -659,7 +656,7 @@ template < typename V > struct join_impl_
                                             if( end_it->second.squared_distance < q->second ) { continue; }
                                             nearest_map->erase( end_it );
                                         }
-                                        nearest_map->emplace( std::make_pair( q->second, nearest_t( voxel_map.records[k], q->first, q->second ) ) );
+                                        nearest_map->emplace( std::make_pair( q->second, nearest_t( voxel.records[k], q->first, q->second ) ) );
                                     }
                                 }
                             }
@@ -832,13 +829,16 @@ int main( int ac, char** av )
         use_radius = stdin_csv.has_field( "radius" );
         use_normal = find_in_fields( w, normal_strings ) && find_in_fields( v, normal_strings );
         use_block = filter_csv.has_field( "block" ) && stdin_csv.has_field( "block" );
+        use_filter_radius = filter_csv.has_field( "radius" ); // quick and dirty
         #ifdef SNARK_USE_CUDA
-        if (use_cuda && use_normal) { std::cerr << "todo: point normals not implemented for cuda" << std::endl; return 1; }
+        if( use_cuda && use_normal ) { std::cerr << "todo: point normals not implemented for cuda" << std::endl; return 1; }
+        if( use_cuda && use_filter_radius ) { std::cerr << "points-join: cuda: radius field in filter: todo" << std::endl; return 1; }
         #endif
         double r = radius;
         if( filter_triangulated ) // quick and dirty
         {
             if( unnamed.empty() ) { std::cerr << "points-join: self-join is not supported for triangles" << std::endl; return 1; }
+            if( use_filter_radius ) { std::cerr << "points-join: radius field in filter not supported for triangles" << std::endl; return 1; }
             max_triangle_side = options.value< double >( "--max-triangle-side", r );
             if( max_triangle_side > r ) { r = max_triangle_side; }
             r *= 2; // todo: quick and dirty, calculate precise upper bound; needed to contain all triangles in given radius
