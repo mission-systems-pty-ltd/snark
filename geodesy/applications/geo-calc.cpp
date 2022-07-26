@@ -267,7 +267,7 @@ int main( int ac, char **av )
                                                 , zone );
                     if( !zone && zone_use_first ) { zone = q.zone; }
                     if( !first_zone ) { first_zone = q.zone; }
-                    if( first_zone && !allow_zone_change && int( *first_zone ) != q.zone ) { std::cerr << "geo-calc: convert: expected zone the same as in first input record (" << *zone << "); got zone " << q.zone << "; use --allow-zone-change to override" << std::endl; return 1; }
+                    if( first_zone && !allow_zone_change && int( *first_zone ) != q.zone ) { std::cerr << "geo-calc: convert: expected zone the same as in first input record (" << *first_zone << "); got zone " << q.zone << "; use --allow-zone-change to override" << std::endl; return 1; }
                     q.is_south = p->coordinates.latitude < 0;
                     if( !q.is_south ) { north -= 10000000; }
                     q.coordinates = Eigen::Vector3d( north, east, -p->z );
