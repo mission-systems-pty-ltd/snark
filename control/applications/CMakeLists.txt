@@ -20,3 +20,7 @@ INSTALL( TARGETS control-speed RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMP
 
 INSTALL( PROGRAMS control-follow-waypoints DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
+add_executable( control-console control-console.cpp )
+target_link_libraries( control-console snark_math ${comma_ALL_LIBRARIES} )
+set_target_properties( control-console PROPERTIES LINK_FLAGS_RELEASE -s )
+install( TARGETS control-console RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )

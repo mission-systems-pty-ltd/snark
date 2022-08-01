@@ -11,6 +11,10 @@ struct roll_pitch_yaw : public Eigen::Vector3d
     double roll() const { return x(); }
     double pitch() const { return y(); }
     double yaw() const { return z(); }
+    
+    double& roll() { return x(); }
+    double& pitch() { return y(); }
+    double& yaw() { return z(); }
 
     void roll( double r ) { x() = r; }
     void pitch( double p ) { y() = p; }
