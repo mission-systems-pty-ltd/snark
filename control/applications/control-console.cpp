@@ -28,11 +28,33 @@ static void usage( bool verbose )
     std::cerr << "    c: roll left    v: roll right" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
+    std::cerr << "    --lookaround,-l; for each keypress output 6 poses that look in 6 directions:" << std::endl;
+    std::cerr << "                     top,back,left,front,right,bottom as for equirectangular cubes" << std::endl;
     std::cerr << "    --pose,-p=<initial_pose>; default=0,0,0,0,0,0; initial pose as <x>,<y>,<z>,<roll>,<pitch>,<yaw>" << std::endl;
     std::cerr << "    --step,-s=<meters>; default=1; linear increment step" << std::endl;
     std::cerr << "    --step-angle,-a=<radians>; default=0.0873; angle increment step, default: 5 degrees" << std::endl;
     std::cerr << std::endl;
     exit( 0 );
+}
+
+static snark::position _transform( const snark::position& pose, const snark::position& delta ) // todo: quick and dirty; put it in library
+{
+    Eigen::Translation3d translation( pose.coordinates );
+    const Eigen::Matrix3d& rotation = snark::rotation_matrix::rotation( pose.orientation );
+    Eigen::Affine3d transform = translation * rotation;
+    return snark::position( transform * delta.coordinates, snark::rotation_matrix::roll_pitch_yaw( rotation * snark::rotation_matrix::rotation( delta.orientation ) ) );
+}
+
+static void _output( comma::csv::output_stream< snark::position >& ostream, const snark::position& pose, bool lookaround )
+{
+    if( !lookaround ) { ostream.write( pose ); return; }
+    static const std::vector< snark::position > faces = { { { 0., 0., 0. }, { 0.,  M_PI / 2.,         0. } }    // top
+                                                        , { { 0., 0., 0. }, { 0.,         0.,       M_PI } }    // back
+                                                        , { { 0., 0., 0. }, { 0.,         0.,  M_PI / 2. } }    // left
+                                                        , { { 0., 0., 0. }, { 0.,         0.,         0. } }    // front
+                                                        , { { 0., 0., 0. }, { 0.,         0., -M_PI / 2. } }    // right
+                                                        , { { 0., 0., 0. }, { 0., -M_PI / 2.,         0. } } }; // down
+    for( const auto& face: faces ) { ostream.write( _transform( pose, face ) ); }
 }
 
 int main( int ac, char** av )
@@ -43,11 +65,12 @@ int main( int ac, char** av )
         comma::csv::options csv;
         double step = options.value( "--step,-s", 1. );
         double angle = options.value( "--step-angle,-a", 5 * M_PI / 180 );
+        bool lookaround = options.exists( "--lookaround,-l" );
         csv.format( "6d" );
         csv.flush = true;
         comma::csv::output_stream< snark::position > ostream( std::cout, csv );
         snark::position pose = comma::csv::ascii< snark::position >().get( options.value< std::string >( "--pose,-p", "0,0,0,0,0,0" ) );
-        ostream.write( pose );
+        _output( ostream, pose, lookaround );
         while( std::cin.good() )
         {
             int c = std::getchar();
@@ -68,12 +91,8 @@ int main( int ac, char** av )
                 case 'e': case 'E':           delta.orientation.yaw() += angle; break;
                 default: continue;
             }
-            Eigen::Translation3d translation( pose.coordinates );
-            Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( pose.orientation );
-            Eigen::Affine3d transform = translation * rotation;
-            pose.coordinates = transform * delta.coordinates;
-            pose.orientation = snark::rotation_matrix::roll_pitch_yaw( rotation * snark::rotation_matrix::rotation( delta.orientation ) );
-            ostream.write( pose );
+            pose = _transform( pose, delta );
+            _output( ostream, pose, lookaround );
         }
         return 0;
     }
