@@ -20,8 +20,12 @@ static void usage( bool verbose )
     std::cerr << "output: x,y,z,roll,pitch,yaw binary records; format: 6d" << std::endl;
     std::cerr << std::endl;
     std::cerr << "keys" << std::endl;
-    std::cerr << "    w: forward      s: backward     a: left         d: right" << std::endl;
-    std::cerr << "    q: turn left    e: turn right   r: pitch up     f: pitch down" << std::endl;
+    std::cerr << "    w: forward      s: backward" << std::endl;
+    std::cerr << "    a: left         d: right" << std::endl;
+    std::cerr << "    x: up           z: down         " << std::endl;
+    std::cerr << "    q: turn left    e: turn right" << std::endl;
+    std::cerr << "    r: pitch up     f: pitch down" << std::endl;
+    std::cerr << "    c: roll left    v: roll right" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
     std::cerr << "    --pose,-p=<initial_pose>; default=0,0,0,0,0,0; initial pose as <x>,<y>,<z>,<roll>,<pitch>,<yaw>" << std::endl;
@@ -44,23 +48,24 @@ int main( int ac, char** av )
         comma::csv::output_stream< snark::position > ostream( std::cout, csv );
         snark::position pose = comma::csv::ascii< snark::position >().get( options.value< std::string >( "--pose,-p", "0,0,0,0,0,0" ) );
         ostream.write( pose );
-        //bool escape_next = false;
         while( std::cin.good() )
         {
             int c = std::getchar();
-            //if( escape_next ) { escape_next = false; continue; }
             snark::position delta;
             switch( c )
             {
-                case 'w': case 'W': delta.coordinates.x() += step; break;
-                case 's': case 'S': delta.coordinates.x() -= step; break;
-                case 'd': case 'D': delta.coordinates.y() += step; break;
-                case 'a': case 'A': delta.coordinates.y() -= step; break;
-                case 'r': case 'R': delta.orientation.pitch() += angle; break;
-                case 'f': case 'F': delta.orientation.pitch() -= angle; break;
-                case 'q': case 'Q': delta.orientation.yaw() -= angle; break;
-                case 'e': case 'E': delta.orientation.yaw() += angle; break;
-                //case 27: escape_next = true; continue;
+                case 'w': case 'W':           delta.coordinates.x() += step; break;
+                case 's': case 'S':           delta.coordinates.x() -= step; break;
+                case 'd': case 'D':           delta.coordinates.y() += step; break;
+                case 'a': case 'A':           delta.coordinates.y() -= step; break;
+                case 'z': case 'Z':           delta.coordinates.z() += step; break;
+                case 'x': case 'X': case ' ': delta.coordinates.z() -= step; break;
+                case 'c': case 'C':           delta.orientation.roll() -= angle; break;
+                case 'v': case 'V':           delta.orientation.roll() += angle; break;
+                case 'r': case 'R':           delta.orientation.pitch() += angle; break;
+                case 'f': case 'F':           delta.orientation.pitch() -= angle; break;
+                case 'q': case 'Q':           delta.orientation.yaw() -= angle; break;
+                case 'e': case 'E':           delta.orientation.yaw() += angle; break;
                 default: continue;
             }
             Eigen::Translation3d translation( pose.coordinates );
