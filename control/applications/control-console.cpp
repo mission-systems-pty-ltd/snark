@@ -10,6 +10,16 @@
 #include "../../math/position.h"
 #include "../../visiting/traits.h"
 
+static void _layout( std::ostream& os = std::cerr )
+{
+    os << "    w: forward      s: backward" << std::endl;
+    os << "    a: left         d: right" << std::endl;
+    os << "    x: up           z: down         " << std::endl;
+    os << "    q: turn left    e: turn right" << std::endl;
+    os << "    r: pitch up     f: pitch down" << std::endl;
+    os << "    c: roll left    v: roll right" << std::endl;
+}
+
 static void usage( bool verbose )
 {
     std::cerr << std::endl;
@@ -20,12 +30,7 @@ static void usage( bool verbose )
     std::cerr << "output: x,y,z,roll,pitch,yaw binary records; format: 6d" << std::endl;
     std::cerr << std::endl;
     std::cerr << "keys" << std::endl;
-    std::cerr << "    w: forward      s: backward" << std::endl;
-    std::cerr << "    a: left         d: right" << std::endl;
-    std::cerr << "    x: up           z: down         " << std::endl;
-    std::cerr << "    q: turn left    e: turn right" << std::endl;
-    std::cerr << "    r: pitch up     f: pitch down" << std::endl;
-    std::cerr << "    c: roll left    v: roll right" << std::endl;
+    _layout();
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
     std::cerr << "    --lookaround,-l; for each keypress output 6 poses that look in 6 directions:" << std::endl;
@@ -33,6 +38,7 @@ static void usage( bool verbose )
     std::cerr << "    --pose,-p=<initial_pose>; default=0,0,0,0,0,0; initial pose as <x>,<y>,<z>,<roll>,<pitch>,<yaw>" << std::endl;
     std::cerr << "    --step,-s=<meters>; default=1; linear increment step" << std::endl;
     std::cerr << "    --step-angle,-a=<radians>; default=0.0873; angle increment step, default: 5 degrees" << std::endl;
+    std::cerr << "    --verbose,-v: print hot keys and pose on stderr" << std::endl;
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -45,8 +51,9 @@ static snark::position _transform( const snark::position& pose, const snark::pos
     return snark::position( transform * delta.coordinates, snark::rotation_matrix::roll_pitch_yaw( rotation * snark::rotation_matrix::rotation( delta.orientation ) ) );
 }
 
-static void _output( comma::csv::output_stream< snark::position >& ostream, const snark::position& pose, bool lookaround )
+static void _output( comma::csv::output_stream< snark::position >& ostream, const snark::position& pose, bool lookaround, bool verbose )
 {
+    if( verbose ) { std::cerr << "x,y,z: " << pose.coordinates.transpose() << " roll,pitch,yaw: " << pose.orientation.transpose() << " degrees: " << ( ( pose.orientation * 180 / M_PI ).transpose() ) << std::string( 40, ' ' ) << "\r"; }
     if( !lookaround ) { ostream.write( pose ); return; }
     static const std::vector< snark::position > faces = { { { 0., 0., 0. }, { 0.,  M_PI / 2.,         0. } }    // top
                                                         , { { 0., 0., 0. }, { 0.,         0.,       M_PI } }    // back
@@ -66,11 +73,13 @@ int main( int ac, char** av )
         double step = options.value( "--step,-s", 1. );
         double angle = options.value( "--step-angle,-a", 5 * M_PI / 180 );
         bool lookaround = options.exists( "--lookaround,-l" );
+        bool verbose = options.exists( "--verbose,-v" );
+        if( verbose ) { std::cerr << std::endl; _layout(); std::cerr << std::endl; }
         csv.format( "6d" );
         csv.flush = true;
         comma::csv::output_stream< snark::position > ostream( std::cout, csv );
         snark::position pose = comma::csv::ascii< snark::position >().get( options.value< std::string >( "--pose,-p", "0,0,0,0,0,0" ) );
-        _output( ostream, pose, lookaround );
+        _output( ostream, pose, lookaround, verbose );
         while( std::cin.good() )
         {
             int c = std::getchar();
@@ -92,7 +101,7 @@ int main( int ac, char** av )
                 default: continue;
             }
             pose = _transform( pose, delta );
-            _output( ostream, pose, lookaround );
+            _output( ostream, pose, lookaround, verbose );
         }
         return 0;
     }
