@@ -53,7 +53,7 @@ static snark::position _transform( const snark::position& pose, const snark::pos
 
 static void _output( comma::csv::output_stream< snark::position >& ostream, const snark::position& pose, bool lookaround, bool verbose )
 {
-    if( verbose ) { std::cerr << "x,y,z: " << pose.coordinates.transpose() << " roll,pitch,yaw: " << pose.orientation.transpose() << " degrees: " << ( ( pose.orientation * 180 / M_PI ).transpose() ) << std::string( 40, ' ' ) << "\r"; }
+    if( verbose ) { std::cerr << "x,y,z: " << pose.coordinates.x() << " " << pose.coordinates.y() << " " << pose.coordinates.z() << " roll,pitch,yaw: " << pose.orientation.x() << " " << pose.orientation.y() << " " << pose.orientation.z() << " degrees: " << pose.orientation.x() * 180 / M_PI << " " << pose.orientation.y() * 180 / M_PI << " " << pose.orientation.z() * 180 / M_PI << std::string( 40, ' ' ) << "\r"; }
     if( !lookaround ) { ostream.write( pose ); return; }
     static const std::vector< snark::position > faces = { { { 0., 0., 0. }, { 0.,  M_PI / 2.,         0. } }    // top
                                                         , { { 0., 0., 0. }, { 0.,         0.,       M_PI } }    // back
