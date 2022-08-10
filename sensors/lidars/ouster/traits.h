@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -108,6 +108,7 @@ template <> struct traits< snark::ouster::OS1::azimuth_block_t >
     {
         v.apply( "timestamp", t.timestamp );
         v.apply( "measurement_id", t.measurement_id );
+        v.apply( "frame_id", t.frame_id );
         v.apply( "encoder_count", t.encoder_count );
         v.apply( "data_blocks", t.data_blocks );
         v.apply( "packet_status", t.packet_status );
@@ -118,6 +119,7 @@ template <> struct traits< snark::ouster::OS1::azimuth_block_t >
     {
         v.apply( "timestamp", t.timestamp );
         v.apply( "measurement_id", t.measurement_id );
+        v.apply( "frame_id", t.frame_id );
         v.apply( "encoder_count", t.encoder_count );
         v.apply( "data_blocks", t.data_blocks );
         v.apply( "packet_status", t.packet_status );
@@ -162,6 +164,7 @@ template <> struct traits< snark::ouster::output_azimuth_block_t >
     {
         v.apply( "t", t.t );
         v.apply( "measurement_id", t.measurement_id );
+        v.apply( "frame_id", t.frame_id );
         v.apply( "encoder_count", t.encoder_count );
         v.apply( "block", t.block_id );
     }
@@ -171,6 +174,7 @@ template <> struct traits< snark::ouster::output_azimuth_block_t >
     {
         v.apply( "t", t.t );
         v.apply( "measurement_id", t.measurement_id );
+        v.apply( "frame_id", t.frame_id );
         v.apply( "encoder_count", t.encoder_count );
         v.apply( "block", t.block_id );
     }

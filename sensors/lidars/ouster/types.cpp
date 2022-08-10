@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #include "types.h"
 #include "../../../math/range_bearing_elevation.h"
@@ -33,6 +33,7 @@ output_azimuth_block_t::output_azimuth_block_t( const OS1::azimuth_block_t& azim
                                               , comma::uint32 block_id )
     : t( convert_timestamp( azimuth_block.timestamp() ))
     , measurement_id( azimuth_block.measurement_id() )
+    , frame_id( azimuth_block.frame_id() )
     , encoder_count( azimuth_block.encoder_count() )
     , block_id( block_id )
 {

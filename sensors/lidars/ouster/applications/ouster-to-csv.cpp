@@ -205,6 +205,7 @@ void app< snark::ouster::OS1::azimuth_block_t, snark::ouster::output_lidar_t >::
 
     if( azimuth_block.packet_status() == snark::ouster::OS1::packet_status_good )
     {
+        // we can't use frame_id for the block_id because it rolls over about once an hour
         if( azimuth_block.encoder_count() < last_encoder_count ) { block_id++; }
         last_encoder_count = azimuth_block.encoder_count();
         const snark::ouster::output_azimuth_block_t output_azimuth_block( azimuth_block, block_id );

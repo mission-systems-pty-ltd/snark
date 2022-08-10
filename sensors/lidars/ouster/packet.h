@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -31,7 +31,8 @@ struct data_block_t : public comma::packed::packed_struct< data_block_t, 12 >
 struct azimuth_block_t : public comma::packed::packed_struct< azimuth_block_t, 20 + pixels_per_column * 12 >
 {
     comma::packed::little_endian::uint64 timestamp;
-    comma::packed::little_endian::uint32 measurement_id;
+    comma::packed::little_endian::uint16 measurement_id;
+    comma::packed::little_endian::uint16 frame_id;
     comma::packed::little_endian::uint32 encoder_count;
     std::array< data_block_t, pixels_per_column > data_blocks;
     comma::packed::little_endian::uint32 packet_status;

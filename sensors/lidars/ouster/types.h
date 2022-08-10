@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -31,12 +31,14 @@ struct transform_t
 struct output_azimuth_block_t
 {
     boost::posix_time::ptime t;
-    comma::uint32 measurement_id;
+    comma::uint16 measurement_id;
+    comma::uint16 frame_id;
     comma::uint32 encoder_count;
     comma::uint32 block_id;
 
     output_azimuth_block_t()
         : measurement_id( 0 )
+        , frame_id( 0 )
         , encoder_count( 0 )
         , block_id( 0 )
     {}
