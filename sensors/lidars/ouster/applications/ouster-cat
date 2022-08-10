@@ -247,7 +247,7 @@ verbose "connecting to $lidar on command port $command_port"
 
 if [[ $operation =~ init|lidar|imu ]]; then
     host=$( load_config $( config_path_concat $options_config device/target ) )
-    [[ $host ]] || die "host name or ip address is required"
+    [[ $host ]] || die "target host name or ip address is required"
     [[ $host =~ ^[0-9.]+$ ]] && host_ip=$host || host_ip=$( getent hosts $host | awk '{ print $1 }' )
     [[ $host_ip ]] || die "unable to resolve $host"
 fi
