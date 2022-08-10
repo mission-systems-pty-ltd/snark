@@ -2520,7 +2520,11 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         else if( e[1] == "hsv" ) { type = cv::COLORMAP_HSV; }
         else if( e[1] == "pink" ) { type = cv::COLORMAP_PINK; }
         else if( e[1] == "hot" ) { type = cv::COLORMAP_HOT; }
-        else { COMMA_THROW( comma::exception, "expected colour-map type; got: \"" << e[1] << "\"" ); }
+        else
+        {
+            try { type = boost::lexical_cast< int >( e[1] ); }
+            catch( ... ) { COMMA_THROW( comma::exception, "expected colour-map type; got: \"" << e[1] << "\"; symbolic name may not be implemented, yet; see --help --verbose for numeric color-map types" ); }
+        }
         return std::make_pair( boost::bind< value_type_t >( colour_map_impl_< H >, _1, type ), true );
     }
     if( e[0] == "blur" )
@@ -3069,6 +3073,11 @@ static std::string usage_impl_()
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
     oss << "    color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail\n";
     oss << "        <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot\n";
+    oss << "                or numeric colormap code (names for colormaps in newer opencv versions: todo)\n";
+    oss << "                colormap type numeric values in opencv:\n";
+    oss << "                    autumn: 0, bone: 1, jet: 2, winter: 3, rainbow: 4, ocean: 5, summer: 6, spring: 7, cool: 8\n";
+    oss << "                    hsv: 9, pink: 10, hot: 11, parula: 12, magma: 13, inferno: 14, plasma: 15, viridis: 16\n";
+    oss << "                    cividis: 17, twilight: 18, twilight_shifted: 19, turbo: 20, deepgreen: 21\n";
     oss << filters::contraharmonic< boost::posix_time::ptime >::usage(4);
     oss << "    count: write frame number on images\n";
     oss << "    convert-to,convert_to=<type>[,<scale>[,<offset>]]: convert to given type; should be the same number of channels\n";
