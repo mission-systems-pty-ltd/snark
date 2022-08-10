@@ -18,6 +18,8 @@ description = """
 a trivial numpy convenience wrapper: read a stream of multidimensional arrays as binary on stdin, perform an operation, output as contiguous arrays to stdout
 
 operations
+    slice
+        slicing arrays; semantics for indices is the same as in numpy
     split
         split each record in the stream of arrays, repeating header and/or footer for each record
     transpose
