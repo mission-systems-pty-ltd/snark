@@ -1,33 +1,7 @@
 #!/usr/bin/env python3
 
-# This file is part of snark, a generic and flexible library for robotics research
 # Copyright (c) 2017 The University of Sydney
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-# 3. Neither the name of the University of Sydney nor the
-#    names of its contributors may be used to endorse or promote products
-#    derived from this software without specific prior written permission.
-#
-# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-# GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-# HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Copyright (c) 2022 Vsevolod Vlaskine
 
 from __future__ import print_function
 
@@ -37,7 +11,7 @@ import argparse
 import numpy as np
 import signal
 import sys
-from functools import partial
+import functools
 
 description = """
 
@@ -55,6 +29,8 @@ operations
 
 epilog = """
 examples
+    slice
+        ( echo 0,1,2,3,4,5; echo 6,7,8,9,10,11 ) | csv-to-bin 6f | math-array slice --indices "[1:,:]" --shape 3,2 | csv-from-bin 6f
     split
         ( echo some_other_stuff,0,1,2,3,4,5; echo more_other_stuff,6,7,8,9,10,11 ) | csv-to-bin s[32],6f | math-array split --shape 3,2 --header-size 32 | csv-from-bin s[32],2f
     transpose
@@ -78,6 +54,8 @@ def split( array ):
             a.tofile( sys.stdout )
             footer.tofile( sys.stdout )
 
+def slice( array, indices ): return eval( f'array{indices}' )
+            
 def numpy_operation( array, operation ):
     if sys.version_info.major > 2: #if np.__version__ >= '1.16.0': # sigh...
         sys.stdout.buffer.write( header.tobytes() )
@@ -98,7 +76,7 @@ def read( size, ntype = np.int8 ):
         return np.frombuffer( b, dtype = ntype, count = len( b ) // np.dtype( ntype ).itemsize )
     else:
         return np.fromfile( sys.stdin, ntype, size )
-
+        
 if __name__ == '__main__':
     def handle_signal( s, f ): print( "math-array: broken pipe, exit", file=sys.stderr ); sys.exit( 0 )
     signal.signal( signal.SIGPIPE, handle_signal ) 
@@ -107,19 +85,23 @@ if __name__ == '__main__':
     parser.add_argument( '--flush', action="store_true", help = 'flush after each record' )
     parser.add_argument( '--footer-size', '--footer', type = int, default = 0, help = 'if a footer of given size in bytes is present, pass it to stdout with output tensor prepended' )
     parser.add_argument( '--header-size', '--header', type = int, default = 0, help = 'if a header of given size in bytes is present, pass it to stdout with output tensor appended' )
+    parser.add_argument( '--indices', type = str, help = 'for slice operation: indices or index slices as in numpy, e.g: [:,1:]' )
     parser.add_argument( '--shape', type = str, help = 'comma-separated input array shape, e.g. 4,2,5' )
     parser.add_argument( '--to-axes', '--to', '--axes', type = str, help = 'comma-separated output array axis, e.g. 3,1,2' )
     parser.add_argument( '--type', type = str, default = 'f', choices = ( 'b', 'ub', 'i', 'ui', 'w', 'uw', 'l', 'ul', 'f', 'd' ), help = 'array element type: %(choices)s; default: %(default)s' )
     args = parser.parse_args()
-    types = { 'b': np.int8, 'ub': np.uint8, 'w': np.int16, 'uw': np.uint16, 'i': np.int32, 'ui': np.uint32, 'l': np.int64, 'ul': np.uint64, 'f': np.float32, 'd': np.float64 };
+    types = { 'b': np.int8, 'ub': np.uint8, 'w': np.int16, 'uw': np.uint16, 'i': np.int32, 'ui': np.uint32, 'l': np.int64, 'ul': np.uint64, 'f': np.float32, 'd': np.float64 };    
     if args.operation[0] == "transpose":
         if args.to_axes is None: die( "please specify --to-axes" )
         to_axes = eval( '(' + args.to_axes + ')' )
-        operation = partial( numpy_operation, operation = partial( np.transpose, axes = to_axes ) )
+        operation = functools.partial( numpy_operation, operation=functools.partial( np.transpose, axes=to_axes ) )
+    elif args.operation[0] == "slice":
+        if args.indices is None: die( "please specify --indices" )
+        operation = functools.partial( numpy_operation, operation=functools.partial( slice, indices=args.indices ) )
     elif args.operation[0] == "split":
         operation = split
     else:
-        operation = partial( numpy_operation, operation = eval( "partial( " + args.operation[0] + " )" ) )
+        operation = functools.partial( numpy_operation, operation=eval( "functools.partial( " + args.operation[0] + " )" ) )
     if args.shape is None: die( "please specify --shape" )
     ntype = types[ args.type ]
     shape = eval( '(' + args.shape + ')' )
