@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2019 The University of Sydney
-# Copyright (c) 2020 Mission Systems Pty Ltd
+# Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 scriptname=$( basename $0 )
 
@@ -192,6 +192,7 @@ function output_format()
     esac
 }
 
+# TODO: update for firmware v2
 function packet_size()
 {
     case $1 in
@@ -311,6 +312,13 @@ function wrap_json_arrays()
         '
 }
 
+function version_ge()
+{
+    local value=$1
+    local compare_to=$2
+    echo -e "${compare_to}\n${value}" | sort -V | sed -n 2p | grep -q "^${value}$"
+}
+
 function output_config()
 {
     ping_lidar
@@ -325,12 +333,15 @@ function output_config()
                 echo
             fi
         done
+        local firmware=$( run_cmd get_sensor_info | name-value-get build_rev | sed 's/^v//' )
         echo "device/host=$lidar"
         echo "device/target=$( load_config $( config_path_concat $options_config device/target ) 2>/dev/null )"
+        echo "device/firmware=$firmware"
         run_cmd "get_config_txt" | name-value-convert | sed 's#^#parameters/#'
         run_cmd "get_beam_intrinsics" | name-value-convert | sed 's#^#beam_intrinsics/#'
         run_cmd "get_imu_intrinsics" | name-value-convert | sed 's#^#imu_intrinsics/#'
         run_cmd "get_lidar_intrinsics" | name-value-convert | sed 's#^#lidar_intrinsics/#'
+        version_ge $firmware 2.0.0 && run_cmd "get_lidar_data_format" | name-value-convert | sed 's#^#lidar_data_format/#'
     } | name-value-convert --to json | wrap_json_arrays
 }
 

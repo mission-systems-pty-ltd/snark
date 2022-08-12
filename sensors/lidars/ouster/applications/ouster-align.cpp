@@ -87,7 +87,7 @@ struct channel_data
     std::vector< snark::ouster::lidar::output_lidar_t > back;
 };
 
-static std::array< channel_data, snark::ouster::lidar::pixels_per_column > channels;
+static std::array< channel_data, snark::ouster::lidar::v1::pixels_per_column > channels;
 static comma::uint32 records_per_frame;
 static comma::uint32 records_added = 0;
 
@@ -122,7 +122,7 @@ int main( int ac, char** av )
         if( options.exists( "--output-fields" ) ) { std::cout << output_fields() << std::endl; return 0; }
         if( options.exists( "--output-format" ) ) { std::cout << output_format() << std::endl; return 0; }
 
-        records_per_frame = options.value< comma::uint32 >( "--columns", default_columns_per_frame ) * snark::ouster::lidar::pixels_per_column;
+        records_per_frame = options.value< comma::uint32 >( "--columns", default_columns_per_frame ) * snark::ouster::lidar::v1::pixels_per_column;
 
         // input and output format are the same
         comma::csv::options csv( options, output_fields(), false );

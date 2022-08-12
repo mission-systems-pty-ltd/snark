@@ -105,7 +105,7 @@ int main( int ac, char** av )
 
         output_images = comma::split( output_images_str, ',' );
         comma::uint32 columns = options.value< comma::uint32 >( "--columns", default_columns_per_frame );
-        records_per_frame = columns * snark::ouster::lidar::pixels_per_column;
+        records_per_frame = columns * snark::ouster::lidar::v1::pixels_per_column;
 
         comma::csv::options csv( options, default_fields, false );
         csv.format( comma::csv::format::value< snark::ouster::lidar::output_lidar_t >() );
@@ -131,7 +131,7 @@ int main( int ac, char** av )
         header_os.reset( new comma::csv::binary_output_stream< snark::cv_mat::serialization::header >( std::cout, header_csv ));
 
         cv_mat_header.type = snark::cv_mat::type_from_string( image_format );
-        cv_mat_header.rows = snark::ouster::lidar::pixels_per_column * output_images.size();
+        cv_mat_header.rows = snark::ouster::lidar::v1::pixels_per_column * output_images.size();
         cv_mat_header.cols = columns;
 
         if( options.exists( "--output-fields" )) { std::cout << header_csv.fields << ",data" << std::endl; return 0; }

@@ -45,6 +45,18 @@ struct output_azimuth_block_t
 
     output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
                           , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<16>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<32>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<64>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<128>& measurement_block
+                          , comma::uint32 block_id );
 };
 
 struct output_data_block_t

@@ -39,6 +39,46 @@ output_azimuth_block_t::output_azimuth_block_t( const v1::azimuth_block_t& azimu
 {
 }
 
+output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<16>& measurement_block
+                                              , comma::uint32 block_id )
+    : t( convert_timestamp( measurement_block.timestamp() ))
+    , measurement_id( measurement_block.measurement_id() )
+    , frame_id( measurement_block.frame_id() )
+    , encoder_count( measurement_block.encoder_count() )
+    , block_id( block_id )
+{
+}
+
+output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<32>& measurement_block
+                                              , comma::uint32 block_id )
+    : t( convert_timestamp( measurement_block.timestamp() ))
+    , measurement_id( measurement_block.measurement_id() )
+    , frame_id( measurement_block.frame_id() )
+    , encoder_count( measurement_block.encoder_count() )
+    , block_id( block_id )
+{
+}
+
+output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<64>& measurement_block
+                                              , comma::uint32 block_id )
+    : t( convert_timestamp( measurement_block.timestamp() ))
+    , measurement_id( measurement_block.measurement_id() )
+    , frame_id( measurement_block.frame_id() )
+    , encoder_count( measurement_block.encoder_count() )
+    , block_id( block_id )
+{
+}
+
+output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<128>& measurement_block
+                                              , comma::uint32 block_id )
+    : t( convert_timestamp( measurement_block.timestamp() ))
+    , measurement_id( measurement_block.measurement_id() )
+    , frame_id( measurement_block.frame_id() )
+    , encoder_count( measurement_block.encoder_count() )
+    , block_id( block_id )
+{
+}
+
 output_data_block_t::output_data_block_t( double azimuth_encoder_angle
                                         , const data_block_t& data_block
                                         , comma::uint16 channel

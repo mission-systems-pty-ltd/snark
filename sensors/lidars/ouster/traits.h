@@ -12,6 +12,15 @@
 
 namespace comma { namespace visiting {
 
+template <> struct traits< snark::ouster::lidar::config::device_t >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, snark::ouster::lidar::config::device_t& t, Visitor& v )
+    {
+        v.apply( "firmware", t.firmware );
+    }
+};
+
 template <> struct traits< snark::ouster::lidar::config::beam_intrinsics_t >
 {
     template < typename Key, class Visitor >
@@ -40,14 +49,25 @@ template <> struct traits< snark::ouster::lidar::config::lidar_intrinsics_t >
     }
 };
 
+template <> struct traits< snark::ouster::lidar::config::lidar_data_format_t >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, snark::ouster::lidar::config::lidar_data_format_t& t, Visitor& v )
+    {
+        v.apply( "pixels_per_column", t.pixels_per_column );
+    }
+};
+
 template <> struct traits< snark::ouster::lidar::config_t >
 {
     template < typename Key, class Visitor >
     static void visit( const Key&, snark::ouster::lidar::config_t& t, Visitor& v )
     {
+        v.apply( "device", t.device );
         v.apply( "beam_intrinsics", t.beam_intrinsics );
         v.apply( "imu_intrinsics", t.imu_intrinsics );
         v.apply( "lidar_intrinsics", t.lidar_intrinsics );
+        v.apply( "lidar_data_format", t.lidar_data_format );
     }
 };
 
@@ -92,6 +112,20 @@ template <> struct traits< snark::ouster::lidar::imu_block_t >
         v.apply( "angular_acceleration_x", t.angular_acceleration_x );
         v.apply( "angular_acceleration_y", t.angular_acceleration_y );
         v.apply( "angular_acceleration_z", t.angular_acceleration_z );
+    }
+};
+
+template < std::size_t Beams > struct traits< snark::ouster::lidar::v2::measurement_block_t< Beams > >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, snark::ouster::lidar::v2::measurement_block_t< Beams >& t, Visitor& v )
+    {
+        v.apply( "timestamp", t.timestamp );
+        v.apply( "measurement_id", t.measurement_id );
+        v.apply( "frame_id", t.frame_id );
+        v.apply( "encoder_count", t.encoder_count );
+        v.apply( "data_blocks", t.data_blocks );
+        v.apply( "packet_status", t.packet_status );
     }
 };
 

@@ -1,5 +1,16 @@
 // Copyright (c) 2019 The University of Sydney
 // Copyright (c) 2020,2022 Mission Systems Pty Ltd
+//
+// Packet format is defined in the Software User Guide (v1)
+// and the Firmware User Manual (v2).
+//
+// The format was changed in firmware 2.0. We are calling the first version v1
+// (firmware 1.x) and the second version v2 (firmware 2.x).
+//
+// We currently only support the legacy variant of the v2 format.
+//
+// The main difference is that v2 dropped the empty channels, so a 16 beam lidar
+// only sends 16 channels of data, not 64 as in v1.
 
 #pragma once
 
@@ -9,11 +20,6 @@
 #include <array>
 
 namespace snark { namespace ouster { namespace lidar {
-
-// Note that both the 64 and 16 beam lidar have the same raw packet structure,
-// with 64 channels of data. For the 16 beam channel 1, containing signal and
-// reflectivity values, is zero for all non-existent beams.
-const std::size_t pixels_per_column = 64;
 
 const comma::uint32 packet_status_good = 0xffffffff;
 const comma::uint32 packet_status_bad = 0;
@@ -54,10 +60,15 @@ struct beam_angle_lut_entry
     {}
 };
 
-typedef std::array< beam_angle_lut_entry, pixels_per_column > beam_angle_lut_t;
+typedef std::vector< beam_angle_lut_entry > beam_angle_lut_t;
 beam_angle_lut_t get_beam_angle_lut( const config::beam_intrinsics_t& beam_intrinsics );
 
 namespace v1 {
+
+// Note that both the 64 and 16 beam lidar have the same raw packet structure,
+// with 64 channels of data. For the 16 beam channel 1, containing signal and
+// reflectivity values, is zero for all non-existent beams.
+const std::size_t pixels_per_column = 64;
 
 struct azimuth_block_t : public comma::packed::packed_struct< azimuth_block_t, 20 + pixels_per_column * sizeof( data_block_t ) >
 {
@@ -68,6 +79,23 @@ struct azimuth_block_t : public comma::packed::packed_struct< azimuth_block_t, 2
     std::array< data_block_t, pixels_per_column > data_blocks;
     comma::packed::little_endian::uint32 packet_status;
 };
-
 } // namespace v1
+
+namespace v2 {
+
+// API v2 renamed the azimuth block as measurement block
+template< std::size_t Beams >
+struct measurement_block_t : public comma::packed::packed_struct< measurement_block_t< Beams >, 20 + Beams * sizeof( data_block_t ) >
+{
+    comma::packed::little_endian::uint64 timestamp;
+    comma::packed::little_endian::uint16 measurement_id;
+    comma::packed::little_endian::uint16 frame_id;
+    comma::packed::little_endian::uint32 encoder_count;
+    std::array< data_block_t, Beams > data_blocks;
+    comma::packed::little_endian::uint32 packet_status;
+
+    static const std::size_t num_beams = Beams;
+};
+
+} // namespace v2
 } } } // namespace snark { namespace ouster { namespace lidar
