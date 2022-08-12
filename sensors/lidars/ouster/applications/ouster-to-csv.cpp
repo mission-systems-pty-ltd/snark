@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #include "../config.h"
 #include "../packet.h"
@@ -26,7 +26,7 @@ static void bash_completion( unsigned int const ac, char const * const * av )
 
 void usage( bool verbose )
 {
-    std::cerr << "\nConvert raw Ouster OS1 lidar data";
+    std::cerr << "\nConvert raw Ouster lidar data";
     std::cerr << "\n";
     std::cerr << "\nUsage: cat <raw-data> | ouster-to-csv <lidar|imu> [<options>]";
     std::cerr << "\n";
@@ -119,18 +119,18 @@ void usage( bool verbose )
 
 struct intrinsics_t
 {
-    snark::ouster::transform_t imu_transform;
-    snark::ouster::transform_t lidar_transform;
+    snark::ouster::lidar::transform_t imu_transform;
+    snark::ouster::lidar::transform_t lidar_transform;
 
     intrinsics_t() {}
 
-    intrinsics_t( snark::ouster::OS1::config_t& config )
+    intrinsics_t( snark::ouster::lidar::config_t& config )
         : imu_transform( config.imu_intrinsics.imu_to_sensor_transform )
         , lidar_transform( config.lidar_intrinsics.lidar_to_sensor_transform )
     {}
 };
 
-static snark::ouster::OS1::beam_angle_lut_t beam_angle_lut;
+static snark::ouster::lidar::beam_angle_lut_t beam_angle_lut;
 static intrinsics_t intrinsics;
 
 template< typename I, typename O >
@@ -150,7 +150,7 @@ struct app
         std::vector< std::string > config_components = comma::split( options.value< std::string >( "--config", default_config ), ':' );
         std::string config_filename = config_components[0];
         std::string config_path = ( config_components.size() > 1 ? config_components[1] : "" );
-        snark::ouster::OS1::config_t config = comma::read_json< snark::ouster::OS1::config_t >( config_filename, config_path, false );
+        snark::ouster::lidar::config_t config = comma::read_json< snark::ouster::lidar::config_t >( config_filename, config_path, false );
 
         intrinsics = intrinsics_t( config );
 
@@ -160,8 +160,7 @@ struct app
             return 0;
         }
 
-        beam_angle_lut = snark::ouster::OS1::get_beam_angle_lut( config.beam_intrinsics );
-
+        beam_angle_lut = snark::ouster::lidar::get_beam_angle_lut( config.beam_intrinsics );
         output();
         return 0;
     }
@@ -186,66 +185,74 @@ struct app
 };
 
 template <>
-std::string app< snark::ouster::OS1::azimuth_block_t, snark::ouster::output_lidar_t >::output_fields()
+std::string app< snark::ouster::lidar::v1::azimuth_block_t, snark::ouster::lidar::output_lidar_t >::output_fields()
 {
-    return comma::join( comma::csv::names< snark::ouster::output_lidar_t >( false ), ',' );
+    return comma::join( comma::csv::names< snark::ouster::lidar::output_lidar_t >( false ), ',' );
 }
 
 template<>
-std::string app< snark::ouster::OS1::azimuth_block_t, snark::ouster::output_lidar_t >::output_frame( const intrinsics_t& intrinsics )
+std::string app< snark::ouster::lidar::v1::azimuth_block_t, snark::ouster::lidar::output_lidar_t >::output_frame( const intrinsics_t& intrinsics )
 {
     return comma::join( intrinsics.lidar_transform.frame(), ',' );
 }
 
 template<>
-void app< snark::ouster::OS1::azimuth_block_t, snark::ouster::output_lidar_t >::process( const snark::ouster::OS1::azimuth_block_t& azimuth_block, comma::csv::binary_output_stream< snark::ouster::output_lidar_t >& os )
+void app< snark::ouster::lidar::v1::azimuth_block_t, snark::ouster::lidar::output_lidar_t >::process
+        ( const snark::ouster::lidar::v1::azimuth_block_t& azimuth_block
+        , comma::csv::binary_output_stream< snark::ouster::lidar::output_lidar_t >& os )
 {
     static comma::uint32 block_id = 0;
     static comma::uint32 last_encoder_count = 0;
 
-    if( azimuth_block.packet_status() == snark::ouster::OS1::packet_status_good )
+    if( azimuth_block.packet_status() == snark::ouster::lidar::packet_status_good )
     {
         // we can't use frame_id for the block_id because it rolls over about once an hour
         if( azimuth_block.encoder_count() < last_encoder_count ) { block_id++; }
         last_encoder_count = azimuth_block.encoder_count();
-        const snark::ouster::output_azimuth_block_t output_azimuth_block( azimuth_block, block_id );
-        const double azimuth_encoder_angle( M_PI * 2 * azimuth_block.encoder_count() / snark::ouster::OS1::encoder_ticks_per_rev );
+        const snark::ouster::lidar::output_azimuth_block_t output_azimuth_block( azimuth_block, block_id );
+        const double azimuth_encoder_angle( M_PI * 2 * azimuth_block.encoder_count() / snark::ouster::lidar::encoder_ticks_per_rev );
         for( comma::uint16 channel = 0; channel < azimuth_block.data_blocks.size(); ++channel )
         {
-            snark::ouster::output_data_block_t data_block( azimuth_encoder_angle
-                                                         , azimuth_block.data_blocks[channel]
-                                                         , channel
-                                                         , beam_angle_lut
-                                                         , intrinsics.lidar_transform );
+            snark::ouster::lidar::output_data_block_t data_block( azimuth_encoder_angle
+                                                                , azimuth_block.data_blocks[channel]
+                                                                , channel
+                                                                , beam_angle_lut
+                                                                , intrinsics.lidar_transform );
             // 16 beam devices include 64 channels in the data packet, but most of them are invalid.
             // The valid ones have a non-zero signal.
             if( data_block.signal > 0 )
             {
-                os.write( snark::ouster::output_lidar_t( output_azimuth_block, data_block ));
+                os.write( snark::ouster::lidar::output_lidar_t( output_azimuth_block, data_block ));
             }
         }
         os.flush();
     }
 }
 
+// ------------- IMU -------------
+
 template <>
-std::string app< snark::ouster::OS1::imu_block_t, snark::ouster::output_imu_t >::output_fields()
+std::string app< snark::ouster::lidar::imu_block_t, snark::ouster::lidar::output_imu_t >::output_fields()
 {
-    return comma::join( comma::csv::names< snark::ouster::output_imu_t >( true ), ',' );
+    return comma::join( comma::csv::names< snark::ouster::lidar::output_imu_t >( true ), ',' );
 }
 
 template<>
-std::string app< snark::ouster::OS1::imu_block_t, snark::ouster::output_imu_t >::output_frame( const intrinsics_t& intrinsics )
+std::string app< snark::ouster::lidar::imu_block_t, snark::ouster::lidar::output_imu_t >::output_frame( const intrinsics_t& intrinsics )
 {
     return comma::join( intrinsics.imu_transform.frame(), ',' );
 }
 
 template<>
-void app< snark::ouster::OS1::imu_block_t, snark::ouster::output_imu_t >::process( const snark::ouster::OS1::imu_block_t& data_block, comma::csv::binary_output_stream< snark::ouster::output_imu_t >& os )
+void app< snark::ouster::lidar::imu_block_t, snark::ouster::lidar::output_imu_t >::process
+        ( const snark::ouster::lidar::imu_block_t& data_block
+        , comma::csv::binary_output_stream< snark::ouster::lidar::output_imu_t >& os )
 {
-    os.write( snark::ouster::output_imu_t( data_block ));
+    os.write( snark::ouster::lidar::output_imu_t( data_block ));
     os.flush();
 }
+
+// ------------- main -------------
 
 int main( int ac, char** av )
 {
@@ -257,8 +264,8 @@ int main( int ac, char** av )
         std::vector< std::string > unnamed = options.unnamed( "--help,-h,--output-fields,--output-format,--output-frame,--verbose,-v", "-.*" );
         if( unnamed.size() == 1 )
         {
-            if( unnamed[0] == "lidar" ) { return app< snark::ouster::OS1::azimuth_block_t, snark::ouster::output_lidar_t >::run( options ); }
-            else if( unnamed[0] == "imu" ) { return app< snark::ouster::OS1::imu_block_t, snark::ouster::output_imu_t >::run( options ); }
+            if( unnamed[0] == "lidar" ) { return app< snark::ouster::lidar::v1::azimuth_block_t, snark::ouster::lidar::output_lidar_t >::run( options ); }
+            else if( unnamed[0] == "imu" ) { return app< snark::ouster::lidar::imu_block_t, snark::ouster::lidar::output_imu_t >::run( options ); }
         }
         std::cerr << "ouster-to-csv: require one of lidar or imu" << std::endl;
         return 1;

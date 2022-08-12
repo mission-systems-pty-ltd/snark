@@ -6,7 +6,7 @@
 #include "../../../math/rotation_matrix.h"
 #include "../../../timing/time.h"
 
-namespace snark { namespace ouster {
+namespace snark { namespace ouster { namespace lidar {
 
 static boost::posix_time::ptime convert_timestamp( comma::uint64 timestamp )
 {
@@ -29,7 +29,7 @@ std::vector< double > transform_t::frame() const
                                  });
 }
 
-output_azimuth_block_t::output_azimuth_block_t( const OS1::azimuth_block_t& azimuth_block
+output_azimuth_block_t::output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
                                               , comma::uint32 block_id )
     : t( convert_timestamp( azimuth_block.timestamp() ))
     , measurement_id( azimuth_block.measurement_id() )
@@ -40,9 +40,9 @@ output_azimuth_block_t::output_azimuth_block_t( const OS1::azimuth_block_t& azim
 }
 
 output_data_block_t::output_data_block_t( double azimuth_encoder_angle
-                                        , const OS1::data_block_t& data_block
+                                        , const data_block_t& data_block
                                         , comma::uint16 channel
-                                        , const OS1::beam_angle_lut_t& beam_angle_lut
+                                        , const beam_angle_lut_t& beam_angle_lut
                                         , const transform_t& lidar_transform )
     : channel( channel )
     , signal( data_block.signal() )
@@ -67,7 +67,7 @@ output_data_block_t::output_data_block_t( double azimuth_encoder_angle
     z = cartesian[2];
 }
 
-output_imu_t::output_imu_t( const OS1::imu_block_t& imu_block )
+output_imu_t::output_imu_t( const imu_block_t& imu_block )
     : start_time( convert_timestamp( imu_block.start_read_time() ))
     , acceleration( convert_timestamp( imu_block.acceleration_read_time() )
                   , Eigen::Vector3d( imu_block.acceleration_x()
@@ -80,4 +80,4 @@ output_imu_t::output_imu_t( const OS1::imu_block_t& imu_block )
 {
 }
 
-} } // namespace snark { namespace ouster {
+} } } // namespace snark { namespace ouster { namespace lidar {

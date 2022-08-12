@@ -77,30 +77,30 @@ void usage( bool verbose )
     std::cerr << "\n" << std::endl;
 }
 
-std::string output_fields() { return comma::join( comma::csv::names< snark::ouster::output_lidar_t >( false ), ',' ); }
-std::string output_format() { return comma::csv::format::value< snark::ouster::output_lidar_t >(); }
+std::string output_fields() { return comma::join( comma::csv::names< snark::ouster::lidar::output_lidar_t >( false ), ',' ); }
+std::string output_format() { return comma::csv::format::value< snark::ouster::lidar::output_lidar_t >(); }
 
 struct channel_data
 {
-    std::vector< snark::ouster::output_lidar_t > front;
-    std::vector< snark::ouster::output_lidar_t > middle;
-    std::vector< snark::ouster::output_lidar_t > back;
+    std::vector< snark::ouster::lidar::output_lidar_t > front;
+    std::vector< snark::ouster::lidar::output_lidar_t > middle;
+    std::vector< snark::ouster::lidar::output_lidar_t > back;
 };
 
-static std::array< channel_data, snark::ouster::OS1::pixels_per_column > channels;
+static std::array< channel_data, snark::ouster::lidar::pixels_per_column > channels;
 static comma::uint32 records_per_frame;
 static comma::uint32 records_added = 0;
 
-void output_data( comma::csv::binary_output_stream< snark::ouster::output_lidar_t >& os )
+void output_data( comma::csv::binary_output_stream< snark::ouster::lidar::output_lidar_t >& os )
 {
     // only output complete frames
     if( records_added == records_per_frame )
     {
         for( channel_data& ch : channels )
         {
-            for( const snark::ouster::output_lidar_t& out : ch.front ) { os.write( out ); }
-            for( const snark::ouster::output_lidar_t& out : ch.middle ) { os.write( out ); }
-            for( const snark::ouster::output_lidar_t& out : ch.back ) { os.write( out ); }
+            for( const snark::ouster::lidar::output_lidar_t& out : ch.front ) { os.write( out ); }
+            for( const snark::ouster::lidar::output_lidar_t& out : ch.middle ) { os.write( out ); }
+            for( const snark::ouster::lidar::output_lidar_t& out : ch.back ) { os.write( out ); }
         }
     }
     for( channel_data& ch : channels )
@@ -122,21 +122,21 @@ int main( int ac, char** av )
         if( options.exists( "--output-fields" ) ) { std::cout << output_fields() << std::endl; return 0; }
         if( options.exists( "--output-format" ) ) { std::cout << output_format() << std::endl; return 0; }
 
-        records_per_frame = options.value< comma::uint32 >( "--columns", default_columns_per_frame ) * snark::ouster::OS1::pixels_per_column;
+        records_per_frame = options.value< comma::uint32 >( "--columns", default_columns_per_frame ) * snark::ouster::lidar::pixels_per_column;
 
         // input and output format are the same
         comma::csv::options csv( options, output_fields(), false );
         csv.format( output_format() );
-        comma::csv::binary_input_stream< snark::ouster::output_lidar_t > is( std::cin, csv );
+        comma::csv::binary_input_stream< snark::ouster::lidar::output_lidar_t > is( std::cin, csv );
 
         comma::csv::options output_csv( csv );
-        comma::csv::binary_output_stream< snark::ouster::output_lidar_t > os( std::cout, output_csv );
+        comma::csv::binary_output_stream< snark::ouster::lidar::output_lidar_t > os( std::cout, output_csv );
 
         comma::uint32 block_id = 0;
 
         while( is.ready() || ( std::cin.good() && !std::cin.eof() ))
         {
-            const snark::ouster::output_lidar_t* record = is.read();
+            const snark::ouster::lidar::output_lidar_t* record = is.read();
             if( !record ) { break; }
             if( record->azimuth_block.block_id != block_id )
             {

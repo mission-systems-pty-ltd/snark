@@ -9,7 +9,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Eigen/Geometry>
 
-namespace snark { namespace ouster {
+namespace snark { namespace ouster { namespace lidar {
 
 struct transform_t
 {
@@ -43,7 +43,7 @@ struct output_azimuth_block_t
         , block_id( 0 )
     {}
 
-    output_azimuth_block_t( const OS1::azimuth_block_t& azimuth_block
+    output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
                           , comma::uint32 block_id );
 };
 
@@ -72,9 +72,9 @@ struct output_data_block_t
     {}
 
     output_data_block_t( double azimuth_encoder_angle
-                       , const OS1::data_block_t& data_block
+                       , const data_block_t& data_block
                        , comma::uint16 channel
-                       , const OS1::beam_angle_lut_t& beam_angle_lut
+                       , const beam_angle_lut_t& beam_angle_lut
                        , const transform_t& lidar_transform );
 };
 
@@ -102,7 +102,7 @@ struct output_imu_t
         , angular_acceleration( snark::timestamped< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 )))
     {}
 
-    output_imu_t( const OS1::imu_block_t& imu_block );
+    output_imu_t( const imu_block_t& imu_block );
 };
 
-} } // namespace snark { namespace ouster {
+} } } // namespace snark { namespace ouster { namespace lidar {

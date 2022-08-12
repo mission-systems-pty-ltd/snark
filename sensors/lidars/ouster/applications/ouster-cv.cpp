@@ -21,7 +21,7 @@ static void bash_completion( unsigned int const ac, char const * const * av )
 }
 
 const comma::uint16 default_columns_per_frame = 1024;
-const std::string default_fields( comma::join( comma::csv::names< snark::ouster::output_lidar_t >( false ), ',' ));
+const std::string default_fields( comma::join( comma::csv::names< snark::ouster::lidar::output_lidar_t >( false ), ',' ));
 const std::string default_output_images( "signal,reflectivity,ambient" );
 
 void usage( bool verbose )
@@ -105,13 +105,13 @@ int main( int ac, char** av )
 
         output_images = comma::split( output_images_str, ',' );
         comma::uint32 columns = options.value< comma::uint32 >( "--columns", default_columns_per_frame );
-        records_per_frame = columns * snark::ouster::OS1::pixels_per_column;
+        records_per_frame = columns * snark::ouster::lidar::pixels_per_column;
 
         comma::csv::options csv( options, default_fields, false );
-        csv.format( comma::csv::format::value< snark::ouster::output_lidar_t >() );
+        csv.format( comma::csv::format::value< snark::ouster::lidar::output_lidar_t >() );
 
         // get the format for the output images, so we can use it in the OpenCV header
-        comma::csv::format output_format( comma::csv::format::value< snark::ouster::output_lidar_t >( output_images_str, false ));
+        comma::csv::format output_format( comma::csv::format::value< snark::ouster::lidar::output_lidar_t >( output_images_str, false ));
         const std::vector< comma::csv::format::element >& elements( output_format.elements() );
         if( find_if_not( std::begin( elements )
                        , std::end( elements )
@@ -121,9 +121,9 @@ int main( int ac, char** av )
         {
             COMMA_THROW( comma::exception, "output images must all have the same format - given images have format: " << output_format.string() );
         }
-        std::string image_format = comma::csv::format::value< snark::ouster::output_lidar_t >( output_images[0], false );
+        std::string image_format = comma::csv::format::value< snark::ouster::lidar::output_lidar_t >( output_images[0], false );
 
-        comma::csv::binary_input_stream< snark::ouster::output_lidar_t > is( std::cin, csv );
+        comma::csv::binary_input_stream< snark::ouster::lidar::output_lidar_t > is( std::cin, csv );
 
         comma::csv::options header_csv;
         header_csv.fields = "t,rows,cols,type";
@@ -131,7 +131,7 @@ int main( int ac, char** av )
         header_os.reset( new comma::csv::binary_output_stream< snark::cv_mat::serialization::header >( std::cout, header_csv ));
 
         cv_mat_header.type = snark::cv_mat::type_from_string( image_format );
-        cv_mat_header.rows = snark::ouster::OS1::pixels_per_column * output_images.size();
+        cv_mat_header.rows = snark::ouster::lidar::pixels_per_column * output_images.size();
         cv_mat_header.cols = columns;
 
         if( options.exists( "--output-fields" )) { std::cout << header_csv.fields << ",data" << std::endl; return 0; }
@@ -139,7 +139,7 @@ int main( int ac, char** av )
 
         comma::uint32 block_id = 0;
 
-        const snark::ouster::output_lidar_t* record = nullptr;
+        const snark::ouster::lidar::output_lidar_t* record = nullptr;
         while( is.ready() || ( std::cin.good() && !std::cin.eof() ))
         {
             record = is.read();
