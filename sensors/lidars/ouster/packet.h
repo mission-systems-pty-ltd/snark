@@ -97,5 +97,11 @@ struct measurement_block_t : public comma::packed::packed_struct< measurement_bl
     static const std::size_t num_beams = Beams;
 };
 
+// Packet sizes given by §6.2.2 of Firmware User Manual v2.3.0
+static_assert( sizeof( measurement_block_t<16> ) == 212 );
+static_assert( sizeof( measurement_block_t<32> ) == 404 );
+static_assert( sizeof( measurement_block_t<64> ) == 788 );
+static_assert( sizeof( measurement_block_t<128> ) == 1556 );
+
 } // namespace v2
 } } } // namespace snark { namespace ouster { namespace lidar
