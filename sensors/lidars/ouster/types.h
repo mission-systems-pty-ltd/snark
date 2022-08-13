@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020 Mission Systems Pty Ltd
+// Copyright (c) 2020,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -9,7 +9,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Eigen/Geometry>
 
-namespace snark { namespace ouster {
+namespace snark { namespace ouster { namespace lidar {
 
 struct transform_t
 {
@@ -31,17 +31,31 @@ struct transform_t
 struct output_azimuth_block_t
 {
     boost::posix_time::ptime t;
-    comma::uint32 measurement_id;
+    comma::uint16 measurement_id;
+    comma::uint16 frame_id;
     comma::uint32 encoder_count;
     comma::uint32 block_id;
 
     output_azimuth_block_t()
         : measurement_id( 0 )
+        , frame_id( 0 )
         , encoder_count( 0 )
         , block_id( 0 )
     {}
 
-    output_azimuth_block_t( const OS1::azimuth_block_t& azimuth_block
+    output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<16>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<32>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<64>& measurement_block
+                          , comma::uint32 block_id );
+
+    output_azimuth_block_t( const v2::measurement_block_t<128>& measurement_block
                           , comma::uint32 block_id );
 };
 
@@ -70,9 +84,9 @@ struct output_data_block_t
     {}
 
     output_data_block_t( double azimuth_encoder_angle
-                       , const OS1::data_block_t& data_block
+                       , const data_block_t& data_block
                        , comma::uint16 channel
-                       , const OS1::beam_angle_lut_t& beam_angle_lut
+                       , const beam_angle_lut_t& beam_angle_lut
                        , const transform_t& lidar_transform );
 };
 
@@ -100,7 +114,7 @@ struct output_imu_t
         , angular_acceleration( snark::timestamped< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 )))
     {}
 
-    output_imu_t( const OS1::imu_block_t& imu_block );
+    output_imu_t( const imu_block_t& imu_block );
 };
 
-} } // namespace snark { namespace ouster {
+} } } // namespace snark { namespace ouster { namespace lidar {
