@@ -52,9 +52,9 @@ void model::import(const std::string& file_name)
 void model::make_meshes(mesh_shader& shader)
 {
     if(!scene || !scene->mMeshes) { COMMA_THROW( comma::exception, "scence is null!"); }
-    std::cerr<<"model::make_meshes "<<scene->mNumMeshes<<std::endl;
+    //std::cerr<<"model::make_meshes "<<scene->mNumMeshes<<std::endl;
     node_make_meshes(scene->mRootNode,shader);
-    std::cerr<<"/model::make_meshes"<<std::endl;
+    //std::cerr<<"/model::make_meshes"<<std::endl;
 }
 void model::node_make_meshes(aiNode* node,mesh_shader& shader)
 {
@@ -75,23 +75,22 @@ void model::node_make_meshes(aiNode* node,mesh_shader& shader)
 }
 void model::debug()
 {
-    std::cerr<<"import msh "<<scene->mNumMeshes<<", mt "<<scene->mNumMaterials<<", tx "<<scene->mNumTextures<<", cam "<<scene->mNumCameras<<std::endl;
+    std::cerr<<"view-points: import msh "<<scene->mNumMeshes<<", mt "<<scene->mNumMaterials<<", tx "<<scene->mNumTextures<<", cam "<<scene->mNumCameras<<std::endl;
     if(scene->HasMeshes())
     {
         aiMesh* mesh=scene->mMeshes[0];
-        std::cerr<<"first mesh v "<<mesh->mNumVertices<<", f "<<mesh->mNumFaces<<", mt "<<mesh->mMaterialIndex<<", uv[0] "<<mesh->mNumUVComponents[0]<<std::endl;
-        std::cerr<<"colors ";
-        for(unsigned i=0;i<AI_MAX_NUMBER_OF_COLOR_SETS;i++)
-            std::cerr<<mesh->mColors[i]<<", ";
+        std::cerr << "first mesh v "<<mesh->mNumVertices<<", f "<<mesh->mNumFaces<<", mt "<<mesh->mMaterialIndex<<", uv[0] "<<mesh->mNumUVComponents[0]<<std::endl;
+        std::cerr << "view-points: colors ";
+        for(unsigned i=0;i<AI_MAX_NUMBER_OF_COLOR_SETS;i++) { std::cerr << mesh->mColors[i]<<", "; }
         std::cerr<<std::endl;
         if(scene->HasMaterials())
         {
             aiMaterial* mat=scene->mMaterials[mesh->mMaterialIndex];
-            std::cerr<<"material "<<mat->mNumProperties<<std::endl;
+            std::cerr<<"view-points: material "<<mat->mNumProperties<<std::endl;
             for(unsigned i=0;i<mat->mNumProperties;i++)
             {
                 aiMaterialProperty* prop=mat->mProperties[i];
-                std::cerr<<"prop "<<prop->mKey.C_Str()<<" "<<prop->mDataLength<<" ";
+                std::cerr<<"view-points: prop "<<prop->mKey.C_Str()<<" "<<prop->mDataLength<<" ";
                 if(prop->mType==aiPTI_String)
                 {
                     aiString str;

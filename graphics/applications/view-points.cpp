@@ -192,12 +192,15 @@ static void usage( bool )
         "\n                                   or --shape=triangle --fields=,,corners[0],,,corners[1],,,corners[2],,,"
         "\n                                   or --shape=triangle --fields=,,corners[0]/x,,corners[0]/y,,corners[0]/z,,,,corners[1],,,corners[2],,, etc"
         "\n                                   default fields: corners"
-        qt55_unsupported_marker_start
+        //qt55_unsupported_marker_start
         "\n                     \"model file ( obj, ply... )>[;<options>]\": e.g. --shape=vehicle.obj"
+#if Qt3D_VERSION>=2
+        "\n                          ATTENTION: implementation in progress, use at your own risk..."
+#endif
         "\n                          <options>"
         "\n                              flip\": flip the model around the x-axis"
         "\n                              scale=<value>\": resize model (ply only, todo), e.g. show model half-size: scale=0.5"
-        qt55_unsupported_marker_end
+        //qt55_unsupported_marker_end
         "\n                     \"<image file>[,<image options>]:<image file>[,<image options>]\": show image, e.g. --shape=\"vehicle-lights-on.jpg:vehicle-lights-off.jpg\""
         "\n                            <image file>: e.g. either: images/cat.png"
         "\n                                                   or: images/*.png; images can be displayed by id (see note 2 for the id field description"
@@ -416,7 +419,7 @@ static void usage( bool )
         "\n                 <( echo 2,0,4; echo 2,1,4; echo 3,1,4; echo 3,0,4)\";shape=lines;label=lines;color=green\"\\"
         "\n                 <( echo -1,-1,5,0,-2,5,1,-1,5 )\";shape=triangle;label=triangle;color=yellow\""
         "\n"
-        qtold_unsupported_marker_start
+        //qtold_unsupported_marker_start
         "\n    double right click modes"
         "\n        > mkfifo pipe"
         "\n        > cat pipe | view-points <( csv-random make --type 2f | head -n10000 )';fields=x,y;color=yellow' \\"
@@ -425,7 +428,7 @@ static void usage( bool )
         "\n            - double right click on a couple of points; observe output on stdout and large red dots"
         "\n              with the label 'hello' appear where you clicked"
         "\n            - use up/down arrows to select labels"
-        qtold_unsupported_marker_end
+        //qtold_unsupported_marker_end
         "\n";
 
     std::cerr
@@ -631,10 +634,11 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
             if( !boost::filesystem::exists( m.filename ) ) { COMMA_THROW( comma::exception, "file does not exist: " << m.filename ); }
             std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::model_reader( param, m, colored, label ) );
             reader->show( show );
-#if Qt3D_VERSION>=2
-            std::cerr << "view-points: cad models are not supported yet for qt 5.5+ " << Qt3D_VERSION << " yet; todo" << std::endl;
-            exit(1);
-#endif
+            std::cerr << "view-points: cad model support for qt 5.5+ " << Qt3D_VERSION << ": in progress, use at your own risk" << std::endl;
+//#if Qt3D_VERSION>=2
+//            std::cerr << "view-points: cad models are not supported yet for qt 5.5+ " << Qt3D_VERSION << " yet; todo" << std::endl;
+//            exit(1);
+//#endif
             return reader;
         }
         else
@@ -706,10 +710,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     COMMA_THROW( comma::exception, "expected shape, got \"" << shape << "\"" ); // never here
 }
 
-void version()
-{
-    std::cerr << "Using Qt version " << QT_VERSION_STR << std::endl;
-}
+static void version() { std::cerr << "Using Qt version " << QT_VERSION_STR << std::endl; }
 
 int main( int argc, char** argv )
 {
