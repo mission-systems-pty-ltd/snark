@@ -9,7 +9,6 @@
 
 namespace snark { namespace graphics { namespace qopengl {
 
-
 /// draw model
 // static const char *mesh_shader_source = R"(
 //     #version 130
@@ -57,11 +56,11 @@ mesh_data::mesh_data() : vertices(NULL), normals(NULL), size(0), faces(NULL), fa
 
 mesh_shader::mesh_shader() { model_transform.setToIdentity(); }
 
-mesh_shader::~mesh_shader() {}
+mesh_shader::~mesh_shader() { clear(); }
 
 void mesh_shader::clear()
 {
-    for(auto& i : meshes) { i->destroy(); }
+    destroy();
     meshes.clear();
 }
 
@@ -79,7 +78,7 @@ void mesh_shader::init()
     model_transform_location=program.uniformLocation("model_transform");
 //     sampler_location=program.uniformLocation("sampler");
     program.release();    
-    for(auto& j : meshes) { j->init(); }
+    for( auto& j : meshes ) { j->init(); }
 }
 
 void mesh_shader::paint(const QMatrix4x4& transform_matrix, const QSize& size)
@@ -90,31 +89,27 @@ void mesh_shader::paint(const QMatrix4x4& transform_matrix, const QSize& size)
         program.setUniformValue(view_transform_location,transform_matrix);
         program.setUniformValue(model_transform_location,model_transform);
 //         program.setUniformValue(sampler_location,0);
-
         glEnable(GL_DEPTH_TEST);
         //?disable back-face culling
         //?disable depth test
-        for(auto& j : meshes) { j->paint(); }
+        for( auto& j : meshes ) { j->paint(); }
         program.release();
         glDisable(GL_DEPTH_TEST);
     }
 }
 
-void mesh_shader::destroy()
-{
-    for(auto& j : meshes) { j->destroy(); }
-}
+void mesh_shader::destroy() { for( auto& i : meshes ) { i->destroy(); } }
 
-void mesh_shader::update_transform(const Eigen::Vector3d& position,const Eigen::Vector3d& orientation)
+void mesh_shader::update_transform( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation )
 {
     //std::cerr<<"mesh_shader::update_transform"<<std::endl;
     model_transform.setToIdentity();
-    Eigen::Quaterniond  q=snark::rotation_matrix(orientation).quaternion();
+    const Eigen::Quaterniond& q=snark::rotation_matrix(orientation).quaternion();
     model_transform.rotate(QQuaternion(q.w(),QVector3D(q.x(),q.y(),q.z())));
     model_transform.translate(QVector3D(position.x(),position.y(),position.z()));
 }
 
-mesh::mesh() : visible(true), size(0),initd(false) { }
+mesh::mesh() : visible( true ), size( 0 ),initd( false ) {}
 
 mesh::~mesh() {}
 
@@ -135,20 +130,20 @@ void mesh::init()
 //     glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( mesh_vertex ), reinterpret_cast<void *>( offsetof( mesh_vertex, offset )));
     vbo.release();
 //     std::cerr<<"/mesh::init"<<std::endl;
-    initd=true;
+    initd = true;
 }
 // void mesh::update(const mesh_data& data)
 // void mesh::update(const vertex_t* data,unsigned sz)
 
-void mesh::update(const mesh_vertex_t* data,unsigned sz)
+void mesh::update( const mesh_vertex_t* data,unsigned sz )
 {
-    if(!initd)init();
+    init();
 //     std::cerr<<"mesh::update"<<std::endl;
-    QOpenGLVertexArrayObject::Binder binder(&vao);
+    QOpenGLVertexArrayObject::Binder binder( &vao );
     vbo.bind();
-    size=sz;
-    vbo.allocate(size*sizeof(mesh_vertex_t));
-    vbo.write(0,data,size*sizeof(mesh_vertex_t));
+    size = sz;
+    vbo.allocate( size * sizeof( mesh_vertex_t ) );
+    vbo.write( 0, data, size * sizeof( mesh_vertex_t ) );
     vbo.release();
 //     std::cerr<<"/mesh::update"<<std::endl;
 }
@@ -157,7 +152,7 @@ void mesh::paint()
 {
 //     std::cerr<<"mesh::paint"<<std::endl;
     QOpenGLVertexArrayObject::Binder binder(&vao);
-    glDrawArrays(GL_POINTS,0,size);
+    glDrawArrays( GL_POINTS, 0, size );
 //     std::cerr<<"/mesh::paint"<<std::endl;
     /*if(visible)// && fbo)
     {
@@ -190,7 +185,6 @@ void mesh::paint()
 void mesh::destroy()
 {
 //     std::cerr<<"mesh::destroy"<<std::endl;
-
 //     fbo.release();
 //     std::cerr<<"mesh::destroy"<<std::endl;
 }

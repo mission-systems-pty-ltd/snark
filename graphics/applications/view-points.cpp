@@ -195,7 +195,7 @@ static void usage( bool )
         //qt55_unsupported_marker_start
         "\n                     \"model file ( obj, ply... )>[;<options>]\": e.g. --shape=vehicle.obj"
 #if Qt3D_VERSION>=2
-        "\n                          ATTENTION: implementation in progress, use at your own risk..."
+        "\n                          ATTENTION: implementation in progress; currently shows only vertices, use at your own risk..."
 #endif
         "\n                          <options>"
         "\n                              flip\": flip the model around the x-axis"
@@ -634,7 +634,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
             if( !boost::filesystem::exists( m.filename ) ) { COMMA_THROW( comma::exception, "file does not exist: " << m.filename ); }
             std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::model_reader( param, m, colored, label ) );
             reader->show( show );
-            std::cerr << "view-points: cad model support for qt 5.5+ " << Qt3D_VERSION << ": in progress, use at your own risk" << std::endl;
+            std::cerr << "view-points: cad model support for qt 5.5+ " << Qt3D_VERSION << ": in progress; currently shows only vertices; use at your own risk" << std::endl;
 //#if Qt3D_VERSION>=2
 //            std::cerr << "view-points: cad models are not supported yet for qt 5.5+ " << Qt3D_VERSION << " yet; todo" << std::endl;
 //            exit(1);
