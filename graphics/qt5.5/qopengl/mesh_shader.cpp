@@ -55,14 +55,16 @@ static const char *fragment_shader_source = R"(
 
 mesh_data::mesh_data() : vertices(NULL), normals(NULL), size(0), faces(NULL), faces_size(0) { }
 
-//**********************************************************************************
 mesh_shader::mesh_shader() { model_transform.setToIdentity(); }
-mesh_shader::~mesh_shader() { }
+
+mesh_shader::~mesh_shader() {}
+
 void mesh_shader::clear()
 {
     for(auto& i : meshes) { i->destroy(); }
     meshes.clear();
 }
+
 void mesh_shader::init()
 {
     //std::cerr<<"mesh_shader::init "<<std::endl;
@@ -76,10 +78,10 @@ void mesh_shader::init()
     view_transform_location=program.uniformLocation("view_transform");
     model_transform_location=program.uniformLocation("model_transform");
 //     sampler_location=program.uniformLocation("sampler");
-    program.release();
-    
+    program.release();    
     for(auto& j : meshes) { j->init(); }
 }
+
 void mesh_shader::paint(const QMatrix4x4& transform_matrix, const QSize& size)
 {
     if(visible)
@@ -97,10 +99,12 @@ void mesh_shader::paint(const QMatrix4x4& transform_matrix, const QSize& size)
         glDisable(GL_DEPTH_TEST);
     }
 }
+
 void mesh_shader::destroy()
 {
     for(auto& j : meshes) { j->destroy(); }
 }
+
 void mesh_shader::update_transform(const Eigen::Vector3d& position,const Eigen::Vector3d& orientation)
 {
     //std::cerr<<"mesh_shader::update_transform"<<std::endl;
@@ -110,14 +114,13 @@ void mesh_shader::update_transform(const Eigen::Vector3d& position,const Eigen::
     model_transform.translate(QVector3D(position.x(),position.y(),position.z()));
 }
 
-// //**********************************************************************************
-
 mesh::mesh() : visible(true), size(0),initd(false) { }
-mesh::~mesh() { }
+
+mesh::~mesh() {}
 
 void mesh::init()
 {
-    if(initd)return;
+    if( initd ) { return; }
 //     std::cerr<<"mesh::init"<<std::endl;
     initializeOpenGLFunctions();
 
@@ -193,4 +196,3 @@ void mesh::destroy()
 }
 
 } } } // namespace snark { namespace graphics { namespace qopengl {
-    

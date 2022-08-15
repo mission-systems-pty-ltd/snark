@@ -83,7 +83,6 @@ struct mesh_data
 /// each model consists of one or more meshes
 class mesh : protected QOpenGLFunctions
 {
-    friend class mesh_shader;
 public:
     mesh();
     virtual ~mesh();
@@ -93,7 +92,7 @@ public:
     
     /// update data
 //     void update(const mesh_data& data);
-    void update(const mesh_vertex_t* data,unsigned size);
+    void update( const mesh_vertex_t* data, unsigned size );
     
 //     material m;
     
@@ -106,7 +105,9 @@ public:
     
     unsigned size;
     unsigned faces_size;
+    
 protected:
+    friend class mesh_shader;
     bool initd;
 //     std::unique_ptr<QOpenGLFramebufferObject> fbo;
 };
