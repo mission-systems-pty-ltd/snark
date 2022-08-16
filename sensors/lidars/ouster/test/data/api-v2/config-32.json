@@ -1,0 +1,103 @@
+{
+    "lidar": {
+        "address": "",
+        "port": "",
+        "binary": "ul,2uw,ui,192ui,ui"
+    },
+    "imu": {
+        "address": "",
+        "port": "",
+        "binary": "3ul,3ui,3ui"
+    },
+    "device": {
+        "host": "os-122208001050",
+        "target": "192.168.42.24",
+        "firmware": "2.3.1"
+    },
+    "parameters": {
+        "udp_ip": "192.168.42.24",
+        "udp_dest": "192.168.42.24",
+        "udp_port_lidar": 7502,
+        "udp_port_imu": 7503,
+        "udp_profile_lidar": "LEGACY",
+        "udp_profile_imu": "LEGACY",
+        "columns_per_packet": 16,
+        "timestamp_mode": "TIME_FROM_PTP_1588",
+        "sync_pulse_in_polarity": "ACTIVE_HIGH",
+        "nmea_in_polarity": "ACTIVE_HIGH",
+        "nmea_ignore_valid_char": 0,
+        "nmea_baud_rate": "BAUD_9600",
+        "nmea_leap_seconds": 0,
+        "multipurpose_io_mode": "OUTPUT_FROM_ENCODER_ANGLE",
+        "sync_pulse_out_polarity": "ACTIVE_HIGH",
+        "sync_pulse_out_frequency": 1,
+        "sync_pulse_out_angle": 360,
+        "sync_pulse_out_pulse_width": 10,
+        "auto_start_flag": 1,
+        "operating_mode": "NORMAL",
+        "lidar_mode": "1024x10",
+        "azimuth_window": [
+            0, 360000        ],
+        "signal_multiplier": 1,
+        "phase_lock_enable": false,
+        "phase_lock_offset": 0
+    },
+    "beam_intrinsics": {
+        "beam_altitude_angles": [
+             17,  16,  15,  14,
+             13,  12,  11,  10,
+              9,   8,   7,   6,
+              5,   4,   3,   2,
+              1,   0,  -1,  -2,
+             -3,  -4,  -5,  -6,
+             -7,  -8,  -9, -10,
+            -11, -12, -13, -14
+        ],
+        "beam_azimuth_angles": [
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2,
+            1, 0, -1, -2
+        ],
+        "lidar_origin_to_beam_origin_mm": 15.806
+    },
+    "imu_intrinsics": {
+        "imu_to_sensor_transform": [
+            1, 0, 0, 6.253,
+            0, 1, 0, -11.775,
+            0, 0, 1, 7.645,
+            0, 0, 0, 1
+        ]
+    },
+    "lidar_intrinsics": {
+        "lidar_to_sensor_transform": [
+            -1, 0, 0, 0,
+            0, -1, 0, 0,
+            0, 0, 1, 36.18,
+            0, 0, 0, 1
+        ]
+    },
+    "lidar_data_format": {
+	"pixels_per_column": 32,
+        "columns_per_packet": 16,
+        "columns_per_frame": 1024,
+        "pixel_shift_by_row": [
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24,
+            24, 24, 24, 24
+        ],
+        "column_window": [
+            0, 1023        ],
+        "udp_profile_lidar": "LEGACY",
+        "udp_profile_imu": "LEGACY"
+    }
+}

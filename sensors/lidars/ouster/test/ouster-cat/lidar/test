@@ -1,8 +1,0 @@
-#!/bin/bash
-
-source ../../input-to-raw
-
-fields=$( ouster-cat lidar --output-fields )
-format=$( ouster-cat lidar --output-format )
-
-input_to_raw | csv-from-bin $format | name-value-from-csv --fields $fields --prefix output --line-number

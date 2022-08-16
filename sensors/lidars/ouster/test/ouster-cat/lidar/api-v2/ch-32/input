@@ -1,0 +1,11 @@
+# raw data
+# frame_id, encoder_count, channel, range (mm), signal, reflectivity, ambient
+#
+# See §6 of Firware Software User Manual v2.3.1 for details
+#
+# Converted to actual raw data blocks by test application
+
+0,44,4,10000,20000,21000,22000
+0,88,2,10000,20000,21000,22000
+0,132,8,10000,20000,21000,22000
+0,176,31,10000,20000,21000,22000

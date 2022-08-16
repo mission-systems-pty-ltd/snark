@@ -1,0 +1,36 @@
+# raw data
+#
+# frame_id, encoder_count, channel, range (mm), signal, reflectivity, ambient
+#
+# encoder_count gives the bearing (44 counts per degree) and
+# channel gives the elevation via the lookup table in config.json
+#
+# See §3.4 of Software User Guide for details
+#
+# Converted to actual raw data blocks by test application
+
+# cardinal points and zero elevation
+0,0,33,10000,20000,21000,22000
+0,22528,33,10000,20000,21000,22000
+0,45056,33,10000,20000,21000,22000
+0,67584,33,10000,20000,21000,22000
+
+# cardinal points and non-zero elevation
+0,0,1,10000,20000,21000,22000
+0,0,61,10000,20000,21000,22000
+0,22528,1,10000,20000,21000,22000
+0,22528,61,10000,20000,21000,22000
+0,45056,1,10000,20000,21000,22000
+0,45056,61,10000,20000,21000,22000
+0,67584,1,10000,20000,21000,22000
+0,67584,61,10000,20000,21000,22000
+
+# azimuth angle adjustment
+0,45056,32,10000,20000,21000,22000
+0,45056,33,10000,20000,21000,22000
+0,45056,34,10000,20000,21000,22000
+0,45056,35,10000,20000,21000,22000
+
+# other places
+1,44,5,10000,20000,21000,22000
+1,90068,9,10000,20000,21000,22000

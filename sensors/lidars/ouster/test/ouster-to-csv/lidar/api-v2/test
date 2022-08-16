@@ -1,0 +1,30 @@
+#!/bin/bash
+
+data_dir=$( pwd | sed 's#/test/.*#/test/data#' )
+source $data_dir/input-to-raw
+
+# strip comments and blank lines from input
+
+grep -v "^#" | grep -v "^ *$" |
+{
+    read api_version
+    read num_channels
+    read config_file
+
+    api_version=${api_version#api_version=}
+    num_channels=${num_channels#channels=}
+    config_file=$data_dir/${config_file#config_file=}
+
+    fields=$( ouster-to-csv lidar --output-fields )
+    format=$( ouster-to-csv lidar --output-format )
+
+    angle_fields=$( echo $fields | csv-fields clear --except bearing,elevation )
+
+    input_to_raw --api $api_version --channels $num_channels \
+        | ouster-to-csv lidar --config $config_file \
+        | csv-select --fields $fields --binary $format "signal;not-equal=0" \
+        | csv-units --fields $angle_fields --binary $format --from radians --to degrees \
+        | csv-from-bin $format \
+        | name-value-from-csv --fields $fields --prefix output --line-number \
+        | csv-quote --unquote --delimiter='='
+}

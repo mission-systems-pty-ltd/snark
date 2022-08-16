@@ -7,8 +7,6 @@ scriptname=$( basename $0 )
 
 source $( type -p comma-application-util ) || { echo "$scriptname: cannot source comma-application-util" >&2; exit 1; }
 
-default_config="config.json:ouster"
-
 function description()
 {
     cat <<EOF
@@ -25,7 +23,6 @@ EOF
 }
 
 available_operations="command,config,init,lidar,imu,alerts,stream_alerts"
-azimuth_blocks_per_packet=16
 tested_firmware="1.12.0,1.13.0,2.3.1"
 tested_firmware_re="^v($( tr , '|' <<< $tested_firmware ))$"
 
@@ -165,43 +162,6 @@ unnamed_options=( $( echo "$options" | grep -v '=' | sed 's/^"//g; s/"$//g' | tr
 
 function prefix { csv-fields prefix --path $1; }
 
-function output_fields()
-{
-    case $1 in
-        lidar)
-            local channel_fields=$( seq -w 0 63 | sed 's/^/channel_/' | while read line; do seq 0 2 | sed "s/^/${line}_data_/"; done | tr '\n' , | sed 's/,$//' )
-            echo "timestamp,measurement_id,frame_id,encoder_count,$channel_fields,packet_status"
-            ;;
-        imu)
-            echo $( echo start,acceleration,gyro | prefix time ),$( echo x,y,z | prefix acceleration ),$( echo -n x,y,z | prefix angular_acceleration )
-            ;;
-        alerts|stream_alerts)
-            echo "t,cursor,code,brief,description"
-            ;;
-        *) die "invalid operation: $1"
-    esac
-}
-
-function output_format()
-{
-    case $1 in
-        lidar) echo "ul,2uw,ui,192ui,ui" ;;
-        imu)   echo "3ul,3ui,3ui" ;;
-        alerts|stream_alerts) echo "t,ul,s[128],s[128],s[256]" ;;
-        *) die "invalid operation: $1"
-    esac
-}
-
-# TODO: update for firmware v2
-function packet_size()
-{
-    case $1 in
-        lidar) echo $(( $azimuth_blocks_per_packet * $( output_format lidar | csv-format size ) )) ;;
-        imu)   output_format imu | csv-format size ;;
-        *)     die "invalid operation: $1"
-    esac
-}
-
 # file path      -> file:path
 # file:path path -> file:path/path
 function config_path_concat()
@@ -222,20 +182,70 @@ function load_config()
 
 operation=${unnamed_options[0]}
 
+if [[ $operation == "config" ]]; then
+    [[ $options_config ]] || [[ $options_device ]] || die "one of --config or --device is required"
+fi
+
+if [[ $options_config ]]; then
+    # use device/host as a sanity check
+    device_name=$( load_config $( config_path_concat $options_config device/host ) )
+    [[ $device_name ]] || die "failed to load config $options_config"
+    verbose "loading config for $device_name"
+    comma_path_value_to_var --prefix=parameter < <( load_config $( config_path_concat $options_config parameters ) )
+    comma_path_value_to_var --prefix=lidar_data_format < <( load_config $( config_path_concat $options_config lidar_data_format ) )
+    lidar=$( load_config $( config_path_concat $options_config device/host ) )
+fi
+
+# default to api v1 values
+lidar_pixels_per_column=${lidar_data_format_pixels_per_column:-64}
+lidar_azimuth_blocks_per_packet=${lidar_data_format_azimuth_blocks_per_packet:-16}
+
+if [[ $lidar_data_format_udp_profile_lidar ]]; then
+    [[ $lidar_data_format_udp_profile_lidar == "LEGACY" ]] || die "only LEGACY format supported for v2 api"
+fi
+
+function output_fields()
+{
+    case $1 in
+        lidar)
+            local channel_fields=$( seq -w 0 $(( lidar_pixels_per_column - 1 )) | sed 's/^/channel_/' | while read line; do seq 0 2 | sed "s/^/${line}_data_/"; done | tr '\n' , | sed 's/,$//' )
+            echo "timestamp,measurement_id,frame_id,encoder_count,$channel_fields,packet_status"
+            ;;
+        imu)
+            echo $( echo start,acceleration,gyro | prefix time ),$( echo x,y,z | prefix acceleration ),$( echo -n x,y,z | prefix angular_acceleration )
+            ;;
+        alerts|stream_alerts)
+            echo "t,cursor,code,brief,description"
+            ;;
+        *) die "invalid operation: $1"
+    esac
+}
+
+function output_format()
+{
+    case $1 in
+        lidar) echo "ul,2uw,ui,$(( 3 * lidar_pixels_per_column ))ui,ui" ;;
+        imu)   echo "3ul,3ui,3ui" ;;
+        alerts|stream_alerts) echo "t,ul,s[128],s[128],s[256]" ;;
+        *) die "invalid operation: $1"
+    esac
+}
+
+# Get the lidar data format from config, or otherwise assume it's v1 format
+# See Firware User Manual v2.3.1 §6.2.2 for v2 legacy sizes
+function packet_size()
+{
+    case $1 in
+        lidar) echo $(( $lidar_azimuth_blocks_per_packet * $( output_format lidar | csv-format size ) )) ;;
+        imu)   output_format imu | csv-format size ;;
+        *)     die "invalid operation for packet_size: $1"
+    esac
+}
+
 (( $( comma_options_has --output-fields "$@" ) )) && { output_fields $operation; exit 0; }
 (( $( comma_options_has --output-format "$@" ) )) && { output_format $operation; exit 0; }
 (( $( comma_options_has --packet-size "$@" ) )) && { packet_size $operation; exit 0; }
 
-if [[ $operation == "config" ]]; then
-    [[ $options_config ]] || [[ $options_device ]] || die "one of --config or --device is required"
-else
-    [[ $options_config ]] || options_config=$default_config
-fi
-
-if [[ $options_config ]]; then
-    comma_path_value_to_var --prefix=parameter < <( load_config $( config_path_concat $options_config parameters ) )
-    lidar=$( load_config $( config_path_concat $options_config device/host ) )
-fi
 [[ $options_device ]] && lidar=$options_device
 [[ $lidar ]] || die "lidar host name or ip address is required"
 
@@ -470,7 +480,7 @@ function stream()
     fi
 
     local port=$( get_parameter $1 )
-    local packet_size=$2
+    local packet_size=$( packet_size $operation )
     verbose "streaming $packet_size byte packets from port $port"
 
     local bandwidth_monitor_port=$( load_config $( config_path_concat $options_config $operation/bandwidth_monitor/port ) )
@@ -490,8 +500,8 @@ case $operation in
     command)        send_commands ;;
     config)         output_config ;;
     init)           initialize ;;
-    lidar)          stream udp_port_lidar $( packet_size lidar ) ;;
-    imu)            stream udp_port_imu $( packet_size imu ) ;;
+    lidar)          stream udp_port_lidar ;;
+    imu)            stream udp_port_imu ;;
     alerts)         alerts | output_alerts ;;
     stream_alerts)  stream_alerts | output_alerts ;;
     *)              die "requires operation"

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+data_dir=$( pwd | sed 's#/test/.*#/test/data#' )
+source $data_dir/input-to-raw
+
+fields=$( ouster-cat lidar --output-fields )
+format=$( ouster-cat lidar --output-format )
+
+input_to_raw --api 1 --channels 64 | csv-from-bin $format | name-value-from-csv --fields $fields --prefix output --line-number
