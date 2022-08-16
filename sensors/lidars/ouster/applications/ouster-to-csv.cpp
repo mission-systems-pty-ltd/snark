@@ -47,9 +47,12 @@ void usage( bool verbose )
     std::cerr << "\n    timestamps are ISO, range is in metres, and angular acceleration is rad/s.";
     std::cerr << "\n";
     std::cerr << "\nSupported devices:";
-    std::cerr << "\n    This driver has been tested on the OS1-64 and OS1-16. Note that the 16 beam";
-    std::cerr << "\n    sensor still returns 64 channels of data, however three out of four have";
-    std::cerr << "\n    zero signal. This driver filters out those channels.";
+    std::cerr << "\n    This driver has been tested on the OS1-16, OS1-32 and OS1-64. With firmware";
+    std::cerr << "\n    ranging from 1.12 to 2.31.";
+    std::cerr << "\n";
+    std::cerr << "\n    Note that on the pre 2.0 firmware the 16 and 32 beam sensors still return";
+    std::cerr << "\n    64 channels of data, with non-existent channels containing a signal value";
+    std::cerr << "\n    of zero. This driver filters out those channels.";
     std::cerr << "\n";
     std::cerr << "\nCoordinate frames:";
     std::cerr << "\n    The Software User Guide in §4.1 Sensor Coordinate Frame describes the sensor";
