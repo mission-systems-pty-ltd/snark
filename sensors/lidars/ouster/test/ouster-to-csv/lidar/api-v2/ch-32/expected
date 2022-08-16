@@ -1,0 +1,143 @@
+output[0]/encoder_count=0
+output[0]/channel=17
+output[0]/range=10
+output[0]/bearing=360 +/- 0.000001
+output[0]/elevation=0 +/- 0.000001
+output[0]/x=-10 +/- 0.000001
+output[0]/y=0 +/- 0.000001
+output[0]/z=0.036180 +/- 0.000001
+
+output[1]/encoder_count=22528
+output[1]/channel=17
+output[1]/range=10
+output[1]/bearing=270 +/- 0.000001
+output[1]/elevation=0 +/- 0.000001
+output[1]/x=0 +/- 0.000001
+output[1]/y=10 +/- 0.000001
+output[1]/z=0.036180 +/- 0.000001
+
+output[2]/encoder_count=45056
+output[2]/channel=17
+output[2]/range=10
+output[2]/bearing=180 +/- 0.000001
+output[2]/elevation=0 +/- 0.000001
+output[2]/x=10 +/- 0.000001
+output[2]/y=0 +/- 0.000001
+output[2]/z=0.036180 +/- 0.000001
+
+output[3]/encoder_count=67584
+output[3]/channel=17
+output[3]/range=10
+output[3]/bearing=90 +/- 0.000001
+output[3]/elevation=0 +/- 0.000001
+output[3]/x=0 +/- 0.000001
+output[3]/y=-10 +/- 0.000001
+output[3]/z=0.036180 +/- 0.000001
+
+output[4]/encoder_count=0
+output[4]/channel=1
+output[4]/range=10
+output[4]/bearing=360 +/- 0.000001
+output[4]/elevation=16 +/- 0.000001
+output[4]/x=-9.612617 +/- 0.000001
+output[4]/y=0 +/- 0.000001
+output[4]/z=2.7925536 +/- 0.000001
+
+output[5]/encoder_count=0
+output[5]/channel=29
+output[5]/range=10
+output[5]/bearing=360 +/- 0.000001
+output[5]/elevation=-12 +/- 0.000001
+output[5]/x=-9.781476 +/- 0.000001
+output[5]/y=0 +/- 0.000001
+output[5]/z=-2.042936 +/- 0.000001
+
+output[6]/encoder_count=22528
+output[6]/channel=1
+output[6]/range=10
+output[6]/bearing=270 +/- 0.000001
+output[6]/elevation=16 +/- 0.000001
+output[6]/x=0 +/- 0.000001
+output[6]/y=9.612617 +/- 0.000001
+output[6]/z=2.7925536 +/- 0.000001
+
+output[7]/encoder_count=22528
+output[7]/channel=29
+output[7]/range=10
+output[7]/bearing=270 +/- 0.000001
+output[7]/elevation=-12 +/- 0.000001
+output[7]/x=0 +/- 0.000001
+output[7]/y=9.781476 +/- 0.000001
+output[7]/z=-2.042936 +/- 0.000001
+
+output[8]/encoder_count=45056
+output[8]/channel=1
+output[8]/range=10
+output[8]/bearing=180 +/- 0.000001
+output[8]/elevation=16 +/- 0.000001
+output[8]/x=9.612617 +/- 0.000001
+output[8]/y=0 +/- 0.000001
+output[8]/z=2.7925536 +/- 0.000001
+
+output[9]/encoder_count=45056
+output[9]/channel=29
+output[9]/range=10
+output[9]/bearing=180 +/- 0.000001
+output[9]/elevation=-12 +/- 0.000001
+output[9]/x=9.781476 +/- 0.000001
+output[9]/y=0 +/- 0.000001
+output[9]/z=-2.042936 +/- 0.000001
+
+output[10]/encoder_count=67584
+output[10]/channel=1
+output[10]/range=10
+output[10]/bearing=90 +/- 0.000001
+output[10]/elevation=16 +/- 0.000001
+output[10]/x=0 +/- 0.000001
+output[10]/y=-9.612617 +/- 0.000001
+output[10]/z=2.7925536 +/- 0.000001
+
+output[11]/encoder_count=67584
+output[11]/channel=29
+output[11]/range=10
+output[11]/bearing=90 +/- 0.000001
+output[11]/elevation=-12 +/- 0.000001
+output[11]/x=0 +/- 0.000001
+output[11]/y=-9.781476 +/- 0.000001
+output[11]/z=-2.042936 +/- 0.000001
+
+output[12]/encoder_count=45056
+output[12]/channel=16
+output[12]/range=10
+output[12]/bearing=179 +/- 0.000001
+output[12]/elevation=1.0 +/- 0.000001
+
+output[13]/encoder_count=45056
+output[13]/channel=17
+output[13]/range=10
+output[13]/bearing=180 +/- 0.000001
+output[13]/elevation=0 +/- 0.000001
+
+output[14]/encoder_count=45056
+output[14]/channel=18
+output[14]/range=10
+output[14]/bearing=181 +/- 0.000001
+output[14]/elevation=-1.0 +/- 0.000001
+
+output[15]/encoder_count=45056
+output[15]/channel=19
+output[15]/range=10
+output[15]/bearing=182 +/- 0.000001
+output[15]/elevation=-2.0 +/- 0.000001
+
+output[16]/encoder_count=44
+output[16]/channel=5
+output[16]/range=10
+output[16]/bearing=359.824218 +/- 0.000001
+output[16]/elevation=12 +/- 0.000001
+
+output[17]/encoder_count=90068
+output[17]/channel=9
+output[17]/range=10
+output[17]/bearing=0.175781 +/- 0.000001
+output[17]/elevation=8 +/- 0.000001

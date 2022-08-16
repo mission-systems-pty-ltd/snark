@@ -1,14 +1,17 @@
 #!/bin/bash
 
-source ../../input-to-raw
+data_dir=$( pwd | sed 's#/test/.*#/test/data#' )
+source $data_dir/input-to-raw
+
+config_file=$data_dir/api-v1/config.json
 
 fields=$( ouster-to-csv lidar --output-fields )
 format=$( ouster-to-csv lidar --output-format )
 
 angle_fields=$( echo $fields | csv-fields clear --except bearing,elevation )
 
-input_to_raw \
-    | ouster-to-csv lidar --config ../../config.json \
+input_to_raw --api 1 --channels 64 \
+    | ouster-to-csv lidar --config $config_file \
     | csv-units --fields $angle_fields --binary $format --from radians --to degrees \
     | csv-from-bin $format \
     | name-value-from-csv --fields $fields --prefix output --line-number \
