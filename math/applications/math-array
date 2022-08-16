@@ -18,6 +18,8 @@ description = """
 a trivial numpy convenience wrapper: read a stream of multidimensional arrays as binary on stdin, perform an operation, output as contiguous arrays to stdout
 
 operations
+    calc
+        calculate arbitrary numpy expression on
     slice
         slicing arrays; semantics for indices is the same as in numpy
     split
@@ -31,6 +33,8 @@ operations
 
 epilog = """
 examples
+    calc
+        ( echo 1,2,3,4; echo 5,6,7,8 ) | csv-to-bin 4f | math/applications/math-array calc --formula '(a*2).transpose()' --shape 2,2 | csv-from-bin 2f
     slice
         ( echo 0,1,2,3,4,5; echo 6,7,8,9,10,11 ) | csv-to-bin 6f | math-array slice --indices "[1:,:]" --shape 3,2 | csv-from-bin 6f
     split
@@ -56,7 +60,9 @@ def split( array ):
             a.tofile( sys.stdout )
             footer.tofile( sys.stdout )
 
-def slice( array, indices ): return eval( f'array{indices}' )
+def slice( array, indices ): return eval( f'array{indices}' ) # quick and dirty; precompile expression?
+
+def calc( a, expr ): return eval( expr ) # quick and dirty; precompile expression?
             
 def numpy_operation( array, operation ):
     if sys.version_info.major > 2: #if np.__version__ >= '1.16.0': # sigh...
@@ -86,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument( 'operation', nargs = 1, help = 'operation: split, transpose, or arbitrary numpy operation (see examples)' ) #parser.add_argument( 'operation', nargs = 1, choices = [ "split", "transpose" ], help = 'operation: %(choices)s' )
     parser.add_argument( '--flush', action="store_true", help = 'flush after each record' )
     parser.add_argument( '--footer-size', '--footer', type = int, default = 0, help = 'if a footer of given size in bytes is present, pass it to stdout with output tensor prepended' )
+    parser.add_argument( '--expr', '--formula', type = str, help = 'for calc operation: arbitrary numpy expression on input array named "a" in expression outputting numpy array, e.g. a[:,1]*2' )
     parser.add_argument( '--header-size', '--header', type = int, default = 0, help = 'if a header of given size in bytes is present, pass it to stdout with output tensor appended' )
     parser.add_argument( '--indices', type = str, help = 'for slice operation: indices or index slices as in numpy, e.g: [:,1:]' )
     parser.add_argument( '--shape', type = str, help = 'comma-separated input array shape, e.g. 4,2,5' )
@@ -100,6 +107,10 @@ if __name__ == '__main__':
     elif args.operation[0] == "slice":
         if args.indices is None: die( "please specify --indices" )
         operation = functools.partial( numpy_operation, operation=functools.partial( slice, indices=args.indices ) )
+    elif args.operation[0] == "calc":
+        if args.expr is None: die( "please specify --expr" )
+        #code = compile( args.expr, '<string>', 'exec' ) # todo!
+        operation = functools.partial( numpy_operation, operation=functools.partial( calc, expr=args.expr ) )
     elif args.operation[0] == "split":
         operation = split
     else:
