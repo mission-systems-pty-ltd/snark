@@ -61,8 +61,11 @@ static void usage( bool detail )
     std::cerr << "csv options:" << std::endl;
     std::cerr << comma::csv::options::usage( detail ) << std::endl;
     std::cerr << std::endl;
-    std::cerr << "example" << std::endl;
-    std::cerr << "    math-fft --binary=\"t,16000f\" --fields=t,data --size=16000" << std::endl;
+    std::cerr << "examples (try first few)" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8 --untied" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8 --untied --split" << std::endl;
+    std::cerr << "    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --size=16000" << std::endl;
     std::cerr << std::endl;
     exit(0);
 }
