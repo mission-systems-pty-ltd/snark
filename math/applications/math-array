@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 # Copyright (c) 2017 The University of Sydney
+#!/usr/bin/env python3
+
 # Copyright (c) 2022 Vsevolod Vlaskine
 
 from __future__ import print_function
@@ -8,6 +10,7 @@ from __future__ import print_function
 __author__ = 'v.vlaskine'
 
 import argparse
+import numpy
 import numpy as np
 import signal
 import sys
@@ -19,24 +22,27 @@ a trivial numpy convenience wrapper: read a stream of multidimensional arrays as
 
 operations
     calc
-        calculate arbitrary numpy expression on
+        calculate arbitrary numpy expression on (probably all you need)
     slice
+        deprecated, use calc operation
         slicing arrays; semantics for indices is the same as in numpy
     split
         split each record in the stream of arrays, repeating header and/or footer for each record
     transpose
+        deprecated, use calc operation
         transpose stream of arrays (simply performs numpy.transpose on each record)
     (somewhat) arbitrary numpy operation on array, as
         <operation>[,<parameters>], where <parameter>: <name>=<value>
+        deprecated, use calc operation
 
 """
 
 epilog = """
 examples
     calc
-        ( echo 1,2,3,4; echo 5,6,7,8 ) | csv-to-bin 4f | math/applications/math-array calc --formula '(a*2).transpose()' --shape 2,2 | csv-from-bin 2f
+        ( echo 1,2,3,4; echo 5,6,7,8 ) | csv-to-bin 4f | math-array calc --formula '(a*2).transpose()' --shape 2,2 | csv-from-bin 2f
     slice
-        ( echo 0,1,2,3,4,5; echo 6,7,8,9,10,11 ) | csv-to-bin 6f | math-array slice --indices "[1:,:]" --shape 3,2 | csv-from-bin 6f
+        ( echo 0,1,2,3,4,5; echo 6,7,8,9,10,11 ) | csv-to-bin 6f | math-array slice --indices "[1:,:]" --shape 3,2 | csv-from-bin 4f
     split
         ( echo some_other_stuff,0,1,2,3,4,5; echo more_other_stuff,6,7,8,9,10,11 ) | csv-to-bin s[32],6f | math-array split --shape 3,2 --header-size 32 | csv-from-bin s[32],2f
     transpose
@@ -100,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument( '--type', type = str, default = 'f', choices = ( 'b', 'ub', 'i', 'ui', 'w', 'uw', 'l', 'ul', 'f', 'd' ), help = 'array element type: %(choices)s; default: %(default)s' )
     args = parser.parse_args()
     types = { 'b': np.int8, 'ub': np.uint8, 'w': np.int16, 'uw': np.uint16, 'i': np.int32, 'ui': np.uint32, 'l': np.int64, 'ul': np.uint64, 'f': np.float32, 'd': np.float64 };    
+    if not args.operation[0] in [ 'calc', 'split' ]: print( f'math-array: {args.operation[0]}: deprecated; using calc operation recommended', file=sys.stderr )
     if args.operation[0] == "transpose":
         if args.to_axes is None: die( "please specify --to-axes" )
         to_axes = eval( '(' + args.to_axes + ')' )
