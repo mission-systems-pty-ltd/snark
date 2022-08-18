@@ -208,22 +208,14 @@ IF( ${CXX_STANDARD_TO_USE} MATCHES "11" )
     endif()
 endif()
 
-IF( WIN32 )
-    # improve later
-    #FIND_PATH( Eigen_INCLUDE_DIR NAMES Eigen/CMakeLists.txt PATHS $ENV{EIGEN_ROOT} )
-    FIND_PATH( Eigen_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library PATHS $ENV{EIGEN_ROOT} )
-ELSEIF( APPLE )
-    # actually the following line will probably work everywhere, not just APPLE (but have not tested on Windows yet)
-    FIND_PATH( Eigen_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library PATHS $ENV{EIGEN_ROOT} PATH_SUFFIXES eigen3 )
-ELSE( WIN32 )
-    #FIND_PATH( Eigen_INCLUDE_DIR Eigen/Core PATHS $ENV{EIGEN_ROOT} /usr/include/eigen3 /usr/local/include/eigen3 )
-    FIND_PATH( Eigen_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library PATHS $ENV{EIGEN_ROOT} /usr/include/eigen3 /usr/local/include/eigen3 )
-ENDIF( WIN32 )
-IF( NOT EXISTS ${Eigen_INCLUDE_DIR} )
-    MESSAGE( "could not find Eigen - should be the path containing the Eigen 3 directory and /Eigen/Eigen, /Eigen/Core, etc..." )
-ELSE( NOT EXISTS ${Eigen_INCLUDE_DIR} )
-INCLUDE_DIRECTORIES( ${Eigen_INCLUDE_DIR} )
-ENDIF( NOT EXISTS ${Eigen_INCLUDE_DIR} )
+find_package( Eigen3 )
+if( Eigen3_FOUND )
+    message( STATUS "Found Eigen version ${Eigen3_VERSION}" )
+    # for CMake 3.0+ better is to use: target_link_libraries( mytarget Eigen3::Eigen )
+    # or add Eigen3::Eigen3 to snark_ALL_EXTERNAL_LIBRARIES, but that would require
+    # more extensive testing with external users
+    include_directories( ${EIGEN3_INCLUDE_DIR} )
+endif()
 
 IF( snark_BUILD_TESTS )
 find_package( GTest REQUIRED )
@@ -467,7 +459,7 @@ ENDIF(UNIX AND NOT QNXNTO AND NOT APPLE)
 SET( snark_ALL_EXTERNAL_LIBRARIES ${snark_ALL_EXTERNAL_LIBRARIES} ${comma_ALL_LIBRARIES} ${comma_ALL_EXTERNAL_LIBRARIES} ${Boost_LIBRARIES} )
 SET( snark_ALL_EXTERNAL_LIBRARIES ${snark_ALL_EXTERNAL_LIBRARIES} )
 SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} ${snark_ALL_LIBRARIES} ${ZLIB_LIBRARIES} ${snark_ALL_EXTERNAL_LIBRARIES} ) # as gcc parses library list only once
-SET( snark_EXTERNAL_INCLUDES ${Boost_INCLUDE_DIRS} ${Eigen_INCLUDE_DIR} )
+SET( snark_EXTERNAL_INCLUDES ${Boost_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} )
 
 CONFIGURE_FILE(
     "${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles/cmake_uninstall.cmake.in"
