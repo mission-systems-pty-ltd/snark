@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# Copyright (c) 2022 Vsevolod Vlaskine
+
+source $( type -p comma-application-util )
+
+operations=( obj view )
+
+function prologue() { echo "basic toolkit for elevation map manipulations"; }
+
+function epilogue() { echo "examples: todo"; }
+
+function options-description()
+{
+    cat << eof
+--discard=[<value>]; value to discard
+--resolution=<metres>; default=1.; elevation map horizontal resolution (todo? optionally accept lat/lon?)
+--size=<size>; <size>: <width>,<height>, elevation map dimensions
+--size-output,--output-size=[<size>]; <size>: <width>,<height>, output elevation map dimensions
+--type=<type>; default=f; elevation value type
+eof
+}
+
+function _faces()
+{
+    local width=$1
+    local height=$2
+    local type=$3
+    local factor=$4
+    local new
+    cv-cat --input "rows=$height;cols=$width;type=$type;no-header" # "resize=$(( ,1000,lanczos4'
+}
+
+function obj-description() { echo "make obj and mtl files"; }
+
+function obj-usage() { echo "cat elevation.bin | terrain-elevation obj <options> > elevation.obj"; }
+
+function obj-run()
+{
+    die "todo"
+}
+
+function view-description() { echo "view triangulated elevation map"; }
+
+function view-usage() { echo "cat elevation.bin | terrain-elevation view <options>"; }
+
+function view-options()
+{
+    cat << eof
+--colour,--color=<colour>; default=yellow; quick and dirty for now, see view-points --help
+eof
+}
+
+function view-run()
+{
+    [[ -n "$options_size_output" ]] || options_size_output=$options_size
+    IFS=, read width height <<< "$options_size"
+    IFS=, read output_width output_height <<< "$options_size_output"
+    if (( width == output_width && height == output_height )); then cat; else cv-cat --input "rows=$height;cols=$width;type=$options_type;no-header" "resize=$output_width,$output_height,lanczos4"; fi \
+        | image-to-csv --input "rows=$output_width;cols=$output_height;type=$options_type;no-header" --fields=x,y,channels --binary=3f \
+        | if [[ -z "$options_discard" ]]; then cat; else csv-eval --binary=3f --fields=,,v --output-if "v != $options_discard"; fi \
+        | points-mesh grid --binary=3f \
+        | if (( $( bc -l <<< "$options_resolution == 1" ) )); then cat; else csv-eval --binary=3f --field=x,y "x *= $options_resolution; y *= $options_resolution"; fi \
+        | view-points "-;binary=9f;shape=triangle;color=$options_colour;size=$(( ( output_width - 1 ) * ( output_height - 1 ) * 2 ))"
+}
+
+comma-application-swiss-init $@ < <( options-description ) || die "failed"
+comma-application-swiss-run $@
