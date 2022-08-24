@@ -13,7 +13,7 @@ function epilogue() { echo "examples: todo"; }
 function options-description()
 {
     cat << eof
---discard=[<value>]; value to discard
+--discard-if=[<expression>]; values to discard, e.g. --discard-if="v<5", limitation: expression cannot have spaces
 --resolution=<metres>; default=1.; elevation map horizontal resolution (todo? optionally accept lat/lon?)
 --size=<size>; <size>: <width>,<height>, elevation map dimensions
 --size-output,--output-size=[<size>]; <size>: <width>,<height>, output elevation map dimensions
@@ -58,7 +58,7 @@ function view-run()
     IFS=, read output_width output_height <<< "$options_size_output"
     if (( width == output_width && height == output_height )); then cat; else cv-cat --input "rows=$height;cols=$width;type=$options_type;no-header" "resize=$output_width,$output_height,lanczos4"; fi \
         | image-to-csv --input "rows=$output_width;cols=$output_height;type=$options_type;no-header" --fields=x,y,channels --binary=3f \
-        | if [[ -z "$options_discard" ]]; then cat; else csv-eval --binary=3f --fields=,,v --output-if "v != $options_discard"; fi \
+        | if [[ -z "$options_discard_if" ]]; then cat; else csv-eval --binary=3f --fields=,,v --output-if "logical_not($options_discard_if)"; fi \
         | points-mesh grid --binary=3f \
         | if (( $( bc -l <<< "$options_resolution == 1" ) )); then cat; else csv-eval --binary=3f --field=x,y "x *= $options_resolution; y *= $options_resolution"; fi \
         | view-points "-;binary=9f;shape=triangle;color=$options_colour;size=$(( ( output_width - 1 ) * ( output_height - 1 ) * 2 ))"
