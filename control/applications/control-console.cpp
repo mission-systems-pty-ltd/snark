@@ -92,16 +92,16 @@ int main( int ac, char** av )
             {
                 case 'w': case 'W':           delta.coordinates.x() += step; break;
                 case 's': case 'S':           delta.coordinates.x() -= step; break;
-                case 'a': case 'A':           delta.coordinates.y() += step; break;
-                case 'd': case 'D':           delta.coordinates.y() -= step; break;
+                case 'a': case 'A':           delta.coordinates.y() -= step; break;
+                case 'd': case 'D':           delta.coordinates.y() += step; break;
                 case 'z': case 'Z':           delta.coordinates.z() += step; break;
                 case 'x': case 'X': case ' ': delta.coordinates.z() -= step; break;
-                case 'c': case 'C':           delta.orientation.roll() += angle; break;
-                case 'v': case 'V':           delta.orientation.roll() -= angle; break;
+                case 'c': case 'C':           delta.orientation.roll() -= angle; break;
+                case 'v': case 'V':           delta.orientation.roll() += angle; break;
                 case 'r': case 'R':           delta.orientation.pitch() += angle; break;
                 case 'f': case 'F':           delta.orientation.pitch() -= angle; break;
-                case 'q': case 'Q':           delta.orientation.yaw() += angle; break;
-                case 'e': case 'E':           delta.orientation.yaw() -= angle; break;
+                case 'q': case 'Q':           delta.orientation.yaw() -= angle; break;
+                case 'e': case 'E':           delta.orientation.yaw() += angle; break;
                 default: continue;
             }
             pose = _transform( pose, delta );
