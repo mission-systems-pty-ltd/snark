@@ -69,7 +69,9 @@ set_target_properties( points-mesh PROPERTIES LINK_FLAGS_RELEASE -s )
 install( TARGETS points-mesh RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 if( USE_CUDA )
-    cuda_add_executable( points-join points-join.cpp points-join/points_join_cuda.cu ) # quick and dirty, simplistic for now
+    message( WARNING "points-join: cuda compilation broken; todo: either fix or remove" )
+    #cuda_add_executable( points-join points-join.cpp points-join/points_join_cuda.cu ) # quick and dirty, simplistic for now
+    add_executable( points-join points-join.cpp )
 else( USE_CUDA )
     add_executable( points-join points-join.cpp )
 endif( USE_CUDA )
