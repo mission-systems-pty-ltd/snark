@@ -86,26 +86,27 @@ boost::unordered_map< std::string, unsigned int > fill_cvt_color_types_() // tod
 {
     boost::unordered_map<std::string, unsigned int> types;
     //note RGB is exactly the same as BGR
-    types[ "CV_BGR2GRAY" ] = types[ "BGR,GRAY" ] = types[ "cv::COLOR_RGB2GRAY" ] = types[ "RGB,GRAY" ] = CV_BGR2GRAY;
-    types[ "CV_GRAY2BGR" ] = types[ "GRAY,BGR" ] = types[ "CV_GRAY2RGB" ] = types[ "GRAY,RGB" ] = CV_GRAY2BGR;
-    types[ "CV_BGR2XYZ" ] = types[ "BGR,XYZ" ] = types[ "CV_RGB2XYZ" ] = types[ "RGB,XYZ" ] = CV_BGR2XYZ;
-    types[ "CV_XYZ2BGR" ] = types[ "XYZ,BGR" ] = types[ "CV_XYZ2RGB" ] = types[ "XYZ,RGB" ] = CV_XYZ2BGR;
-    types[ "CV_RGB2HSV" ] = types[ "RGB,HSV" ] = CV_RGB2HSV;
-    types[ "CV_BGR2HSV" ] = types[ "BGR,HSV" ] = CV_BGR2HSV;
-    types[ "CV_HSV2RGB" ] = types[ "HSV,RGB" ] = CV_HSV2RGB;
-    types[ "CV_HSV2BGR" ] = types[ "HSV,BGR" ] = CV_HSV2BGR;
-    types[ "CV_BGR2Lab" ] = types[ "BGR,Lab" ] = types[ "CV_RGB2Lab" ] = types[ "RGB,Lab" ] = CV_BGR2Lab;
-    types[ "CV_Lab2BGR" ] = types[ "Lab,BGR" ] = types[ "CV_Lab2RGB" ] = types[ "Lab,RGB" ] = CV_Lab2BGR;
-    types[ "CV_BayerBG2BGR" ] = types[ "BayerBG,BGR" ] = types[ "CV_BayerBG2RGB" ] = types[ "BayerBG,RGB" ] = CV_BayerBG2BGR;
-    types[ "CV_BayerGB2BGR" ] = types[ "BayerGB,BGR" ] = types[ "CV_BayerGB2RGB" ] = types[ "BayerGB,RGB" ] = CV_BayerGB2BGR;
-    types[ "CV_BayerRG2BGR" ] = types[ "BayerRG,BGR" ] = types[ "CV_BayerRG2RGB" ] = types[ "BayerRG,RGB" ] = CV_BayerRG2BGR;
-    types[ "CV_BayerGR2BGR" ] = types[ "BayerGR,BGR" ] = types[ "CV_BayerGR2RGB" ] = types[ "BayerGR,RGB" ] = CV_BayerGR2BGR;
-    types[ "CV_BayerBG2GRAY" ] = types[ "BayerBG,GRAY" ] = CV_BayerBG2GRAY;
-    types[ "CV_BayerGB2GRAY" ] = types[ "BayerGB,GRAY" ] = CV_BayerGB2GRAY;
-    types[ "CV_BayerRG2GRAY" ] = types[ "BayerRG,GRAY" ] = CV_BayerRG2GRAY;
-    types[ "CV_BayerGR2GRAY" ] = types[ "BayerGR,GRAY" ] = CV_BayerGR2GRAY;
-    types[ "CV_BGR2RGB" ] = types[ "BGR,RGB" ] = CV_BGR2RGB;
-    types[ "CV_RGB2BGR" ] = types[ "RGB,BGR" ] = CV_RGB2BGR;
+    types[ "CV_BGR2GRAY" ] = types[ "BGR,GRAY" ] = types[ "cv::COLOR_RGB2GRAY" ] = types[ "RGB,GRAY" ] = types[ "rgb,gray" ] = CV_BGR2GRAY;
+    types[ "CV_GRAY2BGR" ] = types[ "GRAY,BGR" ] = types[ "CV_GRAY2RGB" ] = types[ "GRAY,RGB" ] = types[ "gray,rgb" ] = CV_GRAY2BGR;
+    types[ "CV_BGR2XYZ" ] = types[ "BGR,XYZ" ] = types[ "CV_RGB2XYZ" ] = types[ "RGB,XYZ" ] = types[ "rgb,xyz" ] = CV_BGR2XYZ;
+    types[ "CV_XYZ2BGR" ] = types[ "XYZ,BGR" ] = types[ "CV_XYZ2RGB" ] = types[ "XYZ,RGB" ] = types[ "xyz,rgb" ] = CV_XYZ2BGR;
+    types[ "CV_RGB2HSV" ] = types[ "RGB,HSV" ] = types[ "rgb,hsv" ] = CV_RGB2HSV;
+    types[ "CV_BGR2HSV" ] = types[ "BGR,HSV" ] = types[ "bgr,hsv" ] = CV_BGR2HSV;
+    types[ "CV_HSV2RGB" ] = types[ "HSV,RGB" ] = types[ "hsv,rgb" ] = CV_HSV2RGB;
+    types[ "CV_HSV2BGR" ] = types[ "HSV,BGR" ] = types[ "hsv,bgr" ] = CV_HSV2BGR;
+    types[ "CV_BGR2Lab" ] = types[ "BGR,Lab" ] = types[ "CV_RGB2Lab" ] = types[ "RGB,Lab" ] = types[ "rgb,lab" ] = CV_BGR2Lab;
+    types[ "CV_Lab2BGR" ] = types[ "Lab,BGR" ] = types[ "CV_Lab2RGB" ] = types[ "Lab,RGB" ] = types[ "lab,rgb" ] = CV_Lab2BGR;
+    types[ "CV_BayerBG2BGR" ] = types[ "BayerBG,BGR" ] = types[ "CV_BayerBG2RGB" ] = types[ "BayerBG,RGB" ] = types[ "bayerbg,rgb" ] = CV_BayerBG2BGR;
+    types[ "CV_BayerGB2BGR" ] = types[ "BayerGB,BGR" ] = types[ "CV_BayerGB2RGB" ] = types[ "BayerGB,RGB" ] = types[ "bayergb,rgb" ] = CV_BayerGB2BGR;
+    types[ "CV_BayerRG2BGR" ] = types[ "BayerRG,BGR" ] = types[ "CV_BayerRG2RGB" ] = types[ "BayerRG,RGB" ] = types[ "bayerrg,rgb" ] = CV_BayerRG2BGR;
+    types[ "CV_BayerGR2BGR" ] = types[ "BayerGR,BGR" ] = types[ "CV_BayerGR2RGB" ] = types[ "BayerGR,RGB" ] = types[ "bayergr,rgb" ] = CV_BayerGR2BGR;
+    types[ "CV_BayerBG2GRAY" ] = types[ "BayerBG,GRAY" ] = types[ "bayerbg,gray" ] = CV_BayerBG2GRAY;
+    types[ "CV_BayerGB2GRAY" ] = types[ "BayerGB,GRAY" ] = types[ "bayergb,gray" ] = CV_BayerGB2GRAY;
+    types[ "CV_BayerRG2GRAY" ] = types[ "BayerRG,GRAY" ] = types[ "bayerrg,gray" ] = CV_BayerRG2GRAY;
+    types[ "CV_BayerGR2GRAY" ] = types[ "BayerGR,GRAY" ] = types[ "bayergr,gray" ] = CV_BayerGR2GRAY;
+    types[ "CV_BGR2RGB" ] = types[ "BGR,RGB" ] = types[ "bgr,rgb" ] = CV_BGR2RGB;
+    types[ "CV_RGB2BGR" ] = types[ "RGB,BGR" ] = types[ "rgb,bgr" ] = CV_RGB2BGR;
+    types[ "CV_BGR2BGRA" ] = types[ "BGR,BGRA" ] = types[ "bgr,bgra" ] = CV_BGR2BGRA;
     return types;
 }
 
