@@ -1,32 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 #ifdef WIN32
 #include <stdio.h>
@@ -62,7 +34,16 @@ static void usage( bool verbose = false )
     std::cerr << "        <frame> : name of file with timestamped nav data" << std::endl;
     std::cerr << "                  or <x>,<y>,<z>[,<roll>,<pitch>,<yaw>]" << std::endl;
     std::cerr << "                  nav data in file: <t>,<x>,<y>,<z>,<roll>,<pitch>,<yaw>" << std::endl;
-    std::cerr << "      ATTENTION: if 'frame' field present, specify --from or --to without value, default behaviour: --from" << std::endl;
+    std::cerr << "                      default fields: t,x,y,z,roll,pitch,yaw" << std::endl;
+    std::cerr << "                      examples:t,x,y,z,roll,pitch,yaw" << std::endl;
+    std::cerr << "                          ascii" << std::endl;
+    std::cerr << "                              cat txyz.csv | points-frame --from 'nav.bin;binary=t,6d" << std::endl;
+    std::cerr << "                          binary, default nav data fields" << std::endl;
+    std::cerr << "                              cat txyz.bin | points-frame --binary=t,3d --from 'nav.bin;binary=t,6d" << std::endl;
+    std::cerr << "                          binary, custom nav data fields" << std::endl;
+    std::cerr << "                              cat txyz.bin | points-frame --binary=t,3d --from 'nav.bin;binary=t,2ui,6d;fields=t,,,x,y,z,roll,pitch,yaw" << std::endl;
+    std::cerr << "                          see more examples in examples section below" << std::endl;
+    std::cerr << "      ATTENTION: if 'frame' field present on stdin, specify --from or --to without value, default behaviour: --from" << std::endl;
     std::cerr << "    --discard-out-of-order,--discard : if present, discard out of order points silently" << std::endl;
     std::cerr << "    --frame[=<frame>]; default: 0,0,0,0,0,0; if 'frame' field present, <frame> will be used as default for frame fields" << std::endl;
     std::cerr << "    --max-gap <seconds> : max valid time gap between two successive nav solutions;" << std::endl;
