@@ -100,9 +100,12 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     Feed.prototype.extract_fields = function (form_elements) {
         if (form_elements != undefined) {
-
+            let dropdowns = [];
+            if (form_elements['dropdowns'] != undefined) {
+              dropdowns = form_elements['dropdowns'];
+            }
             if (form_elements['fields'] != undefined) {
-                this.populate_path_values(form_elements['fields'], "");
+                this.populate_path_values(form_elements['fields'], "", dropdowns);
                 // this.buttons = form_elements['buttons'];
             }
             if (form_elements['buttons'] != undefined) {
@@ -121,16 +124,16 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         }
     };
 
-    Feed.prototype.populate_path_values = function (form_elements, prefix) {
+    Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns) {
         for (var element in form_elements) {
             var value = form_elements[element];
             var type = typeof value;
-            if (type == "object") {
-                var p = get_prefix(element, prefix);
-                this.populate_path_values(value, p);
+            var p = get_prefix(element, prefix);
+            if (type == "object" && !dropdowns.includes(p)) {
+                // Flatten 'object' field unless it is configured as a dropdown.
+                this.populate_path_values(value, p, dropdowns);
             }
-            else if (type = "string") {
-                var p = get_prefix(element, prefix);
+            else {
                 this.fields[p] = value;
             }
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
@@ -170,8 +173,13 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                     type: 'button',
                     class: "btn btn-default col-sm-3",
                     click: function () {
+                        // Make text fields empty.
                         $($(this).closest("form").find("input[type=text]")).each(function () {
                             $(this).val('');
+                        });
+                        // Set dropdowns to the first option.
+                        $($(this).closest("form").find("select")).each(function () {
+                            $(this).val($(this).children()[0].text)
                         });
                         $($(this).closest("form").find("button")).each(function () {
                             $(this).attr('disabled', "disabled");
@@ -257,7 +265,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             {class: "col-sm-2"}));
     };
     Feed.prototype.addListeners = function () {
+        // Re-enable submit button whenever an input element changes.
         $($(this.form).find("input")).on("input", function () {
+            $($(this).closest("form").find("button")).each(function () {
+                $(this).removeAttr('disabled');
+            });
+        });
+        // Re-enable submit button whenever a select element changes.
+        $($(this.form).find("select")).on("change", function() {
             $($(this).closest("form").find("button")).each(function () {
                 $(this).removeAttr('disabled');
             });
@@ -355,24 +370,37 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             var label = $('<label>',
                 {
                     text: field,
-                    class: "col-sm-4 "
+                    class: "col-sm-4 text-nowrap"
                 });
             var each = $('<div>', {
                 class: " col-sm-8"
             });
-            var input_type = 'text';
-            switch (typeof this.fields[field]) {
-                case 'number':
-                    input_type = 'number';
-                    break;
-            }
-            var input = $('<input>',
+            var input;
+            var fieldValue = this.fields[field];
+            if (Array.isArray(fieldValue)) {
+              // Array values become a dropdown selector. These fields must have been
+              // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
+              // they'd already have been flattened to individual fields by
+              // `populate_path_values`.
+              input = $('<select>',
+                {
+                  class: "form-control ",
+                  name: field,
+                  value: fieldValue[0]
+                });
+              fieldValue.forEach(f => {
+                input.append($('<option>').append(f));
+              });
+            } else {
+              var input_type = (typeof fieldValue == 'number' ? 'number' : 'text');
+              input = $('<input>',
                 {
                     type: input_type,
                     class: "form-control ",
                     name: field,
-                    value: this.fields[field]
+                    value: fieldValue
                 });
+            }
             if (is_disabled) {
                 $(input).prop('readonly', "readonly");
                 $(input).prop('title', "readonly");

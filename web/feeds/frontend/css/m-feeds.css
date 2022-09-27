@@ -388,6 +388,11 @@ form input {
     color: #2c2c2c;
 }
 
+form select {
+    margin-bottom: 5px;
+    color: #2c2c2c;
+}
+
 .form {
     overflow: auto;
 }
