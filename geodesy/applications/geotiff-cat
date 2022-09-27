@@ -25,12 +25,36 @@ def _open( args ):
     assert g is not None, RuntimeError( f'file does not exist or is not a valid geotiff: {args.geotiff_filename}' )
     return g
 
+def _to_pixels( g, coordinates ):
+    t = g.GetGeoTransform()
+    translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
+    transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
+    return numpy.linalg.inv( transform ) @ ( coordinates - translation ).T
+
+def _shape( args, g ):
+    assert args.channel <= g.RasterCount, f'expected raster band between 1 and {g.RasterCount}; got: {args.channel}'
+    if args.as_coordinates:
+        begin = numpy.array( [ float( s ) for s in args.origin.split( ',' ) ] )
+        end = begin + numpy.array( [ float( s ) for s in args.size[0].split( ',' ) ] )
+        x, y = _to_pixels( g, begin ).astype( int )
+        width, height = ( _to_pixels( g, end ) - [ x, y ] ).astype( int )
+    else:
+        x, y = [ int( s ) for s in args.origin.split( ',' ) ]
+        width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
+    assert x + width <= g.RasterXSize, 'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
+    assert y + height <= g.RasterYSize, 'expected y + height < {g.RasterYSize}; got: y: {y} height: {height}'
+    return x, y, width, height
+    
+def _raster( args, g ):
+    b = g.GetRasterBand( args.channel )
+    return b.ReadAsArray( *_shape( args, g ) )
+
 def convert( args ):
     g = _open( args )
     t = g.GetGeoTransform()
     translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
     transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
-    transform_i = numpy.linalg.inv( transform.T )
+    transform_i = numpy.linalg.inv( transform )
     to_pixels = args.to == 'pixels'
     while True: # todo: quick and dirty; implement as a proper comma.csv.stream
         line = sys.stdin.readline()
@@ -39,15 +63,6 @@ def convert( args ):
         b = ( transform_i @ ( a - translation ).T if to_pixels else transform @ a.T + translation ).T
         if to_pixels and not args.no_rounding: b = [ int( numpy.round( b[0] ) ), int( numpy.round( b[1] ) ) ] # quick and dirty for now
         print( f'{b[0]},{b[1]}' if args.no_append else f'{a[0]},{a[1]},{b[0]},{b[1]}' )
-    
-def _raster( args, g ):
-    assert args.channel <= g.RasterCount, f'expected raster band between 1 and {g.RasterCount}; got: {args.channel}'
-    x, y = [ int( s ) for s in args.origin.split( ',' ) ]
-    width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
-    assert x + width <= g.RasterXSize, 'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
-    assert y + height <= g.RasterYSize, 'expected y + height < {g.RasterYSize}; got: y: {y} height: {height}'
-    b = g.GetRasterBand( args.channel )
-    return b.ReadAsArray( x, y, width, height )
     
 def points( args ):
     assert args.binary is None or args.binary == '2ui,3d', 'only --binary=2ui,3d is currently supported'
@@ -66,7 +81,9 @@ def points( args ):
     else:
         sys.stdout.buffer.write( a.tobytes() )
     
-def raster( args ): sys.stdout.buffer.write( _raster( args, _open( args ) ).tobytes() )
+def raster( args ):
+    if args.shape: _, _, width, height = _shape( args, _open( args ) ); print( f'{height},{width}' ); return
+    sys.stdout.buffer.write( _raster( args, _open( args ) ).tobytes() )
 
 def shape( args ): g = _open( args ); print( f'{g.RasterYSize},{g.RasterXSize},{g.RasterCount}' )
     
@@ -83,27 +100,27 @@ if __name__ == "__main__":
     parser_convert.set_defaults( func=convert )
     parser_points = subparsers.add_parser( 'points', help='geo points as csv or binary for given pixels (very likely to be buggy; debugging in progress...)' )
     parser_points.add_argument( 'geotiff_filename', type=str, help='path to geotiff file; output fields: pixel/x,pixel/y,x,y,band; if binary, output format: 2ui,3d' )
+    parser_points.add_argument( '--as-coordinates', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
     parser_points.add_argument( '--binary', type=str, help='output binary format; currently only 2ui,3d is supported' )
     parser_points.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
-    parser_points.add_argument( '--origin', '--offset', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
-    parser_points.add_argument( '--size', type=str, nargs=1, required=True, help='size in pixels as <width>,<height>' )
+    parser_points.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
+    parser_points.add_argument( '--size', type=str, nargs=1, help='size as <width>,<height>' )
     parser_points.set_defaults( func=points )
     parser_raster = subparsers.add_parser( 'raster', help='raster as binary for given pixels; note: output shape will be <height>,<width> as in numpy' )
     parser_raster.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
+    parser_raster.add_argument( '--as-coordinates', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
     parser_raster.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
-    parser_raster.add_argument( '--origin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
-    parser_raster.add_argument( '--size', type=str, nargs=1, required=True, help='size in pixels as <width>,<height>' )
+    parser_raster.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
+    parser_raster.add_argument( '--shape', action='store_true', help='convenience option: if --as-coordinates, print shape in pixels as <height>,<width> and exit' )
+    parser_raster.add_argument( '--size', type=str, nargs=1, help='size as <width>,<height>' )
     parser_raster.set_defaults( func=raster )
     parser_shape = subparsers.add_parser( 'shape', help='output to stdout as csv: <height>,<width>,<bands>' )
     parser_shape.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
     parser_shape.set_defaults( func=shape )
-    
     parser_transform = subparsers.add_parser( 'transform', help='output to stdout as csv: origin/x,step_along/x/x,step_along/x/y,origin/y,step_along/y/x,step_along/y/y; see https://gdal.org/user/raster_data_model.html' )
     parser_transform.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
     parser_transform.set_defaults( func=transform )
-    
     args = parser.parse_args()
-    
     try:
         try: import gdal
         except: from osgeo import gdal
