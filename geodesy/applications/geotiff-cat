@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, sys
+import argparse, numpy, sys
 
 # todo! quick and dirty; write a ansible yaml file
 gdal_installation = '''
@@ -25,14 +25,34 @@ def _open( args ):
     assert g is not None, RuntimeError( f'file does not exist or is not a valid geotiff: {args.geotiff_filename}' )
     return g
 
-def raster( args ):
-    g = _open( args )
+def _raster( args, g ):
     assert args.channel <= g.RasterCount, f'expected raster band between 1 and {g.RasterCount}; got: {args.channel}'
     x, y = [ int( s ) for s in args.origin.split( ',' ) ]
     width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
     assert x + width <= g.RasterXSize, 'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
     assert y + height <= g.RasterYSize, 'expected y + height < {g.RasterYSize}; got: y: {y} height: {height}'
-    sys.stdout.buffer.write( g.GetRasterBand( 1 ).ReadAsArray( x, y, width, height ).tobytes() )
+    return g.GetRasterBand( args.channel ).ReadAsArray( x, y, width, height )
+    
+def points( args ):
+    assert args.binary is None or args.binary == '2ui,3d', 'only --binary=2ui,3d is currently supported'
+    g = _open( args )
+    r = _raster( args, g )
+    t = g.GetGeoTransform()
+    translation = numpy.array( [ t[0], t[3] ], dtype=float )
+    transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=float )
+    indices = numpy.indices( r.shape, dtype=numpy.int32 ).T.reshape( ( r.shape[0] * r.shape[1], 2 ) )
+    a = numpy.zeros( r.shape[0] * r.shape[1], dtype=numpy.dtype([('index', '2i'),('coordinates', '2f8'), ('value', 'f8')] ) )
+    a['index'] = indices
+    a['coordinates'] = ( transform @ indices.T.astype( float ) ).T + translation
+    a['value'] = numpy.ndarray.flatten( r )
+    if args.binary is None:
+        for e in a: print( f"{e['index'][0]},{e['index'][1]},{e['coordinates'][0]},{e['coordinates'][1]},{e['value']}" ) # quick and dirty, numpy.savetxt gets upset with fmt
+    else:
+        sys.stdout.buffer.write( a.tobytes() )
+    
+def raster( args ):
+    g = _open( args )
+    sys.stdout.buffer.write( _raster( args, g ) )
 
 def shape( args ):
     g = _open( args )
@@ -46,7 +66,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers( help='operations; help: e.g: geotiff-cat raster --help' )
     
-    parser_raster = subparsers.add_parser( 'raster', help='raster as binary for given coordinates; note: output shape will be <height>,<width> as in numpy' )
+    parser_points = subparsers.add_parser( 'points', help='geo points as csv or binary for given pixels' )
+    parser_points.add_argument( 'geotiff_filename', type=str, help='path to geotiff file; output fields: pixel/x,pixel/y,x,y,band; if binary, output format: 2ui,3d' )
+    parser_points.add_argument( '--binary', type=str, help='output binary format; currently only 2ui,3d is supported' )
+    parser_points.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
+    parser_points.add_argument( '--origin', '--offset', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
+    parser_points.add_argument( '--size', type=str, nargs=1, required=True, help='size in pixels as <width>,<height>' )
+    parser_points.set_defaults( func=points )
+    
+    parser_raster = subparsers.add_parser( 'raster', help='raster as binary for given pixels; note: output shape will be <height>,<width> as in numpy' )
     parser_raster.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
     parser_raster.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
     parser_raster.add_argument( '--origin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
