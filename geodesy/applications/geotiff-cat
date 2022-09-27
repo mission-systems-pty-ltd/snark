@@ -31,20 +31,21 @@ def _raster( args, g ):
     width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
     assert x + width <= g.RasterXSize, 'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
     assert y + height <= g.RasterYSize, 'expected y + height < {g.RasterYSize}; got: y: {y} height: {height}'
-    return g.GetRasterBand( args.channel ).ReadAsArray( x, y, width, height )
+    b = g.GetRasterBand( args.channel )
+    return b.ReadAsArray( x, y, width, height )
     
 def points( args ):
     assert args.binary is None or args.binary == '2ui,3d', 'only --binary=2ui,3d is currently supported'
     g = _open( args )
     r = _raster( args, g )
     t = g.GetGeoTransform()
-    translation = numpy.array( [ t[0], t[3] ], dtype=float )
-    transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=float )
+    translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
+    transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
     indices = numpy.indices( r.shape, dtype=numpy.int32 ).T.reshape( ( r.shape[0] * r.shape[1], 2 ) )
     a = numpy.zeros( r.shape[0] * r.shape[1], dtype=numpy.dtype([('index', '2i'),('coordinates', '2f8'), ('value', 'f8')] ) )
     a['index'] = indices
-    a['coordinates'] = ( transform @ indices.T.astype( float ) ).T + translation
-    a['value'] = numpy.ndarray.flatten( r )
+    a['coordinates'] = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
+    a['value'] = numpy.ndarray.flatten( r ).astype( numpy.float64 )
     if args.binary is None:
         for e in a: print( f"{e['index'][0]},{e['index'][1]},{e['coordinates'][0]},{e['coordinates'][1]},{e['value']}" ) # quick and dirty, numpy.savetxt gets upset with fmt
     else:
@@ -52,7 +53,11 @@ def points( args ):
     
 def raster( args ):
     g = _open( args )
-    sys.stdout.buffer.write( _raster( args, g ) )
+    #a = _raster( args, g )
+    #b = a.tobytes()
+    #sys.stdout.buffer.write( b )
+    #sys.stdout.flush()
+    sys.stdout.buffer.write( _raster( args, g ).tobytes() )
 
 def shape( args ):
     g = _open( args )
@@ -66,7 +71,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers( help='operations; help: e.g: geotiff-cat raster --help' )
     
-    parser_points = subparsers.add_parser( 'points', help='geo points as csv or binary for given pixels' )
+    parser_points = subparsers.add_parser( 'points', help='geo points as csv or binary for given pixels (very likely to be buggy; debugging in progress...)' )
     parser_points.add_argument( 'geotiff_filename', type=str, help='path to geotiff file; output fields: pixel/x,pixel/y,x,y,band; if binary, output format: 2ui,3d' )
     parser_points.add_argument( '--binary', type=str, help='output binary format; currently only 2ui,3d is supported' )
     parser_points.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
