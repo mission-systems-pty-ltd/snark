@@ -74,7 +74,8 @@ def points( args ):
     t = g.GetGeoTransform()
     translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
     transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
-    indices = numpy.indices( r.shape, dtype=numpy.int32 ).T.reshape( ( r.shape[0] * r.shape[1], 2 ) )
+    x, y, width, height = _shape( args, g )
+    indices = numpy.indices( r.shape, dtype=numpy.int32 ).T.reshape( ( r.shape[0] * r.shape[1], 2 ) ) + numpy.array( [ x, y ], dtype=numpy.int32 )
     a = numpy.zeros( r.shape[0] * r.shape[1], dtype=numpy.dtype([('index', '2i'),('coordinates', '2f8'), ('value', 'f8')] ) )
     a['index'] = indices
     a['coordinates'] = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     parser_points.set_defaults( func=points )
     parser_raster = subparsers.add_parser( 'raster', help='raster as binary for given pixels; note: output shape will be <height>,<width> as in numpy' )
     parser_raster.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
-    parser_raster.add_argument( '--as-coordinates', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
+    parser_raster.add_argument( '--as-coordinates', '-c', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
     parser_raster.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
     parser_raster.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
     parser_raster.add_argument( '--dry-run', '--dry', action='store_true', help='convenience option: print origin and size in pixels as <x>,<y>,<height>,<width> and exit' )
