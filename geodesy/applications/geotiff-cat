@@ -36,8 +36,11 @@ def _shape( args, g ):
     if args.as_coordinates:
         begin = numpy.array( [ float( s ) for s in args.origin.split( ',' ) ] )
         end = begin + numpy.array( [ float( s ) for s in args.size[0].split( ',' ) ] )
-        x, y = _to_pixels( g, begin ).astype( int )
-        width, height = ( _to_pixels( g, end ) - [ x, y ] ).astype( int )
+        pbegin = numpy.round( _to_pixels( g, begin ) ).astype( int )
+        pend = numpy.round( _to_pixels( g, end ) ).astype( int )
+        x, y = int( min( pbegin[0], pend[0] ) ), int( min( pbegin[1], pend[1] ) )
+        ex, ey = int( max( pbegin[0], pend[0] ) ), int( max( pbegin[1], pend[1] ) )
+        width, height = ex - x, ey - y
     else:
         x, y = [ int( s ) for s in args.origin.split( ',' ) ]
         width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
@@ -82,7 +85,10 @@ def points( args ):
         sys.stdout.buffer.write( a.tobytes() )
     
 def raster( args ):
-    if args.shape: _, _, width, height = _shape( args, _open( args ) ); print( f'{height},{width}' ); return
+    if args.dry_run:
+        x, y, width, height = _shape( args, _open( args ) )
+        print( f'{x},{y},{height},{width}' )
+        return
     sys.stdout.buffer.write( _raster( args, _open( args ) ).tobytes() )
 
 def shape( args ): g = _open( args ); print( f'{g.RasterYSize},{g.RasterXSize},{g.RasterCount}' )
@@ -111,7 +117,7 @@ if __name__ == "__main__":
     parser_raster.add_argument( '--as-coordinates', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
     parser_raster.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
     parser_raster.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
-    parser_raster.add_argument( '--shape', action='store_true', help='convenience option: if --as-coordinates, print shape in pixels as <height>,<width> and exit' )
+    parser_raster.add_argument( '--dry-run', '--dry', action='store_true', help='convenience option: print origin and size in pixels as <x>,<y>,<height>,<width> and exit' )
     parser_raster.add_argument( '--size', type=str, nargs=1, help='size as <width>,<height>' )
     parser_raster.set_defaults( func=raster )
     parser_shape = subparsers.add_parser( 'shape', help='output to stdout as csv: <height>,<width>,<bands>' )
