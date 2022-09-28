@@ -161,7 +161,7 @@ static void usage( bool )
         "\n                                   where 'begin' and 'end' are x,y,z points"
         "\n                                   and 'middle' is a point between begin and end on the arc"
         "\n                                   default: 'begin,end', with centre 0,0,0"
-        "\n                     \"axis\": draws three axis lines per record, in red/green/blue corresponding to x/y/z axes, using position and orientation e.g. --shape=axis --fields=position,orientation"
+        "\n                     \"axis\", \"axes\": draws three axis lines per record, in red/green/blue corresponding to x/y/z axes, using position and orientation e.g. --shape=axis --fields=position,orientation"
         "\n                               default fields: position,orientation"
         "\n                               fields: position: x,y,z or position/x,position/y,position/z"
         "\n                                       orientation: roll,pitch,yaw or orientation/roll,orientation/pitch,orientation/yaw"
@@ -608,9 +608,9 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     {
         if( param.options.fields == "" ) { param.options.fields="corners"; }
     }
-    else if( shape=="axis" )
+    else if( shape == "axis" || shape == "axes" )
     {
-        if( param.options.fields == "" ) { param.options.fields="position,orientation"; }
+        if( param.options.fields.empty() ) { param.options.fields="position,orientation"; }
         std::vector< std::string > v = comma::split( param.options.fields, ',' );
         for( std::size_t i = 0; i < v.size(); ++i )
         {
