@@ -2,21 +2,13 @@
 
 import argparse, numpy, sys
 
-# todo! quick and dirty; write a ansible yaml file
 gdal_installation = '''
 
 gdal not found; install it as following
-(see https://mothergeo-py.readthedocs.io/en/latest/development/how-to/gdal-ubuntu-pkg.html)
-note: gdal installation fails on ubuntu 18.04
 
-sudo apt install --yes apt-utils software-properties-common
-sudo add-apt-repository ppa:ubuntugis/ppa
-sudo apt update
-sudo apt install --yes gdal-bin libgdal-dev
-export CPLUS_INCLUDE_PATH=/usr/include/gdal
-export C_INCLUDE_PATH=/usr/include/gdal
-ogrinfo --version
-sudo pip3 install GDAL==<version-returned-by-ogrinfo>
+sudo apt install --yes gdal-bin libgdal-dev python3-gdal
+
+if it does not work, see https://gdal.org/ for installation instructions
 
 '''
 
