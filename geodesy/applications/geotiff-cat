@@ -36,7 +36,7 @@ def _shape( args, g ):
     else:
         x, y = [ int( s ) for s in args.origin.split( ',' ) ]
         width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
-    if not args.dry_run:
+    if not ( hasattr( args, 'dry_run' ) and args.dry_run ):
         assert x >= 0, f'x >= 0; got: x: {x}'
         assert y >= 0, f'x >= 0; got: y: {y}'
         assert x + width <= g.RasterXSize, f'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
