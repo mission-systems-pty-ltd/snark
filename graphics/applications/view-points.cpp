@@ -709,7 +709,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         reader->show( show );
         return reader;
     }
-    else if( shape == "axis" )
+    else if( shape == "axis" || shape == "axes" )
     {
         std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader<snark::graphics::view::axis>( param, colored, label ) );
         reader->show( show );
@@ -740,19 +740,10 @@ int main( int argc, char** argv )
             std::vector< std::string > camera_fields = comma::split( camera, ';' );
             for( const auto& field : camera_fields )
             {
-                if( field == "orthographic" )
-                {
-                    camera_options.orthographic = true;
-                }
-                else if( field == "perspective" )
-                {
-                    camera_options.orthographic = false;
-                }
-                else
-                {
-                    std::vector< std::string > vec = comma::split( field, '=' );
-                    if( vec.size() == 2 && vec[0] == "fov" ) { camera_options.field_of_view = boost::lexical_cast< double >( vec[1] ); }
-                }
+                if( field == "orthographic" ) { camera_options.orthographic = true; continue; }
+                if( field == "perspective" ) { camera_options.orthographic = false; continue; }
+                std::vector< std::string > vec = comma::split( field, '=' );
+                if( vec.size() == 2 && vec[0] == "fov" ) { camera_options.field_of_view = boost::lexical_cast< double >( vec[1] ); }
             }
         }
         bool camera_position_from_stdin = false;
