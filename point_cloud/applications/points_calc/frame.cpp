@@ -26,10 +26,11 @@ std::string traits::usage()
     oss << "        examples" << std::endl;
     oss << "            the following two lines should output same result" << std::endl;
     oss << "                echo 0,0,1,0,0,0 \\" << std::endl;
-    oss << "                    | points-frame --fields x,y,z,roll,pitch,yaw --from $( ( echo 0,0,0,0,1,0.5 ; echo 0,0,0,0,2,0 ) \\" << std::endl;
-    oss << "                    | points-calc frame-integrate --from \\" << std::endl;
-    oss << "                    | tail -n1 \\" << std::endl;
-    oss << "                    | cut -d, -f7-12 )" << std::endl;
+    oss << "                    | points-frame --fields x,y,z,roll,pitch,yaw \\" << std::endl;
+    oss << "                                   --from $( ( echo 0,0,0,0,1,0.5 ; echo 0,0,0,0,2,0 ) \\" << std::endl;
+    oss << "                                                 | points-calc frame-integrate --from \\" << std::endl;
+    oss << "                                                 | tail -n1 \\" << std::endl;
+    oss << "                                                 | cut -d, -f7-12 )" << std::endl;
     oss << "                echo 0,0,1,0,0,0 \\" << std::endl;
     oss << "                    | points-frame --from 0,0,0,0,1,0.5 --fields x,y,z,roll,pitch,yaw \\" << std::endl;
     oss << "                    | points-frame --from 0,0,0,0,2,0 --fields x,y,z,roll,pitch,yaw" <<  std::endl;
