@@ -24,16 +24,17 @@ std::string traits::usage()
     oss << "            --in-place,--emplace; replace input frame with the integrated one, do not append anything; convenience option" << std::endl;
     oss << std::endl;
     oss << "        examples" << std::endl;
-    oss << "            the following two lines should output same result" << std::endl;
+    oss << "            the following two lines should output same result, in both cases frames applied as left-hand multiplication: frame3 * frame2 * frame1" << std::endl;
     oss << "                echo 0,0,1,0,0,0 \\" << std::endl;
     oss << "                    | points-frame --fields x,y,z,roll,pitch,yaw \\" << std::endl;
-    oss << "                                   --from $( ( echo 0,0,0,0,1,0.5 ; echo 0,0,0,0,2,0 ) \\" << std::endl;
+    oss << "                                   --from $( ( echo 0,0,0,1,2,3; echo 0,0,0,0,1,0.5 ; echo 0,0,0,0,2,0 ) \\" << std::endl;
     oss << "                                                 | points-calc frame-integrate --from \\" << std::endl;
     oss << "                                                 | tail -n1 \\" << std::endl;
     oss << "                                                 | cut -d, -f7-12 )" << std::endl;
     oss << "                echo 0,0,1,0,0,0 \\" << std::endl;
-    oss << "                    | points-frame --from 0,0,0,0,1,0.5 --fields x,y,z,roll,pitch,yaw \\" << std::endl;
-    oss << "                    | points-frame --from 0,0,0,0,2,0 --fields x,y,z,roll,pitch,yaw" <<  std::endl;
+    oss << "                    | points-frame --from 0,0,0,0,2,0 --fields x,y,z,roll,pitch,yaw \\" << std::endl;
+    oss << "                    | points-frame --from 0,0,0,0,1,0.5 --fields x,y,z,roll,pitch,yaw \\" <<  std::endl;
+    oss << "                    | points-frame --from 0,0,0,1,2,3 --fields x,y,z,roll,pitch,yaw" << std::endl;
     oss << std::endl;
     return oss.str();
 }
