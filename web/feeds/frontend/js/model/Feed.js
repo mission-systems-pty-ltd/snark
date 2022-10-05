@@ -111,8 +111,17 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             if (form_elements['buttons'] != undefined) {
                 var buttons_config = form_elements['buttons'];
                 if (buttons_config['show'] != undefined) {
-                    if (buttons_config['show'] == "true") {
+                    // `form_show_buttons` will end up being either true,
+                    // false, or a non-empty array of button names. When used as
+                    // a boolean, an array evaluates to true.
+                    var show = buttons_config['show'];
+                    if (Array.isArray(show) && show.length > 0) {
+                        this.form_show_buttons = show;
+                    } else if (show == "true" || (typeof show == "boolean" && show)) {
+                        // NOTE: Configs allow text or boolean i.e. "true"/true.
                         this.form_show_buttons = true;
+                    } else {
+                        this.form_show_buttons = false;
                     }
                 }
                 //
@@ -166,30 +175,33 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         if (this.form_show_buttons) {
             var buttons_div = $('<div>', {class: "col-sm-12"});
             this.add_buttons(buttons_div);
-            var clear = $('<button/>',
-                {
-                    text: 'Clear',
-                    name: 'clear',
-                    type: 'button',
-                    class: "btn btn-default col-sm-3",
-                    click: function () {
-                        // Make text fields empty.
-                        $($(this).closest("form").find("input[type=text]")).each(function () {
-                            $(this).val('');
-                        });
-                        // Set dropdowns to the first option.
-                        $($(this).closest("form").find("select")).each(function () {
-                            $(this).val($(this).children()[0].text)
-                        });
-                        $($(this).closest("form").find("button")).each(function () {
-                            $(this).attr('disabled', "disabled");
-                        });
-                        // $($(this).closest("form").find("button")).each(function () {
-                        //     $(this).attr('disabled', "disabled");
-                        // });
-                    }
-                });
-            buttons_div.append(clear);
+
+            if (this.button_enabled("clear")) {
+                var clear = $('<button/>',
+                    {
+                        text: 'Clear',
+                        name: 'clear',
+                        type: 'button',
+                        class: "btn btn-default col-sm-3",
+                        click: function () {
+                            // Make text fields empty.
+                            $($(this).closest("form").find("input[type=text]")).each(function () {
+                                $(this).val('');
+                            });
+                            // Set dropdowns to the first option.
+                            $($(this).closest("form").find("select")).each(function () {
+                                $(this).val($(this).children()[0].text)
+                            });
+                            $($(this).closest("form").find("button")).each(function () {
+                                $(this).attr('disabled', "disabled");
+                            });
+                            // $($(this).closest("form").find("button")).each(function () {
+                            //     $(this).attr('disabled', "disabled");
+                            // });
+                        }
+                    });
+                buttons_div.append(clear);
+            }
             this.form.append(buttons_div);
         }
         // var num = this.buttons.length;
@@ -224,45 +236,61 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     };
 
+    Feed.prototype.button_enabled = function (name) {
+      // Checks if the particular button name is enabled. A button is enabled
+      // when `form_show_buttons` is `true`, or when it is an array containing
+      // the button `name`.
+      if (Array.isArray(this.form_show_buttons)) {
+        return this.form_show_buttons.includes(name);
+      } else {
+        return this.form_show_buttons;
+      }
+    }
+
     Feed.prototype.add_buttons = function (container) {
         this.refresh_time = new Date();
 
         var this_ = this;
-        var submit = $('<button/>',
-            {
-                value: "submit",
-                text: this.ok_label,
-                class: "btn btn-primary col-sm-7",
-                click: function (event) {
-                    event.preventDefault();
-                    var url = this_.get_url();
-                    if (url != undefined) {
-                        $.ajax({
-                            type: "GET",
-                            crossDomain: true,
-                            context: this,
-                            data: $(this).closest("form").serialize(),
-                            url: url
-                            // error: function (request, status, error) {
-                            // }
-                        }).done(function (data, textStatus, jqXHR) {
-                            // var json = $.parseJSON(data);
-                            // Feed.prototype.onload_(data);
-                            // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
-                            this_.onload(data);
-                        }).fail(function (jqXHR, textStatus, errorThrown) {
-                            // console.log(jqXHR);
-                            if (jqXHR.readyState == 0) {
-                                errorThrown = "Connection Refused."
-                            }
-                            this_.update_error(this_, errorThrown);
-                        });
+        if (this.button_enabled("ok")) {
+            var submit = $('<button/>',
+                {
+                    value: "submit",
+                    text: this.ok_label,
+                    class: "btn btn-primary col-sm-7",
+                    click: function (event) {
+                        event.preventDefault();
+                        var url = this_.get_url();
+                        if (url != undefined) {
+                            $.ajax({
+                                type: "GET",
+                                crossDomain: true,
+                                context: this,
+                                data: $(this).closest("form").serialize(),
+                                url: url
+                                // error: function (request, status, error) {
+                                // }
+                            }).done(function (data, textStatus, jqXHR) {
+                                // var json = $.parseJSON(data);
+                                // Feed.prototype.onload_(data);
+                                // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
+                                this_.onload(data);
+                            }).fail(function (jqXHR, textStatus, errorThrown) {
+                                // console.log(jqXHR);
+                                if (jqXHR.readyState == 0) {
+                                    errorThrown = "Connection Refused."
+                                }
+                                this_.update_error(this_, errorThrown);
+                            });
+                        }
                     }
-                }
-            });
-        container.append(submit);
-        container.append($('<label/>',
-            {class: "col-sm-2"}));
+                });
+            container.append(submit);
+            // Add padding between buttons.
+            container.append($('<label/>', {class: "col-sm-2"}));
+        } else {
+            // Left-pad so that close button aligns right.
+            container.append($('<label/>', {class: "col-sm-9"}));
+        }
     };
     Feed.prototype.addListeners = function () {
         // Re-enable submit button whenever an input element changes.

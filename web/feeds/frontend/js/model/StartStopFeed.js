@@ -133,11 +133,28 @@ define('StartStopFeed', ["jquery", "Feed"], function ($) {
         StartStopFeed.prototype = Object.create(Feed.prototype);
 
         StartStopFeed.prototype.add_buttons = function (container) {
-            this.start_btn = add_button(this, "Start", "btn-primary col-sm-4", "start");
-            this.stop_btn = add_button(this, "Stop", "btn-danger col-sm-3", "stop");
-            container.append(this.start_btn).append($('<label/>',
-                {class: "col-sm-1"})).append(this.stop_btn).append($('<label/>',
-                {class: "col-sm-1"}))
+            // To make the "clear" button align consistently, the buttons added here
+            // need to occupy 9 columns in total. So if a button isn't shown, we replace
+            // it with equivalent padding.
+            let pad_cols = 0;
+
+            if (this.button_enabled("start")) {
+                this.start_btn = add_button(this, "Start", "btn-primary col-sm-4", "start");
+                container.append(this.start_btn).append($('<label/>', {class: "col-sm-1"}));
+            } else {
+                pad_cols += 5;
+            }
+
+            if (this.button_enabled("stop")) {
+                this.stop_btn = add_button(this, "Stop", "btn-danger col-sm-3", "stop");
+                container.append(this.stop_btn).append($('<label/>', {class: "col-sm-1"}));
+            } else {
+                pad_cols += 4;
+            }
+
+            if (pad_cols > 0) {
+                container.append($('<label/>', {class: "col-sm-" + pad_cols}));
+            }
         };
 
         // StartStopFeed.prototype.extract_fields = function (form_elements) {
