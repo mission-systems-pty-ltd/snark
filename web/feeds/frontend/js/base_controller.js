@@ -201,6 +201,14 @@ define('base_controller', ['jquery', "jquery_timeago",
         });
     };
 
+    base_controller.prototype.config_url = function (file) {
+      // Construct a config url for the given file, with timestamped query
+      // param for cache busting.
+      var timestamp = new Date().getTime();
+      var url = file + '?_=' + timestamp;
+      return url;
+    }
+
     base_controller.prototype.add_gui_globals = function () {
         gui.add(globals, 'config_file', config_files).name('config file').onFinishChange(function (value) {
             load_config_fn(globals.config_file);

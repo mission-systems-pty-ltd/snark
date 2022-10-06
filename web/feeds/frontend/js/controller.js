@@ -79,7 +79,7 @@ require(['jquery', "jquery_ui",
 
     var load_config = function (file) {
         $.ajax({
-            url: file
+            url: controller.prototype.config_url(file)
         }).done(function (data, textStatus, jqXHR) {
             initialize(data);
         }).fail(function (jqXHR, textStatus, errorThrown) {

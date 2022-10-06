@@ -96,7 +96,7 @@ require(['jquery', 'jquery_mobile', "jquery_timeago", "bootstrap",
 
     var load_config = function (file) {
         $.ajax({
-            url: file
+            url: m_controller.prototype.config_url(file)
         }).done(function (data, textStatus, jqXHR) {
             load_mobile_menu(data);
             initialize(data);
