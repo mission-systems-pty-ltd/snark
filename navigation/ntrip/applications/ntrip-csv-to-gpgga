@@ -99,12 +99,15 @@ function write_gpgga()
     echo "\$${fields}*$( echo $fields | nmea-checksum )"
 }
 
-# initialize to default values
+# Initialize to default values
+# The most technically correct value for fix_quality would be "7" - "Manual input mode"
+# but that trips over many ntrip casters that expect to see values in the range 0-5,
+# so instead we default to "1" - "GNSS fix".
 declare -A input=(
     [timestamp]=$( date -u +%Y%m%dT%H%M%S )
     [latitude]=''
     [longitude]=''
-    [fix_quality]=7
+    [fix_quality]=1
     [num_satellites]=0
     [hdop]=0
     [altitude]=0
