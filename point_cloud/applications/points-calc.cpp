@@ -1305,6 +1305,7 @@ int main( int ac, char** av )
         if( operations.size() != 1 ) { std::cerr << "points-calc: expected one operation, got " << operations.size() << ": " << comma::join( operations, ' ' ) << std::endl; return 1; }
         const std::string& operation = operations[0];
         if( operation == "frame-integrate" || operation == "integrate-frame" ) { return run< snark::points_calc::frame::integrate::traits >( options ); }
+        if( operation == "frame-multiply" ) { return run< snark::points_calc::frame::multiply::traits >( options ); }
         if( operation == "life" ) { return run< snark::points_calc::life::traits >( options ); }
         if( operation == "lines-nearest" ) { return run< snark::points_calc::lines_nearest::traits >( options ); }
         if( operation == "project-onto-line" ) { return run< snark::points_calc::project::onto_line::traits >( options ); }

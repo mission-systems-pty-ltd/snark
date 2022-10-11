@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Vsevolod Vlaskine
+// Copyright (c) 2018-2022 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 
-#include <array>
 #include <sstream>
 #include <comma/csv/stream.h>
-#include <comma/string/split.h>
 #include "../../../math/rotation_matrix.h"
 #include "frame.h"
 
-namespace snark { namespace points_calc { namespace frame { namespace integrate {
+namespace snark { namespace points_calc { namespace frame {
+
+namespace integrate {
 
 std::string traits::usage()
 {
@@ -85,4 +85,71 @@ int traits::run( const comma::command_line_options& options )
     return run_impl();
 }
 
-} } } } // namespace snark { namespace points_calc { namespace frame { namespace integrate {
+} // namespace integrate {
+
+namespace multiply {
+
+std::string traits::usage()
+{
+    std::ostringstream oss;
+    oss << "    frame-multiply" << std::endl;
+    oss << "        if input frame is seen as 6-degrees-of-freedom velocity per second" << std::endl;
+    oss << "        'multiplication' by factor t gives you the resulting frame in t seconds" << std::endl;
+    oss << "        read reference frame on stdin, append 'multiplied' reference frame" << std::endl;
+    oss << "        input fields default: x,y,z,roll,pitch,yaw" << std::endl;
+    oss << std::endl;
+    oss << "        options" << std::endl;
+    oss << "            --factor=<factor>; default=1.; factor to multiply by" << std::endl;
+    oss << "            --frame=<frame>; default=0,0,0,0,0,0; default frame" << std::endl;
+    oss << "            --in-place,--emplace; replace input frame with the multiplied one, do not append anything; convenience option" << std::endl;
+    oss << std::endl;
+    oss << "        examples" << std::endl;
+    oss << "            todo" << std::endl;
+    oss << std::endl;
+    return oss.str();
+}
+
+std::string traits::input_fields() { return comma::join( comma::csv::names< input >( false ), ',' ); }
+
+std::string traits::input_format() { return comma::csv::format::value< input >(); }
+
+std::string traits::output_fields() { return comma::join( comma::csv::names< output >( true ), ',' ); }
+
+std::string traits::output_format() { return comma::csv::format::value< output >(); }
+
+int traits::run( const comma::command_line_options& options )
+{
+    comma::csv::options csv( options, "x,y,z,roll,pitch,yaw" );
+    csv.full_xpath = false;
+    comma::csv::options output_csv;
+    output_csv.delimiter = csv.delimiter;
+    if( csv.binary() ) { output_csv.format( output_format() ); }
+    comma::csv::input_stream< input > istream( std::cin, csv, snark::points_calc::frame::multiply::traits::input( comma::csv::ascii< snark::points_calc::pose >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ), options.value( "--factor", 1. ) ) );
+    std::function< void( const input& p ) > write;
+    auto run_impl = [&]() -> int
+    {
+        while( std::cin.good() || istream.ready() )
+        {
+            const input* p = istream.read();
+            if( !p ) { break; }
+            Eigen::AngleAxisd rotation( rotation_matrix( p->orientation ).rotation() );
+            rotation.angle() = rotation.angle() * p->factor;
+            write( input( snark::points_calc::pose( p->coordinates * p->factor, rotation_matrix( rotation ).roll_pitch_yaw() ), p->factor ) ); // quick and dirty
+        }
+        return 0;
+    };
+    if( options.exists( "--in-place,--emplace" ) )
+    {
+        comma::csv::passed< input > passed( istream, std::cout, csv.flush );
+        write = [&]( const input& o ) { passed.write( o ); };
+        return run_impl();
+    }
+    comma::csv::output_stream< output > ostream( std::cout, output_csv );
+    comma::csv::tied< input, output > tied( istream, ostream );
+    write = [&]( const input& o ) { tied.append( o ); };
+    return run_impl();
+}
+
+} // namespace multiply {
+
+} } } // namespace snark { namespace points_calc { namespace frame {
