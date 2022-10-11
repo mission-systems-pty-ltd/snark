@@ -3,6 +3,7 @@
 /// @author vsevolod vlaskine
 
 #include <sstream>
+#include <comma/base/exception.h>
 #include <comma/csv/stream.h>
 #include "../../../math/rotation_matrix.h"
 #include "frame.h"
@@ -92,14 +93,19 @@ namespace multiply {
 std::string traits::usage()
 {
     std::ostringstream oss;
-    oss << "    frame-multiply" << std::endl;
+    oss << "    frame-multiply: experimental operation" << std::endl;
     oss << "        if input frame is seen as 6-degrees-of-freedom velocity per second" << std::endl;
     oss << "        'multiplication' by factor t gives you the resulting frame in t seconds" << std::endl;
     oss << "        read reference frame on stdin, append 'multiplied' reference frame" << std::endl;
     oss << "        input fields default: x,y,z,roll,pitch,yaw" << std::endl;
     oss << std::endl;
+    oss << "        limitation: if input or resulting rotation exceeds 2pi, the results will be incorrect and" << std::endl;
+    oss << "                    a todo exception may be thrown; use --force to override, in which case" << std::endl;
+    oss << "                    rotation will be clipped to be under 2pi" << std::endl;
+    oss << std::endl;
     oss << "        options" << std::endl;
     oss << "            --factor=<factor>; default=1.; factor to multiply by" << std::endl;
+    oss << "            --force; allow rotations greater than 2pi (result will be clipped to under 2pi)" << std::endl;
     oss << "            --frame=<frame>; default=0,0,0,0,0,0; default frame" << std::endl;
     oss << "            --in-place,--emplace; replace input frame with the multiplied one, do not append anything; convenience option" << std::endl;
     oss << std::endl;
@@ -124,6 +130,7 @@ int traits::run( const comma::command_line_options& options )
     comma::csv::options output_csv;
     output_csv.delimiter = csv.delimiter;
     if( csv.binary() ) { output_csv.format( output_format() ); }
+    bool force = options.exists( "--force" );
     comma::csv::input_stream< input > istream( std::cin, csv, snark::points_calc::frame::multiply::traits::input( comma::csv::ascii< snark::points_calc::pose >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ), options.value( "--factor", 1. ) ) );
     std::function< void( const input& p ) > write;
     auto run_impl = [&]() -> int
@@ -134,6 +141,7 @@ int traits::run( const comma::command_line_options& options )
             if( !p ) { break; }
             Eigen::AngleAxisd rotation( rotation_matrix( p->orientation ).rotation() );
             rotation.angle() = rotation.angle() * p->factor;
+            if( !force && std::abs( rotation.angle() ) >= 2 * M_PI ) { COMMA_THROW( comma::exception, "expected resulting rotation under 2pi; got: " << rotation.angle() << " on input rotation: " << p->orientation.roll() << "," << p->orientation.pitch() << "," << p->orientation.yaw() << "; use --force to override, but the results may be not what you expect" ); }
             write( input( snark::points_calc::pose( p->coordinates * p->factor, rotation_matrix( rotation ).roll_pitch_yaw() ), p->factor ) ); // quick and dirty
         }
         return 0;

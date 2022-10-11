@@ -73,6 +73,7 @@ static void usage( bool verbose = false )
     std::cerr << "    discretise,discretize" << std::endl;
     std::cerr << "    find-outliers" << std::endl;
     std::cerr << "    frame-integrate, integrate-frame (deprecated)" << std::endl;
+    std::cerr << "    frame-multiply (experimental)" << std::endl;
     std::cerr << "    life" << std::endl;
     std::cerr << "    lines-nearest" << std::endl;
     std::cerr << "    local-min" << std::endl;
