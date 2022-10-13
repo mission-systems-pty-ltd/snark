@@ -4,7 +4,6 @@
 
 #include "device.h"
 #include <comma/application/verbose.h>
-#include <iostream>
 
 namespace snark { namespace navigation { namespace advanced_navigation {
 
