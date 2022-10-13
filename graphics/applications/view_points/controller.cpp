@@ -114,7 +114,7 @@ void controller::read()
     for( unsigned int i = 0; m_shutdown && i < readers.size(); ++i )
     {
         m_shutdown = m_shutdown && readers[i]->isShutdown();
-        ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->isStdIn() ) );
+        ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->is_stdin() ) );
     }
     bool extents_ready = readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 );
     if( extents_ready )

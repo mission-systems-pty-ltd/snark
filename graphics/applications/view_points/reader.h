@@ -2,8 +2,7 @@
 
 /// @author Vsevolod Vlaskine, Cedric Wohlleber
 
-#ifndef SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_READER_H_
-#define SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_READER_H_
+#pragma once
 
 #ifndef Q_MOC_RUN
 #include <boost/scoped_ptr.hpp>
@@ -97,19 +96,19 @@ class Reader : public reader_parameters
         void show( bool s );
         bool show() const;
         bool isShutdown() const;
-        bool isStdIn() const { return m_isStdIn; }
+        bool is_stdin() const { return _is_stdin; }
         void shutdown();
         void read();
 
              
     protected:
-        bool updatePoint( const Eigen::Vector3d& offset );
+        bool update_point( const Eigen::Vector3d& offset );
 
         boost::optional< snark::math::closed_interval< float, 3 > > m_extents;
         unsigned int m_num_points;
         boost::scoped_ptr< colored > m_colored;
         bool m_shutdown;
-        bool m_isStdIn;
+        bool _is_stdin;
         bool m_show;
         comma::io::istream m_istream;
         std::ostream* m_pass_through;
@@ -127,5 +126,3 @@ class Reader : public reader_parameters
 };
 
 } } } // namespace snark { namespace graphics { namespace view {
-
-#endif /*SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_READER_H_*/

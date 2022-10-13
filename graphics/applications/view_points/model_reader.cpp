@@ -46,7 +46,7 @@ void model_reader::start()
     m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) );
 }
 
-std::size_t model_reader::update( const Eigen::Vector3d& offset ) { return updatePoint( offset ) ? 1 : 0; }
+std::size_t model_reader::update( const Eigen::Vector3d& offset ) { return update_point( offset ) ? 1 : 0; }
 
 bool model_reader::empty() const { return !m_point; }
 

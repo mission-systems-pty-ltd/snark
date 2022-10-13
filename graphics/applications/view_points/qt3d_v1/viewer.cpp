@@ -117,7 +117,7 @@ void Viewer::read()
     for( unsigned int i = 0; m_shutdown && i < readers.size(); ++i )
     {
         m_shutdown = m_shutdown && readers[i]->isShutdown();
-        ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->isStdIn() ) );
+        ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->is_stdin() ) );
     }
     if( !m_cameraReader && m_cameraposition )
     {

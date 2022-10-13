@@ -107,10 +107,7 @@ inline ShapeReader< S, How >::ShapeReader( const reader_parameters& params, colo
 }
 
 template< typename S, typename How >
-inline void ShapeReader< S, How >::start()
-{
-    m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) );
-}
+inline void ShapeReader< S, How >::start() { m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) ); }
 
 template< typename S, typename How >
 inline std::size_t ShapeReader< S, How >::update( const Eigen::Vector3d& offset )
@@ -129,7 +126,7 @@ inline std::size_t ShapeReader< S, How >::update( const Eigen::Vector3d& offset 
     std::size_t s = m_deque.size();
     m_deque.clear();
     updated_ = true;
-    updatePoint( offset );
+    update_point( offset );
     return s;
 }
 
