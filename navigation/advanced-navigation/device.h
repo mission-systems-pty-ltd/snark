@@ -10,7 +10,6 @@
 
 namespace snark { namespace navigation { namespace advanced_navigation {
 
-// spatial dual device class
 class device
 {
 public:

@@ -12,14 +12,14 @@ class eois_exception : public std::runtime_error
 public:
     eois_exception(const std::string& msg) : std::runtime_error(msg) { }
 };
-    
+
 /// stream/device options for advanced navigation
 struct options
 {
     int baud_rate;
     options(int baud_rate=115200) : baud_rate(baud_rate) { }
 };
-   
+
 struct stream
 {
     // buf_size: size of buffer (max read size)
@@ -51,4 +51,3 @@ struct io_stream : public stream
 
 
 } } } //namespace snark { namespace navigation { namespace advanced_navigation {
-    

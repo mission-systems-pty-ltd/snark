@@ -216,6 +216,7 @@ private:
     comma::signal_flag signal;
 };
 
+// app class to output raw data
 class app_raw : public app_base
 {
 public:
@@ -259,6 +260,7 @@ struct send_factory_t : public send_factory_i
     }
 };
 
+// send data to device
 template < typename T >
 struct send_app : protected snark::navigation::advanced_navigation::device
 {
