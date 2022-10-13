@@ -243,7 +243,7 @@ struct send_factory_i
     virtual ~send_factory_i() {}
     virtual void input_fields() = 0;
     virtual void input_format() = 0;
-    virtual unsigned int run( const comma::command_line_options& options ) = 0;
+    virtual void run( const comma::command_line_options& options ) = 0;
 };
 
 template< typename T >
@@ -252,10 +252,10 @@ struct send_factory_t : public send_factory_i
     typedef T type;
     void input_fields() { T::input_fields(); }
     void input_format() { T::input_format(); }
-    unsigned int run( const comma::command_line_options& options )
+    void run( const comma::command_line_options& options )
     {
         T app( options );
-        return app.process();
+        app.process();
     }
 };
 
@@ -263,13 +263,12 @@ template < typename T >
 struct send_app : protected snark::navigation::advanced_navigation::device
 {
     comma::csv::input_stream< T > is;
-    unsigned int result;
     send_app( const comma::command_line_options& options )
         : device( options.value< std::string >( "--device" ), options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ))
         , is( std::cin, comma::csv::options( options ))
     {}
 
-    unsigned int process()
+    void process()
     {
         while( std::cin.good() )
         {
@@ -279,7 +278,6 @@ struct send_app : protected snark::navigation::advanced_navigation::device
             messages::command cmd = pt->get_command();
             send( cmd );
         }
-        return result;
     }
 
     static void input_fields()
@@ -319,7 +317,8 @@ int main( int argc, char** argv )
             if( options.exists( "--input-fields" )) { sf->input_fields(); return 0; }
             if( options.exists( "--input-format" )) { sf->input_format(); return 0; }
 
-            return sf->run( options );
+            sf->run( options );
+            return 0;
         }
 
         std::unique_ptr< ntrip_thread > ntt;
