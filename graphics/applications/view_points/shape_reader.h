@@ -20,10 +20,10 @@
 namespace snark { namespace graphics { namespace view {
     
 template< typename S, typename How = how_t::points >
-class ShapeReader : public shape_reader_base
+class shape_reader : public shape_reader_base
 {
     public:
-        ShapeReader( const reader_parameters& params, colored* c, const std::string& label, const S& sample = ShapeWithId< S >().shape );
+        shape_reader( const reader_parameters& params, colored* c, const std::string& label, const S& sample = ShapeWithId< S >().shape );
 
         void start();
         std::size_t update( const Eigen::Vector3d& offset );
@@ -57,7 +57,7 @@ private:
 };
 #if Qt3D_VERSION>=2
 template< typename S, typename How >
-inline void ShapeReader< S, How >::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base )
+inline void shape_reader< S, How >::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base )
 {
     shape.reset( shape_traits< S, How >::make_shape( gl_parameters( point_size, fill ) ) );
     viewer_base->add_shape(shape);
@@ -65,13 +65,13 @@ inline void ShapeReader< S, How >::add_shaders( snark::graphics::qopengl::viewer
     viewer_base->add_label_shader(label_shader);
 }
 template< typename S, typename How >
-inline void ShapeReader< S, How >::update_view()
+inline void shape_reader< S, How >::update_view()
 {
     update_shape();
     update_labels();
 }
 template< typename S, typename How >
-inline void ShapeReader< S, How >::update_shape()
+inline void shape_reader< S, How >::update_shape()
 {
     if( !shape ) { return; }
     shape->visible = m_show;
@@ -79,7 +79,7 @@ inline void ShapeReader< S, How >::update_shape()
 }
 
 template< typename S, typename How >
-inline void ShapeReader< S, How >::update_labels()
+inline void shape_reader< S, How >::update_labels()
 {
     label_shader->clear();
     label_shader->visible=m_show;
@@ -100,17 +100,17 @@ inline void ShapeReader< S, How >::update_labels()
 #endif
 
 template< typename S, typename How >
-inline ShapeReader< S, How >::ShapeReader( const reader_parameters& params, colored* c, const std::string& label, const S& sample  )
+inline shape_reader< S, How >::shape_reader( const reader_parameters& params, colored* c, const std::string& label, const S& sample  )
     : shape_reader_base( params, c, label, shape_traits< S, How >::size )
     , sample_( sample )
 {
 }
 
 template< typename S, typename How >
-inline void ShapeReader< S, How >::start() { m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) ); }
+inline void shape_reader< S, How >::start() { m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) ); }
 
 template< typename S, typename How >
-inline std::size_t ShapeReader< S, How >::update( const Eigen::Vector3d& offset )
+inline std::size_t shape_reader< S, How >::update( const Eigen::Vector3d& offset )
 {
     boost::mutex::scoped_lock lock( m_mutex );
     for( typename deque_t_::iterator it = m_deque.begin(); it != m_deque.end(); ++it )
@@ -131,14 +131,14 @@ inline std::size_t ShapeReader< S, How >::update( const Eigen::Vector3d& offset 
 }
 
 template< typename S, typename How >
-inline bool ShapeReader< S, How >::empty() const
+inline bool shape_reader< S, How >::empty() const
 {
     boost::mutex::scoped_lock lock( m_mutex );
     return m_deque.empty();
 }
 
 template< typename S, typename How >
-inline const Eigen::Vector3d& ShapeReader< S, How >::some_point() const
+inline const Eigen::Vector3d& shape_reader< S, How >::some_point() const
 {
     boost::mutex::scoped_lock lock( m_mutex );
     return shape_traits< S, How >::some_point( m_deque.front().shape );
@@ -146,7 +146,7 @@ inline const Eigen::Vector3d& ShapeReader< S, How >::some_point() const
 
 #if Qt3D_VERSION==1
 template< typename S, typename How >
-inline void ShapeReader< S, How >::render( Viewer& viewer, QGLPainter* painter )
+inline void shape_reader< S, How >::render( Viewer& viewer, QGLPainter* painter )
 {
     painter->setStandardEffect(QGL::FlatPerVertexColor);
     painter->clearAttributes();
@@ -173,7 +173,7 @@ inline void ShapeReader< S, How >::render( Viewer& viewer, QGLPainter* painter )
 #endif
 
 template< typename S, typename How >
-inline bool ShapeReader< S, How >::read_once()
+inline bool shape_reader< S, How >::read_once()
 {
     try
     {

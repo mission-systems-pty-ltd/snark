@@ -1,6 +1,7 @@
 // Copyright (c) 2017 The University of Sydney
 
 #pragma once
+
 #include <Eigen/Core>
 #include "../../../math/interval.h"
 #include "reader.h"
@@ -22,7 +23,7 @@ protected:
     block_buffer< label_t > labels_;
 };
 
-shape_reader_base::shape_reader_base( const reader_parameters& params, colored* c, const std::string& label, std::size_t shape_size )
+inline shape_reader_base::shape_reader_base( const reader_parameters& params, colored* c, const std::string& label, std::size_t shape_size )
     : Reader( params, c, label )
     , buffer_( size * shape_size )
     , labels_( size )

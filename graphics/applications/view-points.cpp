@@ -26,6 +26,7 @@
 #include "../../visiting/eigen.h"
 #include "../qt3d/camera_options.h"
 #include "view_points/click_mode.h"
+#include "view_points/console_reader.h"
 #include "view_points/shape_reader.h"
 #include "view_points/main_window.h"
 #include "view_points/types.h"
@@ -568,21 +569,21 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         std::vector< std::string > v = comma::split( param.options.fields, ',' );
         bool has_orientation = false;
         for( unsigned int i = 0; !has_orientation && i < v.size(); ++i ) { has_orientation = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< Eigen::Vector3d >( param, colored, label, Eigen::Vector3d::Zero() ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< Eigen::Vector3d >( param, colored, label, Eigen::Vector3d::Zero() ) );
         reader->show( show );
         return reader;
     }
     if( shape == "loop" )
     {
         if( param.options.fields == "" ) { param.options.fields="x,y,z"; }
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< Eigen::Vector3d, snark::graphics::view::how_t::loop >( param, colored, label, Eigen::Vector3d::Zero() ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< Eigen::Vector3d, snark::graphics::view::how_t::loop >( param, colored, label, Eigen::Vector3d::Zero() ) );
         reader->show( show );
         return reader;
     }
     if( shape == "lines" ) // todo: get a better name
     {
         if( param.options.fields == "" ) { param.options.fields="x,y,z"; }
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< Eigen::Vector3d, snark::graphics::view::how_t::lines >( param, colored, label, Eigen::Vector3d::Zero() ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< Eigen::Vector3d, snark::graphics::view::how_t::lines >( param, colored, label, Eigen::Vector3d::Zero() ) );
         reader->show( show );
         return reader;
     }
@@ -681,25 +682,25 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     param.options.full_xpath = true;
     if( shape == "extents" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::math::closed_interval< double, 3 > >( param, colored, label, snark::math::closed_interval< double, 3 >( Eigen::Vector3d( 0, 0, 0 ), Eigen::Vector3d( 0, 0, 0 ) ) ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::math::closed_interval< double, 3 > >( param, colored, label, snark::math::closed_interval< double, 3 >( Eigen::Vector3d( 0, 0, 0 ), Eigen::Vector3d( 0, 0, 0 ) ) ) );
         reader->show( show );
         return reader;
     }
     else if( shape == "line" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< std::pair< Eigen::Vector3d, Eigen::Vector3d > >( param, colored, label ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< std::pair< Eigen::Vector3d, Eigen::Vector3d > >( param, colored, label ) );
         reader->show( show );
         return reader;
     }
     else if( shape == "triangle" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::loop< 3 > >( param, colored, label ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::graphics::view::loop< 3 > >( param, colored, label ) );
         reader->show( show );
         return reader;
     }
     else if( shape == "ellipse" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::Ellipse< 25 > >( param, colored, label ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::graphics::view::Ellipse< 25 > >( param, colored, label ) );
         reader->show( show );
         return reader;
     }
@@ -707,13 +708,13 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     {
         snark::graphics::view::arc< 20 > sample; // quick and dirty
         if( param.options.has_field( "middle" ) || param.options.has_field( "middle/x" ) || param.options.has_field( "middle/y" ) || param.options.has_field( "middle/z" ) ) { sample.middle = Eigen::Vector3d( 0, 0, 0 ); }
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::arc< 20 > >( param, colored, label, sample ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::graphics::view::arc< 20 > >( param, colored, label, sample ) );
         reader->show( show );
         return reader;
     }
     else if( shape == "axis" || shape == "axes" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::axis >( param, colored, label ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::graphics::view::axis >( param, colored, label ) );
         reader->show( show );
         return reader;
     }
