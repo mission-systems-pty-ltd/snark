@@ -27,7 +27,7 @@ void usage( bool verbose )
     std::cerr << "\n    --help,-h:              show help";
     std::cerr << "\n    --verbose,-v:           show detailed messages";
     std::cerr << "\n    --baud-rate,--baud=<n>: baud rate for serial connection, default " << default_baud_rate;
-    std::cerr << "\n    --device=<device>;      serial or network port";
+    std::cerr << "\n    --device=<device>:      serial or network port";
     std::cerr << "\n    --flush:                flush output stream after each record";
     std::cerr << "\n    --input-fields:         print input command fields for --send and exit";
     std::cerr << "\n    --input-format:         print input command format for --send and exit";
