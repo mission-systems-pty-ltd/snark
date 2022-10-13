@@ -66,10 +66,10 @@ struct ShapeWithId // quick and dirty
 struct how_t { struct points; struct lines; struct loop; }; // quick and dirty; for points only
 
 template < class S, typename How = how_t::points >
-struct Shapetraits {}; // quick and dirty
+struct shape_traits {}; // quick and dirty
 
 template <>
-struct Shapetraits< snark::math::closed_interval< double, 3 > >
+struct shape_traits< snark::math::closed_interval< double, 3 > >
 {
     static const unsigned int size = 24; // quick and dirty, really wasteful on memory; todo! specialised shape class for boxes
         
@@ -138,13 +138,13 @@ struct Shapetraits< snark::math::closed_interval< double, 3 > >
     }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const snark::math::closed_interval< double, 3 >& extents ) { return extents.min(); }
+    static const Eigen::Vector3d& some_point( const snark::math::closed_interval< double, 3 >& extents ) { return extents.min(); }
 
     static Eigen::Vector3d center( const snark::math::closed_interval< double, 3 >& extents ) { return ( extents.min() + extents.max() ) / 2; }
 };
 
 template <>
-struct Shapetraits< std::pair< Eigen::Vector3d, Eigen::Vector3d > >
+struct shape_traits< std::pair< Eigen::Vector3d, Eigen::Vector3d > >
 {
     static const unsigned int size = 2;
     
@@ -170,7 +170,7 @@ struct Shapetraits< std::pair< Eigen::Vector3d, Eigen::Vector3d > >
     static void draw( QGLPainter* painter, unsigned int size, bool fill ) { painter->draw( QGL::Lines, size ); }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const std::pair< Eigen::Vector3d, Eigen::Vector3d >& line ) { return line.first; }
+    static const Eigen::Vector3d& some_point( const std::pair< Eigen::Vector3d, Eigen::Vector3d >& line ) { return line.first; }
 
     static Eigen::Vector3d center( const std::pair< Eigen::Vector3d, Eigen::Vector3d >& line ) { return ( line.first + line.second ) / 2; }
 };
@@ -179,7 +179,7 @@ template < std::size_t Size >
 struct loop { boost::array< Eigen::Vector3d, Size > corners; };
 
 template < std::size_t Size >
-struct Shapetraits< loop< Size > >
+struct shape_traits< loop< Size > >
 {
     static_assert( Size > 2, "expected size greater than 2" );
     static const unsigned int size = Size;
@@ -208,7 +208,7 @@ struct Shapetraits< loop< Size > >
     }
     #endif
     
-    static const Eigen::Vector3d& somePoint( const loop< Size >& c ) { return c.corners[0]; }
+    static const Eigen::Vector3d& some_point( const loop< Size >& c ) { return c.corners[0]; }
     
     static Eigen::Vector3d center( const loop< Size >& c ) // quick and dirty
     { 
@@ -241,7 +241,7 @@ struct Ellipse // todo: quick and dirty, make size runtime variable
 };
 
 template < std::size_t Size >
-struct Shapetraits< Ellipse< Size > >
+struct shape_traits< Ellipse< Size > >
 {
     static const unsigned int size = Size;
     
@@ -272,7 +272,7 @@ struct Shapetraits< Ellipse< Size > >
     }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const Ellipse< Size >& ellipse ) { return ellipse.center; }
+    static const Eigen::Vector3d& some_point( const Ellipse< Size >& ellipse ) { return ellipse.center; }
 
     static Eigen::Vector3d center( const Ellipse< Size >& ellipse ) { return ellipse.center; }
 };
@@ -288,7 +288,7 @@ struct arc // todo: quick and dirty; generalize for ellipse; and maybe get rid o
 };
 
 template < std::size_t Size >
-struct Shapetraits< arc< Size > >
+struct shape_traits< arc< Size > >
 {
     static const unsigned int size = Size;
 
@@ -361,7 +361,7 @@ struct Shapetraits< arc< Size > >
     }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const arc< Size >& a ) { return a.begin; }
+    static const Eigen::Vector3d& some_point( const arc< Size >& a ) { return a.begin; }
 
     static Eigen::Vector3d center( const arc< Size >& a ) { return a.middle ? *a.middle : a.centre; } // quick and dirty
     //static Eigen::Vector3d center( const arc< Size >& a ) { return a.middle; } // quick and dirty
@@ -422,7 +422,7 @@ template <> struct how_traits< how_t::lines >
 #endif
 
 template< typename How >
-struct Shapetraits< Eigen::Vector3d, How >
+struct shape_traits< Eigen::Vector3d, How >
 {
     #if Qt3D_VERSION==1
     static const QGL::DrawingMode drawingMode = draw_traits_< How >::drawing_mode;
@@ -445,7 +445,7 @@ struct Shapetraits< Eigen::Vector3d, How >
     static void draw( QGLPainter* painter, unsigned int size, bool fill ) { draw_traits_< How >::draw( painter, size, fill ); }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const Eigen::Vector3d& point ) { return point; }
+    static const Eigen::Vector3d& some_point( const Eigen::Vector3d& point ) { return point; }
 
     static const Eigen::Vector3d& center( const Eigen::Vector3d& point ) { return point; }
 };
@@ -459,7 +459,7 @@ struct axis
 
 
 template<>
-struct Shapetraits< axis >
+struct shape_traits< axis >
 {
     static const unsigned int size = 6;
 #if Qt3D_VERSION>=2
@@ -501,7 +501,7 @@ struct Shapetraits< axis >
     static void draw( QGLPainter* painter, unsigned int size, bool fill ) { painter->draw( QGL::Lines, size ); }
     #endif
 
-    static const Eigen::Vector3d& somePoint( const axis& axis ) { return axis.position; }
+    static const Eigen::Vector3d& some_point( const axis& axis ) { return axis.position; }
 
     static Eigen::Vector3d center( const axis& axis ) { return axis.position; }
 };

@@ -99,7 +99,7 @@ void controller::read()
     for( unsigned int i = 0; !viewer->m_offset && i < readers.size(); ++i )
     {
         if( readers[i]->empty() ) { continue; }
-        Eigen::Vector3d p = readers[i]->somePoint();
+        Eigen::Vector3d p = readers[i]->some_point();
         viewer->m_offset = std::fabs( p.x() ) > 1000 || std::fabs( p.y() ) > 1000 || std::fabs( p.z() ) > 1000 ? p : Eigen::Vector3d( 0, 0, 0 );
         std::cerr << "view-points: reader no." << i << std::setprecision( 16 ) << " scene offset: " << viewer->m_offset->x() << ',' << viewer->m_offset->y() << ',' << viewer->m_offset->z() << "; scene radius: " << viewer->scene_radius << std::endl;
     }

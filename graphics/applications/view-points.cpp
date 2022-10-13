@@ -713,7 +713,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     }
     else if( shape == "axis" || shape == "axes" )
     {
-        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader<snark::graphics::view::axis>( param, colored, label ) );
+        std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::ShapeReader< snark::graphics::view::axis >( param, colored, label ) );
         reader->show( show );
         return reader;
     }

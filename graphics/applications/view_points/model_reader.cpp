@@ -50,7 +50,7 @@ std::size_t model_reader::update( const Eigen::Vector3d& offset ) { return updat
 
 bool model_reader::empty() const { return !m_point; }
 
-const Eigen::Vector3d& model_reader::somePoint() const
+const Eigen::Vector3d& model_reader::some_point() const
 {
     boost::mutex::scoped_lock lock( m_mutex );
     return *m_point;

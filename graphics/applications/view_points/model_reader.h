@@ -35,7 +35,7 @@ class model_reader : public Reader
 
         void start();
         std::size_t update( const Eigen::Vector3d& offset );
-        const Eigen::Vector3d& somePoint() const;
+        const Eigen::Vector3d& some_point() const;
         bool read_once();
         bool empty() const;
         

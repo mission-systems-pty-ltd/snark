@@ -27,7 +27,7 @@ class ShapeReader : public shape_reader_base
 
         void start();
         std::size_t update( const Eigen::Vector3d& offset );
-        const Eigen::Vector3d& somePoint() const;
+        const Eigen::Vector3d& some_point() const;
         bool read_once();
         #if Qt3D_VERSION==1
         void render( Viewer& viewer, QGLPainter *painter = NULL );
@@ -59,7 +59,7 @@ private:
 template< typename S, typename How >
 inline void ShapeReader< S, How >::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base )
 {
-    shape.reset( Shapetraits< S, How >::make_shape( gl_parameters( point_size, fill ) ) );
+    shape.reset( shape_traits< S, How >::make_shape( gl_parameters( point_size, fill ) ) );
     viewer_base->add_shape(shape);
     label_shader = std::shared_ptr< snark::graphics::qopengl::label_shader >( new snark::graphics::qopengl::label_shader() );
     viewer_base->add_label_shader(label_shader);
@@ -101,7 +101,7 @@ inline void ShapeReader< S, How >::update_labels()
 
 template< typename S, typename How >
 inline ShapeReader< S, How >::ShapeReader( const reader_parameters& params, colored* c, const std::string& label, const S& sample  )
-    : shape_reader_base( params, c, label, Shapetraits< S, How >::size )
+    : shape_reader_base( params, c, label, shape_traits< S, How >::size )
     , sample_( sample )
 {
 }
@@ -118,8 +118,8 @@ inline std::size_t ShapeReader< S, How >::update( const Eigen::Vector3d& offset 
     boost::mutex::scoped_lock lock( m_mutex );
     for( typename deque_t_::iterator it = m_deque.begin(); it != m_deque.end(); ++it )
     {
-        Shapetraits< S, How >::update( *this, *it, offset );
-        labels_.add( label_t( Shapetraits< S, How >::center( it->shape ), it->color, it->label ), it->block );
+        shape_traits< S, How >::update( *this, *it, offset );
+        labels_.add( label_t( shape_traits< S, How >::center( it->shape ), it->color, it->label ), it->block );
     }
     if( m_shutdown )
     {
@@ -141,10 +141,10 @@ inline bool ShapeReader< S, How >::empty() const
 }
 
 template< typename S, typename How >
-inline const Eigen::Vector3d& ShapeReader< S, How >::somePoint() const
+inline const Eigen::Vector3d& ShapeReader< S, How >::some_point() const
 {
     boost::mutex::scoped_lock lock( m_mutex );
-    return Shapetraits< S, How >::somePoint( m_deque.front().shape );
+    return shape_traits< S, How >::some_point( m_deque.front().shape );
 }
 
 #if Qt3D_VERSION==1
@@ -169,7 +169,7 @@ inline void ShapeReader< S, How >::render( Viewer& viewer, QGLPainter* painter )
     painter->setVertexAttribute( QGL::Position, position_attribute );
     painter->setVertexAttribute( QGL::Color, color_attribute );
 
-    Shapetraits< S, How >::draw( painter, buffer_.size(), fill );
+    shape_traits< S, How >::draw( painter, buffer_.size(), fill );
     for( unsigned int i = 0; i < labels_.size(); i++ ) { viewer.draw_label( painter, labels_.values()[i].position - m_offset, labels_.values()[i].color, labels_.values()[i].text ); }
     if( !m_label.empty() ) { viewer.draw_label( painter, m_translation - m_offset, m_color, m_label ); }
 }
@@ -202,11 +202,11 @@ inline bool ShapeReader< S, How >::read_once()
         }
         if( m_passed ) { m_passed->write(); }
         ShapeWithId< S > v = *p;
-        const Eigen::Vector3d& center = Shapetraits< S, How >::center( v.shape );
+        const Eigen::Vector3d& center = shape_traits< S, How >::center( v.shape );
         v.color = m_colored->color( center, p->id, p->scalar, p->color );
         boost::mutex::scoped_lock lock( m_mutex );
         m_deque.push_back( v );
-        m_point = Shapetraits< S, How >::somePoint( v.shape );
+        m_point = shape_traits< S, How >::some_point( v.shape );
         m_color = v.color;
         return true;
     }
