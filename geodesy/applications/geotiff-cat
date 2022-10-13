@@ -25,22 +25,26 @@ def _to_pixels( g, coordinates ):
 
 def _shape( args, g ):
     assert args.channel <= g.RasterCount, f'expected raster band between 1 and {g.RasterCount}; got: {args.channel}'
+    assert args.centre is None or args.origin is None, 'expected either --origin or --centre; got both'
+    if args.centre is None and args.origin is None: args.origin = '0,0'
     if args.as_coordinates:
-        begin = numpy.array( [ float( s ) for s in args.origin.split( ',' ) ] )
-        end = begin + numpy.array( [ float( s ) for s in args.size[0].split( ',' ) ] )
+        size = numpy.array( [ float( s ) for s in args.size[0].split( ',' ) ] )
+        begin = numpy.array( [ float( s ) for s in args.origin.split( ',' ) ] ) if args.centre is None else ( numpy.array( [ float( s ) for s in args.centre.split( ',' ) ] ) - size / 2 )
+        end = begin + size
         pbegin = numpy.round( _to_pixels( g, begin ) ).astype( int )
         pend = numpy.round( _to_pixels( g, end ) ).astype( int )
         x, y = int( min( pbegin[0], pend[0] ) ), int( min( pbegin[1], pend[1] ) )
         ex, ey = int( max( pbegin[0], pend[0] ) ), int( max( pbegin[1], pend[1] ) )
         width, height = ex - x, ey - y
     else:
-        x, y = [ int( s ) for s in args.origin.split( ',' ) ]
         width, height = [ int( s ) for s in args.size[0].split( ',' ) ]
+        x, y = [ int( s ) for s in ( args.origin.split( ',' ) if args.centre is None else args.centre.split( ',' ) ) ]
+        if args.centre is not None: x -= width / 2; y -= height / 2
     if not ( hasattr( args, 'dry_run' ) and args.dry_run ):
-        assert x >= 0, f'x >= 0; got: x: {x}'
-        assert y >= 0, f'x >= 0; got: y: {y}'
-        assert x + width <= g.RasterXSize, f'expected x + width < {g.RasterXSize}; got: x: {x} width: {width}'
-        assert y + height <= g.RasterYSize, f'expected y + height < {g.RasterYSize}; got: y: {y} height: {height}'
+        assert x >= 0, f'x >= 0; got: x: {x} on origin: {args.origin} centre: {args.centre} size: {args.size}'
+        assert y >= 0, f'x >= 0; got: y: {y} on origin: {args.origin} centre: {args.centre} size: {args.size}'
+        assert x + width <= g.RasterXSize, f'expected x + width < {g.RasterXSize}; got: x: {x} width: {width} on origin: {args.origin} centre: {args.centre} size: {args.size}'
+        assert y + height <= g.RasterYSize, f'expected y + height < {g.RasterYSize}; got: y: {y} height: {height} on origin: {args.origin} centre: {args.centre} size: {args.size}'
     return x, y, width, height
     
 def _raster( args, g ):
@@ -104,15 +108,17 @@ if __name__ == "__main__":
     parser_points.add_argument( 'geotiff_filename', type=str, help='path to geotiff file; output fields: pixel/x,pixel/y,x,y,band; if binary, output format: 2ui,3d' )
     parser_points.add_argument( '--as-coordinates', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
     parser_points.add_argument( '--binary', type=str, help='output binary format; currently only 2ui,3d is supported' )
+    parser_points.add_argument( '--centre', '--center', type=str, help='pixel values or coordinates (if --as-coordinates) of the tile centre as <x>,<y>' )
     parser_points.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
-    parser_points.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
+    parser_points.add_argument( '--origin', '--begin', type=str, help='pixel values or coordinates (if --as-coordinates) as <x>,<y>; default: 0,0' )
     parser_points.add_argument( '--size', type=str, nargs=1, help='size as <width>,<height>' )
     parser_points.set_defaults( func=points )
     parser_raster = subparsers.add_parser( 'raster', help='raster as binary for given pixels; note: output shape will be <height>,<width> as in numpy' )
     parser_raster.add_argument( 'geotiff_filename', type=str, help='path to geotiff file' )
     parser_raster.add_argument( '--as-coordinates', '-c', action='store_true', help='convenience option: --origin and --size are given as x,y in tiff coordinate space (e.g. lon,lat)' )
+    parser_raster.add_argument( '--centre', '--center', type=str, help='pixel values or coordinates (if --as-coordinates) of the tile centre as <x>,<y>' )
     parser_raster.add_argument( '--channel', '--band', default=1, type=int, help='which channel to output; starts with 1 (unfortunately); default: 1; todo: numpy-like slicing' )
-    parser_raster.add_argument( '--origin', '--begin', default='0,0', type=str, help='pixel values as <x>,<y>; default: 0,0' )
+    parser_raster.add_argument( '--origin', '--begin', type=str, help='pixel values as <x>,<y>; default: 0,0' )
     parser_raster.add_argument( '--dry-run', '--dry', action='store_true', help='convenience option: print origin and size in pixels as <x>,<y>,<height>,<width> and exit' )
     parser_raster.add_argument( '--size', type=str, nargs=1, help='size as <width>,<height>' )
     parser_raster.set_defaults( func=raster )
