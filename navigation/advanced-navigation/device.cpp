@@ -11,7 +11,8 @@ device::device( const std::string& name, const advanced_navigation::options& opt
     : buf( 2600 ), index( 0 ), head( 0 ), msg_header( NULL )
 {
     if( name.find("/dev") == 0 ) { stream.reset( new serial_stream( name, options )); }
-    else { stream.reset( new io_stream( name )); }
+    else if( name == "-" ) { stream.reset( new io_stream< comma::io::istream >( name )); }
+    else { stream.reset( new io_stream< comma::io::iostream >( name )); }
 }
 
 comma::io::file_descriptor device::fd() { return stream->fd(); }

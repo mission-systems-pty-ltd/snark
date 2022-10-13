@@ -1,4 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -40,14 +41,28 @@ struct serial_stream : public stream
     comma::io::file_descriptor fd();
 };
 
+// invoke as:
+// io_stream< comma::io::iostream > for tcp/udp streams
+// io_stream< comma::io::istream >  for stdin streams
+template< typename T >
 struct io_stream : public stream
 {
-    comma::io::istream is;
-    io_stream(const std::string& name);
-    std::size_t read_some(char* buf,std::size_t buf_size,std::size_t read_size);
-    std::size_t write(const char* buf,std::size_t to_write);
-    comma::io::file_descriptor fd();
-};
+    T ios;
 
+    io_stream( const std::string& name )
+        : ios( name, comma::io::mode::binary, comma::io::mode::non_blocking )
+    {}
+
+    std::size_t read_some(char* buf,std::size_t buf_size,std::size_t read_size)
+    {
+        if( !ios->good() ) { throw eois_exception( std::string( "end of file on iostream ") + ios.name() ); }
+        ios->read( buf, read_size );
+        return ios->gcount();
+    }
+
+    std::size_t write(const char* buf,std::size_t to_write);
+
+    comma::io::file_descriptor fd() { return ios.fd(); }
+};
 
 } } } //namespace snark { namespace navigation { namespace advanced_navigation {

@@ -1,4 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include "stream.h"
 #include <comma/base/exception.h>
@@ -38,34 +39,17 @@ comma::io::file_descriptor serial_stream::fd()
 // -------------
 // io_stream
 // -------------
-io_stream::io_stream( const std::string& name )
-    : is( name, comma::io::mode::binary, comma::io::mode::non_blocking )
+template <>
+std::size_t io_stream< comma::io::istream >::write( const char* buf, std::size_t to_write )
 {
-//     std::cerr<<"io_stream::io_stream "<<name<<" "<<(bool)ios<<std::endl;
+    COMMA_THROW( comma::exception, "cannot write to istream" );
 }
 
-std::size_t io_stream::read_some( char* buf, std::size_t buf_size, std::size_t read_size )
+template <>
+std::size_t io_stream< comma::io::iostream >::write( const char* buf, std::size_t to_write )
 {
-//     std::cerr<<"io_stream::read_some "<<to_read<<" "<<(void*)buf<<std::endl;
-    if( !is->good() ) { throw eois_exception( std::string( "end of file on istream ") + is.name() ); }
-//     return is->readsome(buf,buf_size);
-    is->read( buf, read_size );
-    return is->gcount();
-//     unsigned read=ios->gcount();
-//     std::cerr<<"io_stream::read_some / "<<read<<std::endl;
-//     return read;
-}
-
-std::size_t io_stream::write( const char* buf, std::size_t to_write )
-{
-    COMMA_THROW( comma::exception, "cannot write to istream");
-//     ios->write(buf,to_write);
-//     return ios->good()?to_write:0;
-}
-
-comma::io::file_descriptor io_stream::fd()
-{
-    return is.fd();
+    ios->write( buf, to_write );
+    return ios->good() ? to_write : 0;
 }
 
 } } } //namespace snark { namespace navigation { namespace advanced_navigation {
