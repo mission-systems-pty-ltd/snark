@@ -8,6 +8,7 @@
 #include <comma/csv/stream.h>
 #include "../../math/rotation_matrix.h"
 #include "../../math/position.h"
+#include "../../timing/timer.h"
 #include "../../visiting/traits.h"
 
 static void _layout( std::ostream& os = std::cerr )
@@ -38,6 +39,8 @@ static void usage( bool verbose )
     std::cerr << "    --lookaround,-l; for each keypress output 6 poses that look in 6 directions:" << std::endl;
     std::cerr << "                     top,back,left,front,right,bottom as for equirectangular cubes" << std::endl;
     std::cerr << "    --pose,-p=<initial_pose>; default=0,0,0,0,0,0; initial pose as <x>,<y>,<z>,<roll>,<pitch>,<yaw>" << std::endl;
+    // todo: std::cerr << "    --react-to-each-key-press,--raw: react to each key press; default: 'smoothing' across" << std::endl;
+    // todo: std::cerr << "                                     multiple keys pressed at/around the same time" << std::endl;
     std::cerr << "    --step,-s=<meters>; default=1; linear increment step" << std::endl;
     std::cerr << "    --step-angle,-a=<radians>; default=0.0873; angle increment step, default: 5 degrees" << std::endl;
     std::cerr << "    --verbose,-v: print hot keys and pose on stderr" << std::endl;
@@ -80,10 +83,12 @@ int main( int ac, char** av )
         double angle = options.value( "--step-angle,-a", 5 * M_PI / 180 );
         bool lookaround = options.exists( "--lookaround,-l" );
         bool verbose = options.exists( "--verbose,-v" );
+        bool raw = options.exists( "--react-to-each-key-press,--raw" ); // todo
         if( verbose ) { std::cerr << std::endl; _layout(); std::cerr << std::endl; }
         comma::csv::output_stream< snark::position > ostream( std::cout, csv );
         snark::position pose = comma::csv::ascii< snark::position >().get( options.value< std::string >( "--pose,-p", "0,0,0,0,0,0" ) );
         _output( ostream, pose, lookaround, verbose );
+        snark::timer timer( boost::posix_time::milliseconds( 10 ) ); // todo? parametrise timeout?
         while( std::cin.good() )
         {
             int c = std::getchar();
@@ -105,7 +110,8 @@ int main( int ac, char** av )
                 default: continue;
             }
             pose = _transform( pose, delta );
-            _output( ostream, pose, lookaround, verbose );
+            if( raw || timer.expired() ) { _output( ostream, pose, lookaround, verbose ); } // todo: io-console does not output two keys pressed
+            if( !raw ) { timer.reset(); }
         }
         return 0;
     }
