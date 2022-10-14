@@ -285,19 +285,45 @@ public:
         select.read().add( fd() );
     }
 
+    // send a command from stdin and receive a response
+    // keep reading stdin until it's closed (or ctrl-c)
+    // assume one response per command sent and keep reading device until all
+    // responses received, then exit
     void process()
     {
-        while( !signal && std::cout.good() )
+        unsigned int commands_sent = 0;
+        unsigned int responses_recv = 0;
+
+        while( !signal && std::cin.good() )
         {
-            while( !signal && std::cin.good() )
+            const T* msg = is.read();
+            if( msg )
             {
-                const T* pt = is.read();
-                if( !pt ) { break; }
-                messages::command cmd = pt->get_command();
+                messages::command cmd = msg->get_command();
                 send( cmd );
+                commands_sent++;
             }
             select.wait( boost::posix_time::microseconds( us ));
-            if( !signal && select.read().ready( fd() )) { device::process(); }
+            if( !signal && select.read().ready( fd() ))
+            {
+                device::process();
+                responses_recv++;
+            }
+        }
+        comma::verbose << ( signal ? "signal caught" : "stdin closed" ) << std::endl;
+        if( responses_recv < commands_sent )
+        {
+            comma::verbose << "sent " << commands_sent << " commands but only received " << responses_recv << " responses" << std::endl;
+            if( !signal ) { comma::verbose << "waiting for remaining responses" << std::endl; }
+        }
+        while( !signal && responses_recv < commands_sent )
+        {
+            select.wait( boost::posix_time::microseconds( us ));
+            if( !signal && select.read().ready( fd() ))
+            {
+                device::process();
+                responses_recv++;
+            }
         }
     }
 
