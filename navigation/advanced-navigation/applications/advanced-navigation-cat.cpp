@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2021,2022 Mission Systems Pty Ltd
 
 #include "../device.h"
 #include "../traits.h"
@@ -184,6 +184,18 @@ private:
     std::string filename;
 };
 
+static void output_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length, std::ostream& os )
+{
+    std::vector< char > obuf( 260 );
+    obuf.resize( messages::header::size + msg_data_length );
+    std::memcpy( &obuf[0], msg_header->data(), messages::header::size );
+    std::memcpy( &obuf[messages::header::size], msg_data, msg_data_length );
+    os.write( &obuf[0], obuf.size() );
+    if( flush ) { os.flush(); }
+}
+
+// open a device (serial or network) for reading
+// override device::handler(...) methods to process messages
 class app_base : protected snark::navigation::advanced_navigation::device
 {
 public:
@@ -262,23 +274,30 @@ struct send_factory_t : public send_factory_i
 
 // send data to device
 template < typename T >
-struct send_app : protected snark::navigation::advanced_navigation::device
+class send_app : protected snark::navigation::advanced_navigation::device
 {
-    comma::csv::input_stream< T > is;
+public:
     send_app( const comma::command_line_options& options )
         : device( options.value< std::string >( "--device" ), options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ))
         , is( std::cin, comma::csv::options( options ))
-    {}
+        , us( options.value< unsigned int >( "--sleep", default_sleep ))
+    {
+        select.read().add( fd() );
+    }
 
     void process()
     {
-        while( std::cin.good() )
+        while( !signal && std::cout.good() )
         {
-            const T* pt = is.read();
-            if( !pt )
-                break;
-            messages::command cmd = pt->get_command();
-            send( cmd );
+            while( !signal && std::cin.good() )
+            {
+                const T* pt = is.read();
+                if( !pt ) { break; }
+                messages::command cmd = pt->get_command();
+                send( cmd );
+            }
+            select.wait( boost::posix_time::microseconds( us ));
+            if( !signal && select.read().ready( fd() )) { device::process(); }
         }
     }
 
@@ -292,6 +311,18 @@ struct send_app : protected snark::navigation::advanced_navigation::device
         //std::cout << comma::csv::format::value< output_t >( fields, true ) << std::endl;
         std::cout << comma::csv::format::value< T >() << std::endl;
     }
+
+protected:
+    void handle_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length )
+    {
+        output_raw( msg_header, msg_data, msg_data_length, std::cout );
+    }
+
+private:
+    comma::csv::input_stream< T > is;
+    unsigned int us;
+    comma::io::select select;
+    comma::signal_flag signal;
 };
 
 tbb::concurrent_bounded_queue< ntrip::item_t > ntrip::queue;
