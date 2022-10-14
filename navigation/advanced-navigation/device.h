@@ -1,6 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2017 The University of Sydney
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2021,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -34,6 +34,9 @@ protected:
     virtual void handle_raw( messages::header* msg_header, const char* msg_data,std::size_t msg_data_length) {}
 
 private:
+    void debug_internal_state();
+    void read_data( unsigned int at_least, unsigned int at_most );
+
     std::unique_ptr< advanced_navigation::stream > stream;
     std::vector< char > buf;
     unsigned int index;
