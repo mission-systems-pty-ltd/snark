@@ -5,6 +5,8 @@
 #include "device.h"
 #include <comma/application/verbose.h>
 
+//#define DEBUG
+
 namespace snark { namespace navigation { namespace advanced_navigation {
 
 device::device( const std::string& name, const advanced_navigation::options& options )
@@ -29,16 +31,20 @@ comma::io::file_descriptor device::fd() { return stream->fd(); }
   when the index goes past halfway through the buffer the data from head to
   index is moved to the start of the buffer
 */
+#ifdef DEBUG
 void device::debug_internal_state()
 {
     comma::verbose << "head=" << head << "; index=" << index << ": got header: " << ( msg_header ? "yes" : "no" ) << std::endl;
 }
+#endif
 
 // try to read at least "at_least" bytes, but not more than "at_most" bytes
 void device::read_data( unsigned int at_least, unsigned int at_most )
 {
     unsigned int read_size = stream->read_some( &buf[index], at_most, at_least );
-    //comma::verbose << "device::process() read " << read_size << " bytes" << std::endl;
+    #ifdef DEBUG
+    comma::verbose << "device::process() read " << read_size << " bytes" << std::endl;
+    #endif
     if( read_size == 0 ) { return; }
     // this should never happen but read_some() might not enforce not reading more than at_most size
     if( read_size > at_most ) { std::cerr << "read long " << read_size << " vs " << at_most << std::endl; }
@@ -50,7 +56,9 @@ void device::process()
     static messages::header* skipper = NULL;
     static unsigned int debug_count = 0;
 
-    //debug_internal_state();
+    #ifdef DEBUG
+    debug_internal_state();
+    #endif
 
     if( head > 0 && index > buf.size() / 2 )
     {
@@ -75,7 +83,9 @@ void device::process()
         unsigned int to_read = msg_header
                              ? msg_header->len() - ( index - head - messages::header::size )
                              : messages::header::size * 2;
-        //comma::verbose << ( msg_header ? "already have" : "don't have" ) << " header, reading " << to_read << " bytes" << std::endl;
+        #ifdef DEBUG
+        comma::verbose << ( msg_header ? "already have" : "don't have" ) << " header, reading " << to_read << " bytes" << std::endl;
+        #endif
         read_data( to_read, remaining_buffer_space );
     }
     // Keep looping through reading messages until the index lies within a header (no more messages)
@@ -100,8 +110,10 @@ void device::process()
         }
         if( msg_header )
         {
-            //comma::verbose << "found message header for " << msg_header->len() << " byte payload" << std::endl;
-            //debug_internal_state();
+            #ifdef DEBUG
+            comma::verbose << "found message header for " << msg_header->len() << " byte payload" << std::endl;
+            debug_internal_state();
+            #endif
             unsigned int msg_start = head + messages::header::size;
 
             if( msg_start + msg_header->len() > index )
