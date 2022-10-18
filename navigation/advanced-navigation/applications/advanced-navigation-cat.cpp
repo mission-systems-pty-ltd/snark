@@ -278,7 +278,8 @@ class send_app : protected snark::navigation::advanced_navigation::device
 {
 public:
     send_app( const comma::command_line_options& options )
-        : device( options.value< std::string >( "--device" ), options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ))
+        : device( options.value< std::string >( "--device" )
+                , options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ))
         , is( std::cin, comma::csv::options( options ))
         , us( options.value< unsigned int >( "--sleep", default_sleep ))
     {
