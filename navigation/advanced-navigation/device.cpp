@@ -14,7 +14,8 @@ device::device( const std::string& name, const advanced_navigation::options& opt
 {
     if( name.find("/dev") == 0 ) { stream.reset( new serial_stream( name, options )); }
     else if( name == "-" ) { stream.reset( new io_stream< comma::io::istream >( name )); }
-    else { stream.reset( new io_stream< comma::io::iostream >( name )); }
+    else if( name.find("tcp") == 0 || name.find("udp") == 0 ) { stream.reset( new io_stream< comma::io::iostream >( name )); }
+    else { COMMA_THROW( comma::exception, "unknown device type: " << name ); }
 }
 
 comma::io::file_descriptor device::fd() { return stream->fd(); }
