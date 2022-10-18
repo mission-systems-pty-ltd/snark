@@ -67,6 +67,15 @@ struct traits< snark::navigation::advanced_navigation::messages::system_state >
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::unix_time >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::unix_time& p, Visitor& v )
+    {
+        v.apply( "t", p.t() );
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::filter_status_description >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::filter_status_description& p, Visitor& v )

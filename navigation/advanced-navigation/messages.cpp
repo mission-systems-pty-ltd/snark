@@ -133,6 +133,15 @@ snark::spherical::coordinates system_state::coordinates() const
     return snark::spherical::coordinates( latitude(), longitude() );
 }
 
+// ---------
+// unix_time
+// ---------
+boost::posix_time::ptime unix_time::t() const
+{
+    return boost::posix_time::ptime( boost::gregorian::date( 1970, 1, 1 )
+                                   , boost::posix_time::seconds( unix_time_seconds() ) + boost::posix_time::microseconds( microseconds() ));
+}
+
 // -------------------------
 // system_status_description
 // -------------------------

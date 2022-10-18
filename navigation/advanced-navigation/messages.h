@@ -91,6 +91,15 @@ struct system_state : public comma::packed::packed_struct< system_state, 100 >
     snark::spherical::coordinates coordinates() const;
 };
 
+struct unix_time : public comma::packed::packed_struct< unix_time, 8 >
+{
+    enum { id = 21 };
+    comma::packed::little_endian::uint32 unix_time_seconds;
+    comma::packed::little_endian::uint32 microseconds;
+
+    boost::posix_time::ptime t() const;
+};
+
 struct system_status_description
 {
     system_status_description( uint16_t status = 0 );

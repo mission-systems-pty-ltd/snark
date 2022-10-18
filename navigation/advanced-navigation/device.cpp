@@ -136,6 +136,9 @@ void device::process()
                 case messages::system_state::id:
                     handle( reinterpret_cast< messages::system_state* >( &buf[msg_start] ));
                     break;
+                case messages::unix_time::id:
+                    handle( reinterpret_cast< messages::unix_time* >( &buf[msg_start] ));
+                    break;
                 case messages::position_standard_deviation::id:
                     handle( reinterpret_cast< messages::position_standard_deviation* >( &buf[msg_start] ));
                     break;

@@ -24,6 +24,7 @@ public:
 protected:
     virtual void handle( const messages::acknowledgement* msg ) {}
     virtual void handle( const messages::system_state* msg ) {}
+    virtual void handle( const messages::unix_time* msg ) {}
     virtual void handle( const messages::position_standard_deviation* msg ) {}
     virtual void handle( const messages::velocity_standard_deviation* msg ) {}
     virtual void handle( const messages::orientation_standard_deviation* msg ) {}
