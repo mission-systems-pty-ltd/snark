@@ -80,13 +80,22 @@ void device::process()
     {
         // if we have a header, attempt to read the rest of the message
         // otherwise, read enough to get a header but no more (so we don't read in to the following header)
-        unsigned int to_read = msg_header
-                             ? msg_header->len() - ( index - head - messages::header::size )
-                             : messages::header::size * 2;
+        unsigned int at_least;
+        unsigned int at_most;
+        if( msg_header )
+        {
+            at_least = msg_header->len() - ( index - head - messages::header::size );
+            at_most = remaining_buffer_space;
+        }
+        else
+        {
+            at_least = messages::header::size;
+            at_most = std::min< unsigned int >( messages::header::size, remaining_buffer_space );
+        }
         #ifdef DEBUG
-        comma::verbose << ( msg_header ? "already have" : "don't have" ) << " header, reading " << to_read << " bytes" << std::endl;
+        comma::verbose << ( msg_header ? "already have" : "don't have" ) << " header, reading at least " << at_least << " bytes" << std::endl;
         #endif
-        read_data( to_read, remaining_buffer_space );
+        read_data( at_least, at_most );
     }
     // Keep looping through reading messages until the index lies within a header (no more messages)
     // In practice there should always be only one message, because that's how we're reading the data above.
