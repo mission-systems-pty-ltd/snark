@@ -54,7 +54,6 @@ void device::read_data( unsigned int at_least, unsigned int at_most )
 
 void device::process()
 {
-    static messages::header* skipper = NULL;
     static unsigned int debug_count = 0;
 
     #ifdef DEBUG
@@ -103,8 +102,6 @@ void device::process()
                 {
                     break;
                 }
-                if( !skipper )
-                    skipper = msg_header;
                 debug_count++;
                 msg_header = NULL;
             }
@@ -166,13 +163,8 @@ void device::process()
                 }
                 if( debug_count )
                 {
-                    if( !skipper )
-                        comma::verbose << " skipped " << debug_count << std::endl;
-                    else
-                        comma::verbose << " skipped " << debug_count << "; " << (unsigned int)( skipper->LRC() ) << " "
-                                       << (unsigned int)( skipper->id() ) << " " << skipper->len() << std::endl;
+                    comma::verbose << " skipped " << debug_count << std::endl;
                     debug_count = 0;
-                    skipper = NULL;
                 }
             }
             else
