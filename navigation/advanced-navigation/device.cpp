@@ -54,7 +54,7 @@ void device::read_data( unsigned int at_least, unsigned int at_most )
 
 void device::process()
 {
-    static unsigned int debug_count = 0;
+    static unsigned int bytes_skipped = 0;
 
     #ifdef DEBUG
     debug_internal_state();
@@ -102,7 +102,7 @@ void device::process()
                 {
                     break;
                 }
-                debug_count++;
+                bytes_skipped++;
                 msg_header = NULL;
             }
         }
@@ -161,10 +161,10 @@ void device::process()
 //                     comma::verbose<<"unhandled msg id: "<<int(msg_header->id())<<" len "<<msg_header->len()<<" "<<head<<" "<<index<<std::endl;
                     break;
                 }
-                if( debug_count )
+                if( bytes_skipped > 0 )
                 {
-                    comma::verbose << " skipped " << debug_count << std::endl;
-                    debug_count = 0;
+                    comma::verbose << " skipped " << bytes_skipped << std::endl;
+                    bytes_skipped = 0;
                 }
             }
             else
