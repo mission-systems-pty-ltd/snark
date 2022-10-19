@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2021,2022 Mission Systems Pty Ltd
 
 #include "../device.h"
 #include "../messages.h"
@@ -476,6 +476,7 @@ int main( int argc, char** argv )
         else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet <messages::unix_time > >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
+        else if( packet == "external-time" ) { factory.reset( new factory_t< app_packet <messages::external_time > >() ); }
         else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
         else { COMMA_THROW( comma::exception, packet << " is an unsupported packet. See help." );}

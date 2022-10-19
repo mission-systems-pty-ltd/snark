@@ -370,6 +370,7 @@ int main( int argc, char** argv )
             std::unique_ptr< send_factory_i > sf;
             if( *opt_send == "request" ) { sf.reset( new send_factory_t< send_app< messages::request >>() ); }
             else if( *opt_send == "reset" ) { sf.reset( new send_factory_t< send_app< messages::reset >>() ); }
+            else if( *opt_send == "external-time" ) { sf.reset( new send_factory_t< send_app< messages::external_time >>() ); }
             else if( *opt_send == "filter-options" ) { sf.reset( new send_factory_t< send_app< messages::filter_options >>() ); }
             else if( *opt_send == "magnetic-calibration" ) { sf.reset( new send_factory_t< send_app< messages::magnetic_calibration_configuration >>() ); }
             else { COMMA_THROW( comma::exception, "invalid send command: " << *opt_send ); }

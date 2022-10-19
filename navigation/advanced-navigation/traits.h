@@ -1,4 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -149,6 +150,23 @@ struct traits< snark::navigation::advanced_navigation::messages::satellites >
         v.apply( "beidou_satellites", p.beidou_satellites() );
         v.apply( "galileo_satellites", p.galileo_satellites() );
         v.apply( "sbas_satellites", p.sbas_satellites() );
+    }
+};
+
+template <>
+struct traits< snark::navigation::advanced_navigation::messages::external_time >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::external_time& p, Visitor& v )
+    {
+        v.apply( "t", p.t() );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, snark::navigation::advanced_navigation::messages::external_time& p, Visitor& v )
+    {
+        boost::posix_time::ptime timestamp;
+        v.apply( "t", timestamp );
+        boost::posix_time::time_duration time_since_epoch = timestamp - boost::posix_time::ptime( boost::gregorian::date( 1970, 1, 1 ));
+        p.unix_time_seconds = time_since_epoch.total_seconds();
+        p.microseconds = time_since_epoch.total_microseconds() - time_since_epoch.total_seconds() * 1000000;
     }
 };
 

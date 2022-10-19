@@ -1,5 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2021,2022 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -197,6 +197,17 @@ struct satellites : public comma::packed::packed_struct< satellites, 13 >
     comma::packed::uint8 beidou_satellites;
     comma::packed::uint8 galileo_satellites;
     comma::packed::uint8 sbas_satellites;
+};
+
+struct external_time : public comma::packed::packed_struct< external_time, 8 >
+{
+    enum { id = 52 };
+    comma::packed::little_endian::uint32 unix_time_seconds;
+    comma::packed::little_endian::uint32 microseconds;
+
+    boost::posix_time::ptime t() const;
+
+    command get_command() const { return command( id, data(), size ); }
 };
 
 struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections, 260 >

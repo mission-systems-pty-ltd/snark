@@ -1,5 +1,5 @@
 // Copyright (c) 2017 The University of Sydney
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2021,2022 Mission Systems Pty Ltd
 
 #include "messages.h"
 #include <comma/application/verbose.h>
@@ -305,6 +305,15 @@ unsigned int filter_status_description::atmospheric_altitude_enabled() const { r
 unsigned int filter_status_description::external_position_active() const { return ( status & 0x2000 ) ? 1 : 0; }
 unsigned int filter_status_description::external_velocity_active() const { return ( status & 0x4000 ) ? 1 : 0; }
 unsigned int filter_status_description::external_heading_active() const { return ( status & 0x8000 ) ? 1 : 0; }
+
+// -------------
+// external_time
+// -------------
+boost::posix_time::ptime external_time::t() const
+{
+    return boost::posix_time::ptime( boost::gregorian::date( 1970, 1, 1 )
+                                   , boost::posix_time::seconds( unix_time_seconds() ) + boost::posix_time::microseconds( microseconds() ));
+}
 
 // ----------------
 // rtcm_corrections
