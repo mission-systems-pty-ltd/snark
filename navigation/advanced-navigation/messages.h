@@ -42,6 +42,13 @@ struct command : public comma::packed::packed_struct< command, 260 >
     command( uint8_t id, const char* buf, unsigned int size );
 };
 
+// each packet contains the following:
+//   id - packet id
+//   data - which is assembled in the packed struct
+//
+// packets that can be sent also have the setting
+//   expects_response - do we expect a packet in response?
+
 struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4 >
 {
     enum { id = 0 };
@@ -56,6 +63,8 @@ struct acknowledgement : public comma::packed::packed_struct< acknowledgement, 4
 struct request : public comma::packed::packed_struct< request, 1 >
 {
     enum { id = 1 };
+    enum : bool { expects_response = true };
+
     comma::packed::uint8 packet_id;
 
     command get_command() const { return command( id, data(), size ); }
@@ -64,6 +73,8 @@ struct request : public comma::packed::packed_struct< request, 1 >
 struct reset : public comma::packed::packed_struct< reset, 4 >
 {
     enum { id = 5 };
+    enum : bool { expects_response = true };
+
     // 0x21057A7E for hot start reset (equivalent to power cycle), 0x9A5D38B7 for cold start reset
     comma::packed::little_endian::uint32 verification_sequence;
 
@@ -89,15 +100,6 @@ struct system_state : public comma::packed::packed_struct< system_state, 100 >
 
     boost::posix_time::ptime t() const;
     snark::spherical::coordinates coordinates() const;
-};
-
-struct unix_time : public comma::packed::packed_struct< unix_time, 8 >
-{
-    enum { id = 21 };
-    comma::packed::little_endian::uint32 unix_time_seconds;
-    comma::packed::little_endian::uint32 microseconds;
-
-    boost::posix_time::ptime t() const;
 };
 
 struct system_status_description
@@ -157,6 +159,15 @@ struct filter_status_description
     uint16_t status;
 };
 
+struct unix_time : public comma::packed::packed_struct< unix_time, 8 >
+{
+    enum { id = 21 };
+    comma::packed::little_endian::uint32 unix_time_seconds;
+    comma::packed::little_endian::uint32 microseconds;
+
+    boost::posix_time::ptime t() const;
+};
+
 struct position_standard_deviation : public comma::packed::packed_struct< position_standard_deviation, 12 >
 {
     enum { id = 24 };
@@ -202,6 +213,8 @@ struct satellites : public comma::packed::packed_struct< satellites, 13 >
 struct external_time : public comma::packed::packed_struct< external_time, 8 >
 {
     enum { id = 52 };
+    enum : bool { expects_response = false };
+
     comma::packed::little_endian::uint32 unix_time_seconds;
     comma::packed::little_endian::uint32 microseconds;
 
@@ -213,6 +226,8 @@ struct external_time : public comma::packed::packed_struct< external_time, 8 >
 struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections, 260 >
 {
     enum { id = 55 };
+    enum : bool { expects_response = true };
+
     messages::header header;
     boost::array< comma::packed::uint8, 255 > msg_data;
 
@@ -223,6 +238,8 @@ struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections,
 struct filter_options : public comma::packed::packed_struct< filter_options, 17 >
 {
     enum { id = 186 };
+    enum : bool { expects_response = true };
+
     comma::packed::uint8 permanent;
     comma::packed::uint8 vehicle_types;
     comma::packed::uint8 internal_gnss_enabled;
@@ -240,6 +257,8 @@ struct filter_options : public comma::packed::packed_struct< filter_options, 17 
 struct magnetic_calibration_configuration : public comma::packed::packed_struct< magnetic_calibration_configuration, 1 >
 {
     enum { id = 190 };
+    enum : bool { expects_response = true };
+
     comma::packed::uint8 action;
 
     command get_command() const { return command( id, data(), size ); }

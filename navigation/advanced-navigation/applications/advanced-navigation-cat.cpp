@@ -293,6 +293,7 @@ public:
     void process()
     {
         unsigned int commands_sent = 0;
+        unsigned int responses_expected = 0;
         unsigned int responses_recv = 0;
 
         while( !signal && std::cin.good() )
@@ -303,6 +304,7 @@ public:
                 messages::command cmd = msg->get_command();
                 send( cmd );
                 commands_sent++;
+                if( msg->expects_response ) { responses_expected++; }
             }
             select.wait( boost::posix_time::microseconds( us ));
             if( !signal && select.read().ready( fd() ))
@@ -312,12 +314,12 @@ public:
             }
         }
         comma::verbose << ( signal ? "signal caught" : "stdin closed" ) << std::endl;
-        if( responses_recv < commands_sent )
+        if( responses_recv < responses_expected )
         {
-            comma::verbose << "sent " << commands_sent << " commands but only received " << responses_recv << " responses" << std::endl;
+            comma::verbose << "sent " << commands_sent << " commands but received " << responses_recv << " responses, expected " << responses_expected << std::endl;
             if( !signal ) { comma::verbose << "waiting for remaining responses" << std::endl; }
         }
-        while( !signal && responses_recv < commands_sent )
+        while( !signal && responses_recv < responses_expected )
         {
             select.wait( boost::posix_time::microseconds( us ));
             if( !signal && select.read().ready( fd() ))
