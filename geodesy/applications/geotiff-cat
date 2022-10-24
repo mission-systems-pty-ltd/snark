@@ -49,6 +49,7 @@ def _shape( args, g ):
     
 def _raster( args, g ):
     b = g.GetRasterBand( args.channel )
+    x, y, w, h = _shape( args, g )
     return b.ReadAsArray( *_shape( args, g ) )
 
 def convert( args ):
@@ -74,11 +75,13 @@ def points( args ):
     translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
     transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
     x, y, width, height = _shape( args, g )
-    indices = numpy.indices( r.shape, dtype=numpy.int32 ).T.reshape( ( r.shape[0] * r.shape[1], 2 ) ) + numpy.array( [ x, y ], dtype=numpy.int32 )
+    i = numpy.indices( r.shape, dtype=numpy.int32 )
+    indices = numpy.array( [ i[1].flatten(), i[0].flatten() ] ).T + [ x, y ] # todo? is there a better way?
+    coordinates = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
     a = numpy.zeros( r.shape[0] * r.shape[1], dtype=numpy.dtype([('index', '2i'),('coordinates', '2f8'), ('value', 'f8')] ) )
     a['index'] = indices
-    a['coordinates'] = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
-    a['value'] = numpy.ndarray.flatten( r ).astype( numpy.float64 )
+    a['coordinates'] = coordinates
+    a['value'] = numpy.ndarray.flatten( r ).astype( numpy.float64 ) # todo? is it flattened along incorrect axis?
     if args.binary is None:
         for e in a: print( f"{e['index'][0]},{e['index'][1]},{e['coordinates'][0]},{e['coordinates'][1]},{e['value']}" ) # quick and dirty, numpy.savetxt gets upset with fmt
     else:
@@ -87,7 +90,7 @@ def points( args ):
 def raster( args ):
     if args.dry_run:
         x, y, width, height = _shape( args, _open( args ) )
-        print( f'{x},{y},{height},{width}' )
+        print( f'{x},{y},{width},{height}' )
         return
     sys.stdout.buffer.write( _raster( args, _open( args ) ).tobytes() )
 
