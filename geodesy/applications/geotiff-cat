@@ -75,13 +75,11 @@ def points( args ):
     translation = numpy.array( [ t[0], t[3] ], dtype=numpy.float64 )
     transform = numpy.array( [ [ t[1], t[2] ], [ t[4], t[5] ] ], dtype=numpy.float64 )
     x, y, width, height = _shape( args, g )
-    i = numpy.indices( r.shape, dtype=numpy.int32 )
-    indices = numpy.array( [ i[1].flatten(), i[0].flatten() ] ).T + [ x, y ] # todo? is there a better way?
-    coordinates = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
+    indices = numpy.flip( numpy.indices( r.shape, int ).reshape( 2, numpy.prod( r.shape ) ).T, axis=1 ) + [ x, y ] # todo: quick and somewhat dirty, make the mess of x,y vs y,x more consistent
     a = numpy.zeros( r.shape[0] * r.shape[1], dtype=numpy.dtype([('index', '2i'),('coordinates', '2f8'), ('value', 'f8')] ) )
     a['index'] = indices
-    a['coordinates'] = coordinates
-    a['value'] = numpy.ndarray.flatten( r ).astype( numpy.float64 ) # todo? is it flattened along incorrect axis?
+    a['coordinates'] = ( transform @ indices.T.astype( numpy.float64 ) ).T + translation
+    a['value'] = numpy.ndarray.flatten( r ).astype( numpy.float64 )
     if args.binary is None:
         for e in a: print( f"{e['index'][0]},{e['index'][1]},{e['coordinates'][0]},{e['coordinates'][1]},{e['value']}" ) # quick and dirty, numpy.savetxt gets upset with fmt
     else:
