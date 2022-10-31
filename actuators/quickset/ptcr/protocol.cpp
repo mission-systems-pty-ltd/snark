@@ -77,8 +77,8 @@ class transport // todo: quick and dirty; decouple later, once needed
 
         void close() { if( serial_ ) { serial_->close(); } else { socket_->close(); } };
 
-        comma::io::file_descriptor fd() const { return serial_ ? serial_->native() : socket_->native(); }
-        
+        comma::io::file_descriptor fd() const { return serial_ ? serial_->native_handle() : socket_->native_handle(); }
+
     private:
         boost::asio::io_service service_;
         boost::scoped_ptr< boost::asio::serial_port > serial_;
