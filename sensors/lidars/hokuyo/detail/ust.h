@@ -138,7 +138,7 @@ static bool tcp_connect( const std::string& conn_str,
     io.expires_from_now( timeout );
     io.connect( it->endpoint() );
     io.expires_at( boost::posix_time::pos_infin );
-    return io.error() == 0;
+    return io.error() == boost::system::errc::success;
 } 
 
 template < int STEPS >
