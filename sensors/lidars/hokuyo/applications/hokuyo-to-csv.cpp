@@ -27,8 +27,8 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/thread.hpp> 
 #include <boost/shared_ptr.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
@@ -177,7 +177,7 @@ void process(T& device)
     turn_laser_on laser_on(*ios, (laser_device&)device, reboot_on_error);
     comma::csv::output_stream< typename T::output_t > output_stream( std::cout, csv );  
     while( one_scan( device, output_stream ) ) { 
-        boost::this_thread::sleep_for( boost::chrono::microseconds(scan_break) );
+        std::this_thread::sleep_for( std::chrono::microseconds(scan_break) );
     }
 }
 
@@ -191,7 +191,7 @@ void output_samples()
     {
         pt.t = boost::posix_time::microsec_clock::universal_time();
         output.write( pt );
-        boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
+        std::this_thread::sleep_for( std::chrono::milliseconds(100) );
     }
 }
 

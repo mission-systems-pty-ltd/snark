@@ -37,17 +37,17 @@
 #include <comma/application/signal_flag.h>
 #include <comma/csv/stream.h>
 #include <comma/io/select.h>
-#include <boost/thread.hpp>
 #include <opencv2/core/core.hpp>
+#include <thread>
 
 const unsigned int default_image_mode = 0;
 const double default_max_speed = 10;    // 10Hz = 36000 deg/second
 
 // Max frame rate is 7.5fps (133ms between frames) but unless the gap is
 // substantially longer every second frame fails
-const boost::chrono::milliseconds sleep_between_frames( 300 );
+const std::chrono::milliseconds sleep_between_frames( 300 );
 // Probably a good idea also, but relatively untested
-const boost::chrono::milliseconds sleep_after_movement( 1000 );
+const std::chrono::milliseconds sleep_after_movement( 1000 );
 
 static void bash_completion( unsigned const ac, char const * const * av )
 {
@@ -127,7 +127,7 @@ void capture_frame( ocular::RobotEyeThermal& roboteye_thermal
 {
     static unsigned int frame_num = 0;
     comma::verbose << "acquiring frame " << frame_num << std::endl;
-    boost::this_thread::sleep_for( sleep_between_frames );
+    std::this_thread::sleep_for( sleep_between_frames );
     ::ocular::Image image;
     if( check_dev_status( roboteye_thermal.GetImage( image, image_mode ), "GetImage" ).devCode == ::ocular::NO_ERR )
     {
@@ -271,7 +271,7 @@ int main( int argc, char** argv )
             if( capture && !acquiring )
             {
                 comma::verbose << "starting frame acquisition" << std::endl;
-                boost::this_thread::sleep_for( sleep_after_movement );
+                std::this_thread::sleep_for( sleep_after_movement );
                 check_dev_status( roboteye_thermal.StartAcquisition(), "StartAcquisition" );
                 acquiring = true;
             }
