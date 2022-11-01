@@ -5,6 +5,9 @@
 #include "../output.h"
 #include <comma/base/exception.h>
 #include "../sensors.h"
+#if (BOOST_VERSION >= 106700)
+#include <chrono>
+#endif
 
 namespace hok = snark::hokuyo;
 namespace ip = boost::asio::ip;
@@ -123,12 +126,22 @@ typename ust_device<STEPS>::output_t ust_device<STEPS>::convert(data_t& data)
     return point3d;
 }
 
-/// Connect to the TCP server within the allowed timeout
-/// Needed because comma::io::iostream is not available
-static bool tcp_connect( const std::string& conn_str, 
-                ip::tcp::iostream& io, 
-                const boost::posix_time::time_duration& timeout=boost::posix_time::seconds(1)
-)
+// Connect to the TCP server within the allowed timeout
+// Needed because comma::io::iostream is not available
+//
+// Starting with Boost 1.67 boost::asio::ip::tcp::iostream uses std::chrono for
+// timers rather than boost::posix_time
+#if (BOOST_VERSION >= 106700)
+static bool tcp_connect( const std::string& conn_str
+                       , ip::tcp::iostream& io
+                       , const ip::tcp::iostream::duration& timeout=std::chrono::seconds(1)
+                       )
+#else
+static bool tcp_connect( const std::string& conn_str
+                       , ip::tcp::iostream& io
+                       , const ip::tcp::iostream::duration_type& timeout=boost::posix_time::seconds(1)
+                       )
+#endif
 {
     std::vector< std::string > v = comma::split( conn_str, ':' );
     boost::asio::io_service service;
@@ -137,7 +150,11 @@ static bool tcp_connect( const std::string& conn_str,
     ip::tcp::resolver::iterator it = resolver.resolve( query );
     io.expires_from_now( timeout );
     io.connect( it->endpoint() );
+#if (BOOST_VERSION >= 106700)
+    io.expires_at( ip::tcp::iostream::time_point::max() );
+#else
     io.expires_at( boost::posix_time::pos_infin );
+#endif
     return io.error() == boost::system::errc::success;
 } 
 
