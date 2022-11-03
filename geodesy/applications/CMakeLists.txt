@@ -9,3 +9,4 @@ set_target_properties( geo-calc PROPERTIES LINK_FLAGS_RELEASE -s )
 install( TARGETS geo-calc RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 install( PROGRAMS geotiff-cat DESTINATION ${snark_INSTALL_BIN_DIR} )
+install( PROGRAMS netcdf-cat DESTINATION ${snark_INSTALL_BIN_DIR} )

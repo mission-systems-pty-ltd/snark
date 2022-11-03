@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, sys
+import argparse, numpy, sys
 
 netcdf_installation = '''
 
@@ -16,23 +16,40 @@ def dimensions( args ):
     for d in netcdf.Dataset( args.netcdf_filename ).dimensions.values(): print( f'{d.name},{d.size}' )
 
 def variable( args ):
-    d = netcdf.Dataset( args.netcdf_filename )[args.name]
-    if args.dtype: print( d.dtype ); return
-    if args.info: print( d ); return
-    if args.shape: print( ','.join( [ str( s ) for s in d.shape ] ) ); return
-    sys.stdout.buffer.write( eval( f'd{args.slice}.tobytes()' ) )
+    def _to_csv( t ): return ','.join( [ str( s ) for s in t ] )
+    d = netcdf.Dataset( args.netcdf_filename )
+    v = d[args.name]
+    if args.dimensions: print( _to_csv( v.dimensions ) ); return
+    if args.dtype: print( v.dtype ); return
+    if args.info: print( v ); return
+    if args.shape: print( _to_csv( v.shape ) ); return
+    if args.joined_with is None: sys.stdout.buffer.write( eval( f'v{args.slice}.tobytes()' ) )
+    NotImplementedError( '--with: todo' )
+    assert args.slice == '[:]', NotImplementedError( '--slice support with --with: todo' )
+    variables = args.joined_with.split( ',' )
+    a = numpy.zeros( numpy.prod( v.shape ), dtype=numpy.dtype( [ ( n, d[n].dtype ) for n in variables ] + [ ( args.name, v.dtype ) ] ) ) # quick and dirty, watch memory performance
+    i = numpy.indices( v.shape )
+    for n in variables: # quick and dirty, watch performance
+        j = [ k[0] for k in filter( lambda t: t[1] in d[n].dimensions, enumerate( v.dimensions ) ) ]
+        assert len( j ) > 0, f'dimensions of variable {n} {d[n].dimensions} do not overlap with {args.name} dimensions {v.dimensions}'
+        a[n] = d[n][:].take( i.take( j ) ).flatten()
+    a[ args.name ] = v[:].flatten() # todo: slicing
+    sys.stdout.buffer.write( a.tobytes() )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument( 'netcdf_filename', type=str, help='path to netcdf file' )
     subparsers = parser.add_subparsers( help='operations; help: e.g: netcdf-cat variable --help' )
     parser_info = subparsers.add_parser( 'info', help='output info' )
+    parser_info.set_defaults( func=info )
     parser_dimensions = subparsers.add_parser( 'dimensions', help='output dimensions' )
     parser_dimensions.set_defaults( func=dimensions )
     parser_variable = subparsers.add_parser( 'variable', help='output variable values to stdout as a numpy array binary dump' )
     parser_variable.add_argument( 'name', type=str, help='variable name' )
+    parser_variable.add_argument( '--dimensions', action='store_true', help='print variable dimensions' )
     parser_variable.add_argument( '--dtype', '--type', action='store_true', help='print variable type' )
     parser_variable.add_argument( '--info', action='store_true', help='print variable info (just a python print)' )
+    parser_variable.add_argument( '--joined-with', '--with', type=str, help='comma-separated list of variables, e.g. netcdf-cat variable salinity --with time,latitude,longitude will output time,latitude,longitude,salinity as binary' )
     parser_variable.add_argument( '--shape', action='store_true', help='print variable shape' )
     parser_variable.add_argument( '--slice', default='[:]', type=str, help='desired numpy-style array index slice, e.g: --slice=[3:10,1]; default: output all' )
     parser_variable.set_defaults( func=variable )
