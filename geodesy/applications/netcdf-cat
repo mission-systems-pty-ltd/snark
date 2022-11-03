@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import argparse, sys
+
+netcdf_installation = '''
+
+netcdf not found; install it with pip3 or as following
+
+sudo apt install python3-netcdf4
+
+'''
+
+def info( args ): print( netcdf.Dataset( args.netcdf_filename ) )
+
+def dimensions( args ):
+    for d in netcdf.Dataset( args.netcdf_filename ).dimensions.values(): print( f'{d.name},{d.size}' )
+
+def variable( args ):
+    d = netcdf.Dataset( args.netcdf_filename )[args.name]
+    if args.dtype: print( d.dtype ); return
+    if args.info: print( d ); return
+    if args.shape: print( ','.join( [ str( s ) for s in d.shape ] ) ); return
+    sys.stdout.buffer.write( eval( f'd{args.slice}.tobytes()' ) )
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument( 'netcdf_filename', type=str, help='path to netcdf file' )
+    subparsers = parser.add_subparsers( help='operations; help: e.g: netcdf-cat variable --help' )
+    parser_info = subparsers.add_parser( 'info', help='output info' )
+    parser_dimensions = subparsers.add_parser( 'dimensions', help='output dimensions' )
+    parser_dimensions.set_defaults( func=dimensions )
+    parser_variable = subparsers.add_parser( 'variable', help='output variable values to stdout as a numpy array binary dump' )
+    parser_variable.add_argument( 'name', type=str, help='variable name' )
+    parser_variable.add_argument( '--dtype', '--type', action='store_true', help='print variable type' )
+    parser_variable.add_argument( '--info', action='store_true', help='print variable info (just a python print)' )
+    parser_variable.add_argument( '--shape', action='store_true', help='print variable shape' )
+    parser_variable.add_argument( '--slice', default='[:]', type=str, help='desired numpy-style array index slice, e.g: --slice=[3:10,1]; default: output all' )
+    parser_variable.set_defaults( func=variable )
+    args = parser.parse_args()
+    try: import netCDF4 as netcdf
+    except: raise ModuleNotFoundError( netcdf_installation )
+    args.func( args )
