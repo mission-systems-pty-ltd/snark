@@ -23,6 +23,15 @@ static void usage( bool verbose )
     std::cerr << "    only rs-lidar-16 currently supported" << std::endl;
     std::cerr << "    reflectivity curves not implemented yet" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "options" << std::endl;
+    std::cerr << "    --model=<name>; default=lidar_16; current default is to preserve backward compatibility" << std::endl;
+    std::cerr << "                                      if the data packets have a different model, currently" << std::endl;
+    std::cerr << "                                      will throw an exception; soon, will introduce model" << std::endl;
+    std::cerr << "                                      auto-detection; at that point, the usage semantics may" << std::endl;
+    std::cerr << "                                      change" << std::endl;
+    std::cerr << "    --models; print list of models and their numeric ids in msop packet header and " << std::endl;
+    std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
+    std::cerr << std::endl;
     std::cerr << "calibration options" << std::endl;
     std::cerr << "    --calibration,-c=<directory>; directory containing calibration files: angle.csv, ChannelNum.csv, curves.csv etc" << std::endl;
     std::cerr << "    --calibration-angles,--angles,--angle,-a=<filename>; default: as in spec" << std::endl;
@@ -114,8 +123,22 @@ static std::pair< boost::posix_time::ptime, P* > read( std::istream& is, char* b
 // todo? 32-beam support?
 // todo? move difop stream to calculator?
 
-snark::robosense::calculator make_calculator( const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
+template < snark::robosense::models::values Model > struct model_traits; // todo? move to packets?
+
+template <> struct model_traits< snark::robosense::models::lidar_16 >
 {
+    typedef snark::robosense::lidar_16::difop difop;
+};
+
+template <> struct model_traits< snark::robosense::models::helios_16p >
+{
+    typedef snark::robosense::lidar_16::difop difop;
+};
+
+template < snark::robosense::models::values Model >
+static snark::robosense::calculator make_calculator( const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
+{
+    typedef typename model_traits< Model >::difop difop_t;
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-angles,--angles,--angle,-a" );
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-channels,--channels" );
     options.assert_mutually_exclusive( "--difop", "--calibration-angles,--angles,--angle,-a" );
@@ -140,15 +163,15 @@ snark::robosense::calculator make_calculator( const comma::command_line_options&
     }
     std::cerr << "robosense-to-csv: config from difop" << std::endl;
     unsigned int difop_max_number_of_packets = options.value( "--difop-max-number-of-packets,--difop-max", 0 );
-    typedef std::pair< boost::posix_time::ptime, snark::robosense::difop::packet* > pair_t;
+    typedef std::pair< boost::posix_time::ptime, typename difop_t::packet* > pair_t;
     comma::io::istream is( difop );
-    std::vector< char > buffer( snark::robosense::difop::packet::size );
+    std::vector< char > buffer( difop_t::packet::size );
     unsigned int count = 0;
     unsigned int difop_count = 0;
     pair_t p( boost::posix_time::ptime(), NULL );
     for( count = 0; is->good() && !is->eof() && ( difop_max_number_of_packets == 0 || count < difop_max_number_of_packets ); ++count )
     {
-        pair_t q = read< snark::robosense::difop::packet >( *is, &buffer[0] );
+        pair_t q = read< typename difop_t::packet >( *is, &buffer[0] );
         if( !q.second ) { break; }
         if( q.second->header.valid() )
         {
@@ -180,6 +203,23 @@ static snark::robosense::calculator calculator;
 static unsigned int temperature;
 static bool output_invalid_points;
 
+static snark::robosense::calculator make_calculator( snark::robosense::models::values model, const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
+{
+    switch( model )
+    {
+        case snark::robosense::models::lidar_16: return make_calculator< snark::robosense::models::lidar_16 >( options );
+        case snark::robosense::models::lidar_32: 
+        case snark::robosense::models::bpearl:
+        case snark::robosense::models::ruby:
+        case snark::robosense::models::ruby_lite:
+        case snark::robosense::models::helios_5515:
+            COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": not implemented" );
+        case snark::robosense::models::helios_16p: // return make_calculator< snark::robosense::models::helios_16p >( options );
+            COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": implementation in progress..." );
+    }
+    COMMA_THROW( comma::exception, "never here" );
+}
+
 void write( const boost::posix_time::ptime& t, const snark::robosense::msop::packet* p, comma::uint32 id )
 {
     static comma::csv::output_stream< snark::robosense::calculator::point > ostream( std::cout, csv );
@@ -195,9 +235,12 @@ int main( int ac, char** av )
     {
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::robosense::calculator::point >( false ), ',' ) << std::endl; return 0; }
+        if( options.exists( "--models" ) ) { for( const auto& m: snark::robosense::models::names ) { std::cout << m.first << "," << m.second << std::endl; } return 0; }
         output_invalid_points = options.exists( "--output-invalid-points" );
         std::vector< char > buffer( snark::robosense::msop::packet::size );
-        calculator = make_calculator( options );
+        boost::optional< snark::robosense::models::values > model; // preparing for model autodetect
+        model = snark::robosense::models::from_string( options.value< std::string >( "--model", "lidar-16" ) ); // todo: autodetect behaviour
+        calculator = make_calculator( *model, options ); // todo: if auto-detect, create calculator on the fly
         if( options.exists( "--output-range-resolution" ) ) { std::cout << calculator.range_resolution() << std::endl; return 0; }
         if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) )
         {
@@ -228,6 +271,8 @@ int main( int ac, char** av )
             auto p = read< snark::robosense::msop::packet >( std::cin, &buffer[0] );
             if( !p.second ) { break; }
             if( !p.second->valid() ) { continue; }
+            if( !model ) { model = p.second->header.model_value(); } // model autodetect: implemented here, but is not exposed yet through the usage semantics
+            if( p.second->header.model_value() != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( p.second->header.model_value() )<< "\"" ); }
             scan.update( p.first, *p.second );
             if( discard_incomplete_scans )
             {
