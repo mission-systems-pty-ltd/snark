@@ -24,10 +24,8 @@ static void usage( bool verbose )
     std::cerr << "    reflectivity curves not implemented yet" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
-    std::cerr << "    --model=<name>; default=lidar_16; current default is to preserve backward compatibility" << std::endl;
-    std::cerr << "                                      if the data packets have a different model, currently" << std::endl;
-    std::cerr << "                                      will throw an exception" << std::endl;
-    std::cerr << "                    <name>: if 'auto', detect model from the first msop packet; may become the default setting (tbd)" << std::endl;
+    std::cerr << "    --model=<name>; default=auto; if the data packets have a different model ids, exception will be thrown" << std::endl;
+    std::cerr << "                    <name>: 'auto' or model name; run robosense-to-csv --models for list of available models" << std::endl;
     std::cerr << "    --models; print list of models and their numeric ids in msop packet header and " << std::endl;
     std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
     std::cerr << std::endl;
@@ -238,12 +236,8 @@ int main( int ac, char** av )
         output_invalid_points = options.exists( "--output-invalid-points" );
         std::vector< char > buffer( snark::robosense::msop::packet::size );
         boost::optional< snark::robosense::models::values > model; // preparing for model autodetect
-        std::string model_name = options.value< std::string >( "--model", "lidar-16" );
-        if( model_name != "auto" )
-        { 
-            model = snark::robosense::models::from_string( options.value< std::string >( "--model", "lidar-16" ) );
-            calculator = make_calculator( *model, options );
-        }
+        std::string model_name = options.value< std::string >( "--model", "auto" );
+        if( model_name != "auto" ) { model = snark::robosense::models::from_string( model_name ); calculator = make_calculator( *model, options ); }
         if( options.exists( "--output-range-resolution" ) )
         { 
             if( calculator ) { std::cout << calculator->range_resolution() << std::endl; return 0; }
