@@ -26,9 +26,8 @@ static void usage( bool verbose )
     std::cerr << "options" << std::endl;
     std::cerr << "    --model=<name>; default=lidar_16; current default is to preserve backward compatibility" << std::endl;
     std::cerr << "                                      if the data packets have a different model, currently" << std::endl;
-    std::cerr << "                                      will throw an exception; soon, will introduce model" << std::endl;
-    std::cerr << "                                      auto-detection; at that point, the usage semantics may" << std::endl;
-    std::cerr << "                                      change" << std::endl;
+    std::cerr << "                                      will throw an exception" << std::endl;
+    std::cerr << "                    <name>: if 'auto', detect model from the first msop packet; may become the default setting (tbd)" << std::endl;
     std::cerr << "    --models; print list of models and their numeric ids in msop packet header and " << std::endl;
     std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
     std::cerr << std::endl;
@@ -199,7 +198,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
 }
 
 static comma::csv::options csv;
-static snark::robosense::calculator calculator;
+static boost::optional< snark::robosense::calculator > calculator;
 static unsigned int temperature;
 static bool output_invalid_points;
 
@@ -225,7 +224,7 @@ void write( const boost::posix_time::ptime& t, const snark::robosense::msop::pac
     static comma::csv::output_stream< snark::robosense::calculator::point > ostream( std::cout, csv );
     for( snark::robosense::msop::packet::const_iterator it( p ); !it.done() && std::cout.good(); ++it )
     { 
-        if( it->valid() || output_invalid_points ) { ostream.write( calculator.make_point( id, t, it, temperature ) ); }
+        if( it->valid() || output_invalid_points ) { ostream.write( calculator->make_point( id, t, it, temperature ) ); }
     }
 }
 
@@ -239,11 +238,20 @@ int main( int ac, char** av )
         output_invalid_points = options.exists( "--output-invalid-points" );
         std::vector< char > buffer( snark::robosense::msop::packet::size );
         boost::optional< snark::robosense::models::values > model; // preparing for model autodetect
-        model = snark::robosense::models::from_string( options.value< std::string >( "--model", "lidar-16" ) ); // todo: autodetect behaviour
-        calculator = make_calculator( *model, options ); // todo: if auto-detect, create calculator on the fly
-        if( options.exists( "--output-range-resolution" ) ) { std::cout << calculator.range_resolution() << std::endl; return 0; }
+        std::string model_name = options.value< std::string >( "--model", "lidar-16" );
+        if( model_name != "auto" )
+        { 
+            model = snark::robosense::models::from_string( options.value< std::string >( "--model", "lidar-16" ) );
+            calculator = make_calculator( *model, options );
+        }
+        if( options.exists( "--output-range-resolution" ) )
+        { 
+            if( calculator ) { std::cout << calculator->range_resolution() << std::endl; return 0; }
+            std::cerr << "robosense-to-csv: --output-range-resolution: please specify --model explicitly"  << std::endl; return 1;
+        }
         if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) )
         {
+            if( !calculator ) { std::cerr << "robosense-to-csv: --calibration-angles-output: please specify --model explicitly"  << std::endl; return 1; }
             const auto& how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles" );
             double factor = 0;
             if( how == "radians" ) { factor = 1; }
@@ -254,7 +262,7 @@ int main( int ac, char** av )
                 std::cerr << "robosense-to-csv: ATTENTION: angles in the configuration file (e.g. angle.csv) should be in DEGREES"  << std::endl;
                 return 1;
             }
-            for( auto a: calculator.elevation() ) { std::cout << ( a * factor ) << std::endl; }
+            for( auto a: calculator->elevation() ) { std::cout << ( a * factor ) << std::endl; }
             return 0;
         }
         temperature = options.value( "--temperature,-t", 20 );
@@ -271,7 +279,12 @@ int main( int ac, char** av )
             auto p = read< snark::robosense::msop::packet >( std::cin, &buffer[0] );
             if( !p.second ) { break; }
             if( !p.second->valid() ) { continue; }
-            if( !model ) { model = p.second->header.model_value(); } // model autodetect: implemented here, but is not exposed yet through the usage semantics
+            if( !model )
+            {
+                model = p.second->header.model_value();
+                std::cerr << "robosense-to-csv: auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
+                calculator = make_calculator( *model, options );
+            }
             if( p.second->header.model_value() != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( p.second->header.model_value() )<< "\"" ); }
             scan.update( p.first, *p.second );
             if( discard_incomplete_scans )
