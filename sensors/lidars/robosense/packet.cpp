@@ -133,7 +133,7 @@ models::values msop::detect_model( const char* header_bytes )
     COMMA_THROW( comma::exception, "could not detect model, since the header sentinel does not match sentinels of supported models (lidar-16 and helios-16p)" );
 }
 
-bool lidar_16::difop::packet::data_t::corrected_vertical_angles_t::empty() const
+bool difop::data::corrected_vertical_angles::empty() const
 {
     const char* p = values[0].data(); // as in ros driver
     for( unsigned int i = 0; i < 4; ++i ) { if( p[i] != 0x00 && p[i] != 0xff ) { return false; } } // as in ros driver
@@ -144,7 +144,7 @@ bool lidar_16::difop::packet::data_t::corrected_vertical_angles_t::empty() const
     //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
 }
 
-double lidar_16::difop::packet::data_t::top_board_firmware_version_t::range_resolution() const
+double lidar_16::difop::data::top_board_firmware_version_t::range_resolution() const
 {
     auto d = value.data();
     return ( d[1] == 0x00 && d[2] == 0x00 && d[3] == 0x00 ) || ( d[1] == 0xff && d[2] == 0xff && d[3] == 0xff ) || ( d[1] == 0x55 && d[2] == 0xaa && d[3] == 0x5a ) ? 0.01 : 0.005;
