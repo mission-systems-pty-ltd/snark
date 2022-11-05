@@ -14,6 +14,17 @@
 #include "../calculator.h"
 #include "../packet.h"
 
+// todo
+//   - remove model auto-detect
+//   - template model acquisition
+//   ? axis directions; frame -> n-e-d
+//   ? temperature from difop
+//   ? curves from difop
+//   ? move msop::packet::const_iterator to calculator
+//   ? --distance-resolution: 1cm, 0.5cm, etc.
+//   ? 32-beam support?
+//   ? move difop stream to calculator?
+
 static void usage( bool verbose )
 {
     std::cerr << std::endl;
@@ -112,14 +123,6 @@ static std::pair< boost::posix_time::ptime, P* > read( std::istream& is, char* b
     return p;
 }
 
-// todo? axis directions; frame -> n-e-d
-// todo? temperature from difop
-// todo? curves from difop
-// todo? move msop::packet::const_iterator to calculator
-// todo? --distance-resolution: 1cm, 0.5cm, etc.
-// todo? 32-beam support?
-// todo? move difop stream to calculator?
-
 template < snark::robosense::models::values Model > struct model_traits; // todo? move to packets?
 
 template <> struct model_traits< snark::robosense::models::lidar_16 >
@@ -190,7 +193,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
         exit( 1 );
     }
     std::cerr << "robosense-to-csv: got DIFOP data in packet " << count << " in '" << difop << "'" << std::endl;
-    std::array< double, snark::robosense::msop::packet::data_t::number_of_lasers > elevation;
+    std::array< double, snark::robosense::msop::data::number_of_lasers > elevation;
     for( unsigned int i = 0; i < elevation.size(); ++i ) { elevation[i] = p.second->data.corrected_vertical_angles.as_radians( i ); }
     return snark::robosense::calculator( elevation, p.second->data.top_board_firmware_version.range_resolution() );
 }
@@ -217,10 +220,10 @@ static snark::robosense::calculator make_calculator( snark::robosense::models::v
     COMMA_THROW( comma::exception, "never here" );
 }
 
-void write( const boost::posix_time::ptime& t, const snark::robosense::msop::packet* p, comma::uint32 id )
+void write( const boost::posix_time::ptime& t, const snark::robosense::lidar_16::msop::packet* p, comma::uint32 id )
 {
     static comma::csv::output_stream< snark::robosense::calculator::point > ostream( std::cout, csv );
-    for( snark::robosense::msop::packet::const_iterator it( p ); !it.done() && std::cout.good(); ++it )
+    for( snark::robosense::msop::const_iterator it( p->data ); !it.done() && std::cout.good(); ++it )
     { 
         if( it->valid() || output_invalid_points ) { ostream.write( calculator->make_point( id, t, it, temperature ) ); }
     }
@@ -234,7 +237,7 @@ int main( int ac, char** av )
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::robosense::calculator::point >( false ), ',' ) << std::endl; return 0; }
         if( options.exists( "--models" ) ) { for( const auto& m: snark::robosense::models::names ) { std::cout << m.first << "," << m.second << std::endl; } return 0; }
         output_invalid_points = options.exists( "--output-invalid-points" );
-        std::vector< char > buffer( snark::robosense::msop::packet::size );
+        std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
         boost::optional< snark::robosense::models::values > model; // preparing for model autodetect
         std::string model_name = options.value< std::string >( "--model", "auto" );
         if( model_name != "auto" ) { model = snark::robosense::models::from_string( model_name ); calculator = make_calculator( *model, options ); }
@@ -265,12 +268,11 @@ int main( int ac, char** av )
         bool discard_incomplete_scans = options.exists( "--scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete" );
         csv = comma::csv::options( options );
         csv.full_xpath = false;
-        //std::vector< std::pair< boost::posix_time::ptime, std::array< char, snark::robosense::msop::packet::size > > > scan_buffer;
-        std::vector< std::pair< boost::posix_time::ptime, snark::robosense::msop::packet > > scan_buffer;
+        std::vector< std::pair< boost::posix_time::ptime, snark::robosense::lidar_16::msop::packet > > scan_buffer; //std::vector< std::pair< boost::posix_time::ptime, std::array< char, snark::robosense::msop::packet::size > > > scan_buffer;
         if( discard_incomplete_scans ) { scan_buffer.reserve( 120 ); } // quick and dirty
         while( std::cin.good() && !std::cin.eof() )
         {
-            auto p = read< snark::robosense::msop::packet >( std::cin, &buffer[0] );
+            auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] );
             if( !p.second ) { break; }
             if( !p.second->valid() ) { continue; }
             if( !model )
@@ -280,7 +282,7 @@ int main( int ac, char** av )
                 calculator = make_calculator( *model, options );
             }
             if( p.second->header.model_value() != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( p.second->header.model_value() )<< "\"" ); }
-            scan.update( p.first, *p.second );
+            scan.update( p.first, p.second->data );
             if( discard_incomplete_scans )
             {
                 if( scan.current().is_new() )
@@ -288,7 +290,7 @@ int main( int ac, char** av )
                     if( scan.is_complete( scan.last() ) ) { for( const auto& b: scan_buffer ) { write( b.first, &b.second, scan.last().id ); } }
                     scan_buffer.clear();
                 }
-                scan_buffer.push_back( std::pair< boost::posix_time::ptime, snark::robosense::msop::packet >() );
+                scan_buffer.push_back( std::pair< boost::posix_time::ptime, snark::robosense::lidar_16::msop::packet >() );
                 scan_buffer.back().first = p.first;
                 scan_buffer.back().second = *p.second;
             }

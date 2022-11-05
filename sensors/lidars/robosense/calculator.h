@@ -48,7 +48,7 @@ class calculator
                 
                 scan( unsigned int max_number_of_missing_packets = 100, bool accumulate = false ); // todo: arbitrary: 10 missing packets by default will trigger a new scan and detect the current scan as incomplete
                 
-                void update( const boost::posix_time::ptime& timestamp, const msop::packet& packet );
+                void update( const boost::posix_time::ptime& timestamp, const robosense::msop::data& data );
                 
                 bool is_complete( const data& d ) const;
                 
@@ -68,7 +68,7 @@ class calculator
         
         calculator();
         
-        calculator( const std::array< double, robosense::msop::packet::data_t::number_of_lasers >& elevation, double range_resolution );
+        calculator( const std::array< double, robosense::msop::data::number_of_lasers >& elevation, double range_resolution );
         
         calculator( const std::string& elevation, const std::string& channel_num, double range_resolution ); // todo: generalize to 32 beams
         
@@ -78,15 +78,15 @@ class calculator
         
         double intensity( unsigned int laser, unsigned char intensity, double distance ) const; // todo
         
-        const std::array< double, robosense::msop::packet::data_t::number_of_lasers >& elevation() const { return elevation_; }
+        const std::array< double, robosense::msop::data::number_of_lasers >& elevation() const { return elevation_; }
         
-        point make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::packet::const_iterator& it, unsigned int temperature );
+        point make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::const_iterator& it, unsigned int temperature );
         
         double range_resolution() const { return range_resolution_; }
         
     private:
-        std::array< double, robosense::msop::packet::data_t::number_of_lasers > elevation_;
-        typedef std::array< std::array< double, 41 >, robosense::msop::packet::data_t::number_of_lasers > channel_num_t_;
+        std::array< double, robosense::msop::data::number_of_lasers > elevation_;
+        typedef std::array< std::array< double, 41 >, robosense::msop::data::number_of_lasers > channel_num_t_;
         boost::optional< channel_num_t_ > channel_num_;
         double range_resolution_;
         struct laser_
@@ -97,7 +97,7 @@ class calculator
             laser_(): sin( 0 ), cos( 0 ) {}
             laser_( unsigned int index, const std::array< double, 16 >& elevation ) : sin( std::sin( elevation[ index ] ) ), cos( std::cos( elevation[ index ] ) ) {}
         };
-        typedef std::array< laser_, robosense::msop::packet::data_t::number_of_lasers > lasers_t_;
+        typedef std::array< laser_, robosense::msop::data::number_of_lasers > lasers_t_;
         lasers_t_ lasers_;
         void init_lasers_();
 };

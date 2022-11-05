@@ -33,19 +33,19 @@ namespace snark { namespace robosense {
     
 calculator::scan::scan( unsigned int max_number_of_missing_packets, bool accumulate )
     : max_number_of_missing_packets_( max_number_of_missing_packets )
-    , max_time_gap_( boost::posix_time::microseconds( int( msop::packet::data_t::block::firing_interval() * msop::packet::data_t::number_of_blocks * 1000000 ) ) * max_number_of_missing_packets )
+    , max_time_gap_( boost::posix_time::microseconds( int( msop::data::block::firing_interval() * msop::data::number_of_blocks * 1000000 ) ) * max_number_of_missing_packets )
     , estimated_max_angle_gap_( 0 )
     , accumulate_( accumulate )
     , current_( 0 )
 {
 }
 
-void calculator::scan::update( const boost::posix_time::ptime& timestamp, const msop::packet& packet )
+void calculator::scan::update( const boost::posix_time::ptime& timestamp, const msop::data& data )
 {
-    comma::uint32 angle = packet.data.blocks[0].azimuth();
-    comma::uint32 end_angle = packet.data.blocks[ msop::packet::data_t::number_of_blocks - 1 ].azimuth();
+    comma::uint32 angle = data.blocks[0].azimuth();
+    comma::uint32 end_angle = data.blocks[ msop::data::number_of_blocks - 1 ].azimuth();
     if( end_angle < angle ) { end_angle += 36000; }
-    estimated_max_angle_gap_ = ( ( end_angle - angle ) * msop::packet::data_t::number_of_blocks / ( msop::packet::data_t::number_of_blocks - 1 ) ) * max_number_of_missing_packets_; // todo: quick and dirty, watch performance
+    estimated_max_angle_gap_ = ( ( end_angle - angle ) * msop::data::number_of_blocks / ( msop::data::number_of_blocks - 1 ) ) * max_number_of_missing_packets_; // todo: quick and dirty, watch performance
     if( scans_[current_].size == 0 )
     {
         scans_[current_].begin = angle;
@@ -75,25 +75,24 @@ bool calculator::scan::is_complete( const data& d ) const
     return 36000 - ( d.end - d.begin ) < estimated_max_angle_gap_;
 }
 
+static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
+                                                                                            , -13. * M_PI / 180
+                                                                                            , -11. * M_PI / 180
+                                                                                            ,  -9. * M_PI / 180
+                                                                                            ,  -7. * M_PI / 180
+                                                                                            ,  -5. * M_PI / 180
+                                                                                            ,  -3. * M_PI / 180
+                                                                                            ,  -1. * M_PI / 180
+                                                                                            ,  15. * M_PI / 180
+                                                                                            ,  13. * M_PI / 180
+                                                                                            ,  11. * M_PI / 180
+                                                                                            ,   9. * M_PI / 180
+                                                                                            ,   7. * M_PI / 180
+                                                                                            ,   5. * M_PI / 180
+                                                                                            ,   3. * M_PI / 180
+                                                                                            ,   1. * M_PI / 180 } };
 
-static std::array< double, robosense::msop::packet::data_t::number_of_lasers > default_elevation_ = {{ -15. * M_PI / 180
-                                                                                                    , -13. * M_PI / 180
-                                                                                                    , -11. * M_PI / 180
-                                                                                                    ,  -9. * M_PI / 180
-                                                                                                    ,  -7. * M_PI / 180
-                                                                                                    ,  -5. * M_PI / 180
-                                                                                                    ,  -3. * M_PI / 180
-                                                                                                    ,  -1. * M_PI / 180
-                                                                                                    ,  15. * M_PI / 180
-                                                                                                    ,  13. * M_PI / 180
-                                                                                                    ,  11. * M_PI / 180
-                                                                                                    ,   9. * M_PI / 180
-                                                                                                    ,   7. * M_PI / 180
-                                                                                                    ,   5. * M_PI / 180
-                                                                                                    ,   3. * M_PI / 180
-                                                                                                    ,   1. * M_PI / 180 }};
-
-// static std::array< std::array< double, 41 >, robosense::msop::packet::data_t::number_of_lasers > default_channel_num_ =
+// static std::array< std::array< double, 41 >, robosens::msop::data::number_of_lasers > default_channel_num_ =
 // {{
 //     {{ 454,454,454,454,454,454,454,454,455,454,456,455,457,457,456,456,456,456,457,457,458,459,459,460,461,462,462,463,463,463,463,463,463,463,463,463,463,463,463,463,463 }},
 //     {{ 459,459,459,459,459,459,459,459,459,459,460,459,461,460,460,460,460,460,461,462,463,463,464,465,465,466,467,467,467,467,467,467,467,467,467,467,467,467,467,467,467 }},
@@ -115,12 +114,12 @@ static std::array< double, robosense::msop::packet::data_t::number_of_lasers > d
                                                       
 void calculator::init_lasers_()
 {
-    for( unsigned int j = 0; j < robosense::msop::packet::data_t::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
+    for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
                                                       
 calculator::calculator(): elevation_( default_elevation_ ), range_resolution_( 0.01 ) { init_lasers_(); }
 
-calculator::calculator( const std::array< double, robosense::msop::packet::data_t::number_of_lasers >& elevation, double range_resolution ): elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
+calculator::calculator( const std::array< double, robosense::msop::data::number_of_lasers >& elevation, double range_resolution ): elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
 
 calculator::calculator( const std::string& elevation, const std::string& channel_num, double range_resolution )
     : range_resolution_( range_resolution )
@@ -172,7 +171,7 @@ double calculator::range( unsigned int r, unsigned int laser, unsigned int tempe
 
 double calculator::intensity( unsigned int, unsigned char intensity, double ) const { return intensity; }
 
-calculator::point calculator::make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::packet::const_iterator& it, unsigned int temperature )
+calculator::point calculator::make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::const_iterator& it, unsigned int temperature )
 {
     calculator::point p;
     p.scan = scan;
