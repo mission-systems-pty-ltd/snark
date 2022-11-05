@@ -126,6 +126,13 @@ models::values models::from_string( const std::string& name )
     return it->second;
 }
 
+models::values msop::detect_model( const char* header_bytes )
+{
+    if( reinterpret_cast< const lidar_16::msop::header* >( header_bytes )->sentinel() == lidar_16::msop::header::sentinel_value() ) { return model_value( *reinterpret_cast< const lidar_16::msop::header* >( header_bytes ) ); }
+    if( reinterpret_cast< const helios_16p::msop::header* >( header_bytes )->sentinel() == helios_16p::msop::header::sentinel_value() ) { return model_value( *reinterpret_cast< const helios_16p::msop::header* >( header_bytes ) ); }
+    COMMA_THROW( comma::exception, "could not detect model, since the header sentinel does not match sentinels of supported models (lidar-16 and helios-16p)" );
+}
+
 bool lidar_16::difop::packet::data_t::corrected_vertical_angles_t::empty() const
 {
     const char* p = values[0].data(); // as in ros driver

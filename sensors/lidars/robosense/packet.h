@@ -39,9 +39,9 @@ struct msop
     struct data : public comma::packed::packed_struct< data, 1200 >// todo: parametrize on lidar type (ok for now since only 16-beam lidars: rs_lidar_16 and rs_helios_16p are supported)
     {
         enum { number_of_lasers = 16
-            , number_of_blocks = 12
-            , number_of_subblocks = 2
-            , number_of_returns_per_packet = number_of_lasers * number_of_subblocks * number_of_blocks };
+             , number_of_blocks = 12
+             , number_of_subblocks = 2
+             , number_of_returns_per_packet = number_of_lasers * number_of_subblocks * number_of_blocks };
         
         struct laser_return: public comma::packed::packed_struct< laser_return, 3 >
         {
@@ -87,6 +87,11 @@ struct msop
         
         bool valid() const { return data.blocks[0].azimuth() <= 36000; } // quick and dirty; what is azimuth 0xffff?
     };
+
+    template < typename Header >
+    static models::values model_value( const Header& header ) { return static_cast< models::values >( header.model() ); }
+
+    static models::values detect_model( const char* header ); // quick and dirty; really sucks because for a weird undisclosed reason, the model field has a different byte offset in the msop packet header for different models
 
     class const_iterator
     {
@@ -136,8 +141,6 @@ struct lidar_16
         struct header: public comma::packed::packed_struct< header, 42 >
         {
             static const char* sentinel_value() { return "\x55\xAA\x05\x0a\x5a\xa5\x50\xA0"; }
-
-            models::values model_value() const { return static_cast< models::values >( model() ); }
 
             comma::packed::string< 8 > sentinel;
             boost::array< char, 12 > reserved_0;
@@ -216,7 +219,30 @@ struct lidar_16
 
 struct helios_16p
 {
-    struct difop // todo!
+    struct msop
+    {
+
+        // ================ todo! ==================
+
+        struct header: public comma::packed::packed_struct< header, 42 >
+        {
+            static const char* sentinel_value() { return "\x55\xAA\x05\x0a\x5a\xa5\x50\xA0"; }
+
+            comma::packed::string< 8 > sentinel;
+            boost::array< char, 12 > reserved_0;
+            boost::array< char, 10 > timestamp;
+            boost::array< char, 1 > reserved_1;
+            comma::packed::byte model;
+            boost::array< char, 10 > reserved_2;
+        };
+
+        typedef robosense::msop::packet< helios_16p::msop::header > packet;
+    };
+
+
+    // ================ todo! ==================
+
+    struct difop
     {
         struct packet: public comma::packed::packed_struct< packet, 1248 >
         {

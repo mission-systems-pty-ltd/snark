@@ -275,13 +275,14 @@ int main( int ac, char** av )
             auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] );
             if( !p.second ) { break; }
             if( !p.second->valid() ) { continue; }
+            auto current_model = snark::robosense::msop::detect_model( p.second->header.data() );            
             if( !model )
             {
-                model = p.second->header.model_value();
+                model = current_model;
                 std::cerr << "robosense-to-csv: auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
                 calculator = make_calculator( *model, options );
             }
-            if( p.second->header.model_value() != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( p.second->header.model_value() )<< "\"" ); }
+            if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
             scan.update( p.first, p.second->data );
             if( discard_incomplete_scans )
             {
