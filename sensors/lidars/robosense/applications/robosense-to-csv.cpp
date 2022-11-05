@@ -17,6 +17,7 @@
 // todo
 //   - helios
 //     - default elevation: seems different from lidar-16; page 11, table 5
+//     - helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
 //   ? axis directions; frame -> n-e-d
 //   ? temperature from difop
 //   ? curves from difop
