@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Vsevolod Vlaskine
+// Copyright (c) 2018-2022 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 
@@ -15,8 +15,8 @@
 #include "../packet.h"
 
 // todo
-//   - remove model auto-detect
-//   - template model acquisition
+//   - helios
+//     - default elevation: seems different from lidar-16; page 11, table 5
 //   ? axis directions; frame -> n-e-d
 //   ? temperature from difop
 //   ? curves from difop
@@ -127,18 +127,18 @@ template < snark::robosense::models::values Model > struct model_traits; // todo
 
 template <> struct model_traits< snark::robosense::models::lidar_16 >
 {
-    typedef snark::robosense::lidar_16::difop difop;
+    typedef snark::robosense::lidar_16 lidar;
 };
 
 template <> struct model_traits< snark::robosense::models::helios_16p >
 {
-    typedef snark::robosense::lidar_16::difop difop;
+    typedef snark::robosense::helios_16p lidar;
 };
 
 template < snark::robosense::models::values Model >
 static snark::robosense::calculator make_calculator( const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
 {
-    typedef typename model_traits< Model >::difop difop_t;
+    typedef typename model_traits< Model >::lidar::difop difop_t;
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-angles,--angles,--angle,-a" );
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-channels,--channels" );
     options.assert_mutually_exclusive( "--difop", "--calibration-angles,--angles,--angle,-a" );
