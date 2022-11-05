@@ -221,19 +221,22 @@ struct helios_16p
 {
     struct msop
     {
-
-        // ================ todo! ==================
-
         struct header: public comma::packed::packed_struct< header, 42 >
         {
-            static const char* sentinel_value() { return "\x55\xAA\x05\x0a\x5a\xa5\x50\xA0"; }
+            static const char* sentinel_value() { return "\x55\xAA\x05\x5a"; }
 
-            comma::packed::string< 8 > sentinel;
-            boost::array< char, 12 > reserved_0;
-            boost::array< char, 10 > timestamp;
+            comma::packed::string< 4 > sentinel;
+            boost::array< comma::packed::byte, 2 > protocol_version; // spec is unclear on the format
+            boost::array< char, 2 > reserved_0;
+            comma::packed::big_endian::uint32 top_board_sending_packet_count; // spec 6.2.1: form a sequence with a (sic) increment of 3
+            comma::packed::big_endian::uint32 bottom_board_sending_packet_count;
             boost::array< char, 1 > reserved_1;
+            boost::array< char, 1 > range_resolution; // spec 6.2.1: 1: 0.25cm; 0: 0.5cm
+            comma::packed::big_endian::uint16 angle_pulse_interval_count; // spec 6.2.1: unit: us
+            boost::array< char, 10 > timestamp;
+            boost::array< char, 1 > reserved_2;
             comma::packed::byte model;
-            boost::array< char, 10 > reserved_2;
+            boost::array< char, 10 > reserved_3;
         };
 
         typedef robosense::msop::packet< helios_16p::msop::header > packet;
