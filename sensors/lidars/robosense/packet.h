@@ -34,6 +34,18 @@ struct models
     static const std::map< std::string, values > names;
 };
 
+template < typename Header, typename Data, typename Tail >
+struct packet : public comma::packed::packed_struct< packet< Header, Data, Tail >, 1248 >
+{
+    typedef Header header_t;
+    typedef Data data_t;
+    typedef Tail tail_t;
+
+    Header header;
+    Data data;
+    Tail tail;
+};
+
 struct msop
 {
     struct data : public comma::packed::packed_struct< data, 1200 >// todo: parametrize on lidar type (ok for now since only 16-beam lidars: rs_lidar_16 and rs_helios_16p are supported)
@@ -76,17 +88,8 @@ struct msop
         comma::packed::string< 2 > sentinel;
     };
 
-    template < typename Header >
-    struct packet : public comma::packed::packed_struct< packet< Header >, 1248 >
-    {
-        typedef Header header_t;
-
-        header_t header;
-        msop::data data;
-        msop::tail tail;
-        
-        bool valid() const { return data.blocks[0].azimuth() <= 36000; } // quick and dirty; what is azimuth 0xffff?
-    };
+    template < typename Packet >
+    static bool valid( const Packet& p ) { return p.data.blocks[0].azimuth() <= 36000; } // quick and dirty; what is azimuth 0xffff?
 
     template < typename Header >
     static models::values model_value( const Header& header ) { return static_cast< models::values >( header.model() ); }
@@ -134,6 +137,22 @@ struct msop
     };
 };
 
+struct difop
+{
+    struct header: public comma::packed::packed_struct< header, 8 >
+    {
+        std::array< char, 8 > sentinel;
+        static const char* sentinel_value() { return "\xA5\xFF\x00\x5A\x11\x11\x55\x55"; }
+        bool valid() const { return ::memcmp( sentinel.data(), sentinel_value(), 8 ) == 0; } // todo: quick and dirty; implement packed::bytes
+    };
+
+    struct tail: public comma::packed::packed_struct< tail, 2 >
+    {
+        static const char* sentinel_value() { return "\x0F\xF0"; }
+        comma::packed::string< 2 > sentinel;
+    };
+};
+
 struct lidar_16
 {
     struct msop
@@ -149,71 +168,53 @@ struct lidar_16
             boost::array< char, 11 > reserved_1;
         };
 
-        typedef robosense::msop::packet< lidar_16::msop::header > packet;
+        typedef robosense::packet< lidar_16::msop::header, robosense::msop::data, robosense::msop::tail > packet;
     };
 
     struct difop
     {
-        struct packet: public comma::packed::packed_struct< packet, 1248 >
+        struct data: public comma::packed::packed_struct< data, 1238 >
         {
-            struct header_t: public comma::packed::packed_struct< header_t, 8 >
+            comma::packed::big_endian::uint16 motor_rotation_speed;
+            comma::packed::string< 26 > ethernet;
+            comma::packed::big_endian::uint16 corrected_static_base;
+            comma::packed::big_endian::uint16 motor_phase_lock;
+            struct top_board_firmware_version_t: public comma::packed::packed_struct< top_board_firmware_version_t, 5 >
             {
-                std::array< char, 8 > sentinel;
-                static const char* sentinel_value() { return "\xA5\xFF\x00\x5A\x11\x11\x55\x55"; }
-                bool valid() const { return ::memcmp( sentinel.data(), sentinel_value(), 8 ) == 0; } // todo: quick and dirty; implement packed::bytes
+                comma::packed::string< 5 > value;
+                double range_resolution() const;
             };
-            
-            struct data_t: public comma::packed::packed_struct< data_t, 1238 >
+            struct bottom_board_firmware_version_t: public comma::packed::packed_struct< bottom_board_firmware_version_t, 5 >
             {
-                comma::packed::big_endian::uint16 motor_rotation_speed;
-                comma::packed::string< 26 > ethernet;
-                comma::packed::big_endian::uint16 corrected_static_base;
-                comma::packed::big_endian::uint16 motor_phase_lock;
-                struct top_board_firmware_version_t: public comma::packed::packed_struct< top_board_firmware_version_t, 5 >
-                {
-                    comma::packed::string< 5 > value;
-                    double range_resolution() const;
-                };
-                struct bottom_board_firmware_version_t: public comma::packed::packed_struct< bottom_board_firmware_version_t, 5 >
-                {
-                    comma::packed::string< 5 > value;
-                };
-                top_board_firmware_version_t top_board_firmware_version;
-                bottom_board_firmware_version_t bottom_board_firmware_version;
-                std::array< char, 240 > corrected_intensity_curves_coefficient;
-                comma::packed::string< 2 > reserved_0;
-                comma::packed::string< 6 > serial_number;
-                comma::packed::string< 3 > reserved_1;
-                comma::packed::string< 2 > upper_computer_compatibility;
-                comma::packed::string< 10 > utc_time;
-                comma::packed::string< 18 > operation_status;
-                comma::packed::string< 11 > reserved_2;
-                std::array< char, 40 > fault_diagnosis;
-                comma::packed::string< 86 >  gpsrmc;
-                std::array< char, 697 > corrected_static;
-                struct corrected_vertical_angles_t: public comma::packed::packed_struct< corrected_vertical_angles_t, 3 * robosense::msop::data::number_of_lasers >
-                {
-                    /// rs-lidar-16 user's manual, section b6: The value of the pitch is unsigned integer.
-                    ///                                        Channel 1 to Channel 8 pitches downwards,
-                    ///                                        channel 9 to channel 16 pitches upwards.
-                    std::array< comma::packed::big_endian::uint24, robosense::msop::data::number_of_lasers > values;
-                    double as_radians( unsigned int i ) const { return values[i]() * 0.0001 * M_PI / 180 * ( i < robosense::msop::data::number_of_lasers / 2 ? -1 : 1 ); }
-                    bool empty() const;
-                };
-                corrected_vertical_angles_t corrected_vertical_angles;
-                comma::packed::string< 33 > reserved_3;
+                comma::packed::string< 5 > value;
             };
-            
-            struct tail_t: public comma::packed::packed_struct< tail_t, 2 >
+            top_board_firmware_version_t top_board_firmware_version;
+            bottom_board_firmware_version_t bottom_board_firmware_version;
+            std::array< char, 240 > corrected_intensity_curves_coefficient;
+            comma::packed::string< 2 > reserved_0;
+            comma::packed::string< 6 > serial_number;
+            comma::packed::string< 3 > reserved_1;
+            comma::packed::string< 2 > upper_computer_compatibility;
+            comma::packed::string< 10 > utc_time;
+            comma::packed::string< 18 > operation_status;
+            comma::packed::string< 11 > reserved_2;
+            std::array< char, 40 > fault_diagnosis;
+            comma::packed::string< 86 >  gpsrmc;
+            std::array< char, 697 > corrected_static;
+            struct corrected_vertical_angles_t: public comma::packed::packed_struct< corrected_vertical_angles_t, 3 * robosense::msop::data::number_of_lasers >
             {
-                static const char* sentinel_value() { return "\x0F\xF0"; }
-                comma::packed::string< 2 > sentinel;
+                /// rs-lidar-16 user's manual, section b6: The value of the pitch is unsigned integer.
+                ///                                        Channel 1 to Channel 8 pitches downwards,
+                ///                                        channel 9 to channel 16 pitches upwards.
+                std::array< comma::packed::big_endian::uint24, robosense::msop::data::number_of_lasers > values;
+                double as_radians( unsigned int i ) const { return values[i]() * 0.0001 * M_PI / 180 * ( i < robosense::msop::data::number_of_lasers / 2 ? -1 : 1 ); }
+                bool empty() const;
             };
-            
-            header_t header;
-            data_t data;
-            tail_t tail;
+            corrected_vertical_angles_t corrected_vertical_angles;
+            comma::packed::string< 33 > reserved_3;
         };
+
+        typedef robosense::packet< robosense::difop::header, lidar_16::difop::data, robosense::difop::tail > packet;
     };
 };
 
@@ -239,74 +240,53 @@ struct helios_16p
             boost::array< char, 10 > reserved_3;
         };
 
-        typedef robosense::msop::packet< helios_16p::msop::header > packet;
+        typedef robosense::packet< helios_16p::msop::header, robosense::msop::data, robosense::msop::tail > packet;
     };
-
-
-    // ================ todo! ==================
 
     struct difop
     {
-        struct packet: public comma::packed::packed_struct< packet, 1248 >
+        struct data: public comma::packed::packed_struct< data, 1238 >
         {
-            struct header_t: public comma::packed::packed_struct< header_t, 8 >
+            comma::packed::big_endian::uint16 motor_rotation_speed;
+            comma::packed::string< 22 > ethernet;
+            comma::packed::big_endian::uint16 corrected_static_base;
+            comma::packed::big_endian::uint16 motor_phase_lock;
+            struct top_board_firmware_version_t: public comma::packed::packed_struct< top_board_firmware_version_t, 5 >
             {
-                std::array< char, 8 > sentinel;
-                static const char* sentinel_value() { return "\xA5\xFF\x00\x5A\x11\x11\x55\x55"; }
-                bool valid() const { return ::memcmp( sentinel.data(), sentinel_value(), 8 ) == 0; } // todo: quick and dirty; implement packed::bytes
+                comma::packed::string< 5 > value;
+                double range_resolution() const;
             };
-            
-            struct data_t: public comma::packed::packed_struct< data_t, 1238 >
+            struct bottom_board_firmware_version_t: public comma::packed::packed_struct< bottom_board_firmware_version_t, 5 >
             {
-                comma::packed::big_endian::uint16 motor_rotation_speed;
-                comma::packed::string< 26 > ethernet;
-                comma::packed::big_endian::uint16 corrected_static_base;
-                comma::packed::big_endian::uint16 motor_phase_lock;
-                struct top_board_firmware_version_t: public comma::packed::packed_struct< top_board_firmware_version_t, 5 >
-                {
-                    comma::packed::string< 5 > value;
-                    double range_resolution() const;
-                };
-                struct bottom_board_firmware_version_t: public comma::packed::packed_struct< bottom_board_firmware_version_t, 5 >
-                {
-                    comma::packed::string< 5 > value;
-                };
-                top_board_firmware_version_t top_board_firmware_version;
-                bottom_board_firmware_version_t bottom_board_firmware_version;
-                std::array< char, 240 > corrected_intensity_curves_coefficient;
-                comma::packed::string< 2 > reserved_0;
-                comma::packed::string< 6 > serial_number;
-                comma::packed::string< 3 > reserved_1;
-                comma::packed::string< 2 > upper_computer_compatibility;
-                comma::packed::string< 10 > utc_time;
-                comma::packed::string< 18 > operation_status;
-                comma::packed::string< 11 > reserved_2;
-                std::array< char, 40 > fault_diagnosis;
-                comma::packed::string< 86 >  gpsrmc;
-                std::array< char, 697 > corrected_static;
-                struct corrected_vertical_angles_t: public comma::packed::packed_struct< corrected_vertical_angles_t, 3 * robosense::msop::data::number_of_lasers >
-                {
-                    /// rs-lidar-16 user's manual, section b6: The value of the pitch is unsigned integer.
-                    ///                                        Channel 1 to Channel 8 pitches downwards,
-                    ///                                        channel 9 to channel 16 pitches upwards.
-                    std::array< comma::packed::big_endian::uint24, robosense::msop::data::number_of_lasers > values;
-                    double as_radians( unsigned int i ) const { return values[i]() * 0.0001 * M_PI / 180 * ( i < robosense::msop::data::number_of_lasers / 2 ? -1 : 1 ); }
-                    bool empty() const;
-                };
-                corrected_vertical_angles_t corrected_vertical_angles;
-                comma::packed::string< 33 > reserved_3;
+                comma::packed::string< 5 > value;
             };
-            
-            struct tail_t: public comma::packed::packed_struct< tail_t, 2 >
+            top_board_firmware_version_t top_board_firmware_version;
+            bottom_board_firmware_version_t bottom_board_firmware_version;
+            std::array< char, 240 > corrected_intensity_curves_coefficient;
+            comma::packed::string< 2 > reserved_0;
+            comma::packed::string< 6 > serial_number;
+            comma::packed::string< 3 > reserved_1;
+            comma::packed::string< 2 > upper_computer_compatibility;
+            comma::packed::string< 10 > utc_time;
+            comma::packed::string< 18 > operation_status;
+            comma::packed::string< 11 > reserved_2;
+            std::array< char, 40 > fault_diagnosis;
+            comma::packed::string< 86 >  gpsrmc;
+            std::array< char, 697 > corrected_static;
+            struct corrected_vertical_angles_t: public comma::packed::packed_struct< corrected_vertical_angles_t, 3 * robosense::msop::data::number_of_lasers >
             {
-                static const char* sentinel_value() { return "\x0F\xF0"; }
-                comma::packed::string< 2 > sentinel;
+                /// rs-lidar-16 user's manual, section b6: The value of the pitch is unsigned integer.
+                ///                                        Channel 1 to Channel 8 pitches downwards,
+                ///                                        channel 9 to channel 16 pitches upwards.
+                std::array< comma::packed::big_endian::uint24, robosense::msop::data::number_of_lasers > values;
+                double as_radians( unsigned int i ) const { return values[i]() * 0.0001 * M_PI / 180 * ( i < robosense::msop::data::number_of_lasers / 2 ? -1 : 1 ); }
+                bool empty() const;
             };
-            
-            header_t header;
-            data_t data;
-            tail_t tail;
+            corrected_vertical_angles_t corrected_vertical_angles;
+            comma::packed::string< 33 > reserved_3;
         };
+
+        typedef robosense::packet< robosense::difop::header, helios_16p::difop::data, robosense::difop::tail > packet;
     };
 };
 

@@ -274,7 +274,7 @@ int main( int ac, char** av )
         {
             auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] );
             if( !p.second ) { break; }
-            if( !p.second->valid() ) { continue; }
+            if( !snark::robosense::msop::valid( *p.second ) ) { continue; }
             auto current_model = snark::robosense::msop::detect_model( p.second->header.data() );            
             if( !model )
             {
