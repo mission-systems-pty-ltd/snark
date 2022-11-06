@@ -144,6 +144,20 @@ bool lidar_16::difop::data::corrected_angles::empty() const
     //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
 }
 
+double lidar_16::difop::data::top_board_firmware_version_t::range_resolution() const
+{
+    auto d = value.data();
+    return ( d[1] == 0x00 && d[2] == 0x00 && d[3] == 0x00 ) || ( d[1] == 0xff && d[2] == 0xff && d[3] == 0xff ) || ( d[1] == 0x55 && d[2] == 0xaa && d[3] == 0x5a ) ? 0.01 : 0.005;
+}
+
+double helios_16p::difop::data::corrected_angles::angle::radians() const { return 0.01 * value() * ( sign() == 0 ? 1. : -1. ) * M_PI / 180; } // helios-16p spec B.10
+
+// double helios_16p::difop::data::corrected_angles::angle::radians() const
+// { 
+//     std::cerr << "==> sign: " << sign() << " angle raw: " << value() << std::endl;
+//     return 0.01 * value() * ( sign() == 0 ? 1. : -1. );
+// } // helios-16p spec B.10
+
 bool helios_16p::difop::data::corrected_angles::empty() const // for now, copied from lidar_16; helios-16p documentation says nothing about it
 {
     const char* p = values[0].data(); // as in ros driver
@@ -153,12 +167,6 @@ bool helios_16p::difop::data::corrected_angles::empty() const // for now, copied
     //enum { size_in_bytes = msop::data::number_of_lasers * difop::packet::data_t::corrected_vertical_angle::size };
     //static std::array< char, size_in_bytes > zeroes = make_zeroes< size_in_bytes >();
     //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
-}
-
-double lidar_16::difop::data::top_board_firmware_version_t::range_resolution() const
-{
-    auto d = value.data();
-    return ( d[1] == 0x00 && d[2] == 0x00 && d[3] == 0x00 ) || ( d[1] == 0xff && d[2] == 0xff && d[3] == 0xff ) || ( d[1] == 0x55 && d[2] == 0xaa && d[3] == 0x5a ) ? 0.01 : 0.005;
 }
 
 } } // namespace snark { namespace robosense {

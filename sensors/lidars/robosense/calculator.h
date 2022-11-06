@@ -65,27 +65,34 @@ class calculator
                 unsigned int current_;
                 boost::posix_time::ptime last_timestamp_;
         };
+
+        typedef std::array< double, robosense::msop::data::number_of_lasers > angles_t;
         
         calculator();
+
+        calculator( const angles_t& elevation, double range_resolution );
         
-        calculator( const std::array< double, robosense::msop::data::number_of_lasers >& elevation, double range_resolution );
+        calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution );
         
-        calculator( const std::string& elevation, const std::string& channel_num, double range_resolution ); // todo: generalize to 32 beams
+        calculator( const std::string& elevation, const std::string& channel_num, double range_resolution ); // todo: generalize to 32 beams; todo: azimuth usage semantics
         
         double range( unsigned int r, unsigned int laser, unsigned int temperature ) const;
         
         ::Eigen::Vector3d to_cartesian( unsigned int laser, double range, double angle ) const;
         
         double intensity( unsigned int laser, unsigned char intensity, double distance ) const; // todo
+
+        const angles_t& azimuth() const { return azimuth_; }
         
-        const std::array< double, robosense::msop::data::number_of_lasers >& elevation() const { return elevation_; }
+        const angles_t& elevation() const { return elevation_; }
         
         point make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::const_iterator& it, unsigned int temperature );
         
         double range_resolution() const { return range_resolution_; }
         
     private:
-        std::array< double, robosense::msop::data::number_of_lasers > elevation_;
+        angles_t azimuth_;
+        angles_t elevation_;
         typedef std::array< std::array< double, 41 >, robosense::msop::data::number_of_lasers > channel_num_t_;
         boost::optional< channel_num_t_ > channel_num_;
         double range_resolution_;

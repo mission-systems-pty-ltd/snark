@@ -18,8 +18,9 @@
 //   - helios
 //     - default elevation: seems different from lidar-16; page 11, table 5
 //     - helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
+//     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator?
 //     ? exact laser point timing, table 12, page 26
-//       - currently implied from block timestamps in packet.cpp
+//       - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
 //       - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
 //       - helios-16p: 55.56us; no formula, only tabular
 //   ? axis directions; frame -> n-e-d
@@ -48,13 +49,15 @@ static void usage( bool verbose )
     std::cerr << "calibration options" << std::endl;
     std::cerr << "    --calibration,-c=<directory>; directory containing calibration files: angle.csv, ChannelNum.csv, curves.csv etc" << std::endl;
     std::cerr << "    --calibration-angles,--angles,--angle,-a=<filename>; default: as in spec" << std::endl;
-    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles=<how>; output vertical angles to stdout; if --difop present, take vertical angles from difop packet" << std::endl;
+    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles=<how>; output vertical angles to stdout" << std::endl;
+    std::cerr << "                                                                                   if --difop present, take vertical angles from difop packet" << std::endl;
+    std::cerr << "                                                                                   <how>: 'degrees' or 'radians'" << std::endl;
     std::cerr << "    --calibration-channels,--channels=<filename>; default: 450 (i.e. 4.50cm) for all channels" << std::endl;
     std::cerr << "    --range-resolution,--resolution=<metres>; default=0.005, but you most likely will want 0.005 (alternatively, --difop will contain range resolution" << std::endl;
     std::cerr << "    --output-range-resolution; if --difop present, output resolution as difop says; otherwise output default resolution" << std::endl;
     std::cerr << std::endl;
     std::cerr << "difop options" << std::endl;
-    std::cerr << "    --difop=[<path>]; file or stream containing timestamped difop packets; if present, calibration data will taken from difop packets" << std::endl;
+    std::cerr << "    --difop=[<path>]; file or stream containing timestamped difop packets; if present, calibration data will be taken from difop packets" << std::endl;
     std::cerr << "                      currently only calibrated vertical angles are supported" << std::endl;
     std::cerr << "                      '-' means difop packets are on stdin (makes sense only with --output-angles or alike" << std::endl;
     std::cerr << "    --difop-max-number-of-packets,--difop-max=<num>; max number of difop packets to read; if not specified, read till the end of file/stream" << std::endl;
@@ -85,9 +88,9 @@ static void usage( bool verbose )
     std::cerr << std::endl;
     std::cerr << "    difop" << std::endl;
     std::cerr << "        output angles, if present in difop" << std::endl;
-    std::cerr << "            cat timestamped-difop.bin | robosense-to-csv --difop - --output-angles > angles.csv" << std::endl;
+    std::cerr << "            cat timestamped-difop.bin | robosense-to-csv --difop - --output-angles=radians > angles.csv" << std::endl;
     std::cerr << "        output angles, if present in difop, otherwise default angles" << std::endl;
-    std::cerr << "            cat timestamped-difop.bin  | robosense-to-csv --difop - --output-angles --force > angles.csv" << std::endl;
+    std::cerr << "            cat timestamped-difop.bin  | robosense-to-csv --difop - --output-angles=radians --force > angles.csv" << std::endl;
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -111,8 +114,7 @@ template <> struct traits< snark::robosense::calculator::point >
 
 } } // namespace comma { namespace visiting {
 
-template < typename P >
-static std::pair< boost::posix_time::ptime, P* > read( std::istream& is, char* buffer )
+template < typename P > static std::pair< boost::posix_time::ptime, P* > read( std::istream& is, char* buffer )
 {
     comma::uint64 microseconds;
     std::pair< boost::posix_time::ptime, P* > p( boost::posix_time::not_a_date_time, NULL );
@@ -133,11 +135,14 @@ template < snark::robosense::models::values Model > struct model_traits; // todo
 template <> struct model_traits< snark::robosense::models::lidar_16 >
 {
     typedef snark::robosense::lidar_16 lidar;
+    static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
+
 };
 
 template <> struct model_traits< snark::robosense::models::helios_16p >
 {
     typedef snark::robosense::helios_16p lidar;
+    static double range_resolution( const snark::robosense::helios_16p::difop::packet& p ) { return 0.005; } // quick and dirty, just to make it compiling for now
 };
 
 template < snark::robosense::models::values Model >
@@ -153,20 +158,20 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     std::string angles = options.value< std::string >( "--calibration-angles,--angles,--angle,-a", "" );
     std::string channels = options.value< std::string >( "--calibration-channels,--channels", "" );
     std::string difop = options.value< std::string >( "--difop", "" );
-    options.assert_mutually_exclusive( "" );
+    options.assert_mutually_exclusive( "" ); // why?
     if( difop.empty() )
     {
         double range_resolution = options.value( "--range-resolution,--resolution", 0.005 );
         if( calibration.empty() )
         {
-            if( !angles.empty() ) { std::cerr << "robosense-to-csv: config: angles from --angles" << std::endl; }
-            if( !channels.empty() ) { std::cerr << "robosense-to-csv: config: channels from --calibration-channels" << std::endl; }
+            if( !angles.empty() ) { comma::say() << "config: angles from --angles" << std::endl; }
+            if( !channels.empty() ) { comma::say() << "config: channels from --calibration-channels" << std::endl; }
             return snark::robosense::calculator( angles, channels, range_resolution );
         }
-        std::cerr << "robosense-to-csv: config from calibration directory: " << calibration << std::endl;
+        comma::say() << "config from calibration directory: " << calibration << std::endl;
         return snark::robosense::calculator( calibration + "/angle.csv", calibration + "/ChannelNum.csv", range_resolution );
     }
-    std::cerr << "robosense-to-csv: config from difop" << std::endl;
+    comma::say() << "config from difop" << std::endl;
     unsigned int difop_max_number_of_packets = options.value( "--difop-max-number-of-packets,--difop-max", 0 );
     typedef std::pair< boost::posix_time::ptime, typename difop_t::packet* > pair_t;
     comma::io::istream is( difop );
@@ -188,19 +193,19 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     }
     if( !p.second )
     { 
-        std::cerr << "robosense-to-csv: got no non-zero corrected vertical angles in " << difop_count << " DIFOP packet(s) (total packet count: " << count << ") in '" << difop << "'" << std::endl;
+        comma::say() << "got no non-zero corrected vertical angles in " << difop_count << " DIFOP packet(s) (total packet count: " << count << ") in '" << difop << "'" << std::endl;
         if( options.exists( "--force" ) )
         {
-            std::cerr << "robosense-to-csv: using defaults for corrected vertical angles" << std::endl;
+            comma::say() << "using defaults for corrected vertical angles" << std::endl;
             return snark::robosense::calculator();
         }
-        std::cerr << "robosense-to-csv: use --force to override (defaults will be used)" << std::endl;
+        comma::say() << "use --force to override (defaults will be used)" << std::endl;
         exit( 1 );
     }
-    std::cerr << "robosense-to-csv: got DIFOP data in packet " << count << " in '" << difop << "'" << std::endl;
+    comma::say() << "got DIFOP data in packet " << count << " in '" << difop << "'" << std::endl;
     std::array< double, snark::robosense::msop::data::number_of_lasers > elevation;
     for( unsigned int i = 0; i < elevation.size(); ++i ) { elevation[i] = p.second->data.corrected_vertical_angles.as_radians( i ); }
-    return snark::robosense::calculator( elevation, p.second->data.top_board_firmware_version.range_resolution() );
+    return snark::robosense::calculator( elevation, model_traits< Model >::range_resolution( *p.second ) );
 }
 
 static comma::csv::options csv;
@@ -219,8 +224,7 @@ static snark::robosense::calculator make_calculator( snark::robosense::models::v
         case snark::robosense::models::ruby_lite:
         case snark::robosense::models::helios_5515:
             COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": not implemented" );
-        case snark::robosense::models::helios_16p: // return make_calculator< snark::robosense::models::helios_16p >( options );
-            COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": implementation in progress..." );
+        case snark::robosense::models::helios_16p: return make_calculator< snark::robosense::models::helios_16p >( options );
     }
     COMMA_THROW( comma::exception, "never here" );
 }
@@ -249,26 +253,26 @@ int main( int ac, char** av )
         if( options.exists( "--output-range-resolution" ) )
         { 
             if( calculator ) { std::cout << calculator->range_resolution() << std::endl; return 0; }
-            std::cerr << "robosense-to-csv: --output-range-resolution: please specify --model explicitly"  << std::endl; return 1;
+            comma::say() << "--output-range-resolution: please specify --model explicitly"  << std::endl; return 1;
         }
         if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) )
         {
-            if( !calculator ) { std::cerr << "robosense-to-csv: --calibration-angles-output: please specify --model explicitly"  << std::endl; return 1; }
+            if( !calculator ) { comma::say() << "--calibration-angles-output: please specify --model explicitly"  << std::endl; return 1; }
             const auto& how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles" );
             double factor = 0;
             if( how == "radians" ) { factor = 1; }
             else if( how == "degrees" ) { factor = 180. / M_PI; }
             else
             { 
-                std::cerr << "robosense-to-csv: please specify --calibration-angles-output=degrees or --calibration-angles-output=radians"  << std::endl;
-                std::cerr << "robosense-to-csv: ATTENTION: angles in the configuration file (e.g. angle.csv) should be in DEGREES"  << std::endl;
+                comma::say() << "please specify --calibration-angles-output=degrees or --calibration-angles-output=radians"  << std::endl;
+                comma::say() << "ATTENTION: angles in the configuration file (e.g. angle.csv) should be in DEGREES"  << std::endl;
                 return 1;
             }
             for( auto a: calculator->elevation() ) { std::cout << ( a * factor ) << std::endl; }
             return 0;
         }
         temperature = options.value( "--temperature,-t", 20 );
-        if( temperature > 40 ) { std::cerr << "robosense-to-csv: expected temperature between 0 and 40; got: " << temperature << std::endl; return 1; }
+        if( temperature > 40 ) { comma::say() << "expected temperature between 0 and 40; got: " << temperature << std::endl; return 1; }
         snark::robosense::calculator::scan scan( options.value( "--scan-max-missing-packets,--missing-packets", 10 ) );
         bool discard_incomplete_scans = options.exists( "--scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete" );
         csv = comma::csv::options( options );
@@ -284,7 +288,7 @@ int main( int ac, char** av )
             if( !model )
             {
                 model = current_model;
-                std::cerr << "robosense-to-csv: auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
+                comma::say() << "auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
                 calculator = make_calculator( *model, options );
             }
             // if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
@@ -312,7 +316,7 @@ int main( int ac, char** av )
         }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "robosense-to-csv: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "robosense-to-csv: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << "" << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }

@@ -75,22 +75,7 @@ bool calculator::scan::is_complete( const data& d ) const
     return 36000 - ( d.end - d.begin ) < estimated_max_angle_gap_;
 }
 
-// static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
-//                                                                                             , -13. * M_PI / 180
-//                                                                                             , -11. * M_PI / 180
-//                                                                                             ,  -9. * M_PI / 180
-//                                                                                             ,  -7. * M_PI / 180
-//                                                                                             ,  -5. * M_PI / 180
-//                                                                                             ,  -3. * M_PI / 180
-//                                                                                             ,  -1. * M_PI / 180
-//                                                                                             ,  15. * M_PI / 180
-//                                                                                             ,  13. * M_PI / 180
-//                                                                                             ,  11. * M_PI / 180
-//                                                                                             ,   9. * M_PI / 180
-//                                                                                             ,   7. * M_PI / 180
-//                                                                                             ,   5. * M_PI / 180
-//                                                                                             ,   3. * M_PI / 180
-//                                                                                             ,   1. * M_PI / 180 } };
+static std::array< double, robosense::msop::data::number_of_lasers > default_azimuth_ = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
                                                                                             , -13. * M_PI / 180
@@ -134,9 +119,11 @@ void calculator::init_lasers_()
     for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
                                                       
-calculator::calculator(): elevation_( default_elevation_ ), range_resolution_( 0.01 ) { init_lasers_(); }
+calculator::calculator(): azimuth_( default_azimuth_ ), elevation_( default_elevation_ ), range_resolution_( 0.01 ) { init_lasers_(); }
 
-calculator::calculator( const std::array< double, robosense::msop::data::number_of_lasers >& elevation, double range_resolution ): elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
+calculator::calculator( const angles_t& elevation, double range_resolution ): azimuth_( default_azimuth_ ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
+
+calculator::calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution ): azimuth_( azimuth ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
 
 calculator::calculator( const std::string& elevation, const std::string& channel_num, double range_resolution )
     : range_resolution_( range_resolution )
@@ -195,8 +182,8 @@ calculator::point calculator::make_point( comma::uint32 scan, const boost::posix
     p.t = t + boost::posix_time::microseconds( int( it->delay * 1000000 ) );
     p.id = it->id;
     p.range = range( it->range, it->id, temperature );
-    p.bearing = it->azimuth;
-    p.elevation = elevation()[ it->id ];
+    p.bearing = it->azimuth + azimuth_[ it->id ];
+    p.elevation = elevation_[ it->id ];
     p.reflectivity = it->reflectivity;
     p.coordinates = to_cartesian( it->id, p.range, p.bearing );
     return p;

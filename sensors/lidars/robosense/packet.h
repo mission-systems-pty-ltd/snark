@@ -202,6 +202,8 @@ struct lidar_16
                 bool empty() const;
             };
 
+            double range_resolution() const { return top_board_firmware_version.range_resolution(); }
+
             comma::packed::big_endian::uint16 motor_rotation_speed;
             comma::packed::string< 26 > ethernet;
             comma::packed::big_endian::uint16 corrected_static_base;
@@ -241,7 +243,7 @@ struct helios_16p
             comma::packed::big_endian::uint32 top_board_sending_packet_count; // helios-16p spec 6.2.1: form a sequence with a (sic) increment of 3
             comma::packed::big_endian::uint32 bottom_board_sending_packet_count;
             std::array< char, 1 > reserved_1;
-            std::array< char, 1 > range_resolution; // helios-16p spec 6.2.1: 1: 0.25cm; 0: 0.5cm
+            comma::packed::byte range_resolution; // helios-16p spec 6.2.1: 1: 0.25cm; 0: 0.5cm
             comma::packed::big_endian::uint16 angle_pulse_interval_count; // helios-16p spec 6.2.1: unit: us
             robosense::utc_time timestamp;
             std::array< char, 1 > reserved_2;
@@ -249,7 +251,10 @@ struct helios_16p
             std::array< char, 10 > reserved_3;
         };
 
-        typedef robosense::packet< helios_16p::msop::header, robosense::msop::data, robosense::msop::tail > packet;
+        struct packet: public robosense::packet< helios_16p::msop::header, robosense::msop::data, robosense::msop::tail >
+        {
+            double range_resolution() const { return header.range_resolution() == 0 ? 0.005 : header.range_resolution() == 1 ? 0.0025 : 0.; } // helios-16p spec 6.2.1: 1: 0.25cm; 0: 0.5cm
+        };
     };
 
     struct difop
@@ -275,18 +280,13 @@ struct helios_16p
                 comma::packed::string< 5 > value;
             };
 
-            struct top_board_firmware_version_t: public version_t // todo! is it the same as for rs-lidar-16?
-            {
-                double range_resolution() const;
-            };
-
             struct corrected_angles: public comma::packed::packed_struct< corrected_angles, 3 * robosense::msop::data::number_of_lasers >
             {
                 struct angle: public comma::packed::packed_struct< angle, 3 >
                 {
                     comma::packed::byte sign;
                     comma::packed::big_endian::uint16 value;
-                    double radians() const { return 0.01 * value() * ( sign() == 0 ? 1. : -1. ); } // helios-16p spec B.10
+                    double radians() const; // helios-16p spec B.10
                 };
                 std::array< angle, robosense::msop::data::number_of_lasers > values;
                 double as_radians( unsigned int i ) const { return values[i].radians(); }
@@ -298,7 +298,7 @@ struct helios_16p
             fov_setting_t fov_setting; // todo: implement byte layout once required; see helios-16p spec B.2
             std::array< char, 2 > reserved_0;
             comma::packed::big_endian::uint16 motor_phase_lock;
-            top_board_firmware_version_t top_board_firmware_version;
+            version_t top_board_firmware_version;
             version_t bottom_board_firmware_version;
             version_t bottom_board_software_version;
             version_t motor_firmware_version;
