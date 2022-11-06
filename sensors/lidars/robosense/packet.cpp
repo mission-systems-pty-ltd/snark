@@ -150,7 +150,7 @@ double lidar_16::difop::data::top_board_firmware_version_t::range_resolution() c
     return ( d[1] == 0x00 && d[2] == 0x00 && d[3] == 0x00 ) || ( d[1] == 0xff && d[2] == 0xff && d[3] == 0xff ) || ( d[1] == 0x55 && d[2] == 0xaa && d[3] == 0x5a ) ? 0.01 : 0.005;
 }
 
-const std::array< double, robosense::msop::data::number_of_lasers >& lidar_16::difop::data::default_corrected_vertical_angles()
+const std::array< double, robosense::msop::data::number_of_lasers >& lidar_16::difop::data::corrected_vertical_angles_default()
 {
     static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
                                                                                                 , -13. * M_PI / 180
@@ -173,6 +173,13 @@ const std::array< double, robosense::msop::data::number_of_lasers >& lidar_16::d
 
 double helios_16p::difop::data::corrected_angles::angle::radians() const { return 0.01 * value() * ( sign() == 0 ? 1. : -1. ) * M_PI / 180; } // helios-16p spec B.10
 
+std::array< double, snark::robosense::msop::data::number_of_lasers > helios_16p::difop::data::corrected_angles::as_radians() const
+{
+    std::array< double, snark::robosense::msop::data::number_of_lasers > a;
+    for( unsigned int i = 0; i < a.size(); ++i ) { a[i] = as_radians( i ); }
+    return a;
+}
+
 // double helios_16p::difop::data::corrected_angles::angle::radians() const
 // { 
 //     std::cerr << "==> sign: " << sign() << " angle raw: " << value() << std::endl;
@@ -190,7 +197,7 @@ bool helios_16p::difop::data::corrected_angles::empty() const // for now, copied
     //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
 }
 
-const std::array< double, robosense::msop::data::number_of_lasers >& helios_16p::difop::data::default_corrected_vertical_angles()
+const std::array< double, robosense::msop::data::number_of_lasers >& helios_16p::difop::data::corrected_vertical_angles_default()
 {
     static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { {  13. * M_PI / 180
                                                                                                 ,  15. * M_PI / 180

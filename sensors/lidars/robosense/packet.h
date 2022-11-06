@@ -204,7 +204,7 @@ struct lidar_16
 
             double range_resolution() const { return top_board_firmware_version.range_resolution(); }
 
-            static const std::array< double, robosense::msop::data::number_of_lasers >& default_corrected_vertical_angles();
+            static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 
             comma::packed::big_endian::uint16 motor_rotation_speed;
             comma::packed::string< 26 > ethernet;
@@ -292,10 +292,11 @@ struct helios_16p
                 };
                 std::array< angle, robosense::msop::data::number_of_lasers > values;
                 double as_radians( unsigned int i ) const { return values[i].radians(); }
+                std::array< double, snark::robosense::msop::data::number_of_lasers > as_radians() const;
                 bool empty() const;
             };
 
-            static const std::array< double, robosense::msop::data::number_of_lasers >& default_corrected_vertical_angles();
+            static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 
             motor_rotation_speed_t motor_rotation_speed;
             comma::packed::string< 22 > ethernet; // todo: implement byte layout once required; see helios-16p spec B.2
