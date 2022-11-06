@@ -16,7 +16,7 @@
 
 // todo
 //   - helios
-//     - default elevation: seems different from lidar-16; page 11, table 5
+//     ! default elevation: seems different from lidar-16; page 11, table 5
 //     - helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
 //     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator?
 //     ? exact laser point timing, table 12, page 26
@@ -136,13 +136,14 @@ template <> struct model_traits< snark::robosense::models::lidar_16 >
 {
     typedef snark::robosense::lidar_16 lidar;
     static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
-
+    static double range_resolution_default() { return 0.01; } // todo! sort it out! quick and dirty for now
 };
 
 template <> struct model_traits< snark::robosense::models::helios_16p >
 {
     typedef snark::robosense::helios_16p lidar;
     static double range_resolution( const snark::robosense::helios_16p::difop::packet& p ) { return 0.005; } // quick and dirty, just to make it compiling for now
+    static double range_resolution_default() { return 0.005; } // todo! sort it out! quick and dirty for now
 };
 
 template < snark::robosense::models::values Model >
@@ -197,7 +198,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
         if( options.exists( "--force" ) )
         {
             comma::say() << "using defaults for corrected vertical angles" << std::endl;
-            return snark::robosense::calculator();
+            return snark::robosense::calculator( difop_t::data::default_corrected_vertical_angles(), model_traits< Model >::range_resolution_default() );
         }
         comma::say() << "use --force to override (defaults will be used)" << std::endl;
         exit( 1 );

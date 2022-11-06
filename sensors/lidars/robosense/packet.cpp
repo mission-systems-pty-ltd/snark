@@ -150,6 +150,27 @@ double lidar_16::difop::data::top_board_firmware_version_t::range_resolution() c
     return ( d[1] == 0x00 && d[2] == 0x00 && d[3] == 0x00 ) || ( d[1] == 0xff && d[2] == 0xff && d[3] == 0xff ) || ( d[1] == 0x55 && d[2] == 0xaa && d[3] == 0x5a ) ? 0.01 : 0.005;
 }
 
+const std::array< double, robosense::msop::data::number_of_lasers >& lidar_16::difop::data::default_corrected_vertical_angles()
+{
+    static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
+                                                                                                , -13. * M_PI / 180
+                                                                                                , -11. * M_PI / 180
+                                                                                                ,  -9. * M_PI / 180
+                                                                                                ,  -7. * M_PI / 180
+                                                                                                ,  -5. * M_PI / 180
+                                                                                                ,  -3. * M_PI / 180
+                                                                                                ,  -1. * M_PI / 180
+                                                                                                ,  15. * M_PI / 180
+                                                                                                ,  13. * M_PI / 180
+                                                                                                ,  11. * M_PI / 180
+                                                                                                ,   9. * M_PI / 180
+                                                                                                ,   7. * M_PI / 180
+                                                                                                ,   5. * M_PI / 180
+                                                                                                ,   3. * M_PI / 180
+                                                                                                ,   1. * M_PI / 180 } };
+    return default_elevation_;
+}
+
 double helios_16p::difop::data::corrected_angles::angle::radians() const { return 0.01 * value() * ( sign() == 0 ? 1. : -1. ) * M_PI / 180; } // helios-16p spec B.10
 
 // double helios_16p::difop::data::corrected_angles::angle::radians() const
@@ -167,6 +188,27 @@ bool helios_16p::difop::data::corrected_angles::empty() const // for now, copied
     //enum { size_in_bytes = msop::data::number_of_lasers * difop::packet::data_t::corrected_vertical_angle::size };
     //static std::array< char, size_in_bytes > zeroes = make_zeroes< size_in_bytes >();
     //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
+}
+
+const std::array< double, robosense::msop::data::number_of_lasers >& helios_16p::difop::data::default_corrected_vertical_angles()
+{
+    static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { {  13. * M_PI / 180
+                                                                                                ,  15. * M_PI / 180
+                                                                                                ,   9. * M_PI / 180
+                                                                                                ,  11. * M_PI / 180
+                                                                                                ,   5. * M_PI / 180
+                                                                                                ,   7. * M_PI / 180
+                                                                                                ,   1. * M_PI / 180
+                                                                                                ,   3. * M_PI / 180
+                                                                                                ,  -3. * M_PI / 180
+                                                                                                ,  -1. * M_PI / 180
+                                                                                                ,  -7. * M_PI / 180
+                                                                                                ,  -5. * M_PI / 180
+                                                                                                , -11. * M_PI / 180
+                                                                                                ,  -9. * M_PI / 180
+                                                                                                , -15. * M_PI / 180
+                                                                                                , -13. * M_PI / 180 } };
+    return default_elevation_;
 }
 
 } } // namespace snark { namespace robosense {

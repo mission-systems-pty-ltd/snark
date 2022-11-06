@@ -4,8 +4,8 @@
 
 #pragma once
 
+#include <array>
 #include <map>
-#include <boost/array.hpp>
 #include <boost/static_assert.hpp>
 #include <Eigen/Core>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -204,6 +204,8 @@ struct lidar_16
 
             double range_resolution() const { return top_board_firmware_version.range_resolution(); }
 
+            static const std::array< double, robosense::msop::data::number_of_lasers >& default_corrected_vertical_angles();
+
             comma::packed::big_endian::uint16 motor_rotation_speed;
             comma::packed::string< 26 > ethernet;
             comma::packed::big_endian::uint16 corrected_static_base;
@@ -292,6 +294,8 @@ struct helios_16p
                 double as_radians( unsigned int i ) const { return values[i].radians(); }
                 bool empty() const;
             };
+
+            static const std::array< double, robosense::msop::data::number_of_lasers >& default_corrected_vertical_angles();
 
             motor_rotation_speed_t motor_rotation_speed;
             comma::packed::string< 22 > ethernet; // todo: implement byte layout once required; see helios-16p spec B.2

@@ -75,25 +75,6 @@ bool calculator::scan::is_complete( const data& d ) const
     return 36000 - ( d.end - d.begin ) < estimated_max_angle_gap_;
 }
 
-static std::array< double, robosense::msop::data::number_of_lasers > default_azimuth_ = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
-
-static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
-                                                                                            , -13. * M_PI / 180
-                                                                                            , -11. * M_PI / 180
-                                                                                            ,  -9. * M_PI / 180
-                                                                                            ,  -7. * M_PI / 180
-                                                                                            ,  -5. * M_PI / 180
-                                                                                            ,  -3. * M_PI / 180
-                                                                                            ,  -1. * M_PI / 180
-                                                                                            ,  15. * M_PI / 180
-                                                                                            ,  13. * M_PI / 180
-                                                                                            ,  11. * M_PI / 180
-                                                                                            ,   9. * M_PI / 180
-                                                                                            ,   7. * M_PI / 180
-                                                                                            ,   5. * M_PI / 180
-                                                                                            ,   3. * M_PI / 180
-                                                                                            ,   1. * M_PI / 180 } };
-
 // static std::array< std::array< double, 41 >, robosens::msop::data::number_of_lasers > default_channel_num_ =
 // {{
 //     {{ 454,454,454,454,454,454,454,454,455,454,456,455,457,457,456,456,456,456,457,457,458,459,459,460,461,462,462,463,463,463,463,463,463,463,463,463,463,463,463,463,463 }},
@@ -118,8 +99,10 @@ void calculator::init_lasers_()
 {
     for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
-                                                      
-calculator::calculator(): azimuth_( default_azimuth_ ), elevation_( default_elevation_ ), range_resolution_( 0.01 ) { init_lasers_(); }
+
+static std::array< double, robosense::msop::data::number_of_lasers > default_azimuth_ = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+
+calculator::calculator(): azimuth_( default_azimuth_ ), elevation_( lidar_16::difop::data::default_corrected_vertical_angles() ), range_resolution_( 0.01 ) { init_lasers_(); } // todo? make calculator take model?
 
 calculator::calculator( const angles_t& elevation, double range_resolution ): azimuth_( default_azimuth_ ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
 
@@ -130,7 +113,7 @@ calculator::calculator( const std::string& elevation, const std::string& channel
 {
     if( elevation.empty() )
     {
-        elevation_ = default_elevation_;
+        elevation_ = lidar_16::difop::data::default_corrected_vertical_angles();
     }
     else
     {
