@@ -53,7 +53,7 @@ void msop::const_iterator::update_value_()
     const msop::data::laser_return& r = data_->blocks[block_].channels[subblock_][value_.id];
     value_.range = r.range();
     value_.reflectivity = r.reflectivity(); // todo: apply curves
-    value_.delay = msop::data::laser_return::firing_interval() * value_.id + ( subblock_ == 0 ? 0.0 : msop::data::block::firing_interval() / 2 );
+    value_.delay = msop::data::laser_return::firing_interval() * value_.id + ( subblock_ == 0 ? 0.0 : msop::data::block::firing_interval() / 2 ); // quick and dirty; could use 
     value_.azimuth += value_.azimuth_step;
 }
 
@@ -133,7 +133,18 @@ models::values msop::detect_model( const char* header_bytes )
     COMMA_THROW( comma::exception, "could not detect model, since the header sentinel does not match sentinels of supported models (lidar-16 and helios-16p)" );
 }
 
-bool difop::data::corrected_vertical_angles::empty() const
+bool lidar_16::difop::data::corrected_angles::empty() const
+{
+    const char* p = values[0].data(); // as in ros driver
+    for( unsigned int i = 0; i < 4; ++i ) { if( p[i] != 0x00 && p[i] != 0xff ) { return false; } } // as in ros driver
+    return true;
+    
+    //enum { size_in_bytes = msop::data::number_of_lasers * difop::packet::data_t::corrected_vertical_angle::size };
+    //static std::array< char, size_in_bytes > zeroes = make_zeroes< size_in_bytes >();
+    //return ::memcmp( corrected_vertical_angles.data(), &zeroes[0], size_in_bytes ) == 0;
+}
+
+bool helios_16p::difop::data::corrected_angles::empty() const // for now, copied from lidar_16; helios-16p documentation says nothing about it
 {
     const char* p = values[0].data(); // as in ros driver
     for( unsigned int i = 0; i < 4; ++i ) { if( p[i] != 0x00 && p[i] != 0xff ) { return false; } } // as in ros driver

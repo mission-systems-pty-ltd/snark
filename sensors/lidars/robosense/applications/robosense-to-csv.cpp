@@ -18,6 +18,10 @@
 //   - helios
 //     - default elevation: seems different from lidar-16; page 11, table 5
 //     - helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
+//     ? exact laser point timing, table 12, page 26
+//       - currently implied from block timestamps in packet.cpp
+//       - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
+//       - helios-16p: 55.56us; no formula, only tabular
 //   ? axis directions; frame -> n-e-d
 //   ? temperature from difop
 //   ? curves from difop
@@ -283,7 +287,7 @@ int main( int ac, char** av )
                 std::cerr << "robosense-to-csv: auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
                 calculator = make_calculator( *model, options );
             }
-            if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
+            // if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
             scan.update( p.first, p.second->data );
             if( discard_incomplete_scans )
             {

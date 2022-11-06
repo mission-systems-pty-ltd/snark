@@ -75,6 +75,23 @@ bool calculator::scan::is_complete( const data& d ) const
     return 36000 - ( d.end - d.begin ) < estimated_max_angle_gap_;
 }
 
+// static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
+//                                                                                             , -13. * M_PI / 180
+//                                                                                             , -11. * M_PI / 180
+//                                                                                             ,  -9. * M_PI / 180
+//                                                                                             ,  -7. * M_PI / 180
+//                                                                                             ,  -5. * M_PI / 180
+//                                                                                             ,  -3. * M_PI / 180
+//                                                                                             ,  -1. * M_PI / 180
+//                                                                                             ,  15. * M_PI / 180
+//                                                                                             ,  13. * M_PI / 180
+//                                                                                             ,  11. * M_PI / 180
+//                                                                                             ,   9. * M_PI / 180
+//                                                                                             ,   7. * M_PI / 180
+//                                                                                             ,   5. * M_PI / 180
+//                                                                                             ,   3. * M_PI / 180
+//                                                                                             ,   1. * M_PI / 180 } };
+
 static std::array< double, robosense::msop::data::number_of_lasers > default_elevation_ = { { -15. * M_PI / 180
                                                                                             , -13. * M_PI / 180
                                                                                             , -11. * M_PI / 180
