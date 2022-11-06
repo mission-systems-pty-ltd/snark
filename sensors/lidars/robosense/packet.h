@@ -204,6 +204,8 @@ struct lidar_16
 
             double range_resolution() const { return top_board_firmware_version.range_resolution(); }
 
+            static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_horizontal_angles_default();
+
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 
             comma::packed::big_endian::uint16 motor_rotation_speed;
@@ -295,6 +297,8 @@ struct helios_16p
                 std::array< double, snark::robosense::msop::data::number_of_lasers > as_radians() const;
                 bool empty() const;
             };
+
+            static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_horizontal_angles_default();
 
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 

@@ -100,33 +100,26 @@ void calculator::init_lasers_()
     for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
 
-//static std::array< double, robosense::msop::data::number_of_lasers > default_azimuth_ = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+calculator::calculator() // todo? make calculator take model?
+    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() )
+    , elevation_( lidar_16::difop::data::corrected_vertical_angles_default() )
+    , range_resolution_( 0.01 )
+{
+    init_lasers_();
+}
 
-static std::array< double, robosense::msop::data::number_of_lasers > default_azimuth_ = { { 3.2  * M_PI / 180
-                                                                                          ,-7.69 * M_PI / 180
-                                                                                          ,3.17 * M_PI / 180
-                                                                                          ,-7.61 * M_PI / 180
-                                                                                          ,3.16 * M_PI / 180
-                                                                                          ,-7.55 * M_PI / 180
-                                                                                          ,3.15 * M_PI / 180
-                                                                                          ,-7.52 * M_PI / 180
-                                                                                          ,3.15 * M_PI / 180
-                                                                                          ,-7.52 * M_PI / 180
-                                                                                          ,3.16 * M_PI / 180
-                                                                                          ,-7.53 * M_PI / 180
-                                                                                          ,3.19 * M_PI / 180
-                                                                                          ,-7.58 * M_PI / 180
-                                                                                          ,3.22 * M_PI / 180
-                                                                                          ,-7.65 * M_PI / 180 } };
-
-calculator::calculator(): azimuth_( default_azimuth_ ), elevation_( lidar_16::difop::data::corrected_vertical_angles_default() ), range_resolution_( 0.01 ) { init_lasers_(); } // todo? make calculator take model?
-
-calculator::calculator( const angles_t& elevation, double range_resolution ): azimuth_( default_azimuth_ ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
+calculator::calculator( const angles_t& elevation, double range_resolution )
+    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() )
+    , elevation_( elevation )
+    , range_resolution_( range_resolution )
+{
+    init_lasers_();
+}
 
 calculator::calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution ): azimuth_( azimuth ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
 
 calculator::calculator( const std::string& elevation, const std::string& channel_num, double range_resolution )
-    : azimuth_( default_azimuth_ ) // todo! plug in azimuth
+    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() ) // todo! plug in azimuth
     , range_resolution_( range_resolution )
 {
     if( elevation.empty() )
