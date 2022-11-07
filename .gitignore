@@ -21,3 +21,4 @@ python/build
 python/snark.egg-info
 *.pyc
 
+build
