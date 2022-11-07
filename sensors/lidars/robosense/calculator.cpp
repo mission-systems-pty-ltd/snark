@@ -100,63 +100,7 @@ void calculator::init_lasers_()
     for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
 
-calculator::calculator() // todo? make calculator take model?
-    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() )
-    , elevation_( lidar_16::difop::data::corrected_vertical_angles_default() )
-    , range_resolution_( 0.01 )
-{
-    init_lasers_();
-}
-
-calculator::calculator( const angles_t& elevation, double range_resolution )
-    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() )
-    , elevation_( elevation )
-    , range_resolution_( range_resolution )
-{
-    init_lasers_();
-}
-
 calculator::calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution ): azimuth_( azimuth ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
-
-calculator::calculator( const std::string& elevation, const std::string& channel_num, double range_resolution )
-    : azimuth_( lidar_16::difop::data::corrected_horizontal_angles_default() ) // todo! plug in azimuth
-    , range_resolution_( range_resolution )
-{
-    if( elevation.empty() )
-    {
-        elevation_ = lidar_16::difop::data::corrected_vertical_angles_default();
-    }
-    else
-    {
-        std::ifstream ifs( elevation );
-        if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << elevation << "'" ); }
-        unsigned int i = 0;
-        for( ; !ifs.eof() && ifs.good() && i < 16; )
-        {
-            std::string line;
-            std::getline( ifs, line );
-            line = comma::strip( line );
-            if( line.empty() ) { continue; }
-            elevation_[i] = boost::lexical_cast< double >( line ) * M_PI / 180;
-            ++i;
-        }
-        if( i < 16 ) { COMMA_THROW( comma::exception, "expected 16 elevation angle values in '" << elevation << "'; got only " << i ); }
-    }
-    init_lasers_();
-    if( !channel_num.empty() )
-    {
-        std::ifstream ifs( channel_num );
-        if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << channel_num << "'" ); }
-        comma::csv::input_stream< robosense::channel_num > is( ifs );
-        channel_num_ = channel_num_t_();
-        for( unsigned int i = 0; !ifs.eof() && ifs.good() && i < 16; ++i )
-        {
-            const auto* p = is.read();
-            if( !p ) { COMMA_THROW( comma::exception, "expected 16 channel num arrays in '" << channel_num << "'; got only " << i ); }
-            ( *channel_num_ )[i] = p->data;
-        }
-    }
-}
 
 double calculator::range( unsigned int r, unsigned int laser, unsigned int temperature ) const { return range_resolution_ * ( channel_num_ ? r - ( *channel_num_ )[laser][temperature] : r ); }
 
@@ -182,5 +126,50 @@ calculator::point calculator::make_point( comma::uint32 scan, const boost::posix
     p.coordinates = to_cartesian( it->id, p.range, p.bearing );
     return p;
 }
+
+template < typename Lidar >
+static calculator::angles_t _load( const std::string& filename, const std::string& what )
+{
+    calculator::angles_t angles;
+    std::ifstream ifs( filename );
+    if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << filename << "'" ); }
+    unsigned int i = 0;
+    for( ; !ifs.eof() && ifs.good() && i < Lidar::msop::data::number_of_lasers; )
+    {
+        std::string line;
+        std::getline( ifs, line );
+        line = comma::strip( line );
+        if( line.empty() ) { continue; }
+        angles[i] = boost::lexical_cast< double >( line ) * M_PI / 180;
+        ++i;
+    }
+    if( i < Lidar::msop::data::number_of_lasers ) { COMMA_THROW( comma::exception, "expected " << Lidar::msop::data::number_of_lasers << " " << what << " angle values in '" << filename << "'; got only " << i ); }
+    return angles;
+}
+
+template < typename Lidar >
+calculator calculator::make( const std::string& azimuth_filename, const std::string& elevation_filename, const std::string& channel_num_filename, const boost::optional< double >& range_resolution )
+{
+    auto azimuth = azimuth_filename.empty() ? Lidar::difop::data::corrected_horizontal_angles_default() : _load< Lidar >( azimuth_filename, "azimuth" );
+    auto elevation = elevation_filename.empty() ? Lidar::difop::data::corrected_vertical_angles_default() : _load< Lidar >( elevation_filename, "elevation" );
+    calculator c( azimuth, elevation, range_resolution ? *range_resolution : Lidar::default_range_resolution() );
+    if( !channel_num_filename.empty() )
+    {
+        std::ifstream ifs( channel_num_filename );
+        if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << channel_num_filename << "'" ); }
+        comma::csv::input_stream< robosense::channel_num > is( ifs );
+        c.channel_num_ = channel_num_t_();
+        for( unsigned int i = 0; !ifs.eof() && ifs.good() && i < Lidar::msop::data::number_of_lasers; ++i )
+        {
+            const auto* p = is.read();
+            if( !p ) { COMMA_THROW( comma::exception, "expected " << Lidar::msop::data::number_of_lasers << " channel num arrays in '" << channel_num_filename << "'; got only " << i ); }
+            ( *c.channel_num_ )[i] = p->data;
+        }
+    }
+    return c;
+}
+
+template calculator calculator::make< lidar_16 >( const std::string& azimuth, const std::string& elevation, const std::string& num_channels, const boost::optional< double >& range_resolution );
+template calculator calculator::make< helios_16p >( const std::string& azimuth, const std::string& elevation, const std::string& num_channels, const boost::optional< double >& range_resolution );
 
 } } // namespace snark { namespace robosense {

@@ -175,7 +175,12 @@ struct lidar_16
             std::array< char, 11 > reserved_1;
         };
 
-        typedef robosense::packet< lidar_16::msop::header, robosense::msop::data, robosense::msop::tail > packet;
+        typedef robosense::msop::data data;
+
+        struct packet: public robosense::packet< lidar_16::msop::header, robosense::msop::data, robosense::msop::tail >
+        {
+            double range_resolution( double previous_range_resolution ) const { return previous_range_resolution ; } // silly, need it because helios-16p defines range resolution in msop while lidar-16 in difop
+        };
     };
 
     struct difop
@@ -231,6 +236,8 @@ struct lidar_16
 
         typedef robosense::packet< robosense::difop::header, lidar_16::difop::data, robosense::difop::tail > packet;
     };
+
+    static double default_range_resolution() { return 0.01; }
 };
 
 struct helios_16p
@@ -255,9 +262,12 @@ struct helios_16p
             std::array< char, 10 > reserved_3;
         };
 
+        typedef robosense::msop::data data;
+
         struct packet: public robosense::packet< helios_16p::msop::header, robosense::msop::data, robosense::msop::tail >
         {
             double range_resolution() const { return header.range_resolution() == 0 ? 0.005 : header.range_resolution() == 1 ? 0.0025 : 0.; } // helios-16p spec 6.2.1: 1: 0.25cm; 0: 0.5cm
+            double range_resolution( double ) const { return range_resolution(); }  // silly, need it because helios-16p defines range resolution in msop while lidar-16 in difop
         };
     };
 
@@ -341,6 +351,8 @@ struct helios_16p
 
         typedef robosense::packet< robosense::difop::header, helios_16p::difop::data, robosense::difop::tail > packet;
     };
+
+    static double default_range_resolution() { return 0.005; }
 };
 
 } } // namespace snark { namespace robosense {

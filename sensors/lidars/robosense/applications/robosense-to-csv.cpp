@@ -16,10 +16,10 @@
 
 // todo
 //   - helios
-//     ! default elevation: seems different from lidar-16; page 11, table 5
-//     ! corrected azimuth angles: plug in
-//     - helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
-//     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator?
+//     ! corrected azimuth angles from file: plug in
+//     ! helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
+//     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator? or template main loop on model?
+//     ! template main loop on model; currently hard-coded to lidar_16, which works so far, but is not right
 //     ? exact laser point timing, table 12, page 26
 //       - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
 //       - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
@@ -142,7 +142,7 @@ template <> struct model_traits< snark::robosense::models::lidar_16 >
     typedef snark::robosense::lidar_16 lidar;
     static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
     static double range_resolution_default() { return 0.01; } // todo! sort it out! quick and dirty for now
-    static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::lidar_16::difop::packet& ) { return snark::robosense::lidar_16::difop::data::corrected_vertical_angles_default(); }
+    static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::lidar_16::difop::packet& ) { return snark::robosense::lidar_16::difop::data::corrected_horizontal_angles_default(); }
 };
 
 template <> struct model_traits< snark::robosense::models::helios_16p >
@@ -156,7 +156,8 @@ template <> struct model_traits< snark::robosense::models::helios_16p >
 template < snark::robosense::models::values Model >
 static snark::robosense::calculator make_calculator( const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
 {
-    typedef typename model_traits< Model >::lidar::difop difop_t;
+    typedef typename model_traits< Model >::lidar lidar_t;
+    typedef typename lidar_t::difop difop_t;
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-angles,--angles,--angle,-a" );
     options.assert_mutually_exclusive( "--calibration,-c", "--calibration-channels,--channels" );
     options.assert_mutually_exclusive( "--difop", "--calibration-angles,--angles,--angle,-a" );
@@ -169,15 +170,15 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     options.assert_mutually_exclusive( "" ); // why?
     if( difop.empty() )
     {
-        double range_resolution = options.value( "--range-resolution,--resolution", 0.005 );
+        auto range_resolution = options.optional< double >( "--range-resolution,--resolution" );
         if( calibration.empty() )
         {
             if( !angles.empty() ) { comma::say() << "config: angles from --angles" << std::endl; }
             if( !channels.empty() ) { comma::say() << "config: channels from --calibration-channels" << std::endl; }
-            return snark::robosense::calculator( angles, channels, range_resolution );
+            return snark::robosense::calculator::make< lidar_t >( "", angles, channels, range_resolution ); // todo! pass azimult filename!
         }
         comma::say() << "config from calibration directory: " << calibration << std::endl;
-        return snark::robosense::calculator( calibration + "/angle.csv", calibration + "/ChannelNum.csv", range_resolution );
+        return snark::robosense::calculator::make< lidar_t >( "", calibration + "/angle.csv", calibration + "/ChannelNum.csv", range_resolution ); // todo! pass azimult filename!
     }
     comma::say() << "config from difop" << std::endl;
     unsigned int difop_max_number_of_packets = options.value( "--difop-max-number-of-packets,--difop-max", 0 );
@@ -205,7 +206,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
         if( options.exists( "--force" ) )
         {
             comma::say() << "using defaults for corrected vertical angles" << std::endl;
-            return snark::robosense::calculator( difop_t::data::corrected_vertical_angles_default(), model_traits< Model >::range_resolution_default() );
+            return snark::robosense::calculator( difop_t::data::corrected_horizontal_angles_default(), difop_t::data::corrected_vertical_angles_default(), model_traits< Model >::range_resolution_default() );
         }
         comma::say() << "use --force to override (defaults will be used)" << std::endl;
         exit( 1 );
@@ -306,7 +307,7 @@ int main( int ac, char** av )
         if( discard_incomplete_scans ) { scan_buffer.reserve( 120 ); } // quick and dirty
         while( std::cin.good() && !std::cin.eof() )
         {
-            auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] );
+            auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] ); // todo?! template on the packet type?!
             if( !p.second ) { break; }
             if( !snark::robosense::msop::valid( *p.second ) ) { continue; }
             auto current_model = snark::robosense::msop::detect_model( p.second->header.data() );            
@@ -316,7 +317,7 @@ int main( int ac, char** av )
                 comma::say() << "auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
                 calculator = make_calculator( *model, options );
             }
-            // if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
+            // todo: uncomment once we know the answer about helios-16p glitch: if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
             scan.update( p.first, p.second->data );
             if( discard_incomplete_scans )
             {

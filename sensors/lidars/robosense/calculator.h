@@ -8,6 +8,7 @@
 #include <string>
 #include <Eigen/Core>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/optional.hpp>
 #include "packet.h"
 
 namespace snark { namespace robosense {
@@ -68,13 +69,7 @@ class calculator
 
         typedef std::array< double, robosense::msop::data::number_of_lasers > angles_t;
         
-        calculator();
-
-        calculator( const angles_t& elevation, double range_resolution );
-        
         calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution );
-        
-        calculator( const std::string& elevation, const std::string& channel_num, double range_resolution ); // todo: generalize to 32 beams; todo: azimuth usage semantics
         
         double range( unsigned int r, unsigned int laser, unsigned int temperature ) const;
         
@@ -89,6 +84,11 @@ class calculator
         point make_point( comma::uint32 scan, const boost::posix_time::ptime& t, const robosense::msop::const_iterator& it, unsigned int temperature );
         
         double range_resolution() const { return range_resolution_; }
+
+        void range_resolution( double value ) { range_resolution_ = value; } // silly, need it because helios-16p defines range resolution in msop while lidar-16 in difop
+
+        template < typename Lidar >
+        static calculator make( const std::string& azimuth_filename = "", const std::string& elevation_filename = "", const std::string& channel_num_filename = "", const boost::optional< double >& range_resolution = boost::none );
         
     private:
         angles_t azimuth_;
