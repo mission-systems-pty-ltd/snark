@@ -52,8 +52,10 @@ endif()
 set( VIMBA_SDK_INCLUDE_DIR "${VIMBA_SDK_ROOT}" CACHE PATH "Path to Vimba SDK include directory" )
 include_directories( ${VIMBA_SDK_INCLUDE_DIR} )
 
-# Set up Vimba SDK shared libraries
-set( VIMBA_SDK_LIB_DIR "${VIMBA_SDK_ROOT}/VimbaCPP/DynamicLib/x86_64bit" CACHE PATH "Path to Vimba SDK shared libraries" )
+# Set up Vimba SDK shared libraries (selected by architecture)
+set( VIMBA_SDK_x86_64_LIB_DIR "x86_64bit" )
+set( VIMBA_SDK_aarch64_LIB_DIR "arm_64bit" )
+set( VIMBA_SDK_LIB_DIR "${VIMBA_SDK_ROOT}/VimbaCPP/DynamicLib/${VIMBA_SDK_${CMAKE_SYSTEM_PROCESSOR}_LIB_DIR}" CACHE PATH "Path to Vimba SDK shared libraries" )
 link_directories( ${VIMBA_SDK_LIB_DIR} )
 
 set( vimba_conf ${CMAKE_CURRENT_BINARY_DIR}/vimba.conf )
