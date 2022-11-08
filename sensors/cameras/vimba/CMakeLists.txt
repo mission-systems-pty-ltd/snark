@@ -37,7 +37,7 @@ if( NOT EXISTS ${VIMBA_SDK_ROOT} )
     message( FATAL_ERROR "\nPlease install the Vimba SDK at ${VIMBA_SDK_ROOT} "
         "or set VIMBA_SDK_ROOT to point to the SDK installation directory.\n"
         "The SDK is available from https://www.alliedvision.com/en/products/software.html.\n"
-        "The code in this project is currently developed and tested against version 2.0 of the SDK although it will also build and has been partly tested against version 1.4."
+        "The code in this project is currently developed and tested against version 6.1 of the SDK although it has also been tested against version 2.0 and 1.4."
         )
 endif()
 
@@ -67,8 +67,18 @@ install( FILES ${vimba_conf} DESTINATION /etc/ld.so.conf.d )
 install( CODE "message( \"${project_path}: running ldconfig\" )" )
 install( CODE "execute_process( COMMAND ldconfig )" )
 
+# Try to determine the SDK version. This will work for later SDK's (6.0+ at least)
+# which are the ones we care about.
+string( REGEX REPLACE ".*/[Vv]imba_([0-9]+)_([0-9]+)$" "\\1.\\2" VIMBA_SDK_VERSION ${VIMBA_SDK_ROOT} )
+message( STATUS "VIMBA_SDK_VERSION=${VIMBA_SDK_VERSION}" )
+
 # Set up an environment variable default
-set( VIMBA_GENICAM_GENTL64_PATH "${VIMBA_SDK_ROOT}/VimbaGigETL/CTI/x86_64bit" CACHE PATH "Path to GenTL provider library" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVIMBA_GENICAM_GENTL64_PATH=\"${VIMBA_GENICAM_GENTL64_PATH}\"" )
+#
+# For Vimba SDK 6.0+ (and possibly earlier), this is not required as the same
+# data is written to /etc/profile.d/<vimba-profile> and loaded on shell start
+if( VIMBA_SDK_VERSION VERSION_LESS 6.0 )
+    set( VIMBA_GENICAM_GENTL64_PATH "${VIMBA_SDK_ROOT}/VimbaGigETL/CTI/x86_64bit" CACHE PATH "Path to GenTL provider library" )
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVIMBA_GENICAM_GENTL64_PATH=\"${VIMBA_GENICAM_GENTL64_PATH}\"" )
+endif()
 
 add_subdirectory( applications )
