@@ -27,8 +27,10 @@ struct models
                 , ruby = 0x04
                 , ruby_lite = 0x05
                 , helios_5515 = 0x06
-                , helios_16p = 0x07
-                , helios_1615 = 0x07 /* sic, helios_16p and helios_1615 have the same 0x07 model value */ };
+                , helios_16p = 0x06
+                , helios_1610 = 0x06
+                , helios_1615 = 0x06
+                , helios = 0x06 };
     static std::string to_string( values value );
     static values from_string( const std::string& name );
     static const std::map< std::string, values > names;
@@ -258,8 +260,9 @@ struct helios_16p
             comma::packed::big_endian::uint16 angle_pulse_interval_count; // helios-16p spec 6.2.1: unit: us
             robosense::utc_time timestamp;
             std::array< char, 1 > reserved_2;
+            comma::packed::byte type;
             comma::packed::byte model;
-            std::array< char, 10 > reserved_3;
+            std::array< char, 9 > reserved_3;
         };
 
         typedef robosense::msop::data data;
@@ -353,6 +356,16 @@ struct helios_16p
     };
 
     static double default_range_resolution() { return 0.005; }
+};
+
+struct helios
+{
+    struct models
+    {
+        enum values { helios_5515 = 0x01, helios_1615 = 0x02, helios_16p = 0x03, helios_1610 = 0x04 };
+        static std::string to_string( values m );
+        static values to_string( const std::string& name );
+    };
 };
 
 } } // namespace snark { namespace robosense {

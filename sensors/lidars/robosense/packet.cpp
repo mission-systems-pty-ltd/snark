@@ -93,15 +93,12 @@ template < unsigned int Size >
 static std::array< char, Size > make_zeroes() { std::array< char, Size > a; ::memset( &a[0], 0, a.size() ); return a; }
 
 const std::map< std::string, models::values > models::names =   {
-                                                                    { "lidar-16", lidar_16 },
-                                                                    { "lidar-32", lidar_32 },
-                                                                    { "bpearl", bpearl },
-                                                                    { "ruby", ruby },
-                                                                    { "ruby-lite", ruby_lite },
-                                                                    { "helios-5515", helios_5515 },
-                                                                    { "helios-16p", helios_16p },
-                                                                    { "helios-1615", helios_1615 }
-                                                                    
+                                                                    { "lidar-16", models::values::lidar_16 },
+                                                                    { "lidar-32", models::values::lidar_32 },
+                                                                    { "bpearl", models::values::bpearl },
+                                                                    { "ruby", models::values::ruby },
+                                                                    { "ruby-lite", models::values::ruby_lite },
+                                                                    { "helios", models::values::helios }
                                                                 };
 
 std::string models::to_string( models::values value )
@@ -113,8 +110,7 @@ std::string models::to_string( models::values value )
         case bpearl: return "bpearl";
         case ruby: return "ruby";
         case ruby_lite: return "ruby-lite";
-        case helios_5515: return "helios-5515";
-        case helios_16p: return "helios-16xx";
+        case helios: return "helios";
     }
     COMMA_THROW( comma::exception, "expected robosense lidar model code; got: \"" << value << "\"" ); // never here really
 }

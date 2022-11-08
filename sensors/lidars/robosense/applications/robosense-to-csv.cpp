@@ -20,6 +20,8 @@
 //     ! helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
 //     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator? or template main loop on model?
 //     ! template main loop on model; currently hard-coded to lidar_16, which works so far, but is not right
+//     ! resolve model on helios::models
+//     ! helios::models: plug in
 //     ? exact laser point timing, table 12, page 26
 //       - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
 //       - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
@@ -231,9 +233,8 @@ static snark::robosense::calculator make_calculator( snark::robosense::models::v
         case snark::robosense::models::bpearl:
         case snark::robosense::models::ruby:
         case snark::robosense::models::ruby_lite:
-        case snark::robosense::models::helios_5515:
             COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": not implemented" );
-        case snark::robosense::models::helios_16p: return make_calculator< snark::robosense::models::helios_16p >( options );
+        case snark::robosense::models::helios: return make_calculator< snark::robosense::models::helios_16p >( options ); // todo: resolve model on helios::models
     }
     COMMA_THROW( comma::exception, "never here" );
 }
