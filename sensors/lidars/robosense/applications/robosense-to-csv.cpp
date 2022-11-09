@@ -15,17 +15,29 @@
 #include "../packet.h"
 
 // todo
-//   - helios
-//     ! corrected azimuth angles from file: plug in
-//     ! helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
-//     ! range resolution! helios-16p: from msop; lidar-16: from difop: add as (optional?) parameter of make_calculator? or template main loop on model?
-//     ! template main loop on model; currently hard-coded to lidar_16, which works so far, but is not right
-//     ! resolve model on helios::models
-//     ! helios::models: plug in
-//     ? exact laser point timing, table 12, page 26
-//       - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
-//       - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
-//       - helios-16p: 55.56us; no formula, only tabular
+//   ! --output-range-resolution
+//     ? remove
+//     ? or predicate on model (helios: cannot get range resolution from difop)
+//   - azimuth angles to/from files
+//     - calibration directory: remove (leave num angles in impl)
+//     - --output-angles
+//       - output as <azimuth>,<elevation>
+//       - lidar-16: fix
+//       - helios-16p: fix
+//     - --angles
+//       - read as <azimuth>,<elevation>
+//       - lidar-16: fix
+//       - helios-16p: fix
+//   - model
+//     - helios
+//       ! helios::models: plug in
+//       ! resolve model on helios::models
+//       ! helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
+//   ? exact laser point timing, table 12, page 26
+//     - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
+//     - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
+//     - helios-16p: 55.56us; no formula, only tabular
+//   ? template main loop on model; currently hard-coded to lidar_16, which works so far, but is not right
 //   ? axis directions; frame -> n-e-d
 //   ? temperature from difop
 //   ? curves from difop
@@ -221,23 +233,33 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
 }
 
 static comma::csv::options csv;
+static boost::optional< snark::robosense::models::values > model;
 static boost::optional< snark::robosense::calculator > calculator;
 static unsigned int temperature;
 static bool output_invalid_points;
 
-static snark::robosense::calculator make_calculator( snark::robosense::models::values model, const comma::command_line_options& options, const void* msop_packet = nullptr ) // todo? quick and dirty; move to calculator?
+static void update_calculator( snark::robosense::models::values current_model, const comma::command_line_options& options, const void* msop_packet = nullptr ) // super-quick and dirty for now
 {
-    switch( model )
+    if( !model )
     {
-        case snark::robosense::models::lidar_16: return make_calculator< snark::robosense::models::lidar_16 >( options, reinterpret_cast< const snark::robosense::lidar_16::msop::packet* >( msop_packet ) );
-        case snark::robosense::models::lidar_32: 
-        case snark::robosense::models::bpearl:
-        case snark::robosense::models::ruby:
-        case snark::robosense::models::ruby_lite:
-            COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": not implemented" );
-        case snark::robosense::models::helios: return make_calculator< snark::robosense::models::helios_16p >( options, reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet ) ); // todo: resolve model on helios::models
+        model = current_model;
+        switch( *model )
+        {
+            case snark::robosense::models::lidar_16:
+                calculator = make_calculator< snark::robosense::models::lidar_16 >( options, reinterpret_cast< const snark::robosense::lidar_16::msop::packet* >( msop_packet ) );
+                break;
+            case snark::robosense::models::lidar_32: 
+            case snark::robosense::models::bpearl:
+            case snark::robosense::models::ruby:
+            case snark::robosense::models::ruby_lite:
+                COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( *model ) << "\": not implemented" );
+            case snark::robosense::models::helios:
+                calculator = make_calculator< snark::robosense::models::helios_16p >( options, reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet ) );
+                break; // todo: resolve model on helios::models
+        }
     }
-    COMMA_THROW( comma::exception, "never here" );
+    // todo: uncomment once we know the answer about helios-16p glitch: if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
+    if( msop_packet && model == snark::robosense::models::helios ) { calculator->range_resolution( reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet )->range_resolution() ); } // uber-quick and dirty for now
 }
 
 void write( const boost::posix_time::ptime& t, const snark::robosense::lidar_16::msop::packet* p, comma::uint32 id )
@@ -258,9 +280,8 @@ int main( int ac, char** av )
         if( options.exists( "--models" ) ) { for( const auto& m: snark::robosense::models::names ) { std::cout << m.first << "," << m.second << std::endl; } return 0; }
         output_invalid_points = options.exists( "--output-invalid-points" );
         std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
-        boost::optional< snark::robosense::models::values > model; // preparing for model autodetect
         std::string model_name = options.value< std::string >( "--model", "auto" );
-        if( model_name != "auto" ) { model = snark::robosense::models::from_string( model_name ); calculator = make_calculator( *model, options ); }
+        if( model_name != "auto" ) { update_calculator( snark::robosense::models::from_string( model_name ), options ); }
         if( options.exists( "--output-range-resolution" ) )
         { 
             if( calculator ) { std::cout << calculator->range_resolution() << std::endl; return 0; }
@@ -312,14 +333,9 @@ int main( int ac, char** av )
             auto p = read< snark::robosense::lidar_16::msop::packet >( std::cin, &buffer[0] ); // todo?! template on the packet type?!
             if( !p.second ) { break; }
             if( !snark::robosense::msop::valid( *p.second ) ) { continue; }
-            auto current_model = snark::robosense::msop::detect_model( p.second->header.data() );            
-            if( !model )
-            {
-                model = current_model;
-                comma::say() << "auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
-                calculator = make_calculator( *model, options, ( void* )( p.second ) );
-            }
-            // todo: uncomment once we know the answer about helios-16p glitch: if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
+            auto current_model = snark::robosense::msop::detect_model( p.second->header.data() );
+            if( !model ) { comma::say() << "auto-detected model: \"" << snark::robosense::models::to_string( current_model ) << "\" (model numeric id: " << int( current_model ) << ")" << std::endl; } // quick and dirty
+            update_calculator( current_model, options, p.second );
             scan.update( p.first, p.second->data );
             if( discard_incomplete_scans )
             {

@@ -238,7 +238,7 @@ struct lidar_16
 
     static double range_resolution_default() { return 0.01; }
 
-    static double range_resolution( const difop::packet* d, const msop::packet* ) { return d->data.range_resolution(); }
+    static double range_resolution( const difop::packet* d, const msop::packet* ) { return d ? d->data.range_resolution() : range_resolution_default(); }
 };
 
 struct helios_16p
