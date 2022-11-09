@@ -144,6 +144,7 @@ template <> struct model_traits< snark::robosense::models::lidar_16 >
     typedef snark::robosense::lidar_16 lidar;
     static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
     static double range_resolution_default() { return 0.01; } // todo! sort it out! quick and dirty for now
+    
     static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::lidar_16::difop::packet& ) { return snark::robosense::lidar_16::difop::data::corrected_horizontal_angles_default(); }
 };
 
@@ -156,7 +157,7 @@ template <> struct model_traits< snark::robosense::models::helios_16p >
 };
 
 template < snark::robosense::models::values Model >
-static snark::robosense::calculator make_calculator( const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
+static snark::robosense::calculator make_calculator( const comma::command_line_options& options, const typename model_traits< Model >::lidar::msop::packet* msop_packet = nullptr ) // todo? quick and dirty; move to calculator?
 {
     typedef typename model_traits< Model >::lidar lidar_t;
     typedef typename lidar_t::difop difop_t;
@@ -208,7 +209,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
         if( options.exists( "--force" ) )
         {
             comma::say() << "using defaults for corrected vertical angles" << std::endl;
-            return snark::robosense::calculator( difop_t::data::corrected_horizontal_angles_default(), difop_t::data::corrected_vertical_angles_default(), model_traits< Model >::range_resolution_default() );
+            return snark::robosense::calculator( difop_t::data::corrected_horizontal_angles_default(), difop_t::data::corrected_vertical_angles_default(), lidar_t::range_resolution_default() );
         }
         comma::say() << "use --force to override (defaults will be used)" << std::endl;
         exit( 1 );
@@ -216,7 +217,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     comma::say() << "got DIFOP data in packet " << count << " in '" << difop << "'" << std::endl;
     std::array< double, snark::robosense::msop::data::number_of_lasers > elevation;
     for( unsigned int i = 0; i < elevation.size(); ++i ) { elevation[i] = p.second->data.corrected_vertical_angles.as_radians( i ); }
-    return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, model_traits< Model >::range_resolution( *p.second ) );
+    return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, lidar_t::range_resolution( p.second, msop_packet ) );
 }
 
 static comma::csv::options csv;
@@ -224,17 +225,17 @@ static boost::optional< snark::robosense::calculator > calculator;
 static unsigned int temperature;
 static bool output_invalid_points;
 
-static snark::robosense::calculator make_calculator( snark::robosense::models::values model, const comma::command_line_options& options ) // todo? quick and dirty; move to calculator?
+static snark::robosense::calculator make_calculator( snark::robosense::models::values model, const comma::command_line_options& options, const void* msop_packet = nullptr ) // todo? quick and dirty; move to calculator?
 {
     switch( model )
     {
-        case snark::robosense::models::lidar_16: return make_calculator< snark::robosense::models::lidar_16 >( options );
+        case snark::robosense::models::lidar_16: return make_calculator< snark::robosense::models::lidar_16 >( options, reinterpret_cast< const snark::robosense::lidar_16::msop::packet* >( msop_packet ) );
         case snark::robosense::models::lidar_32: 
         case snark::robosense::models::bpearl:
         case snark::robosense::models::ruby:
         case snark::robosense::models::ruby_lite:
             COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( model ) << "\": not implemented" );
-        case snark::robosense::models::helios: return make_calculator< snark::robosense::models::helios_16p >( options ); // todo: resolve model on helios::models
+        case snark::robosense::models::helios: return make_calculator< snark::robosense::models::helios_16p >( options, reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet ) ); // todo: resolve model on helios::models
     }
     COMMA_THROW( comma::exception, "never here" );
 }
@@ -316,7 +317,7 @@ int main( int ac, char** av )
             {
                 model = current_model;
                 comma::say() << "auto-detected model: \"" << snark::robosense::models::to_string( *model ) << "\" (model numeric id: " << int( *model ) << ")" << std::endl;
-                calculator = make_calculator( *model, options );
+                calculator = make_calculator( *model, options, ( void* )( p.second ) );
             }
             // todo: uncomment once we know the answer about helios-16p glitch: if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }
             scan.update( p.first, p.second->data );

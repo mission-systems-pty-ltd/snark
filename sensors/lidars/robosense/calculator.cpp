@@ -152,7 +152,7 @@ calculator calculator::make( const std::string& azimuth_filename, const std::str
 {
     auto azimuth = azimuth_filename.empty() ? Lidar::difop::data::corrected_horizontal_angles_default() : _load< Lidar >( azimuth_filename, "azimuth" );
     auto elevation = elevation_filename.empty() ? Lidar::difop::data::corrected_vertical_angles_default() : _load< Lidar >( elevation_filename, "elevation" );
-    calculator c( azimuth, elevation, range_resolution ? *range_resolution : Lidar::default_range_resolution() );
+    calculator c( azimuth, elevation, range_resolution ? *range_resolution : Lidar::range_resolution_default() );
     if( !channel_num_filename.empty() )
     {
         std::ifstream ifs( channel_num_filename );

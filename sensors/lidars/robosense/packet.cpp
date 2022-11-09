@@ -92,14 +92,15 @@ bool msop::const_iterator::value_type::valid() const
 template < unsigned int Size >
 static std::array< char, Size > make_zeroes() { std::array< char, Size > a; ::memset( &a[0], 0, a.size() ); return a; }
 
-const std::map< std::string, models::values > models::names =   {
-                                                                    { "lidar-16", models::values::lidar_16 },
-                                                                    { "lidar-32", models::values::lidar_32 },
-                                                                    { "bpearl", models::values::bpearl },
-                                                                    { "ruby", models::values::ruby },
-                                                                    { "ruby-lite", models::values::ruby_lite },
-                                                                    { "helios", models::values::helios }
-                                                                };
+const std::map< std::string, models::values > models::names =   { { "lidar-16", models::values::lidar_16 },
+                                                                  { "lidar-32", models::values::lidar_32 },
+                                                                  { "bpearl", models::values::bpearl },
+                                                                  { "ruby", models::values::ruby },
+                                                                  { "ruby-lite", models::values::ruby_lite },
+                                                                  { "helios", models::values::helios },
+                                                                  { "helios-5515", models::values::helios },
+                                                                  { "helios-16p", models::values::helios },
+                                                                  { "helios-1615", models::values::helios } };
 
 std::string models::to_string( models::values value )
 {
