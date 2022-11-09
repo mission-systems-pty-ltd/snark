@@ -24,10 +24,12 @@
 //       - output as <azimuth>,<elevation>
 //       - lidar-16: fix
 //       - helios-16p: fix
+//       - --help: fix examples
 //     - --angles
 //       - read as <azimuth>,<elevation>
 //       - lidar-16: fix
 //       - helios-16p: fix
+//       - --help: fix examples
 //   - model
 //     - helios
 //       ! helios::models: plug in
