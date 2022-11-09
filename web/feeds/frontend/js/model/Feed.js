@@ -100,16 +100,28 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     Feed.prototype.extract_fields = function (form_elements) {
         if (form_elements != undefined) {
-
+            let dropdowns = [];
+            if (form_elements['dropdowns'] != undefined) {
+              dropdowns = form_elements['dropdowns'];
+            }
             if (form_elements['fields'] != undefined) {
-                this.populate_path_values(form_elements['fields'], "");
+                this.populate_path_values(form_elements['fields'], "", dropdowns);
                 // this.buttons = form_elements['buttons'];
             }
             if (form_elements['buttons'] != undefined) {
                 var buttons_config = form_elements['buttons'];
                 if (buttons_config['show'] != undefined) {
-                    if (buttons_config['show'] == "true") {
+                    // `form_show_buttons` will end up being either true,
+                    // false, or a non-empty array of button names. When used as
+                    // a boolean, an array evaluates to true.
+                    var show = buttons_config['show'];
+                    if (Array.isArray(show) && show.length > 0) {
+                        this.form_show_buttons = show;
+                    } else if (show == "true" || (typeof show == "boolean" && show)) {
+                        // NOTE: Configs allow text or boolean i.e. "true"/true.
                         this.form_show_buttons = true;
+                    } else {
+                        this.form_show_buttons = false;
                     }
                 }
                 //
@@ -121,16 +133,16 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         }
     };
 
-    Feed.prototype.populate_path_values = function (form_elements, prefix) {
+    Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns) {
         for (var element in form_elements) {
             var value = form_elements[element];
             var type = typeof value;
-            if (type == "object") {
-                var p = get_prefix(element, prefix);
-                this.populate_path_values(value, p);
+            var p = get_prefix(element, prefix);
+            if (type == "object" && !dropdowns.includes(p)) {
+                // Flatten 'object' field unless it is configured as a dropdown.
+                this.populate_path_values(value, p, dropdowns);
             }
-            else if (type = "string") {
-                var p = get_prefix(element, prefix);
+            else {
                 this.fields[p] = value;
             }
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
@@ -163,25 +175,33 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         if (this.form_show_buttons) {
             var buttons_div = $('<div>', {class: "col-sm-12"});
             this.add_buttons(buttons_div);
-            var clear = $('<button/>',
-                {
-                    text: 'Clear',
-                    name: 'clear',
-                    type: 'button',
-                    class: "btn btn-default col-sm-3",
-                    click: function () {
-                        $($(this).closest("form").find("input[type=text]")).each(function () {
-                            $(this).val('');
-                        });
-                        $($(this).closest("form").find("button")).each(function () {
-                            $(this).attr('disabled', "disabled");
-                        });
-                        // $($(this).closest("form").find("button")).each(function () {
-                        //     $(this).attr('disabled', "disabled");
-                        // });
-                    }
-                });
-            buttons_div.append(clear);
+
+            if (this.button_enabled("clear")) {
+                var clear = $('<button/>',
+                    {
+                        text: 'Clear',
+                        name: 'clear',
+                        type: 'button',
+                        class: "btn btn-default col-sm-3",
+                        click: function () {
+                            // Make text fields empty.
+                            $($(this).closest("form").find("input[type=text]")).each(function () {
+                                $(this).val('');
+                            });
+                            // Set dropdowns to the first option.
+                            $($(this).closest("form").find("select")).each(function () {
+                                $(this).val($(this).children()[0].text)
+                            });
+                            $($(this).closest("form").find("button")).each(function () {
+                                $(this).attr('disabled', "disabled");
+                            });
+                            // $($(this).closest("form").find("button")).each(function () {
+                            //     $(this).attr('disabled', "disabled");
+                            // });
+                        }
+                    });
+                buttons_div.append(clear);
+            }
             this.form.append(buttons_div);
         }
         // var num = this.buttons.length;
@@ -216,48 +236,71 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     };
 
+    Feed.prototype.button_enabled = function (name) {
+      // Checks if the particular button name is enabled. A button is enabled
+      // when `form_show_buttons` is `true`, or when it is an array containing
+      // the button `name`.
+      if (Array.isArray(this.form_show_buttons)) {
+        return this.form_show_buttons.includes(name);
+      } else {
+        return this.form_show_buttons;
+      }
+    }
+
     Feed.prototype.add_buttons = function (container) {
         this.refresh_time = new Date();
 
         var this_ = this;
-        var submit = $('<button/>',
-            {
-                value: "submit",
-                text: this.ok_label,
-                class: "btn btn-primary col-sm-7",
-                click: function (event) {
-                    event.preventDefault();
-                    var url = this_.get_url();
-                    if (url != undefined) {
-                        $.ajax({
-                            type: "GET",
-                            crossDomain: true,
-                            context: this,
-                            data: $(this).closest("form").serialize(),
-                            url: url
-                            // error: function (request, status, error) {
-                            // }
-                        }).done(function (data, textStatus, jqXHR) {
-                            // var json = $.parseJSON(data);
-                            // Feed.prototype.onload_(data);
-                            // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
-                            this_.onload(data);
-                        }).fail(function (jqXHR, textStatus, errorThrown) {
-                            // console.log(jqXHR);
-                            if (jqXHR.readyState == 0) {
-                                errorThrown = "Connection Refused."
-                            }
-                            this_.update_error(this_, errorThrown);
-                        });
+        if (this.button_enabled("ok")) {
+            var submit = $('<button/>',
+                {
+                    value: "submit",
+                    text: this.ok_label,
+                    class: "btn btn-primary col-sm-7",
+                    click: function (event) {
+                        event.preventDefault();
+                        var url = this_.get_url();
+                        if (url != undefined) {
+                            $.ajax({
+                                type: "GET",
+                                crossDomain: true,
+                                context: this,
+                                data: $(this).closest("form").serialize(),
+                                url: url
+                                // error: function (request, status, error) {
+                                // }
+                            }).done(function (data, textStatus, jqXHR) {
+                                // var json = $.parseJSON(data);
+                                // Feed.prototype.onload_(data);
+                                // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
+                                this_.onload(data);
+                            }).fail(function (jqXHR, textStatus, errorThrown) {
+                                // console.log(jqXHR);
+                                if (jqXHR.readyState == 0) {
+                                    errorThrown = "Connection Refused."
+                                }
+                                this_.update_error(this_, errorThrown);
+                            });
+                        }
                     }
-                }
-            });
-        container.append(submit);
-        container.append($('<label/>',
-            {class: "col-sm-2"}));
+                });
+            container.append(submit);
+            // Add padding between buttons.
+            container.append($('<label/>', {class: "col-sm-2"}));
+        } else {
+            // Left-pad so that close button aligns right.
+            container.append($('<label/>', {class: "col-sm-9"}));
+        }
     };
     Feed.prototype.addListeners = function () {
+        // Re-enable submit button whenever an input element changes.
         $($(this.form).find("input")).on("input", function () {
+            $($(this).closest("form").find("button")).each(function () {
+                $(this).removeAttr('disabled');
+            });
+        });
+        // Re-enable submit button whenever a select element changes.
+        $($(this.form).find("select")).on("change", function() {
             $($(this).closest("form").find("button")).each(function () {
                 $(this).removeAttr('disabled');
             });
@@ -355,24 +398,37 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             var label = $('<label>',
                 {
                     text: field,
-                    class: "col-sm-4 "
+                    class: "col-sm-4 text-nowrap"
                 });
             var each = $('<div>', {
                 class: " col-sm-8"
             });
-            var input_type = 'text';
-            switch (typeof this.fields[field]) {
-                case 'number':
-                    input_type = 'number';
-                    break;
-            }
-            var input = $('<input>',
+            var input;
+            var fieldValue = this.fields[field];
+            if (Array.isArray(fieldValue)) {
+              // Array values become a dropdown selector. These fields must have been
+              // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
+              // they'd already have been flattened to individual fields by
+              // `populate_path_values`.
+              input = $('<select>',
+                {
+                  class: "form-control ",
+                  name: field,
+                  value: fieldValue[0]
+                });
+              fieldValue.forEach(f => {
+                input.append($('<option>').append(f));
+              });
+            } else {
+              var input_type = (typeof fieldValue == 'number' ? 'number' : 'text');
+              input = $('<input>',
                 {
                     type: input_type,
                     class: "form-control ",
                     name: field,
-                    value: this.fields[field]
+                    value: fieldValue
                 });
+            }
             if (is_disabled) {
                 $(input).prop('readonly', "readonly");
                 $(input).prop('title', "readonly");

@@ -388,6 +388,12 @@ form input {
     opacity: 1;
 }
 
+form select {
+    margin-bottom: 5px;
+    color: #2c2c2c;
+    opacity: 1;
+}
+
 .form {
     overflow: auto;
 }
