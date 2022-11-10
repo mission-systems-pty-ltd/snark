@@ -15,21 +15,6 @@
 #include "../packet.h"
 
 // todo
-//   ! --output-range-resolution
-//     ? remove
-//     ? or predicate on model (helios: cannot get range resolution from difop)
-//   - azimuth angles to/from files
-//     - calibration directory: remove (leave num angles in impl)
-//     - --output-angles
-//       - output as <azimuth>,<elevation>
-//       - lidar-16: fix
-//       - helios-16p: fix
-//       - --help: fix examples
-//     - --angles
-//       - read as <azimuth>,<elevation>
-//       - lidar-16: fix
-//       - helios-16p: fix
-//       - --help: fix examples
 //   - model
 //     - helios
 //       ! helios::models: plug in
@@ -64,18 +49,9 @@ static void usage( bool verbose )
     std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "calibration options" << std::endl;
-    std::cerr << "    --calibration,-c=<directory>; directory containing calibration files: angle.csv, ChannelNum.csv, curves.csv etc" << std::endl;
-    std::cerr << "    --calibration-angles,--angles,--angle,-a=<filename>; default: as in spec" << std::endl;
-    std::cerr << "    --calibration-azimuth-output,--output-azimuth=<how>; output azimuth correction angles to stdout" << std::endl;
-    std::cerr << "        if --difop present, take horizontal angles from difop packet" << std::endl;
+    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles: output calibration angles for each beam as <azimuth>,<elevation>" << std::endl;
+    std::cerr << "        if --difop present, take angles from difop packet, otherwise output defaults for a given lidar model" << std::endl;
     std::cerr << "        <how>: 'degrees' or 'radians'" << std::endl;
-    std::cerr << "    --calibration-elevation-output,--output-elevation=<how>; output vertical angles to stdout" << std::endl;
-    std::cerr << "        --calibration-angles-output,--output-calibration-angles,--output-angles: deprecated" << std::endl;
-    std::cerr << "        if --difop present, take vertical angles from difop packet" << std::endl;
-    std::cerr << "        <how>: 'degrees' or 'radians'" << std::endl;
-    std::cerr << "    --calibration-channels,--channels=<filename>; default: 450 (i.e. 4.50cm) for all channels" << std::endl;
-    std::cerr << "    --range-resolution,--resolution=<metres>; default=0.005, but you most likely will want 0.005 (alternatively, --difop will contain range resolution" << std::endl;
-    std::cerr << "    --output-range-resolution; if --difop present, output resolution as difop says; otherwise output default resolution" << std::endl;
     std::cerr << std::endl;
     std::cerr << "difop options" << std::endl;
     std::cerr << "    --difop=[<path>]; file or stream containing timestamped difop packets; if present, calibration data will be taken from difop packets" << std::endl;
@@ -87,7 +63,7 @@ static void usage( bool verbose )
     std::cerr << "output options:" << std::endl;
     std::cerr << "    --binary,-b[=<format>]: output in binary equivalent of csv" << std::endl;
     std::cerr << "    --fields <fields>: e.g. t,x,y,z,scan" << std::endl;
-    std::cerr << "    --output-fields: todo: print output fields and exit" << std::endl;
+    std::cerr << "    --output-fields: print output fields and exit" << std::endl;
     std::cerr << "    --output-invalid-points: output invalid points" << std::endl;
     std::cerr << "    --scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete: don't output scans with missing packets" << std::endl;
     std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 5; number of consecutive missing packets for new/invalid scan (as a rule of thumb: roughly at 20rpm 50 packets per revolution)" << std::endl;
@@ -101,17 +77,20 @@ static void usage( bool verbose )
     std::cerr << "        default config" << std::endl;
     std::cerr << "            cat timestamped-msop.bin | robosense-to-csv" << std::endl;
     std::cerr << "        config from difop" << std::endl;
-    std::cerr << "            cat timestamped-msop.bin | robosense-to-csv --difop timestamped-difop.bin" << std::endl;
-    std::cerr << "        config from calibration directory" << std::endl;
-    std::cerr << "            cat timestamped-msop.bin | robosense-to-csv --calibration my-calibration-dir" << std::endl;
-    std::cerr << "        configure vertical pitch only" << std::endl;
-    std::cerr << "            cat timestamped-msop.bin | robosense-to-csv --calibration-angles angles.csv" << std::endl;
+    std::cerr << "            capture difop" << std::endl;
+    std::cerr << "                udp-client 7788 --timestamp | head -c 1256 > timestamped-difop.bin" << std::endl;
+    std::cerr << "            listen to msop data" << std::endl;
+    std::cerr << "                udp-client 6699 --timestamp | robosense-to-csv --difop timestamped-difop.bin" << std::endl;
+    std::cerr << "            listen to both difop and msop data on the fly: e.g." << std::endl;
+    std::cerr << "                udp-client 6699 --timestamp | robosense-to-csv --difop <( udp-client 7788 --timestamp ) --difop-max=10" << std::endl;
+    std::cerr << "        view data" << std::endl;
+    std::cerr << "            cat timestamped-msop.bin | robosense-to-csv --difop timestamped-difop.bin --fields=scan,id,x,y,z --binary=2ui,3d | view-points '-;binary=2ui,3d;fields=block,id,x,y,z'" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    difop" << std::endl;
-    std::cerr << "        output elevation angles, if present in difop" << std::endl;
-    std::cerr << "            cat timestamped-difop.bin | robosense-to-csv --difop - --output-elevation=radians > angles.csv" << std::endl;
+    std::cerr << "        output calibrations angles for each beam as <azimuth>,<elevation>, if present in difop" << std::endl;
+    std::cerr << "            cat timestamped-difop.bin | robosense-to-csv --difop - --output-angles=radians > angles.csv" << std::endl;
     std::cerr << "        output elevation angles, if present in difop, otherwise default angles" << std::endl;
-    std::cerr << "            cat timestamped-difop.bin  | robosense-to-csv --difop - --output-elevation=radians --force > angles.csv" << std::endl;
+    std::cerr << "            cat timestamped-difop.bin | robosense-to-csv --difop - --output-angles=radians --force > angles.csv" << std::endl;
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -175,27 +154,12 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
 {
     typedef typename model_traits< Model >::lidar lidar_t;
     typedef typename lidar_t::difop difop_t;
-    options.assert_mutually_exclusive( "--calibration,-c", "--calibration-angles,--angles,--angle,-a" );
-    options.assert_mutually_exclusive( "--calibration,-c", "--calibration-channels,--channels" );
-    options.assert_mutually_exclusive( "--difop", "--calibration-angles,--angles,--angle,-a" );
-    options.assert_mutually_exclusive( "--difop", "--calibration-channels,--channels" );
-    options.assert_mutually_exclusive( "--difop", "--calibration,-c" );
-    std::string calibration = options.value< std::string >( "--calibration,-c", "" );
-    std::string angles = options.value< std::string >( "--calibration-angles,--angles,--angle,-a", "" );
-    std::string channels = options.value< std::string >( "--calibration-channels,--channels", "" );
+    if( options.exists( "--calibration,-c,--calibration-channels,--calibration-angles,--angles,-a,--range-resolution" ) ) { COMMA_THROW( comma::exception, "--calibration,-c,--calibration-channels,--calibration-angles,--angles,-a,--range-resolution: options removed; let us know if you want it back" ); }
     std::string difop = options.value< std::string >( "--difop", "" );
-    options.assert_mutually_exclusive( "" ); // why?
     if( difop.empty() )
     {
-        auto range_resolution = options.optional< double >( "--range-resolution,--resolution" );
-        if( calibration.empty() )
-        {
-            if( !angles.empty() ) { comma::say() << "config: angles from --angles" << std::endl; }
-            if( !channels.empty() ) { comma::say() << "config: channels from --calibration-channels" << std::endl; }
-            return snark::robosense::calculator::make< lidar_t >( "", angles, channels, range_resolution ); // todo! pass azimult filename!
-        }
-        comma::say() << "config from calibration directory: " << calibration << std::endl;
-        return snark::robosense::calculator::make< lidar_t >( "", calibration + "/angle.csv", calibration + "/ChannelNum.csv", range_resolution ); // todo! pass azimult filename!
+        comma::say() << "no difop provided; config from defaults" << std::endl;
+        return snark::robosense::calculator( difop_t::data::corrected_horizontal_angles_default(), difop_t::data::corrected_vertical_angles_default(), lidar_t::range_resolution_default() );
     }
     comma::say() << "config from difop" << std::endl;
     unsigned int difop_max_number_of_packets = options.value( "--difop-max-number-of-packets,--difop-max", 0 );
@@ -284,42 +248,17 @@ int main( int ac, char** av )
         std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
         std::string model_name = options.value< std::string >( "--model", "auto" );
         if( model_name != "auto" ) { update_calculator( snark::robosense::models::from_string( model_name ), options ); }
-        if( options.exists( "--output-range-resolution" ) )
-        { 
-            if( calculator ) { std::cout << calculator->range_resolution() << std::endl; return 0; }
-            comma::say() << "--output-range-resolution: please specify --model explicitly"  << std::endl; return 1;
-        }
-        if( options.exists( "--calibration-azimuth-output,--output-azimuth" ) )
+        if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) )
         {
-            if( !calculator ) { comma::say() << "--calibration-azimuth-output: please specify --model explicitly"  << std::endl; return 1; }
-            const auto& how = options.value< std::string >( "--calibration-azimuth-output,--output-azimuth" );
+            auto how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles" );
+            if( !calculator ) { comma::say() << "--output-calibration-angles: please specify --model explicitly"  << std::endl; return 1; }
             double factor = 0;
             if( how == "radians" ) { factor = 1; }
             else if( how == "degrees" ) { factor = 180. / M_PI; }
-            else
-            { 
-                comma::say() << "please specify --calibration-azimuth-output=degrees or --calibration-azimuth-output=radians"  << std::endl;
-                comma::say() << "ATTENTION: angles in the configuration file (e.g. angle.csv) should be in DEGREES"  << std::endl;
-                return 1;
-            }
-            for( auto a: calculator->azimuth() ) { std::cout << ( a * factor ) << std::endl; }
-            return 0;
-        }
-        if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles,--calibration-elevation-output,--output-elevation" ) )
-        {
-            if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) ) { std::cerr << "--calibration-angles-output,--output-calibration-angles,--output-angles: deprecated; use: --calibration-elevation-output,--output-elevation" << std::endl; }
-            if( !calculator ) { comma::say() << "--calibration-elevation-output: please specify --model explicitly"  << std::endl; return 1; }
-            const auto& how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles,--calibration-elevation-output,--output-elevation" );
-            double factor = 0;
-            if( how == "radians" ) { factor = 1; }
-            else if( how == "degrees" ) { factor = 180. / M_PI; }
-            else
-            { 
-                comma::say() << "please specify --calibration-elevation-output=degrees or --calibration-elevation-output=radians"  << std::endl;
-                comma::say() << "ATTENTION: angles in the configuration file (e.g. angle.csv) should be in DEGREES"  << std::endl;
-                return 1;
-            }
-            for( auto a: calculator->elevation() ) { std::cout << ( a * factor ) << std::endl; }
+            else { comma::say() << "expected --output-calibration-angles=degrees or --output-calibration-angles=degrees; got: --output-calibration-angles=\"" << how << "\"" << std::endl; return 1; }
+            const auto& a = calculator->azimuth();
+            const auto& e = calculator->elevation();
+            for( unsigned int i = 0; i < a.size(); ++i ) { std::cout << ( a[i] * factor ) << "," << ( e[i] * factor ) << std::endl; }
             return 0;
         }
         temperature = options.value( "--temperature,-t", 20 );
