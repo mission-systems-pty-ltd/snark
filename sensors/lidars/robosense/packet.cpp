@@ -113,7 +113,7 @@ std::string models::to_string( models::values value )
         case ruby_lite: return "ruby-lite";
         case helios: return "helios";
     }
-    COMMA_THROW( comma::exception, "expected robosense lidar model code; got: \"" << value << "\"" ); // never here really
+    COMMA_THROW( comma::exception, "expected robosense lidar model code; got: " << value ); // never here really
 }
 
 models::values models::from_string( const std::string& name )
@@ -123,11 +123,35 @@ models::values models::from_string( const std::string& name )
     return it->second;
 }
 
-models::values msop::detect_model( const char* header_bytes )
+const std::map< std::string, helios::models::values > helios::models::names = { { "helios-5515", helios::models::values::helios_5515 },
+                                                                              { "helios-1615", helios::models::values::helios_1615 },
+                                                                              { "helios-16p", helios::models::values::helios_16p },
+                                                                              { "helios-1610", helios::models::values::helios_1610 } };
+
+std::string helios::models::to_string( helios::models::values m )
 {
-    if( reinterpret_cast< const lidar_16::msop::header* >( header_bytes )->sentinel() == lidar_16::msop::header::sentinel_value() ) { return model_value( *reinterpret_cast< const lidar_16::msop::header* >( header_bytes ) ); }
-    if( reinterpret_cast< const helios_16p::msop::header* >( header_bytes )->sentinel() == helios_16p::msop::header::sentinel_value() ) { return model_value( *reinterpret_cast< const helios_16p::msop::header* >( header_bytes ) ); }
-    COMMA_THROW( comma::exception, "could not detect model, since the header sentinel does not match sentinels of supported models (lidar-16 and helios-16p)" );
+    switch( m )
+    {
+        case helios_5515: return "helios-5515";
+        case helios_1615: return "helios-1615";
+        case helios_16p: return "helios-16p";
+        case helios_1610: return "helios-1610";
+    }
+    COMMA_THROW( comma::exception, "expected robosense helios lidar model code; got: " << m ); // never here really
+}
+
+helios::models::values helios::models::from_string( const std::string& name )
+{
+    auto it = names.find( name );
+    if( it == names.end() ) { COMMA_THROW( comma::exception, "expected robosense helios lidar model name; got: \"" << name << "\"" ); }
+    return it->second;
+}
+
+models::values msop::detect_model( const char* header_bytes ) // quick and dirty; robosense packet layout and specs are a mess
+{
+    if( reinterpret_cast< const lidar_16::msop::header* >( header_bytes )->sentinel() == lidar_16::msop::header::sentinel_value() ) { return static_cast< models::values >( reinterpret_cast< const lidar_16::msop::header* >( header_bytes )->model() ); }
+    if( reinterpret_cast< const helios_16p::msop::header* >( header_bytes )->sentinel() == helios_16p::msop::header::sentinel_value() ) { return static_cast< models::values >( reinterpret_cast< const helios_16p::msop::header* >( header_bytes )->type() ); }
+    COMMA_THROW( comma::exception, "could not detect model, since the header sentinel does not match sentinels of supported models (lidar-16 and helios)" );
 }
 
 bool lidar_16::difop::data::corrected_angles::empty() const

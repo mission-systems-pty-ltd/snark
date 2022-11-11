@@ -15,11 +15,6 @@
 #include "../packet.h"
 
 // todo
-//   - model
-//     - helios
-//       ! helios::models: plug in
-//       ! resolve model on helios::models
-//       ! helios-5515 vs helios-16p: model is incorrect; tweak enum? add --force? don't check model consistency? rename helios_16p to helios_5515?
 //   ? exact laser point timing, table 12, page 26
 //     - currently implied from block timestamps and firing interval (100us for both models) in packet.cpp
 //     - lidar-16: 55.5us; Time_offset = 55.5 μs * (sequence_index -1) + 2.8 μs * (data_index-1)
@@ -204,7 +199,7 @@ static boost::optional< snark::robosense::calculator > calculator;
 static unsigned int temperature;
 static bool output_invalid_points;
 
-static void update_calculator( snark::robosense::models::values current_model, const comma::command_line_options& options, const void* msop_packet = nullptr ) // super-quick and dirty for now
+static void update_calculator( snark::robosense::models::values current_model, const comma::command_line_options& options, const void* msop_packet = nullptr ) // super-quick and dirty for now; robosense packet layout, specs, and actual data is a mess
 {
     if( !model )
     {
@@ -218,10 +213,27 @@ static void update_calculator( snark::robosense::models::values current_model, c
             case snark::robosense::models::bpearl:
             case snark::robosense::models::ruby:
             case snark::robosense::models::ruby_lite:
-                COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( *model ) << "\": not implemented" );
-            case snark::robosense::models::helios:
-                calculator = make_calculator< snark::robosense::models::helios_16p >( options, reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet ) );
+                COMMA_THROW( comma::exception, "model \"" << snark::robosense::models::to_string( *model ) << "\" (numeric value: " << int( *model ) << "): not implemented" );
+            case snark::robosense::models::helios: // pain... todo: move model detection-related stuff to calculator
+            {
+                auto packet = reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet );
+                auto helios_model = static_cast<  snark::robosense::helios::models::values >( packet->header.model() );
+                switch( helios_model )
+                {
+                    case snark::robosense::helios::models::helios_16p:
+                        calculator = make_calculator< snark::robosense::models::helios_16p >( options, packet );
+                        break;
+                    case snark::robosense::helios::models::helios_1615:
+                    case snark::robosense::helios::models::helios_1610:
+                    case snark::robosense::helios::models::helios_5515:
+                        COMMA_THROW( comma::exception, "model \"" << snark::robosense::helios::models::to_string( helios_model ) << "\" (numeric value: " << int( helios_model ) << "): not implemented" );
+                    default:
+                        comma::say() << "expected helios model, got: " << int( helios_model ) << "; but i am very nice today and will assume you are using helios-16p" << std::endl;
+                        calculator = make_calculator< snark::robosense::models::helios_16p >( options, packet );
+                        break;
+                }
                 break; // todo: resolve model on helios::models
+            }
         }
     }
     // todo: uncomment once we know the answer about helios-16p glitch: if( current_model != *model ) { COMMA_THROW( comma::exception, "expected packet for model \"" << snark::robosense::models::to_string( *model ) << "\"; got: \"" << snark::robosense::models::to_string( current_model )<< "\"" ); }

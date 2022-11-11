@@ -100,9 +100,6 @@ struct msop
     template < typename Packet >
     static bool valid( const Packet& p ) { return p.data.blocks[0].azimuth() <= 36000; } // quick and dirty; what is azimuth 0xffff?
 
-    template < typename Header >
-    static models::values model_value( const Header& header ) { return static_cast< models::values >( header.model() ); }
-
     static models::values detect_model( const char* header ); // quick and dirty; really sucks because for a weird undisclosed reason, the model field has a different byte offset in the msop packet header for different models
 
     class const_iterator
@@ -241,7 +238,18 @@ struct lidar_16
     static double range_resolution( const difop::packet* d, const msop::packet* ) { return d ? d->data.range_resolution() : range_resolution_default(); }
 };
 
-struct helios_16p
+struct helios
+{
+    struct models
+    {
+        enum values { helios_5515 = 0x01, helios_1615 = 0x02, helios_16p = 0x03, helios_1610 = 0x04 };
+        static std::string to_string( values m );
+        static values from_string( const std::string& name );
+        static const std::map< std::string, values > names;
+    };
+};
+
+struct helios_16p // todo? move packet definitions to helios; then: struct helios_16p: public helios
 {
     struct msop
     {
@@ -259,8 +267,8 @@ struct helios_16p
             comma::packed::big_endian::uint16 angle_pulse_interval_count; // helios-16p spec 6.2.1: unit: us
             robosense::utc_time timestamp;
             std::array< char, 1 > reserved_2;
-            comma::packed::byte type;
-            comma::packed::byte model;
+            comma::packed::byte type; // helios-16p spec 6.2.1 table 9
+            comma::packed::byte model; // helios-16p spec 6.2.1 table 9
             std::array< char, 9 > reserved_3;
         };
 
@@ -356,16 +364,6 @@ struct helios_16p
     static double range_resolution_default() { return 0.005; }
 
     static double range_resolution( const difop::packet*, const msop::packet* m ) { return m ? m->range_resolution() : range_resolution_default(); }
-};
-
-struct helios
-{
-    struct models
-    {
-        enum values { helios_5515 = 0x01, helios_1615 = 0x02, helios_16p = 0x03, helios_1610 = 0x04 };
-        static std::string to_string( values m );
-        static values to_string( const std::string& name );
-    };
 };
 
 } } // namespace snark { namespace robosense {
