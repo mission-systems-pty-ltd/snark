@@ -224,7 +224,7 @@ struct lidar_16
             comma::packed::string< 18 > operation_status;
             comma::packed::string< 11 > reserved_2;
             std::array< char, 40 > fault_diagnosis;
-            comma::packed::string< 86 >  gpsrmc;
+            comma::packed::string< 86 >  gprmc;
             std::array< char, 697 > corrected_static;
             corrected_angles corrected_vertical_angles;
             comma::packed::string< 33 > reserved_3;
@@ -351,7 +351,7 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
             comma::packed::byte code_wheel_is_calibrated;
             comma::packed::byte gps_pps_pulse_trigger_mode;
             std::array< char, 20 > reserved_3;
-            comma::packed::string< 86 > gpsrmc; // todo: helios-16p spec B.16
+            comma::packed::string< 86 > gprmc; // todo: helios-16p spec B.16
             corrected_angles corrected_vertical_angles;
             std::array< char, 48 > reserved_4;
             corrected_angles corrected_horizontal_angles;
