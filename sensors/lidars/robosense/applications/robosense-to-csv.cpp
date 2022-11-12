@@ -9,10 +9,12 @@
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
 #include <comma/io/stream.h>
+#include <comma/name_value/serialize.h>
 #include "../../../../timing/time.h"
 #include "../../../../visiting/traits.h"
 #include "../calculator.h"
 #include "../packet.h"
+#include "../traits.h"
 
 // todo
 //   ? exact laser point timing, table 12, page 26
@@ -44,7 +46,8 @@ static void usage( bool verbose )
     std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "calibration options" << std::endl;
-    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles: output calibration angles for each beam as <azimuth>,<elevation>" << std::endl;
+    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles: output calibration angles for" << std::endl;
+    std::cerr << "        each beam as <azimuth>,<elevation>" << std::endl;
     std::cerr << "        if --difop present, take angles from difop packet, otherwise output defaults for a given lidar model" << std::endl;
     std::cerr << "        <how>: 'degrees' or 'radians'" << std::endl;
     std::cerr << std::endl;
@@ -53,6 +56,10 @@ static void usage( bool verbose )
     std::cerr << "                      currently only calibrated vertical angles are supported" << std::endl;
     std::cerr << "                      '-' means difop packets are on stdin (makes sense only with --output-angles or alike" << std::endl;
     std::cerr << "    --difop-max-number-of-packets,--difop-max=<num>; max number of difop packets to read; if not specified, read till the end of file/stream" << std::endl;
+    // std::cerr << "    --difop-from-json,--from-json,--from=<filename>; e.g. cat timestamped-msop.bin | robosense-to-csv --from difop.json" << std::endl;
+    // std::cerr << "    --difop-to-json,--to-json; read timestamp difop packets on stdin, write to stdout difop field values of the first difop packet" << std::endl;
+    // std::cerr << "        as json (currently, not all the fields are implemented, yet; forunimplemented fields, lists of byte values are output for now)" << std::endl;
+    // std::cerr << "        e.g: cat timestamped-difop.bin | robosense-to-csv --model=helios-16p --to-json" << std::endl;
     std::cerr << "    --force; use if robosense-to-csv suggests it" << std::endl;
     std::cerr << std::endl;
     std::cerr << "output options:" << std::endl;
@@ -61,7 +68,8 @@ static void usage( bool verbose )
     std::cerr << "    --output-fields: print output fields and exit" << std::endl;
     std::cerr << "    --output-invalid-points: output invalid points" << std::endl;
     std::cerr << "    --scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete: don't output scans with missing packets" << std::endl;
-    std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 5; number of consecutive missing packets for new/invalid scan (as a rule of thumb: roughly at 20rpm 50 packets per revolution)" << std::endl;
+    std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 5; number of consecutive missing packets for new/invalid scan" << std::endl;
+    std::cerr << "                                                                 (as a rule of thumb: roughly at 20rpm 50 packets per revolution)" << std::endl;
     std::cerr << "    --temperature,-t=<celcius>; default=20; integer from 0 to 39" << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options" << std::endl;
@@ -79,7 +87,9 @@ static void usage( bool verbose )
     std::cerr << "            listen to both difop and msop data on the fly: e.g." << std::endl;
     std::cerr << "                udp-client 6699 --timestamp | robosense-to-csv --difop <( udp-client 7788 --timestamp ) --difop-max=10" << std::endl;
     std::cerr << "        view data" << std::endl;
-    std::cerr << "            cat timestamped-msop.bin | robosense-to-csv --difop timestamped-difop.bin --fields=scan,id,x,y,z --binary=2ui,3d | view-points '-;binary=2ui,3d;fields=block,id,x,y,z'" << std::endl;
+    std::cerr << "            cat timestamped-msop.bin \\" << std::endl;
+    std::cerr << "                | robosense-to-csv --difop timestamped-difop.bin --fields=scan,id,x,y,z --binary=2ui,3d \\" << std::endl;
+    std::cerr << "                | view-points '-;binary=2ui,3d;fields=block,id,x,y,z'" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    difop" << std::endl;
     std::cerr << "        output calibrations angles for each beam as <azimuth>,<elevation>, if present in difop" << std::endl;
@@ -193,6 +203,37 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, lidar_t::range_resolution( p.second, msop_packet ) );
 }
 
+template < typename Difop >
+static int difop_to_json()
+{
+    typedef Difop difop_t;
+    typedef std::pair< boost::posix_time::ptime, typename difop_t::packet* > pair_t;
+    std::vector< char > buffer( difop_t::packet::size );
+    pair_t p( boost::posix_time::ptime(), NULL );
+    pair_t q = read< typename difop_t::packet >( std::cin, &buffer[0] );
+    if( !q.second ) { comma::say() << "failed to read difop from stdin" << std::endl; return 1; }
+    if( !q.second->header.valid() ) { comma::say() << "got difop with invalid header on stdin" << std::endl; return 1; }
+    comma::write_json( *q.second, std::cout );
+    return 0;
+}
+
+static int difop_to_json( const std::string& model_name )
+{
+    if( model_name == "auto" ) { comma::say() << "for --difop-to-json, please specify model explicitly" << std::endl; return 1; }
+    switch( snark::robosense::models::from_string( model_name ) )
+    {
+        case snark::robosense::models::lidar_16:
+        case snark::robosense::models::lidar_32: 
+        case snark::robosense::models::bpearl:
+        case snark::robosense::models::ruby:
+        case snark::robosense::models::ruby_lite:
+            COMMA_THROW( comma::exception, "--from-json: model \"" << model_name << "\": not implemented" );
+        case snark::robosense::models::helios: // pain... todo: move model detection-related stuff to calculator
+            return difop_to_json< snark::robosense::helios_16p::difop::packet >();
+    }
+    return 0; // never here
+}
+
 static comma::csv::options csv;
 static boost::optional< snark::robosense::models::values > model;
 static boost::optional< snark::robosense::calculator > calculator;
@@ -256,14 +297,13 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::robosense::calculator::point >( false ), ',' ) << std::endl; return 0; }
         if( options.exists( "--models" ) ) { for( const auto& m: snark::robosense::models::names ) { std::cout << m.first << "," << m.second << std::endl; } return 0; }
-        output_invalid_points = options.exists( "--output-invalid-points" );
-        std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
         std::string model_name = options.value< std::string >( "--model", "auto" );
+        if( options.exists( "--difop-to-json,--to-json" ) ) { return difop_to_json( model_name ); } // don't use it; it does not work (requires quite a bit of effort to make it working)
         if( model_name != "auto" ) { update_calculator( snark::robosense::models::from_string( model_name ), options ); }
         if( options.exists( "--calibration-angles-output,--output-calibration-angles,--output-angles" ) )
         {
-            auto how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles" );
             if( !calculator ) { comma::say() << "--output-calibration-angles: please specify --model explicitly"  << std::endl; return 1; }
+            auto how = options.value< std::string >( "--calibration-angles-output,--output-calibration-angles,--output-angles" );
             double factor = 0;
             if( how == "radians" ) { factor = 1; }
             else if( how == "degrees" ) { factor = 180. / M_PI; }
@@ -279,6 +319,8 @@ int main( int ac, char** av )
         bool discard_incomplete_scans = options.exists( "--scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete" );
         csv = comma::csv::options( options );
         csv.full_xpath = false;
+        output_invalid_points = options.exists( "--output-invalid-points" );
+        std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
         std::vector< std::pair< boost::posix_time::ptime, snark::robosense::lidar_16::msop::packet > > scan_buffer; //std::vector< std::pair< boost::posix_time::ptime, std::array< char, snark::robosense::msop::packet::size > > > scan_buffer;
         if( discard_incomplete_scans ) { scan_buffer.reserve( 120 ); } // quick and dirty
         while( std::cin.good() && !std::cin.eof() )
