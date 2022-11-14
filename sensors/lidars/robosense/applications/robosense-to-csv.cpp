@@ -70,7 +70,7 @@ static void usage( bool verbose )
     std::cerr << "    --scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete: don't output scans with missing packets" << std::endl;
     std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 5; number of consecutive missing packets for new/invalid scan" << std::endl;
     std::cerr << "                                                                 (as a rule of thumb: roughly at 20rpm 50 packets per revolution)" << std::endl;
-    std::cerr << "    --temperature,-t=<celcius>; default=20; integer from 0 to 39" << std::endl;
+    // std::cerr << "    --temperature,-t=<celcius>; default=20; integer from 0 to 39" << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options" << std::endl;
     std::cerr << comma::csv::options::usage( verbose ) << std::endl;
@@ -258,7 +258,9 @@ static void update_calculator( snark::robosense::models::values current_model, c
             case snark::robosense::models::helios: // pain... todo: move model detection-related stuff to calculator
             {
                 auto packet = reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet );
-                auto helios_model = static_cast<  snark::robosense::helios::models::values >( packet->header.model() );
+                std::string model_name = options.value< std::string >( "--model", "" );
+                auto helios_model = model_name.empty() ? ( packet ? static_cast<  snark::robosense::helios::models::values >( packet->header.model() ) : snark::robosense::helios::models::helios_16p )
+                                                       : snark::robosense::helios::models::from_string( model_name );
                 switch( helios_model )
                 {
                     case snark::robosense::helios::models::helios_16p:
