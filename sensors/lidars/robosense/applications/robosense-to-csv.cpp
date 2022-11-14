@@ -147,6 +147,7 @@ template <> struct model_traits< snark::robosense::models::lidar_16 >
     typedef snark::robosense::lidar_16 lidar;
     static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
     static double range_resolution_default() { return 0.01; } // todo! sort it out! quick and dirty for now
+    static double zero_angle_offset( const lidar::difop::packet& ) { return 0; } // for backward compatibility for now; lidar-16 difop packet does have zero angle offset, but it's undocumented and we never used it before
     
     static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::lidar_16::difop::packet& ) { return snark::robosense::lidar_16::difop::data::corrected_horizontal_angles_default(); }
 };
@@ -156,6 +157,7 @@ template <> struct model_traits< snark::robosense::models::helios_16p >
     typedef snark::robosense::helios_16p lidar;
     static double range_resolution( const snark::robosense::helios_16p::difop::packet& p ) { return 0.005; } // quick and dirty, just to make it compiling for now
     static double range_resolution_default() { return 0.005; } // todo! sort it out! quick and dirty for now
+    static double zero_angle_offset( const lidar::difop::packet& difop ) { return difop.data.zero_angle_offset.as_radians(); }
     static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::helios_16p::difop::packet& p ) { return p.data.corrected_horizontal_angles.as_radians(); }
 };
 
@@ -205,7 +207,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     comma::say() << "got DIFOP data in packet " << count << " in '" << difop << "'" << std::endl;
     std::array< double, snark::robosense::msop::data::number_of_lasers > elevation;
     for( unsigned int i = 0; i < elevation.size(); ++i ) { elevation[i] = p.second->data.corrected_vertical_angles.as_radians( i ); }
-    return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, lidar_t::range_resolution( p.second, msop_packet ) );
+    return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, lidar_t::range_resolution( p.second, msop_packet ), model_traits< Model >::zero_angle_offset( *p.second ) );
 }
 
 template < typename Difop > static int difop_to_json()
@@ -263,7 +265,7 @@ static void update_calculator( snark::robosense::models::values current_model, c
             {
                 auto packet = reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet );
                 std::string model_name = options.value< std::string >( "--model", "auto" );
-                auto helios_model = model_name != "auto" ? ( packet ? static_cast<  snark::robosense::helios::models::values >( packet->header.model() ) : snark::robosense::helios::models::helios_16p )
+                auto helios_model = model_name == "auto" ? ( packet ? static_cast<  snark::robosense::helios::models::values >( packet->header.model() ) : snark::robosense::helios::models::helios_16p )
                                                          : snark::robosense::helios::models::from_string( model_name );
                 switch( helios_model )
                 {

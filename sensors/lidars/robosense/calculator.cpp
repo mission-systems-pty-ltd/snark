@@ -100,7 +100,15 @@ void calculator::init_lasers_()
     for( unsigned int j = 0; j < robosense::msop::data::number_of_lasers; ++j ) { lasers_[j] = laser_( j, elevation_ ); }
 }
 
-calculator::calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution ): azimuth_( azimuth ), elevation_( elevation ), range_resolution_( range_resolution ) { init_lasers_(); }
+calculator::calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution, double zero_angle_offset )
+    : azimuth_( azimuth )
+    , elevation_( elevation )
+    , range_resolution_( range_resolution )
+    , zero_angle_offset_( zero_angle_offset )
+{
+    std::cerr << "==> zero_angle_offset: " << ( zero_angle_offset * 180 / M_PI ) << std::endl;
+    init_lasers_();
+}
 
 double calculator::range( unsigned int r, unsigned int laser, unsigned int temperature ) const { return range_resolution_ * ( channel_num_ ? r - ( *channel_num_ )[laser][temperature] : r ); }
 

@@ -69,7 +69,7 @@ class calculator
 
         typedef std::array< double, robosense::msop::data::number_of_lasers > angles_t;
         
-        calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution );
+        calculator( const angles_t& azimuth, const angles_t& elevation, double range_resolution, double zero_angle_offset = 0 );
         
         double range( unsigned int r, unsigned int laser, unsigned int temperature ) const;
         
@@ -96,6 +96,7 @@ class calculator
         typedef std::array< std::array< double, 41 >, robosense::msop::data::number_of_lasers > channel_num_t_;
         boost::optional< channel_num_t_ > channel_num_;
         double range_resolution_;
+        double zero_angle_offset_;
         struct laser_
         {
             double sin;
