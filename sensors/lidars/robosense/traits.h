@@ -46,16 +46,28 @@ template <> struct traits< snark::robosense::difop::tail >
     template < typename Key, class Visitor > static void visit( const Key&, snark::robosense::difop::tail& p, Visitor& v ) { detail::visit_as_bytes( "sentinel", p.sentinel, v ); }
 };
 
+template <> struct traits< snark::robosense::helios_16p::difop::data::fov_setting_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::fov_setting_t& p, Visitor& v )
+    {
+        v.apply( "start", p.start.as_degrees() );
+        v.apply( "end", p.end.as_degrees() );
+    }
+};
+
 template <> struct traits< snark::robosense::helios_16p::difop::data >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::robosense::helios_16p::difop::data& p, Visitor& v )
     {
-
-    }
-
-    template < typename Key, class Visitor > static void visit( const Key&, snark::robosense::helios_16p::difop::data& p, Visitor& v )
-    {
-
+        v.apply( "motor_rotation_speed", p.motor_rotation_speed() );
+        v.apply( "fov_setting", p.fov_setting );
+        v.apply( "motor_phase_lock", p.motor_phase_lock() );
+        detail::visit_as_bytes( "top_board_firmware_version", p.top_board_firmware_version, v );
+        detail::visit_as_bytes( "bottom_board_firmware_version", p.bottom_board_firmware_version, v );
+        detail::visit_as_bytes( "bottom_board_software_version", p.bottom_board_software_version, v );
+        detail::visit_as_bytes( "motor_firmware_version", p.motor_firmware_version, v );
+        v.apply( "zero_angle_offset", p.zero_angle_offset.as_degrees() );
+        v.apply( "gprmc", std::string( p.gprmc.data() ) + "\0" );
     }
 };
 

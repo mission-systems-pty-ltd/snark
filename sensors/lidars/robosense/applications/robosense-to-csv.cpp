@@ -57,9 +57,12 @@ static void usage( bool verbose )
     std::cerr << "                      '-' means difop packets are on stdin (makes sense only with --output-angles or alike" << std::endl;
     std::cerr << "    --difop-max-number-of-packets,--difop-max=<num>; max number of difop packets to read; if not specified, read till the end of file/stream" << std::endl;
     // std::cerr << "    --difop-from-json,--from-json,--from=<filename>; e.g. cat timestamped-msop.bin | robosense-to-csv --from difop.json" << std::endl;
-    // std::cerr << "    --difop-to-json,--to-json; read timestamp difop packets on stdin, write to stdout difop field values of the first difop packet" << std::endl;
-    // std::cerr << "        as json (currently, not all the fields are implemented, yet; forunimplemented fields, lists of byte values are output for now)" << std::endl;
-    // std::cerr << "        e.g: cat timestamped-difop.bin | robosense-to-csv --model=helios-16p --to-json" << std::endl;
+    std::cerr << "    --difop-to-json,--to-json; read timestamp difop packets on stdin, write to stdout difop field values of the first difop packet" << std::endl;
+    std::cerr << "        as json (currently, not all the fields are implemented, yet; forunimplemented fields, lists of byte values are output for now)" << std::endl;
+    std::cerr << "        e.g: cat timestamped-difop.bin | robosense-to-csv --model=helios-16p --to-json" << std::endl;
+    std::cerr << "        ATTENTION: this feature is not complete and requires to eventually fix a bug in comma::property_tree" << std::endl;
+    std::cerr << "                   however, it may provide a quick insight into DIFOP field values that currently are implemented" << std::endl;
+    std::cerr << "                   try and see for yourself" << std::endl;
     std::cerr << "    --force; use if robosense-to-csv suggests it" << std::endl;
     std::cerr << std::endl;
     std::cerr << "output options:" << std::endl;
@@ -205,8 +208,7 @@ static snark::robosense::calculator make_calculator( const comma::command_line_o
     return snark::robosense::calculator( model_traits< Model >::corrected_horizontal_angles( *p.second ), elevation, lidar_t::range_resolution( p.second, msop_packet ) );
 }
 
-template < typename Difop >
-static int difop_to_json()
+template < typename Difop > static int difop_to_json()
 {
     typedef Difop difop_t;
     typedef std::pair< boost::posix_time::ptime, typename difop_t::packet* > pair_t;

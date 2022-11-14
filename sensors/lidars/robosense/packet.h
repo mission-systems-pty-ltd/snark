@@ -284,18 +284,17 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
     {
         struct data: public comma::packed::packed_struct< data, 1238 >
         {
-            struct motor_rotation_speed_t: public comma::packed::packed_struct< motor_rotation_speed_t, 2 >
+            struct angle: comma::packed::packed_struct< angle, 2 >
             {
-                comma::packed::string< 2 > value;
-                unsigned int rps() const { return value() == "\x04\xb0" ? 20 : value() == "\x02\x58" ? 10 : 0; }
+                comma::packed::big_endian::uint16 angle;
+                double as_degrees() const { return double( angle() ) / 100; }
+                double as_radians() const { return as_degrees() * M_PI / 180; }
             };
 
             struct fov_setting_t
             {
-                comma::packed::big_endian::uint16 start;
-                comma::packed::big_endian::uint16 end;
-                double start_radians() const; // todo: implement byte layout once required; see helios-16p spec B.2
-                double end_radians() const; // todo: implement byte layout once required; see helios-16p spec B.2
+                angle start;
+                angle end;
             };
 
             struct version_t: public comma::packed::packed_struct< version_t, 5 >
@@ -321,7 +320,7 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
 
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 
-            motor_rotation_speed_t motor_rotation_speed;
+            comma::packed::big_endian::uint16 motor_rotation_speed;
             comma::packed::string< 22 > ethernet; // todo: implement byte layout once required; see helios-16p spec B.2
             fov_setting_t fov_setting; // todo: implement byte layout once required; see helios-16p spec B.2
             std::array< char, 2 > reserved_0;
@@ -340,7 +339,7 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
             std::array< comma::packed::byte, 4 > subnet_mask;
             std::array< char, 201 > reserved_1;
             comma::packed::string< 6 > serial_number;
-            comma::packed::big_endian::uint16 zero_angle_offset; // todo! looks important
+            angle zero_angle_offset; // todo! looks important
             comma::packed::byte return_mode;
             comma::packed::byte time_synchronization_mode;
             comma::packed::byte synchronization_status;
