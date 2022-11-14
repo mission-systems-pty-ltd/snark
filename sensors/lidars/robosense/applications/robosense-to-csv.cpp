@@ -148,7 +148,6 @@ template <> struct model_traits< snark::robosense::models::lidar_16 >
     static double range_resolution( const snark::robosense::lidar_16::difop::packet& p ) { return p.data.range_resolution(); } // quick and dirty
     static double range_resolution_default() { return 0.01; } // todo! sort it out! quick and dirty for now
     static double zero_angle_offset( const lidar::difop::packet& ) { return 0; } // for backward compatibility for now; lidar-16 difop packet does have zero angle offset, but it's undocumented and we never used it before
-    
     static std::array< double, snark::robosense::msop::data::number_of_lasers > corrected_horizontal_angles( const snark::robosense::lidar_16::difop::packet& ) { return snark::robosense::lidar_16::difop::data::corrected_horizontal_angles_default(); }
 };
 

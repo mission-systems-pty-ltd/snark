@@ -128,7 +128,8 @@ calculator::point calculator::make_point( comma::uint32 scan, const boost::posix
     p.t = t + boost::posix_time::microseconds( int( it->delay * 1000000 ) );
     p.id = it->id;
     p.range = range( it->range, it->id, temperature );
-    p.bearing = it->azimuth + azimuth_[ it->id ];
+    p.bearing = it->azimuth + azimuth_[ it->id ] + zero_angle_offset_; // todo? try subtracting it instead of adding?
+    if( p.bearing < 0 ) { p.bearing += M_PI * 2; } else if( p.bearing > M_PI * 2 ) { p.bearing -= M_PI * 2; } // todo? can it be (because of zero_angle_offset)? should we subtract 2pi? should we check for negative offset, too? should we add offset instead of subtracting it?
     p.elevation = elevation_[ it->id ];
     p.reflectivity = it->reflectivity;
     p.coordinates = to_cartesian( it->id, p.range, p.bearing );
