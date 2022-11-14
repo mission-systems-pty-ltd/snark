@@ -68,8 +68,10 @@ static void usage( bool verbose )
     std::cerr << "    --output-fields: print output fields and exit" << std::endl;
     std::cerr << "    --output-invalid-points: output invalid points" << std::endl;
     std::cerr << "    --scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete: don't output scans with missing packets" << std::endl;
-    std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 5; number of consecutive missing packets for new/invalid scan" << std::endl;
-    std::cerr << "                                                                 (as a rule of thumb: roughly at 20rpm 50 packets per revolution)" << std::endl;
+    std::cerr << "    --scan-max-missing-packets,--missing-packets=<n>; default 100; number of consecutive missing packets for" << std::endl;
+    std::cerr << "          new/invalid scan (as a rule of thumb: roughly at 20rpm 50 packets per revolution)." << std::endl;
+    std::cerr << "          Packets that are timestamped 'late' by the system are considered missing, so" << std::endl;
+    std::cerr << "          max-missing-packets * packet interval should be bigger than the jitter in packet timestamps." << std::endl;
     // std::cerr << "    --temperature,-t=<celcius>; default=20; integer from 0 to 39" << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options" << std::endl;
@@ -317,7 +319,7 @@ int main( int ac, char** av )
         }
         temperature = options.value( "--temperature,-t", 20 );
         if( temperature > 40 ) { comma::say() << "expected temperature between 0 and 40; got: " << temperature << std::endl; return 1; }
-        snark::robosense::calculator::scan scan( options.value( "--scan-max-missing-packets,--missing-packets", 10 ) );
+        snark::robosense::calculator::scan scan( options.value( "--scan-max-missing-packets,--missing-packets", 100 ) );
         bool discard_incomplete_scans = options.exists( "--scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete" );
         csv = comma::csv::options( options );
         csv.full_xpath = false;
