@@ -260,9 +260,9 @@ static void update_calculator( snark::robosense::models::values current_model, c
             case snark::robosense::models::helios: // pain... todo: move model detection-related stuff to calculator
             {
                 auto packet = reinterpret_cast< const snark::robosense::helios_16p::msop::packet* >( msop_packet );
-                std::string model_name = options.value< std::string >( "--model", "" );
-                auto helios_model = model_name.empty() ? ( packet ? static_cast<  snark::robosense::helios::models::values >( packet->header.model() ) : snark::robosense::helios::models::helios_16p )
-                                                       : snark::robosense::helios::models::from_string( model_name );
+                std::string model_name = options.value< std::string >( "--model", "auto" );
+                auto helios_model = model_name != "auto" ? ( packet ? static_cast<  snark::robosense::helios::models::values >( packet->header.model() ) : snark::robosense::helios::models::helios_16p )
+                                                         : snark::robosense::helios::models::from_string( model_name );
                 switch( helios_model )
                 {
                     case snark::robosense::helios::models::helios_16p:
