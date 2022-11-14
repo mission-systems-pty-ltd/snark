@@ -46,7 +46,7 @@ static void usage( bool verbose )
     std::cerr << "              exit (lidar-16 currently is supported; helios-16p: implementation in progress)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "calibration options" << std::endl;
-    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles: output calibration angles for" << std::endl;
+    std::cerr << "    --calibration-angles-output,--output-calibration-angles,--output-angles=<how>: output calibration angles for" << std::endl;
     std::cerr << "        each beam as <azimuth>,<elevation>" << std::endl;
     std::cerr << "        if --difop present, take angles from difop packet, otherwise output defaults for a given lidar model" << std::endl;
     std::cerr << "        <how>: 'degrees' or 'radians'" << std::endl;
