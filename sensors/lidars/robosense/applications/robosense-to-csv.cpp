@@ -36,7 +36,7 @@ static void usage( bool verbose )
     std::cerr << "usage: cat robosense*.bin | robosense-to-csv [<options>]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "limitations" << std::endl;
-    std::cerr << "    only rs-lidar-16 currently supported" << std::endl;
+    std::cerr << "    only rs-lidar-16 and helios-16p are currently supported" << std::endl;
     std::cerr << "    reflectivity curves not implemented yet" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
