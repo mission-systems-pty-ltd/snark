@@ -106,7 +106,6 @@ calculator::calculator( const angles_t& azimuth, const angles_t& elevation, doub
     , range_resolution_( range_resolution )
     , zero_angle_offset_( zero_angle_offset )
 {
-    std::cerr << "==> zero_angle_offset: " << ( zero_angle_offset * 180 / M_PI ) << std::endl;
     init_lasers_();
 }
 
