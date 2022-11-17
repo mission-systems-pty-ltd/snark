@@ -25,6 +25,15 @@ template < typename K, typename T, typename V > inline void visit_as_bytes( cons
     v.apply( k, a );
 }
 
+inline static char _hex( unsigned char v ) { return v > 9 ? ( 'a' + v - 10 ) : ( '0' + v ); }
+
+template < typename K, typename T, typename V > inline void visit_as_hexadecimal( const K& k, const T& t, V& v ) // uber-quick and dirty
+{
+    std::array< std::string, size< T >::value > a;
+    for( unsigned int i = 0; i < size< T >::value; ++i ) { a[i] = std::string( "0x" ) + _hex( ( unsigned char )( t.data()[i] ) >> 4 ) + _hex( ( unsigned char )( t.data()[i] ) & 0x0f ); }
+    v.apply( k, a );
+}
+
 template < typename K, typename T, typename V > inline void visit_as_bytes( const K& k, T& t, V& v ) // quick and dirty
 {
     std::array< char, size< T >::value > a;
@@ -66,6 +75,8 @@ template <> struct traits< snark::robosense::helios_16p::difop::data >
         detail::visit_as_bytes( "bottom_board_firmware_version", p.bottom_board_firmware_version, v );
         detail::visit_as_bytes( "bottom_board_software_version", p.bottom_board_software_version, v );
         detail::visit_as_bytes( "motor_firmware_version", p.motor_firmware_version, v );
+        detail::visit_as_bytes( "sensor_hardware_version", p.sensor_hardware_version, v );
+        detail::visit_as_hexadecimal( "serial_number", p.serial_number, v );
         v.apply( "zero_angle_offset", p.zero_angle_offset.as_degrees() );
         v.apply( "gprmc", std::string( p.gprmc.data() ) + "\0" );
     }
