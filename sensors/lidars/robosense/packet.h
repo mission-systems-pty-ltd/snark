@@ -302,6 +302,17 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
                 comma::packed::string< 5 > value;
             };
 
+            struct ethernet_t: public comma::packed::packed_struct< ethernet_t, 22 >
+            {
+                comma::packed::string< 4 > lidar_ip;
+                comma::packed::string< 4 > dest_pc_ip;
+                comma::packed::string< 6 > mac_addr;
+                comma::packed::big_endian::uint16 port1;
+                comma::packed::big_endian::uint16 port2;
+                comma::packed::big_endian::uint16 port3;
+                comma::packed::big_endian::uint16 port4;
+            };
+
             struct corrected_angles: public comma::packed::packed_struct< corrected_angles, 3 * robosense::msop::data::number_of_lasers >
             {
                 struct angle: public comma::packed::packed_struct< angle, 3 >
@@ -321,7 +332,7 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
 
             comma::packed::big_endian::uint16 motor_rotation_speed;
-            comma::packed::string< 22 > ethernet; // todo: implement byte layout once required; see helios-16p spec B.2
+            ethernet_t ethernet; // todo: implement byte layout once required; see helios-16p spec B.2
             fov_setting_t fov_setting; // todo: implement byte layout once required; see helios-16p spec B.2
             std::array< char, 2 > reserved_0;
             comma::packed::big_endian::uint16 motor_phase_lock;
