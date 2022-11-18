@@ -11,6 +11,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <comma/base/types.h>
+#include <comma/packed/bits.h>
 #include <comma/packed/byte.h>
 #include <comma/packed/big_endian.h>
 #include <comma/packed/little_endian.h>
@@ -338,28 +339,52 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
                 comma::packed::byte value;
             };
 
-            struct operating_status_t: public comma::packed::packed_struct< operating_status_t, 12>
+            struct operating_status_t: public comma::packed::packed_struct< operating_status_t, 12 >
             {
-                comma::packed::uint16 ldat1_reg;
-                comma::packed::uint16 vdat;
-                comma::packed::uint16 vdat_12v_reg;
-                comma::packed::uint16 vdat_5v_reg;
-                comma::packed::uint16 vdat_2v5_reg;
-                comma::packed::uint16 vdat_apd;
+                comma::packed::big_endian::uint16 ldat1_reg;
+                comma::packed::big_endian::uint16 vdat;
+                comma::packed::big_endian::uint16 vdat_12v_reg;
+                comma::packed::big_endian::uint16 vdat_5v_reg;
+                comma::packed::big_endian::uint16 vdat_2v5_reg;
+                comma::packed::big_endian::uint16 vdat_apd;
             };
 
             struct fault_diagnosis_t: public comma::packed::packed_struct< fault_diagnosis_t, 18>
             {
-                comma::packed::uint16 temperature1;    
-                comma::packed::uint16 temperature2;
-                comma::packed::uint16 temperature3;
-                comma::packed::uint16 temperature4;
-                comma::packed::uint16 temperature5;
-                comma::packed::uint16 r_rpm;
+                struct temperature_bivis: public comma::packed::packed_struct< temperature_bivis, 2 >
+                {
+                    comma::packed::big_endian::uint16 value;
+                    double as_celcius() const { return 200. * value() / 4096 - 50; }
+                };
+
+                struct temperature_butthead: public comma::packed::packed_struct< temperature_butthead, 2 >
+                {
+                    comma::packed::big_endian::uint16 value;
+                    double as_celcius() const { return 503.975 * value() / 4096 - 273.15; }
+                };
+
+                struct gps_status_t
+                {
+                    unsigned char pps_lock: 1,
+                                  fprmc_lock: 1,
+                                  utc_lock: 1,
+                                  gprmc_input_status: 1,
+                                  pps_input_status: 1,
+                                  reserved: 3;
+
+                    gps_status_t(): pps_lock( false ), fprmc_lock( false ), utc_lock( false ), gprmc_input_status( false ), reserved( 0 ) {}
+                };
+
+                temperature_butthead temperature1;    
+                temperature_bivis temperature2;
+                temperature_bivis temperature3;
+                temperature_bivis temperature4;
+                temperature_butthead temperature5;
+                comma::packed::big_endian::uint16 r_rpm;
                 comma::packed::byte lane_up;
-                comma::packed::uint16 lane_up_cnt;
-                comma::packed::uint16 top_status;
-                comma::packed::byte gps_status;
+                comma::packed::big_endian::uint16 lane_up_cnt;
+                comma::packed::big_endian::uint16 top_status;
+                comma::packed::bits< gps_status_t > gps_status;
             };
 
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_horizontal_angles_default();

@@ -99,12 +99,24 @@ template <> struct traits< snark::robosense::helios_16p::difop::data::operating_
 {
     template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::operating_status_t& p, Visitor& v )
     {
-        v.apply( "ldat1_reg", p.ldat1_reg() );
-        v.apply( "vdat", p.vdat() );
-        v.apply( "vdat_12v_reg", p.vdat_12v_reg() );
-        v.apply( "vdat_5v_reg", p.vdat_5v_reg() );
-        v.apply( "vdat_2v5_reg", p.vdat_2v5_reg() );
-        v.apply( "vdat_apd", p.vdat_apd() );
+        detail::visit_as_hexadecimal( "ldat1_reg", p.ldat1_reg, v );
+        detail::visit_as_hexadecimal( "vdat", p.vdat, v );
+        detail::visit_as_hexadecimal( "vdat_12v_reg", p.vdat_12v_reg, v );
+        detail::visit_as_hexadecimal( "vdat_5v_reg", p.vdat_5v_reg, v );
+        detail::visit_as_hexadecimal( "vdat_2v5_reg", p.vdat_2v5_reg, v );
+        detail::visit_as_hexadecimal( "vdat_apd", p.vdat_apd, v );
+    }
+};
+
+template <> struct traits< snark::robosense::helios_16p::difop::data::fault_diagnosis_t::gps_status_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::fault_diagnosis_t::gps_status_t& p, Visitor& v )
+    {
+        v.apply( "pps_lock", p.pps_lock );
+        v.apply( "fprmc_lock", p.fprmc_lock );
+        v.apply( "utc_lock", p.utc_lock );
+        v.apply( "gprmc_input_status", p.gprmc_input_status );
+        v.apply( "pps_input_status", p.pps_input_status );
     }
 };
 
@@ -112,16 +124,16 @@ template <> struct traits< snark::robosense::helios_16p::difop::data::fault_diag
 {
     template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::fault_diagnosis_t& p, Visitor& v )
     {
-        v.apply( "temperature1", p.temperature1() );
-        v.apply( "temperature2", p.temperature2() );
-        v.apply( "temperature3", p.temperature3() );
-        v.apply( "temperature4", p.temperature4() );
-        v.apply( "temperature5", p.temperature5() );
+        v.apply( "temperature1", p.temperature1.as_celcius() );
+        v.apply( "temperature2", p.temperature2.as_celcius() );
+        v.apply( "temperature3", p.temperature3.as_celcius() );
+        v.apply( "temperature4", p.temperature4.as_celcius() );
+        v.apply( "temperature5", p.temperature5.as_celcius() );
         v.apply( "r_rpm", p.r_rpm() );
         v.apply( "lane_up", int( p.lane_up() ) && 0xff );
         v.apply( "lane_up_cnt", p.lane_up_cnt() );
-        v.apply( "top_status", p.top_status() );
-        v.apply( "gps_status", int( p.gps_status() ) && 0xff );
+        detail::visit_as_hexadecimal( "top_status", p.top_status, v );
+        v.apply( "gps_status", p.gps_status() );
     }
 };
 
