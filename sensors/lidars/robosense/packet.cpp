@@ -196,6 +196,7 @@ const std::array< double, robosense::msop::data::number_of_lasers >& lidar_16::d
 
 double helios_16p::difop::data::corrected_angles::angle::radians() const { return 0.01 * value() * ( sign() == 0 ? 1. : -1. ) * M_PI / 180; } // helios-16p spec B.10
 
+const std::map< char, std::string > helios_16p::difop::data::return_mode_t::names{ { 0x00, "dual" }, { 0x04, "strongest" }, { 0x05, "last" }, { 0x06, "first" } };
 
 std::array< double, snark::robosense::msop::data::number_of_lasers > helios_16p::difop::data::corrected_angles::as_radians() const
 {

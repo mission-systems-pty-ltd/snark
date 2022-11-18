@@ -99,8 +99,16 @@ template <> struct traits< snark::robosense::helios_16p::difop::data >
         detail::visit_as_hexadecimal( "bottom_board_software_version", p.bottom_board_software_version, v );
         detail::visit_as_hexadecimal( "motor_firmware_version", p.motor_firmware_version, v );
         detail::visit_as_hexadecimal( "sensor_hardware_version", p.sensor_hardware_version, v );
+        detail::visit_as_hexadecimal( "web_page_cgi_verion", p.web_page_cgi_verion, v );
+        v.apply( "top_board_backup_crc", p.top_board_backup_crc() );
+        v.apply( "bottom_board_backup_crc", p.bottom_board_backup_crc() );
+        v.apply( "software_app_backup_crc", p.software_app_backup_crc() );
+        v.apply( "web_page_cgi_backup_crc", p.web_page_cgi_backup_crc() );
+        detail::visit_as_byte_path( "ethernet_gateway", p.ethernet_gateway, v );
+        detail::visit_as_byte_path( "subnet_mask", p.subnet_mask, v );
         detail::visit_as_hexadecimal( "serial_number", p.serial_number, v );
         v.apply( "zero_angle_offset", p.zero_angle_offset.as_degrees() );
+        v.apply( "return_mode", p.return_mode.name() );
         v.apply( "gprmc", std::string( p.gprmc.data() ) + "\0" );
     }
 };

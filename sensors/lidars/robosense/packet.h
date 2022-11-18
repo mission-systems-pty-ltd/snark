@@ -327,6 +327,14 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
                 bool empty() const;
             };
 
+            struct return_mode_t: public comma::packed::packed_struct< return_mode_t, 1 >
+            {
+                enum values { dual = 0x00, strongest = 0x04, last = 0x05, first = 0x06 };
+                static const std::map< char, std::string > names;
+                std::string name() const { return names.find( value() )->second; } // quick and dirty, todo: add checks
+                comma::packed::byte value;
+            };
+
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_horizontal_angles_default();
 
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_vertical_angles_default();
@@ -346,12 +354,12 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
             comma::packed::big_endian::uint32 bottom_board_backup_crc; // helios-16p spec 6.3: what is it? do we care?
             comma::packed::big_endian::uint32 software_app_backup_crc; // helios-16p spec 6.3: what is it? do we care?
             comma::packed::big_endian::uint32 web_page_cgi_backup_crc; // helios-16p spec 6.3: what is it? do we care?
-            std::array< comma::packed::byte, 4 > ethernet_gateway;
-            std::array< comma::packed::byte, 4 > subnet_mask;
+            comma::packed::string< 4 > ethernet_gateway;
+            comma::packed::string< 4 > subnet_mask;
             std::array< char, 201 > reserved_1;
             comma::packed::string< 6 > serial_number;
             angle zero_angle_offset; // todo! looks important
-            comma::packed::byte return_mode;
+            return_mode_t return_mode;
             comma::packed::byte time_synchronization_mode;
             comma::packed::byte synchronization_status;
             robosense::utc_time time;
