@@ -38,9 +38,9 @@ struct models
 
 struct utc_time: public comma::packed::packed_struct< utc_time, 10 > // helios-16p spec B.13; currently assuming it's the same time representation in lidar-16 (strong assumption)
 {
-    comma::packed::string< 6 > seconds; // 6-byte big endian... todo... sigh...
+    comma::packed::big_endian::uint48 seconds; // comma::packed::string< 6 > seconds;
     comma::packed::big_endian::uint32 nanoseconds; // is it microseconds or nanoseconds? helios-16p spec B.13 has a typo
-    double as_seconds() const; // todo: convert to seconds
+    double as_seconds() const { return double( seconds() ) + double( nanoseconds() ) / 1000000000.; }
 };
 
 template < typename Header, typename Data, typename Tail >
@@ -320,10 +320,13 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
                     comma::packed::byte sign;
                     comma::packed::big_endian::uint16 value;
                     double radians() const; // helios-16p spec B.10
+                    double degrees() const;
                 };
                 std::array< angle, robosense::msop::data::number_of_lasers > values;
                 double as_radians( unsigned int i ) const { return values[i].radians(); }
+                double as_degrees( unsigned int i ) const { return values[i].degrees(); }
                 std::array< double, snark::robosense::msop::data::number_of_lasers > as_radians() const;
+                std::array< double, snark::robosense::msop::data::number_of_lasers > as_degrees() const;
                 bool empty() const;
             };
 
@@ -333,6 +336,30 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
                 static const std::map< char, std::string > names;
                 std::string name() const { return names.find( value() )->second; } // quick and dirty, todo: add checks
                 comma::packed::byte value;
+            };
+
+            struct operating_status_t: public comma::packed::packed_struct< operating_status_t, 12>
+            {
+                comma::packed::uint16 ldat1_reg;
+                comma::packed::uint16 vdat;
+                comma::packed::uint16 vdat_12v_reg;
+                comma::packed::uint16 vdat_5v_reg;
+                comma::packed::uint16 vdat_2v5_reg;
+                comma::packed::uint16 vdat_apd;
+            };
+
+            struct fault_diagnosis_t: public comma::packed::packed_struct< fault_diagnosis_t, 18>
+            {
+                comma::packed::uint16 temperature1;    
+                comma::packed::uint16 temperature2;
+                comma::packed::uint16 temperature3;
+                comma::packed::uint16 temperature4;
+                comma::packed::uint16 temperature5;
+                comma::packed::uint16 r_rpm;
+                comma::packed::byte lane_up;
+                comma::packed::uint16 lane_up_cnt;
+                comma::packed::uint16 top_status;
+                comma::packed::byte gps_status;
             };
 
             static const std::array< double, robosense::msop::data::number_of_lasers >& corrected_horizontal_angles_default();
@@ -363,13 +390,13 @@ struct helios_16p // todo? move packet definitions to helios; then: struct helio
             comma::packed::byte time_synchronization_mode;
             comma::packed::byte synchronization_status;
             robosense::utc_time time;
-            std::array< char, 12 > operating_status; // todo: helios-16p spec B.14
+            operating_status_t operating_status; // helios-16p spec B.14
             std::array< char, 17 > reserved_2;
-            std::array< char, 18 > fault_diagnosis; // todo: helios-16p spec B.15
+            fault_diagnosis_t fault_diagnosis; // helios-16p spec B.15
             comma::packed::byte code_wheel_is_calibrated;
             comma::packed::byte gps_pps_pulse_trigger_mode;
             std::array< char, 20 > reserved_3;
-            comma::packed::string< 86 > gprmc; // todo: helios-16p spec B.16
+            comma::packed::string< 86 > gprmc; // helios-16p spec B.16
             corrected_angles corrected_vertical_angles;
             std::array< char, 48 > reserved_4;
             corrected_angles corrected_horizontal_angles;

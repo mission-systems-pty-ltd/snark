@@ -86,6 +86,45 @@ template <> struct traits< snark::robosense::helios_16p::difop::data::ethernet_t
     }
 };
 
+template <> struct traits< snark::robosense::utc_time >
+{
+    template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::utc_time& p, Visitor& v )
+    {
+        v.apply( "seconds", p.seconds() );
+        v.apply( "nanoseconds", p.nanoseconds() );
+    }
+};
+
+template <> struct traits< snark::robosense::helios_16p::difop::data::operating_status_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::operating_status_t& p, Visitor& v )
+    {
+        v.apply( "ldat1_reg", p.ldat1_reg() );
+        v.apply( "vdat", p.vdat() );
+        v.apply( "vdat_12v_reg", p.vdat_12v_reg() );
+        v.apply( "vdat_5v_reg", p.vdat_5v_reg() );
+        v.apply( "vdat_2v5_reg", p.vdat_2v5_reg() );
+        v.apply( "vdat_apd", p.vdat_apd() );
+    }
+};
+
+template <> struct traits< snark::robosense::helios_16p::difop::data::fault_diagnosis_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key& k, const snark::robosense::helios_16p::difop::data::fault_diagnosis_t& p, Visitor& v )
+    {
+        v.apply( "temperature1", p.temperature1() );
+        v.apply( "temperature2", p.temperature2() );
+        v.apply( "temperature3", p.temperature3() );
+        v.apply( "temperature4", p.temperature4() );
+        v.apply( "temperature5", p.temperature5() );
+        v.apply( "r_rpm", p.r_rpm() );
+        v.apply( "lane_up", int( p.lane_up() ) && 0xff );
+        v.apply( "lane_up_cnt", p.lane_up_cnt() );
+        v.apply( "top_status", p.top_status() );
+        v.apply( "gps_status", int( p.gps_status() ) && 0xff );
+    }
+};
+
 template <> struct traits< snark::robosense::helios_16p::difop::data >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::robosense::helios_16p::difop::data& p, Visitor& v )
@@ -109,7 +148,16 @@ template <> struct traits< snark::robosense::helios_16p::difop::data >
         detail::visit_as_hexadecimal( "serial_number", p.serial_number, v );
         v.apply( "zero_angle_offset", p.zero_angle_offset.as_degrees() );
         v.apply( "return_mode", p.return_mode.name() );
+        v.apply( "time_synchronization_mode", int( p.time_synchronization_mode() ) & 0xff );
+        v.apply( "synchronization_status", int( p.synchronization_status() ) & 0xff );
+        v.apply( "operating_status", p.operating_status );
+        v.apply( "fault_diagnosis", p.fault_diagnosis );
+        v.apply( "code_wheel_is_calibrated", p.code_wheel_is_calibrated() );
+        v.apply( "gps_pps_pulse_trigger_mode", p.gps_pps_pulse_trigger_mode() );
+        v.apply( "time", p.time );
         v.apply( "gprmc", std::string( p.gprmc.data() ) + "\0" );
+        v.apply( "corrected_vertical_angles", p.corrected_vertical_angles.as_degrees() );
+        v.apply( "corrected_horizontal_angles", p.corrected_horizontal_angles.as_degrees() );
     }
 };
 
