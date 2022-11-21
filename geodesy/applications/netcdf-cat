@@ -23,7 +23,7 @@ def variable( args ):
     if args.dtype: print( v.dtype ); return
     if args.info: print( v ); return
     if args.shape: print( _to_csv( v.shape ) ); return
-    if args.joined_with is None: sys.stdout.buffer.write( eval( f'v{args.slice}.tobytes()' ) )
+    if args.joined_with is None: sys.stdout.buffer.write( eval( f'v{args.slice}.tobytes()' ) ); return
     NotImplementedError( '--with: todo' )
     assert args.slice == '[:]', NotImplementedError( '--slice support with --with: todo' )
     variables = args.joined_with.split( ',' )
