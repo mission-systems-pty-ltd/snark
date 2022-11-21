@@ -1,7 +1,9 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <boost/bind.hpp>
+#include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
@@ -337,7 +339,7 @@ int main( int argc, char** argv )
             return 0;
         }
 
-        comma::verbose << "starting as pid " << getpid() << std::endl;
+        comma::saymore() << "starting as pid " << getpid() << std::endl;
         std::string fields = options.value< std::string >( "--fields", default_fields );
         comma::csv::format format = format_from_fields( fields );
         bool header_only = false;
@@ -371,11 +373,11 @@ int main( int argc, char** argv )
                         frames_delivered = frames_delivered_attribute->int_value();
                         if( frames_delivered == frames_delivered_prev && !is_shutdown )
                         {
-                            std::cerr << comma::verbose.app_name() << ": warning - no frames received in the last second" << std::endl;
+                            comma::say() << "warning - no frames received in the last second" << std::endl;
                             if( comma::verbose ) { print_stats( camera ); }
                             if( acquisition_restarts == retries_on_no_frames )
                             {
-                                std::cerr << comma::verbose.app_name() << ": ";
+                                comma::say() << "";
                                 if( retries_on_no_frames > 0 )
                                 {
                                     std::cerr << "we've tried restarting acquisition "
@@ -392,7 +394,7 @@ int main( int argc, char** argv )
                             }
                             else
                             {
-                                std::cerr << comma::verbose.app_name() << ": restarting acquisition" << std::endl;
+                                comma::say() << "restarting acquisition" << std::endl;
                                 acquisition_restarts++;
                             }
                             break;
@@ -403,18 +405,18 @@ int main( int argc, char** argv )
 
             if( is_shutdown )
             {
-                comma::verbose << "caught shutdown signal " << std::endl;
+                comma::saymore() << "caught shutdown signal " << std::endl;
                 acquiring = false;
             }
-            comma::verbose << "exited acquisition loop" << std::endl;
+            comma::saymore() << "exited acquisition loop" << std::endl;
 
             camera.stop_acquisition();
         }
         if( comma::verbose && acquisition_time_elapsed > 5 ) { print_stats( camera ); }
-        comma::verbose << "exiting with code " << exit_code << std::endl;
+        comma::saymore() << "exiting with code " << exit_code << std::endl;
         return exit_code;
     }
-    catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }

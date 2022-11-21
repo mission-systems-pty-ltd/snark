@@ -1,9 +1,10 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <sstream>
 #include <boost/bind.hpp>
-#include <comma/application/verbose.h>
+#include <comma/application/command_line_options.h>
 #include <comma/name_value/map.h>
 
 #include "attribute.h"
@@ -115,7 +116,7 @@ void camera::set_features( const std::string& name_value_pairs ) const
 
 void camera::start_acquisition( frame_observer::callback_fn callback, unsigned int num_frames ) const
 {
-    comma::verbose << "starting image acquisition..." << std::endl;
+    comma::saymore() << "starting image acquisition..." << std::endl;
 
     last_frame_id_ = 0;
 
@@ -128,14 +129,14 @@ void camera::start_acquisition( frame_observer::callback_fn callback, unsigned i
     if( status != VmbErrorSuccess ) {
         COMMA_THROW( comma::exception, error_msg( "StartContinuousImageAcquisition() failed", status ));
     }
-    comma::verbose << "started image acquisition" << std::endl;
+    comma::saymore() << "started image acquisition" << std::endl;
 }
 
 void camera::stop_acquisition() const
 {
-    comma::verbose << "stopping image acquisition..." << std::endl;
+    comma::saymore() << "stopping image acquisition..." << std::endl;
     camera_->StopContinuousImageAcquisition();
-    comma::verbose << "stopped image acquisition" << std::endl;
+    comma::saymore() << "stopped image acquisition" << std::endl;
 }
 
 camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba::frame& frame, snark::vimba::ptp_status& ptps_out ) const
@@ -156,9 +157,9 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     if( ptp_status_attribute && ptp_status_attribute->value_as_string() != ptp_status )
     {
         ptp_status = ptp_status_attribute->value_as_string();
-        comma::verbose << "PtpStatus changed value to " << ptp_status << std::endl;
+        comma::saymore() << "PtpStatus changed value to " << ptp_status << std::endl;
         use_ptp = ( ptp_status == "Slave" );
-        comma::verbose << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
+        comma::saymore() << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
     }
 
     boost::posix_time::ptime timestamp =
@@ -170,7 +171,7 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     ptps_out.t=timestamp;
     ptps_out.use_ptp=use_ptp;
     ptps_out.value=ptp_status;
-    
+
     if( frame.status() == VmbFrameStatusComplete )
     {
         if( acquisition_mode_ == ACQUISITION_MODE_CONTINUOUS )
@@ -180,9 +181,8 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
                 VmbUint64_t missing_frames = frame.id() - last_frame_id_ - 1;
                 if( missing_frames > 0 )
                 {
-                    std::cerr << comma::verbose.app_name() << ": warning - "
-                              << missing_frames << " missing frame" << ( missing_frames == 1 ? "" : "s" )
-                              << " detected" << std::endl;
+                    comma::say() << "warning - " << missing_frames << " missing frame" << ( missing_frames == 1 ? "" : "s" )
+                                 << " detected" << std::endl;
                 }
             }
             last_frame_id_ = frame.id();
@@ -199,9 +199,9 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     }
     else
     {
-        std::cerr << comma::verbose.app_name() << ": warning - frame " << frame.id() << " status " << frame.status_as_string() << std::endl;
+        comma::say() << "warning - frame " << frame.id() << " status " << frame.status_as_string() << std::endl;
     }
-    comma::verbose << "returning empty frame" << std::endl;
+    comma::saymore() << "returning empty frame" << std::endl;
     return timestamped_frame();
 }
 

@@ -1,7 +1,9 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <boost/lexical_cast.hpp>
+#include <comma/application/command_line_options.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
 #include "error.h"
@@ -252,7 +254,7 @@ void attribute::set( const std::string& value )
 
     if( comma::verbose )
     {
-        std::cerr << comma::verbose.app_name() << ": setting \"" << name_ << "\" feature";
+        comma::say() << "setting \"" << name_ << "\" feature";
         if( !value.empty() )
         {
             std::cerr << " to " << type_as_string() << " value \"" << value << "\"";

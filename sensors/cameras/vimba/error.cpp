@@ -1,10 +1,11 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
-#include <comma/application/verbose.h>
+#include <comma/application/command_line_options.h>
 #include "error.h"
 
 namespace snark { namespace vimba {
@@ -58,7 +59,7 @@ std::string error_msg( const std::string& prologue, VmbErrorType error )
 
 void write_error( const std::string& prologue, VmbErrorType error )
 {
-    std::cerr << comma::verbose.app_name() << ": " << error_msg( prologue, error ) << std::endl;
+    comma::say() << error_msg( prologue, error ) << std::endl;
 }
 
 } } // namespace snark { namespace vimba {
