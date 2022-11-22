@@ -64,7 +64,7 @@ static void usage( bool verbose=false )
     std::cerr << "    header: output header information in ascii csv" << std::endl;
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
-    std::cerr << "    mean: output image means for all image channels appended to image header" << std::endl;
+    std::cerr << "    mean: output image mean and count for each image channel appended to image header" << std::endl;
     std::cerr << "    polar-map: output polar-to-cartesian map or reverse for given dimensions" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
@@ -180,10 +180,13 @@ static void usage( bool verbose=false )
     std::cerr << "        --step=[<step>]: todo: document; default: 1.0" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    mean" << std::endl;
-    std::cerr << "        --threshold=[<thresh>]: apply a mask (binary threshold) and only calculate mean on pixel matching the mask." << std::endl;
-    std::cerr << "              default: calculate a mean on all pixels" << std::endl;
+    std::cerr << "        --threshold=[<thresh>]: apply a mask (binary threshold) and only calculate mean on pixel matching the mask" << std::endl;
+    std::cerr << "                                default: calculate a mean on all pixels" << std::endl;
+    std::cerr << "                                limitation: currently works only on 1-channel images" << std::endl;
     std::cerr << "        default output fields: t,rows,cols,type,mean,count" << std::endl;
-    std::cerr << "                               count: total number of non-zero pixels used in calculating the mean" << std::endl;
+    std::cerr << "        mean,count: calculated and output for each channel; e.g. for rgb image, output fields: t,rows,cols,type,mean,count,mean,count,mean,count" << std::endl;
+    std::cerr << "        count: with no filtering: total number of pixels (cols*rows)" << std::endl;
+    std::cerr << "               with filtering (currently only --threshold implemented): total number of pixels participating in mean" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    polar-map" << std::endl << snark::cv_calc::polar_map::options();
     std::cerr << "    roi" << std::endl;
@@ -1314,31 +1317,41 @@ int main( int ac, char** av )
         {
             if( options.exists("--output-fields") ) { std::cout << "t,rows,cols,type,mean,count" << std::endl;  exit(0); }
             if( options.exists("--output-format") ) { std::cout << "t,3ui,d,ui" << std::endl;  exit(0); }
-            auto threshold = options.optional< double >("--threshold");
+            bool flush = options.exists( "--flush" );
+            auto threshold = options.optional< double >( "--threshold" );
             snark::cv_mat::serialization serialization( input_options );
             while( std::cin.good() && !std::cin.eof() )
             {
-
                 std::pair< snark::cv_mat::serialization::header::buffer_t, cv::Mat > p = serialization.read< snark::cv_mat::serialization::header::buffer_t >( std::cin );
                 if( p.second.empty() ) { return 0; }
-
-                cv::Mat mask;
-                comma::uint32 count = p.second.rows * p.second.cols;
+                std::vector< double > means( p.second.channels() );
+                std::vector< comma::uint32 > counts( p.second.channels(), p.second.rows * p.second.cols );
                 if( threshold )
                 {
-                    cv::threshold(p.second, mask, *threshold, 255, cv::THRESH_BINARY);
-                    if( mask.type() != CV_8U )
+                    std::vector< cv::Mat > channels( p.second.channels() );
+                    cv::Mat mask;
+                    cv::split( p.second, &channels[0] );
+                    for( int i = 0; i < p.second.channels(); ++i ) 
                     {
-                        cv::Mat swap;
-                        mask.convertTo( swap, CV_8U );
-                        mask=swap;
+                        cv::threshold( channels[i], mask, *threshold, 255, cv::THRESH_BINARY );
+                        if( mask.type() != CV_8U )
+                        {
+                            cv::Mat swap;
+                            mask.convertTo( swap, CV_8U );
+                            mask = swap;
+                        }
+                        means[i] = cv::mean( channels[i], mask )[0];
+                        counts[i] = cv::countNonZero( mask );
                     }
-                    count = cv::countNonZero( mask );
                 }
-                cv::Scalar mean = cv::mean( p.second, !threshold ? cv::noArray() : mask );
+                else
+                {
+                    cv::Scalar m = cv::mean( p.second );
+                    for( int i = 0; i < p.second.channels(); ++i ) { means[i] = m[i]; }
+                }
                 std::cout.write( &serialization.header_buffer()[0], serialization.header_buffer().size() );
-                for( int i = 0; i < p.second.channels(); ++i ) { std::cout.write( reinterpret_cast< char* >( &mean[i] ), sizeof( double ) ); std::cout.write( reinterpret_cast< char* >( &count ), sizeof( comma::uint32 ) ); }
-                std::cout.flush();
+                for( int i = 0; i < p.second.channels(); ++i ) { std::cout.write( reinterpret_cast< char* >( &means[i] ), sizeof( double ) ); std::cout.write( reinterpret_cast< char* >( &counts[i] ), sizeof( comma::uint32 ) ); }
+                if( flush ) { std::cout.flush(); }
             }
             return 0;
         }
