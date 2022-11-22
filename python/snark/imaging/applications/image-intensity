@@ -44,16 +44,12 @@ if __name__ == "__main__":
 
     output = np.zeros(1, dtype='uint64,uint32,uint32,uint32,float64')
 
-    for i in cv_image.iterator(sys.stdin):
+    for i in cv_image.iterator(sys.stdin.buffer):
         intensity = np.mean(i.data)
 
         if options.binary:
             output[0] = (i.header['time'].astype(np.uint64), i.header['rows'], i.header['cols'], i.header['type'], intensity)
-            output.tofile(sys.stdout)
-            sys.stdout.flush()
+            sys.stdout.buffer.write(output.tobytes())
         else:
-            print >> sys.stdout, "{},{},{},{},{}".format(i.header['time'].item(), i.header['rows'], i.header['cols'], i.header['type'], intensity)
-
-        # cv2.imshow('test',i.data)
-        # cv2.waitKey(1)
-
+            print("{},{},{},{},{}".format(i.header['time'].item(), i.header['rows'], i.header['cols'], i.header['type'], intensity))
+        sys.stdout.flush()
