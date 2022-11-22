@@ -35,6 +35,7 @@
 #include "../../visiting/eigen.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
+#include "cv_calc/polar_map.h"
 #include "cv_calc/unstride.h"
 
 const char* name = "cv-calc: ";
@@ -64,6 +65,7 @@ static void usage( bool verbose=false )
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
     std::cerr << "    mean: output image means for all image channels appended to image header" << std::endl;
+    std::cerr << "    polar-map: output polar-to-cartesian map or reverse for given dimensions" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
     std::cerr << "    thin: thin image stream by discarding some images" << std::endl;
@@ -183,6 +185,7 @@ static void usage( bool verbose=false )
     std::cerr << "        default output fields: t,rows,cols,type,mean,count" << std::endl;
     std::cerr << "                               count: total number of non-zero pixels used in calculating the mean" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "    polar-map" << std::endl << snark::cv_calc::polar_map::options();
     std::cerr << "    roi" << std::endl;
     std::cerr << "        --crop: crop to roi and output instead of setting region outside of roi to zero" << std::endl;
     std::cerr << "        --no-discard; do not discards frames where the roi is not seen" << std::endl;
@@ -1079,7 +1082,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         verbose = options.exists( "--verbose,-v" );
         //std::vector< std::string > unnamed = options.unnamed("-h,--help,-v,--verbose,--flush,--input-fields,--input-format,--output-fields,--output-format,--show-partial", "--fields,--binary,--input,--output,--strides,--padding,--shape,--size,--kernel");
-        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse", "-.*" );
+        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed", "-.*" );
         if( unnamed.empty() ) { std::cerr << name << "please specify operation" << std::endl; return 1; }
         if( unnamed.size() > 1 ) { std::cerr << name << "please specify only one operation, got " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
         std::string operation = unnamed.front();
@@ -1339,6 +1342,7 @@ int main( int ac, char** av )
             }
             return 0;
         }
+        if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
         if( operation == "stride" )
         {
             snark::cv_mat::serialization input_serialization( input_options );
