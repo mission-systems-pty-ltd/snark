@@ -58,7 +58,7 @@ static void usage( bool verbose )
     std::cerr << "    --difop-max-number-of-packets,--difop-max=<num>; max number of difop packets to read; if not specified, read till the end of file/stream" << std::endl;
     // std::cerr << "    --difop-from-json,--from-json,--from=<filename>; e.g. cat timestamped-msop.bin | robosense-to-csv --from difop.json" << std::endl;
     std::cerr << "    --difop-to-json,--to-json; read timestamp difop packets on stdin, write to stdout difop field values of the first difop packet" << std::endl;
-    std::cerr << "        as json (currently, not all the fields are implemented, yet; forunimplemented fields, lists of byte values are output for now)" << std::endl;
+    std::cerr << "        as json (currently, not all the fields are implemented, yet; for unimplemented fields, lists of byte values are output for now)" << std::endl;
     std::cerr << "        e.g: cat timestamped-difop.bin | robosense-to-csv --model=helios-16p --to-json" << std::endl;
     std::cerr << "        ATTENTION: this feature is not complete and requires to eventually fix a bug in comma::property_tree" << std::endl;
     std::cerr << "                   however, it may provide a quick insight into DIFOP field values that currently are implemented" << std::endl;
@@ -302,7 +302,8 @@ int main( int ac, char** av )
     try
     {
         comma::command_line_options options( ac, av, usage );
-        if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::robosense::calculator::point >( false ), ',' ) << std::endl; return 0; }
+        const auto& field_names = comma::csv::names< snark::robosense::calculator::point >( false );
+        if( options.exists( "--output-fields" ) ) { std::cout << comma::join( field_names, ',' ) << std::endl; return 0; }
         if( options.exists( "--models" ) ) { for( const auto& m: snark::robosense::models::names ) { std::cout << m.first << "," << m.second << std::endl; } return 0; }
         std::string model_name = options.value< std::string >( "--model", "auto" );
         if( options.exists( "--difop-to-json,--to-json" ) ) { return difop_to_json( model_name ); } // don't use it; it does not work (requires quite a bit of effort to make it working)
@@ -326,6 +327,7 @@ int main( int ac, char** av )
         bool discard_incomplete_scans = options.exists( "--scan-discard-incomplete,--discard-incomplete-scans,--discard-incomplete" );
         csv = comma::csv::options( options );
         csv.full_xpath = false;
+        if( !comma::csv::fields_exist( field_names, comma::split( csv.fields, ',', true ) ) ) { comma::say() << "expected fields in: " << comma::join( field_names, ',' ) << "; got invalid field names in --fields=\"" << csv.fields << "\"" << std::endl; return 1; }
         output_invalid_points = options.exists( "--output-invalid-points" );
         std::vector< char > buffer( snark::robosense::lidar_16::msop::packet::size ); // quick and dirty for now; all packet sizes are the same (i hope)
         std::vector< std::pair< boost::posix_time::ptime, snark::robosense::lidar_16::msop::packet > > scan_buffer; //std::vector< std::pair< boost::posix_time::ptime, std::array< char, snark::robosense::msop::packet::size > > > scan_buffer;
