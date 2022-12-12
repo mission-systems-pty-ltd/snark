@@ -60,12 +60,14 @@ static void usage( bool verbose = false )
     std::cerr << "    --list-cameras:                    list all cameras and exit" << std::endl;
     std::cerr << "    --list-attributes [<names>]:       list camera attributes; default: list all" << std::endl;
     std::cerr << "    --no-header:                       output image data only" << std::endl;
+    #ifdef VIMBA_PTP_SUPPORT
     std::cerr << "    --ptp-status=<stream>;             publish ptp status data to <stream> in binary"<< std::endl;
     std::cerr << "        <stream>: tcp:<port> | udp:<port> | <filename>"<< std::endl;
     std::cerr << "        fields: t,use_ptp,value"<< std::endl;
     std::cerr << "        format: ascii; t,ub,s[20]"<< std::endl;
     std::cerr << "    --ptp-status-fields;               print ptp status fields and exit"<< std::endl;
     std::cerr << "    --ptp-status-format;               print ptp status format and exit"<< std::endl;
+    #endif
     std::cerr << "    --retries-on-no-frames=<n>:        retry attempts if no frames detected; default: " << default_retries_on_no_frames << std::endl;
     std::cerr << "    --set <attributes>:                set camera attributes" << std::endl;
     std::cerr << "    --set-and-exit <attributes>:       set attributes and exit" << std::endl;
@@ -151,6 +153,7 @@ static std::string wrap( const std::string& text, size_t width = 80, const std::
     return wrapped.str();
 }
 
+#ifdef VIMBA_PTP_SUPPORT
 struct ptp_status_writer
 {
     static std::unique_ptr<ptp_status_writer> instance;
@@ -185,7 +188,7 @@ struct ptp_status_writer
     }
 };
 std::unique_ptr<ptp_status_writer> ptp_status_writer::instance;
-
+#endif
 
 static void output_frame( const snark::vimba::frame& frame
                         , snark::cv_mat::serialization& serialization
@@ -196,7 +199,9 @@ static void output_frame( const snark::vimba::frame& frame
     if( !timestamped_frame.first.is_not_a_date_time() )
     {
         serialization.write( std::cout, timestamped_frame );
+        #ifdef VIMBA_PTP_SUPPORT
         ptp_status_writer::write(ptp_status);
+        #endif
     }
 }
 
@@ -257,10 +262,11 @@ int main( int argc, char** argv )
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
+        #ifdef VIMBA_PTP_SUPPORT
         if( options.exists("--ptp-status-fields")) { ptp_status_writer::output_fields(); return 0; }
         if( options.exists("--ptp-status-format")) { ptp_status_writer::output_format(); return 0; }
         ptp_status_writer::init(options.optional<std::string>("--ptp-status"));
-        
+        #endif
 
         if( options.exists( "--version" ))
         {
