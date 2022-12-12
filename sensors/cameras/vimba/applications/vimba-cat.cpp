@@ -322,7 +322,9 @@ int main( int argc, char** argv )
         if( options.exists( "--list-attributes" ))
         {
             std::string names_str = options.value< std::string >( "--list-attributes", "" );
-            if( names_str.empty() )
+            // argument value is optional, but command-line parser will pick up next word on command-line,
+            // make sure it's not a new option (which means no argument was given to --list-attributes)
+            if( names_str.empty() || names_str[0] == '-' )
             {
                 std::vector< snark::vimba::attribute > attributes = camera.attributes();
                 for( std::vector< snark::vimba::attribute >::const_iterator it = attributes.begin();
