@@ -297,9 +297,14 @@ int main( int argc, char** argv )
             return 0;
         }
 
+        if( options.exists("--id")) { comma::saymore() << "opening camera id " << options.value<std::string>("--id") << std::endl; }
+        else { comma::saymore() << "opening first camera" << std::endl; }
+
         snark::vimba::camera camera( options.exists( "--id" )
                                    ? snark::vimba::camera( options.value<std::string>( "--id" ))
                                    : snark::vimba::camera( snark::vimba::system::open_first_camera()));
+
+        comma::saymore() << "opened " << camera.info()["name"] << std::endl;
 
         if( options.exists( "--set-and-exit" ))
         {

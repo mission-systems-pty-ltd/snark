@@ -67,6 +67,7 @@ std::vector< attribute > camera::attributes() const
 {
     std::vector< attribute > attributes;
     AVT::VmbAPI::FeaturePtrVector features;
+    comma::saymore() << "getting camera features" << std::endl;
     VmbErrorType status = camera_->GetFeatures( features );
     if( status == VmbErrorSuccess )
     {
@@ -89,8 +90,10 @@ boost::optional< attribute > camera::get_attribute( const std::string& name ) co
 {
     boost::optional< attribute > a;
     AVT::VmbAPI::FeaturePtr feature;
+    comma::saymore() << "getting " << name << std::endl;
     VmbErrorType status = camera_->GetFeatureByName( name.c_str(), feature );
     if( status == VmbErrorSuccess ) { a = attribute( feature ); }
+    else { comma::say() << error_msg( std::string("failed to get ") + name, status ) << std::endl; }
     return a;
 }
 

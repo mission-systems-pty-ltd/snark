@@ -20,6 +20,7 @@ attribute::attribute( AVT::VmbAPI::FeaturePtr feature )
     {
         COMMA_THROW( comma::exception, error_msg( "GetName() failed", status ));
     }
+    comma::saymore() << "getting " << name_ << " attribute" << std::endl;
 
     status = feature_->GetDataType( type_ );
     if( status != VmbErrorSuccess )
