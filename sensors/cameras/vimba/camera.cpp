@@ -68,8 +68,15 @@ std::vector< attribute > camera::attributes() const
              it != features.end();
              ++it )
         {
-            attribute a( *it );
-            attributes.push_back( a );
+            // Failing to read an attribute is not fatal.
+            // Could use Feature::IsReadable() but there are some features that
+            // pass that test but still fail to read. e.g CorrectionDataSize.
+            try
+            {
+                attribute a( *it );
+                attributes.push_back( a );
+            }
+            catch( comma::exception& ex ) { comma::saymore() << ex.what() << std::endl; }
         }
     }
     else
