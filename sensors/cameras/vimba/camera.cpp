@@ -16,17 +16,22 @@
 namespace snark { namespace vimba {
 
 camera::camera( const std::string& camera_id )
-    : acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
+    : interface_type_( VmbInterfaceUnknown )
+    , acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
     , last_frame_id_( 0 )
 {
     camera_ = system::open_camera( camera_id );
+    camera_->GetInterfaceType( interface_type_ );
 }
 
 camera::camera( const AVT::VmbAPI::CameraPtr& camera_ptr )
     : camera_( camera_ptr )
+    , interface_type_( VmbInterfaceUnknown )
     , acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
     , last_frame_id_( 0 )
-{}
+{
+    camera_->GetInterfaceType( interface_type_ );
+}
 
 camera::~camera()
 {
@@ -54,6 +59,20 @@ camera::name_values camera::info() const
                                       , name_value_pairs );
 
     return name_value_pairs;
+}
+
+const char* camera::VmbInterfaceType_to_string( VmbInterfaceType type )
+{
+    switch( type )
+    {
+        case VmbInterfaceUnknown:  return "Unknown";      // Interface is not known to this version of the API
+        case VmbInterfaceFirewire: return "Firewire";     // 1394
+        case VmbInterfaceEthernet: return "Ethernet";     // GigE
+        case VmbInterfaceUsb:      return "Usb";          // USB 3.0
+        case VmbInterfaceCL:       return "CL";           // Camera Link
+        case VmbInterfaceCSI2:     return "CSI2";         // CSI-2
+        default:                   return "Unknown";
+    }
 }
 
 std::vector< attribute > camera::attributes() const
@@ -156,13 +175,17 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     // Get the current time as soon as possible after entering the callback
     boost::posix_time::ptime current_time = boost::posix_time::microsec_clock::universal_time();
 
-    boost::optional< snark::vimba::attribute > ptp_status_attribute = get_attribute( "PtpStatus" );
-    if( ptp_status_attribute && ptp_status_attribute->value_as_string() != ptp_status )
+    // PTP is only supported on GigE cameras. See Alvium Features Reference
+    if( interface_type_ == VmbInterfaceEthernet )
     {
-        ptp_status = ptp_status_attribute->value_as_string();
-        comma::saymore() << "PtpStatus changed value to " << ptp_status << std::endl;
-        use_ptp = ( ptp_status == "Slave" );
-        comma::saymore() << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
+        boost::optional< snark::vimba::attribute > ptp_status_attribute = get_attribute( "PtpStatus" );
+        if( ptp_status_attribute && ptp_status_attribute->value_as_string() != ptp_status )
+        {
+            ptp_status = ptp_status_attribute->value_as_string();
+            comma::saymore() << "PtpStatus changed value to " << ptp_status << std::endl;
+            use_ptp = ( ptp_status == "Slave" );
+            comma::saymore() << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
+        }
     }
 
     boost::posix_time::ptime timestamp =

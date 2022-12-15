@@ -232,18 +232,22 @@ static void print_attribute( const snark::vimba::attribute& attribute, bool verb
 
 static void print_stats( const snark::vimba::camera& camera )
 {
-    static const std::vector< std::string > stat_attributes
+    // stats are only supported on GigE cameras. See Alvium Features Reference
+    if( camera.interface_type() == VmbInterfaceEthernet )
     {
-        "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
-        "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
-        "StatPacketMissed", "StatPackerReceived", "StatPacketRequested", "StatPacketResent",
-        "StatTimeElapsed"
-    };
-    boost::optional< snark::vimba::attribute > a;
-    for( const std::string& attribute : stat_attributes )
-    {
-        a = camera.get_attribute( attribute );
-        if( a ) { print_attribute( *a, false, comma::verbose.app_name() ); }
+        static const std::vector< std::string > stat_attributes
+            {
+                "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
+                "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
+                "StatPacketMissed", "StatPackerReceived", "StatPacketRequested", "StatPacketResent",
+                "StatTimeElapsed"
+            };
+        boost::optional< snark::vimba::attribute > a;
+        for( const std::string& attribute : stat_attributes )
+        {
+            a = camera.get_attribute( attribute );
+            if( a ) { print_attribute( *a, false, comma::verbose.app_name() ); }
+        }
     }
 }
 
@@ -314,7 +318,7 @@ int main( int argc, char** argv )
                                    ? snark::vimba::camera( options.value<std::string>( "--id" ))
                                    : snark::vimba::camera( snark::vimba::system::open_first_camera()));
 
-        comma::saymore() << "opened " << camera.info()["name"] << std::endl;
+        comma::saymore() << "opened " << camera.info()["name"] << " on " << camera.info()["interface_type"] << " interface" << std::endl;
 
         if( options.exists( "--set-and-exit" ))
         {

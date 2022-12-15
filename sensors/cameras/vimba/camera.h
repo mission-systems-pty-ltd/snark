@@ -14,7 +14,6 @@
 #include <VimbaCPP/Include/Camera.h>
 #include "error.h"
 #include "frame_observer.h"
-#include "types.h"
 
 namespace snark { namespace vimba {
 
@@ -45,6 +44,7 @@ class camera
         ~camera();
 
         name_values info() const;
+        VmbInterfaceType interface_type() const { return interface_type_; }
         std::vector< attribute > attributes() const;
         boost::optional< attribute > get_attribute( const std::string& name ) const;
 
@@ -66,7 +66,10 @@ class camera
         static std::string value_to_string( const std::string& value );
         static std::string value_to_string( VmbInterfaceType value );
 
+        static const char* VmbInterfaceType_to_string( VmbInterfaceType type );
+
         AVT::VmbAPI::CameraPtr camera_;
+        VmbInterfaceType interface_type_;
         acquisition_mode_t acquisition_mode_;
         mutable VmbUint64_t last_frame_id_;
 };
