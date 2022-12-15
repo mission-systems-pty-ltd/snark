@@ -288,16 +288,20 @@ int main( int argc, char** argv )
                 snark::vimba::camera::name_values info = camera.info();
                 if( comma::verbose )
                 {
-                    std::cout << "\nCamera ID    : " << info["id"]
-                              << "\nCamera Name  : " << info["name"]
-                              << "\nModel Name   : " << info["model"]
-                              << "\nSerial Number: " << info["serial_number"]
-                              << "\nInterface ID : " << info["interface_id"]  << std::endl;
+                    std::cout << "\nCamera ID     : " << info["id"]
+                              << "\nCamera Name   : " << info["name"]
+                              << "\nModel Name    : " << info["model"]
+                              << "\nSerial Number : " << info["serial_number"]
+                              << "\nInterface Type: " << info["interface_type"]
+                              << std::endl;
                 }
                 else
                 {
-                    std::cout << "id=\"" << info["id"] << "\",name=\"" << info["name"]
-                              << "\",serial=\"" << info["serial_number"] << "\"" << std::endl;
+                    std::cout << "id=\"" << info["id"]
+                              << "\",name=\"" << info["name"]
+                              << "\",serial=\"" << info["serial_number"]
+                              << "\",interface=\"" << info["interface_type"]
+                              << "\"" << std::endl;
                 }
             }
             return 0;

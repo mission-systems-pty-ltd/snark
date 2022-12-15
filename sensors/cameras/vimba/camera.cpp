@@ -9,7 +9,6 @@
 
 #include "attribute.h"
 #include "camera.h"
-#include "error.h"
 #include "frame.h"
 #include "frame_observer.h"
 #include "system.h"
@@ -38,29 +37,23 @@ camera::name_values camera::info() const
 {
     name_values name_value_pairs;
 
-    add_name_value( "id",            boost::bind( &AVT::VmbAPI::Camera::GetID,           boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "name",          boost::bind( &AVT::VmbAPI::Camera::GetName,         boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "model",         boost::bind( &AVT::VmbAPI::Camera::GetModel,        boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "serial_number", boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "interface_id",  boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID,  boost::cref( *camera_ ), _1 ), name_value_pairs );
+    add_name_value< std::string >( "id"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetID, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "name"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetName, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "model"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetModel, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "serial_number"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< VmbInterfaceType >( "interface_type"
+                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceType, boost::cref( *camera_ ), _1 )
+                                      , name_value_pairs );
 
     return name_value_pairs;
-}
-
-void camera::add_name_value( const char* label, getter_fn fn, name_values& name_value_pairs )
-{
-    std::string value;
-    VmbErrorType status = fn( value );
-    if( status == VmbErrorSuccess )
-    {
-        name_value_pairs[ label ] = value;
-    }
-    else
-    {
-        std::ostringstream msg;
-        msg << "Count not get " << label;
-        write_error( msg.str(), status );
-    }
 }
 
 std::vector< attribute > camera::attributes() const

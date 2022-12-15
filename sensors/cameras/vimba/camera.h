@@ -1,5 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #ifndef SNARK_SENSORS_VIMBA_CAMERA_H_
 #define SNARK_SENSORS_VIMBA_CAMERA_H_
@@ -11,7 +12,9 @@
 #include <boost/optional.hpp>
 #include <opencv2/core/core.hpp>
 #include <VimbaCPP/Include/Camera.h>
+#include "error.h"
 #include "frame_observer.h"
+#include "types.h"
 
 namespace snark { namespace vimba {
 
@@ -57,14 +60,43 @@ class camera
         timestamped_frame frame_to_timestamped_frame( const snark::vimba::frame& frame, snark::vimba::ptp_status& ptp_status_out ) const;
 
     private:
-        typedef const boost::function< VmbErrorType( std::string& ) > getter_fn;
+        template< typename T> using getter_fn = const boost::function< VmbErrorType( T& ) >;
 
-        static void add_name_value( const char* label, getter_fn fn, name_values& name_value_pairs );
+        template< typename T > static void add_name_value( const char* label, getter_fn<T> fn, name_values& name_value_pairs );
+        static std::string value_to_string( const std::string& value );
+        static std::string value_to_string( VmbInterfaceType value );
 
         AVT::VmbAPI::CameraPtr camera_;
         acquisition_mode_t acquisition_mode_;
         mutable VmbUint64_t last_frame_id_;
 };
+
+std::string camera::value_to_string( const std::string& value )
+{
+    return value;
+}
+
+std::string camera::value_to_string( VmbInterfaceType value )
+{
+    return VmbInterfaceType_to_string( value );
+}
+
+template< typename T >
+void camera::add_name_value( const char* label, getter_fn<T> fn, name_values& name_value_pairs )
+{
+    T value;
+    VmbErrorType status = fn( value );
+    if( status == VmbErrorSuccess )
+    {
+        name_value_pairs[ label ] = value_to_string( value );
+    }
+    else
+    {
+        std::ostringstream msg;
+        msg << "Count not get " << label;
+        write_error( msg.str(), status );
+    }
+}
 
 } } // namespace snark { namespace vimba {
 
