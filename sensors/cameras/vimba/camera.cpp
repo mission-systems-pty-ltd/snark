@@ -61,6 +61,16 @@ camera::name_values camera::info() const
     return name_value_pairs;
 }
 
+std::string camera::value_to_string( const std::string& value )
+{
+    return value;
+}
+
+std::string camera::value_to_string( VmbInterfaceType value )
+{
+    return VmbInterfaceType_to_string( value );
+}
+
 const char* camera::VmbInterfaceType_to_string( VmbInterfaceType type )
 {
     switch( type )

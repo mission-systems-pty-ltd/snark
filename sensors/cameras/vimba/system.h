@@ -10,17 +10,17 @@ namespace snark { namespace vimba {
 
 class system
 {
-    public:
-        system();
-        ~system() { instance.Shutdown(); }
+public:
+    system();
+    ~system() { instance.Shutdown(); }
 
-        static VmbVersionInfo_t version();
-        static AVT::VmbAPI::CameraPtrVector cameras();
-        static AVT::VmbAPI::CameraPtr open_camera( const std::string& id );
-        static AVT::VmbAPI::CameraPtr open_first_camera();
+    static VmbVersionInfo_t version();
+    static AVT::VmbAPI::CameraPtrVector cameras();
+    static AVT::VmbAPI::CameraPtr open_camera( const std::string& id );
+    static AVT::VmbAPI::CameraPtr open_first_camera();
 
-    private:
-        static AVT::VmbAPI::VimbaSystem& instance;
+private:
+    static AVT::VmbAPI::VimbaSystem& instance;
 };
 
 } } // namespace snark { namespace vimba {
