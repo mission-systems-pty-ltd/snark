@@ -359,12 +359,17 @@ int main( int argc, char** argv )
         else { header_only = ( options.exists( "--header" )); }
         boost::optional< unsigned int > num_frames = options.optional< unsigned int >( "--frames-buffer-size,--num-frames" );
         float acquisition_start_delay = options.value< unsigned int >( "--acquisition-start-delay,--acquisition-delay", 10. );
+
+        // Despite the documentation, CSI cameras don't support the StatFrameDelivered feature (or StatFramesDelivered)
+        if( camera.interface_type() == VmbInterfaceCSI2 ) { check_frames = false; }
+
         snark::cv_mat::serialization serialization( fields, format, header_only );
         camera.set_acquisition_mode( snark::vimba::camera::ACQUISITION_MODE_CONTINUOUS );
         bool acquiring = true;
         unsigned int acquisition_restarts = 0;
         long long acquisition_time_elapsed = 0; // use timestamp instead
         int exit_code = 0;
+
         while( acquiring )
         {
             camera.start_acquisition( boost::bind( &output_frame, _1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
