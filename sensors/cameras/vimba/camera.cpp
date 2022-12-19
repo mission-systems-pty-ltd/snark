@@ -221,7 +221,16 @@ void camera::start_acquisition( frame_observer::callback_fn callback, boost::opt
     frame_observer* fo = new frame_observer( camera_, callback );
 
     // Start streaming
-    VmbErrorType status = camera_->StartContinuousImageAcquisition( num_frames, AVT::VmbAPI::IFrameObserverPtr( fo ));
+    //
+    // It's recommended to just use the StartContinuousImageAcquisition / StopContinuousImageAcquisition pair
+    // and not manage buffers etc ourselves.
+    //
+    // AnnounceFrame is the preferred allocation mode for most cameras, but
+    // AllocAndAnnounceFrame is preferred for CSI cameras. See
+    // "Getting started with GenICam for CSI-3" - "Known issues and restrictions"
+    AVT::VmbAPI::FrameAllocationMode allocation_mode = AVT::VmbAPI::FrameAllocation_AnnounceFrame;
+    if( interface_type_ == VmbInterfaceCSI2 ) { allocation_mode = AVT::VmbAPI::FrameAllocation_AllocAndAnnounceFrame; }
+    VmbErrorType status = camera_->StartContinuousImageAcquisition( buffer_size, AVT::VmbAPI::IFrameObserverPtr( fo ), allocation_mode );
     if( status != VmbErrorSuccess ) {
         COMMA_THROW( comma::exception, error_msg( "StartContinuousImageAcquisition() failed", status ));
     }
