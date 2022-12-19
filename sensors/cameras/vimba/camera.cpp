@@ -146,9 +146,16 @@ void camera::set_features( const std::string& name_value_pairs ) const
     for( const auto& f: comma::name_value::map::as_vector( name_value_pairs ) ) { set_feature( f.first, f.second ); }
 }
 
-void camera::start_acquisition( frame_observer::callback_fn callback, unsigned int num_frames ) const
+void camera::start_acquisition( frame_observer::callback_fn callback, boost::optional< unsigned int > num_frames ) const
 {
-    comma::saymore() << "starting image acquisition..." << std::endl;
+    // Use the requested buffer_size if set, otherwise default to 3 frames unless CSI,
+    // in which case use 7. See "Getting Started with GenICam for CSI"
+    unsigned int buffer_size;
+    if( num_frames ) { buffer_size = *num_frames; }
+    else if( interface_type_ == VmbInterfaceCSI2 ) { buffer_size = 7; }
+    else { buffer_size = 3; }
+
+    comma::saymore() << "starting image acquisition using " << buffer_size << " buffers..." << std::endl;
 
     last_frame_id_ = 0;
 

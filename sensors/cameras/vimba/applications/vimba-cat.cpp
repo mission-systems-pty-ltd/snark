@@ -368,7 +368,7 @@ int main( int argc, char** argv )
         unsigned int retries_on_no_frames = options.value< unsigned int >( "--retries-on-no-frames", default_retries_on_no_frames );
         if( options.exists( "--no-header" )) { fields = ""; }
         else { header_only = ( options.exists( "--header" )); }
-        unsigned int num_frames = options.value< unsigned int >( "--frames-buffer-size,--num-frames", 3 );
+        boost::optional< unsigned int > num_frames = options.optional< unsigned int >( "--frames-buffer-size,--num-frames" );
         float acquisition_start_delay = options.value< unsigned int >( "--acquisition-start-delay,--acquisition-delay", 10. );
         snark::cv_mat::serialization serialization( fields, format, header_only );
         camera.set_acquisition_mode( snark::vimba::camera::ACQUISITION_MODE_CONTINUOUS );
