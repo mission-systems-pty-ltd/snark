@@ -115,6 +115,63 @@ std::vector< attribute > camera::attributes() const
     return attributes;
 }
 
+// Available features and their names varies by interface type and by library version.
+// Allow for requests by a generic name that will be mapped to the actual name
+// for the given camera and version.
+
+std::string camera::feature_name( const std::string& which ) const
+{
+    if( which == "frames_delivered" )
+    {
+        switch( interface_type_ )
+        {
+            case VmbInterfaceEthernet: return "StatFrameDelivered";
+            case VmbInterfaceCSI2:     return "StatFrameDelivered";
+            default:
+                comma::say() << which << " not supported for " << VmbInterfaceType_to_string( interface_type_ ) << std::endl;
+                return "";
+        }
+    }
+    else
+    {
+        comma::say() << "unknown attribute: " << which << std::endl;
+    }
+    return "";
+}
+
+// return the names of the stat features, for a given interface type and library version
+//
+// Note that Alvium Features Reference v2.7.2 documents the StatFrame... features
+// as being called StatFrames... (plural), but when you list Features for a CSI camera
+// you get the spelling below. This difference between documentation and reality has
+// been confirmed by support, and applies also to GigE cameras.
+
+std::vector< std::string > camera::stat_feature_names() const
+{
+    switch( interface_type_ )
+    {
+        case VmbInterfaceEthernet:
+            {
+                return {
+                    "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
+                    "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
+                    "StatPacketMissed", "StatPacketReceived", "StatPacketRequested", "StatPacketResent",
+                    "StatTimeElapsed"
+                };
+            }
+            break;
+
+        case VmbInterfaceCSI2:
+            return {
+                "StatFrameRate", "StatFrameDelivered", "StatFrameCRCError", "StatFrameIncomplete", "StatFrameUnderrun"
+            };
+            break;
+
+        default:
+            return std::vector< std::string >();
+    }
+}
+
 boost::optional< attribute > camera::get_attribute( const std::string& name ) const
 {
     boost::optional< attribute > a;

@@ -232,22 +232,11 @@ static void print_attribute( const snark::vimba::attribute& attribute, bool verb
 
 static void print_stats( const snark::vimba::camera& camera )
 {
-    // stats are only supported on GigE cameras. See Alvium Features Reference
-    if( camera.interface_type() == VmbInterfaceEthernet )
+    boost::optional< snark::vimba::attribute > a;
+    for( const std::string& attribute : camera.stat_feature_names() )
     {
-        static const std::vector< std::string > stat_attributes
-            {
-                "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
-                "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
-                "StatPacketMissed", "StatPackerReceived", "StatPacketRequested", "StatPacketResent",
-                "StatTimeElapsed"
-            };
-        boost::optional< snark::vimba::attribute > a;
-        for( const std::string& attribute : stat_attributes )
-        {
-            a = camera.get_attribute( attribute );
-            if( a ) { print_attribute( *a, false, comma::verbose.app_name() ); }
-        }
+        a = camera.get_attribute( attribute );
+        if( a ) { print_attribute( *a, false, comma::verbose.app_name() ); }
     }
 }
 
@@ -387,11 +376,12 @@ int main( int argc, char** argv )
                 // on the first time through, wait a few seconds before checking
                 if( check_frames && acquisition_time_elapsed >= acquisition_start_delay )
                 {
-                    boost::optional< snark::vimba::attribute > frames_delivered_attribute = camera.get_attribute( "StatFrameDelivered" );
+                    boost::optional< snark::vimba::attribute > frames_delivered_attribute = camera.get_attribute( camera.feature_name( "frames_delivered" ));
                     if( frames_delivered_attribute )
                     {
                         long frames_delivered_prev = frames_delivered;
                         frames_delivered = frames_delivered_attribute->int_value();
+                        comma::saymore() << "frames delivered: " << frames_delivered << std::endl;
                         if( frames_delivered == frames_delivered_prev && !is_shutdown )
                         {
                             comma::say() << "warning - no frames received in the last second" << std::endl;
