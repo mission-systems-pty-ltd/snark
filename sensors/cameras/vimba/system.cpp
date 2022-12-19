@@ -17,12 +17,18 @@ system::system()
     }
 }
 
-VmbVersionInfo_t system::version()
+VmbVersionInfo_t system::vmb_version()
 {
     VmbVersionInfo_t version;
     VmbErrorType status = instance.QueryVersion( version );
     if( status == VmbErrorSuccess ) { return version; }
     COMMA_THROW( comma::exception, error_msg( "QueryVersion() failed", status ));
+}
+
+system::version_t system::version()
+{
+    VmbVersionInfo_t v = vmb_version();
+    return version_t( v.major, v.minor, v.patch );
 }
 
 AVT::VmbAPI::CameraPtrVector system::cameras()
