@@ -1,5 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <comma/base/exception.h>
 #include "../../../imaging/cv_mat/serialization.h"
@@ -44,6 +45,17 @@ frame::frame( const AVT::VmbAPI::FramePtr& frame_ptr )
     if( status != VmbErrorSuccess ) {
         COMMA_THROW( comma::exception, error_msg( "GetTimeStamp() failed", status ));
     }
+}
+
+void frame::print_stats( std::ostream& os ) const
+{
+    os << "frame_id: " << frame_id_ << "\n";
+    os << "frame_status: " << frame_status_ << "\n";
+    os << "height: " << height_ << "\n";
+    os << "width: " << width_ << "\n";
+    os << "size: " << size_ << "\n";
+    os << "pixel_format: " << pixel_format_ << "\n";
+    os << "timestamp: " << timestamp_ << std::endl;
 }
 
 const char* frame::status_as_string() const

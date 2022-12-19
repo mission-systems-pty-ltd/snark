@@ -1,10 +1,12 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #ifndef SNARK_SENSORS_VIMBA_FRAME_H_
 #define SNARK_SENSORS_VIMBA_FRAME_H_
 
 #include <VimbaCPP/Include/Frame.h>
+#include <iostream>
 
 namespace snark { namespace vimba {
 
@@ -33,6 +35,7 @@ class frame
         VmbPixelFormatType pixel_format() const { return pixel_format_; }
         VmbUint64_t        timestamp() const { return timestamp_; }
         pixel_format_desc  format_desc() const;
+        void               print_stats( std::ostream& os = std::cerr ) const;
 
     private:
         VmbUint64_t        frame_id_;
