@@ -26,6 +26,39 @@ available_operations="command,config,init,lidar,imu,alerts,stream_alerts"
 tested_firmware="1.12.0,1.13.0,2.3.1"
 tested_firmware_re="^v($( tr , '|' <<< $tested_firmware ))$"
 
+# Configurable parameters with possible values, defaults and units
+# For multiple option settings put the default option first
+declare -A configurable_parameters
+configurable_parameters=(
+    ["timestamp_mode"]="TIME_FROM_INTERNAL_OSC,TIME_FROM_PPS_IN_SYNCED,TIME_FROM_PTP_1588"
+    ["lidar_mode"]="512x10,1024x10,2048x10,512x20,1024x20"
+    ["multipurpose_io_mode"]="OFF,INPUT_NMEA_UART,OUTPUT_FROM_INTERNAL_OSC,OUTPUT_FROM_SYNC_PULSE_IN,OUTPUT_FROM_PTP_1588,OUTPUT_FROM_ENCODER_ANGLE"
+    ["sync_pulse_out_polarity"]="ACTIVE_LOW,ACTIVE_HIGH"
+    ["sync_pulse_out_frequency"]="1 Hz"
+    ["sync_pulse_out_angle"]="360 deg"
+    ["sync_pulse_out_pulse_width"]="10 ms"
+)
+
+function text_wrap()
+{
+    local prefix=$1
+    local text
+    while IFS= read text; do
+        local head=$( sed "s/$prefix.*/$prefix/" <<< "$text" )
+        local tail=$( sed "s/$head//" <<< "$text" )
+        echo -n "$head"
+        if [[ $tail ]]; then
+            tail=$( sed 's/,/*,/' <<< $tail )
+            local head_width=${#head}
+            local tail_width=$(( 80 - head_width ))
+            local spacer=$( printf ' %.0s' $( seq 1 $head_width ) )
+            echo "$tail" | fold -s -w$tail_width | sed "2,\$s/^/$spacer/"
+        else
+            echo ""
+        fi
+    done
+}
+
 function usage()
 {
     cat <<EOF >&2
@@ -84,12 +117,25 @@ configuration:
 
     which will preserve the address, port and device parameters.
 
+parameters:
     configurable parameters are:
 
-    timestamp_mode: one of “TIME_FROM_INTERNAL_OSC”, “TIME_FROM_PPS_IN_SYNCED”,
-                           “TIME_FROM_PTP_1588”
+EOF
+        for configurable_parameter in "${!configurable_parameters[@]}"; do
+            (
+                echo -n "    $configurable_parameter: "
+                value=${configurable_parameters[$configurable_parameter]}
+                if [[ $value =~ , ]]; then
+                    echo "one of $( sed 's/,/, /g' <<< $value )"
+                else
+                    IFS=" " read default units <<< $value
+                    echo "$units (default $default)"
+                fi
+            )
+        done | sort | text_wrap "one of "
+        cat <<EOF >&2
 
-    lidar_mode: one of “512x10”, “1024x10”, “2048x10”, “512x20”, “1024x20
+    * = default
 
     if you change any configurable parameter it should be loaded with
 
@@ -373,6 +419,7 @@ function update_parameter()
 {
     local name=$1
     local value=$2
+    [[ $value ]] || return
 
     local current_value=$( get_parameter $name )
     if [[ $current_value != $value ]]; then
@@ -386,8 +433,12 @@ function initialize()
     verbose "initializing from $options_config..."
     ping_lidar
 
-    update_parameter timestamp_mode $parameter_timestamp_mode
-    update_parameter lidar_mode $parameter_lidar_mode
+    local parameter parameter_var_name
+    # sort the parameters so they always get set in the same order
+    for parameter in $( tr " " "\n" <<< ${!configurable_parameters[@]} | sort ); do
+        parameter_var_name=parameter_$parameter
+        update_parameter $parameter ${!parameter_var_name}
+    done
 
     verbose "status=$( run_cmd get_sensor_info | name-value-get status )"
     udp_port_lidar=$( get_parameter udp_port_lidar )
