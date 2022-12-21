@@ -1,33 +1,9 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <boost/bind.hpp>
+#include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
@@ -84,12 +60,14 @@ static void usage( bool verbose = false )
     std::cerr << "    --list-cameras:                    list all cameras and exit" << std::endl;
     std::cerr << "    --list-attributes [<names>]:       list camera attributes; default: list all" << std::endl;
     std::cerr << "    --no-header:                       output image data only" << std::endl;
+    #ifdef VIMBA_PTP_SUPPORT
     std::cerr << "    --ptp-status=<stream>;             publish ptp status data to <stream> in binary"<< std::endl;
     std::cerr << "        <stream>: tcp:<port> | udp:<port> | <filename>"<< std::endl;
     std::cerr << "        fields: t,use_ptp,value"<< std::endl;
     std::cerr << "        format: ascii; t,ub,s[20]"<< std::endl;
     std::cerr << "    --ptp-status-fields;               print ptp status fields and exit"<< std::endl;
     std::cerr << "    --ptp-status-format;               print ptp status format and exit"<< std::endl;
+    #endif
     std::cerr << "    --retries-on-no-frames=<n>:        retry attempts if no frames detected; default: " << default_retries_on_no_frames << std::endl;
     std::cerr << "    --set <attributes>:                set camera attributes" << std::endl;
     std::cerr << "    --set-and-exit <attributes>:       set attributes and exit" << std::endl;
@@ -175,6 +153,7 @@ static std::string wrap( const std::string& text, size_t width = 80, const std::
     return wrapped.str();
 }
 
+#ifdef VIMBA_PTP_SUPPORT
 struct ptp_status_writer
 {
     static std::unique_ptr<ptp_status_writer> instance;
@@ -209,7 +188,7 @@ struct ptp_status_writer
     }
 };
 std::unique_ptr<ptp_status_writer> ptp_status_writer::instance;
-
+#endif
 
 static void output_frame( const snark::vimba::frame& frame
                         , snark::cv_mat::serialization& serialization
@@ -220,7 +199,9 @@ static void output_frame( const snark::vimba::frame& frame
     if( !timestamped_frame.first.is_not_a_date_time() )
     {
         serialization.write( std::cout, timestamped_frame );
+        #ifdef VIMBA_PTP_SUPPORT
         ptp_status_writer::write(ptp_status);
+        #endif
     }
 }
 
@@ -251,15 +232,8 @@ static void print_attribute( const snark::vimba::attribute& attribute, bool verb
 
 static void print_stats( const snark::vimba::camera& camera )
 {
-    static const std::vector< std::string > stat_attributes
-    {
-        "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
-        "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
-        "StatPacketMissed", "StatPackerReceived", "StatPacketRequested", "StatPacketResent",
-        "StatTimeElapsed"
-    };
     boost::optional< snark::vimba::attribute > a;
-    for( const std::string& attribute : stat_attributes )
+    for( const std::string& attribute : camera.stat_feature_names() )
     {
         a = camera.get_attribute( attribute );
         if( a ) { print_attribute( *a, false, comma::verbose.app_name() ); }
@@ -281,14 +255,15 @@ int main( int argc, char** argv )
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
+        #ifdef VIMBA_PTP_SUPPORT
         if( options.exists("--ptp-status-fields")) { ptp_status_writer::output_fields(); return 0; }
         if( options.exists("--ptp-status-format")) { ptp_status_writer::output_format(); return 0; }
         ptp_status_writer::init(options.optional<std::string>("--ptp-status"));
-        
+        #endif
 
         if( options.exists( "--version" ))
         {
-            VmbVersionInfo_t version = snark::vimba::system::version();
+            VmbVersionInfo_t version = snark::vimba::system::vmb_version();
             std::cout << "Vimba library version: " << version.major << "." << version.minor << "." << version.patch << std::endl;
             std::cout << "GENICAM_GENTL64_PATH=" << getenv( "GENICAM_GENTL64_PATH" ) << std::endl;
             return 0;
@@ -306,24 +281,33 @@ int main( int argc, char** argv )
                 snark::vimba::camera::name_values info = camera.info();
                 if( comma::verbose )
                 {
-                    std::cout << "\nCamera ID    : " << info["id"]
-                              << "\nCamera Name  : " << info["name"]
-                              << "\nModel Name   : " << info["model"]
-                              << "\nSerial Number: " << info["serial_number"]
-                              << "\nInterface ID : " << info["interface_id"]  << std::endl;
+                    std::cout << "\nCamera ID     : " << info["id"]
+                              << "\nCamera Name   : " << info["name"]
+                              << "\nModel Name    : " << info["model"]
+                              << "\nSerial Number : " << info["serial_number"]
+                              << "\nInterface Type: " << info["interface_type"]
+                              << std::endl;
                 }
                 else
                 {
-                    std::cout << "id=\"" << info["id"] << "\",name=\"" << info["name"]
-                              << "\",serial=\"" << info["serial_number"] << "\"" << std::endl;
+                    std::cout << "id=\"" << info["id"]
+                              << "\",name=\"" << info["name"]
+                              << "\",serial=\"" << info["serial_number"]
+                              << "\",interface=\"" << info["interface_type"]
+                              << "\"" << std::endl;
                 }
             }
             return 0;
         }
 
+        if( options.exists("--id")) { comma::saymore() << "opening camera id " << options.value<std::string>("--id") << std::endl; }
+        else { comma::saymore() << "opening first camera" << std::endl; }
+
         snark::vimba::camera camera( options.exists( "--id" )
                                    ? snark::vimba::camera( options.value<std::string>( "--id" ))
                                    : snark::vimba::camera( snark::vimba::system::open_first_camera()));
+
+        comma::saymore() << "opened " << camera.info()["name"] << " on " << camera.info()["interface_type"] << " interface" << std::endl;
 
         if( options.exists( "--set-and-exit" ))
         {
@@ -341,7 +325,9 @@ int main( int argc, char** argv )
         if( options.exists( "--list-attributes" ))
         {
             std::string names_str = options.value< std::string >( "--list-attributes", "" );
-            if( names_str.empty() )
+            // argument value is optional, but command-line parser will pick up next word on command-line,
+            // make sure it's not a new option (which means no argument was given to --list-attributes)
+            if( names_str.empty() || names_str[0] == '-' )
             {
                 std::vector< snark::vimba::attribute > attributes = camera.attributes();
                 for( std::vector< snark::vimba::attribute >::const_iterator it = attributes.begin();
@@ -363,7 +349,7 @@ int main( int argc, char** argv )
             return 0;
         }
 
-        comma::verbose << "starting as pid " << getpid() << std::endl;
+        comma::saymore() << "starting as pid " << getpid() << std::endl;
         std::string fields = options.value< std::string >( "--fields", default_fields );
         comma::csv::format format = format_from_fields( fields );
         bool header_only = false;
@@ -371,14 +357,19 @@ int main( int argc, char** argv )
         unsigned int retries_on_no_frames = options.value< unsigned int >( "--retries-on-no-frames", default_retries_on_no_frames );
         if( options.exists( "--no-header" )) { fields = ""; }
         else { header_only = ( options.exists( "--header" )); }
-        unsigned int num_frames = options.value< unsigned int >( "--frames-buffer-size,--num-frames", 3 );
+        boost::optional< unsigned int > num_frames = options.optional< unsigned int >( "--frames-buffer-size,--num-frames" );
         float acquisition_start_delay = options.value< unsigned int >( "--acquisition-start-delay,--acquisition-delay", 10. );
+
+        // Despite the documentation, CSI cameras don't support the StatFrameDelivered feature (or StatFramesDelivered)
+        if( camera.interface_type() == VmbInterfaceCSI2 ) { check_frames = false; }
+
         snark::cv_mat::serialization serialization( fields, format, header_only );
         camera.set_acquisition_mode( snark::vimba::camera::ACQUISITION_MODE_CONTINUOUS );
         bool acquiring = true;
         unsigned int acquisition_restarts = 0;
         long long acquisition_time_elapsed = 0; // use timestamp instead
         int exit_code = 0;
+
         while( acquiring )
         {
             camera.start_acquisition( boost::bind( &output_frame, _1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
@@ -390,18 +381,19 @@ int main( int argc, char** argv )
                 // on the first time through, wait a few seconds before checking
                 if( check_frames && acquisition_time_elapsed >= acquisition_start_delay )
                 {
-                    boost::optional< snark::vimba::attribute > frames_delivered_attribute = camera.get_attribute( "StatFrameDelivered" );
+                    boost::optional< snark::vimba::attribute > frames_delivered_attribute = camera.get_attribute( camera.feature_name( "frames_delivered" ));
                     if( frames_delivered_attribute )
                     {
                         long frames_delivered_prev = frames_delivered;
                         frames_delivered = frames_delivered_attribute->int_value();
+                        comma::saymore() << "frames delivered: " << frames_delivered << std::endl;
                         if( frames_delivered == frames_delivered_prev && !is_shutdown )
                         {
-                            std::cerr << comma::verbose.app_name() << ": warning - no frames received in the last second" << std::endl;
+                            comma::say() << "warning - no frames received in the last second" << std::endl;
                             if( comma::verbose ) { print_stats( camera ); }
                             if( acquisition_restarts == retries_on_no_frames )
                             {
-                                std::cerr << comma::verbose.app_name() << ": ";
+                                comma::say() << "";
                                 if( retries_on_no_frames > 0 )
                                 {
                                     std::cerr << "we've tried restarting acquisition "
@@ -418,7 +410,7 @@ int main( int argc, char** argv )
                             }
                             else
                             {
-                                std::cerr << comma::verbose.app_name() << ": restarting acquisition" << std::endl;
+                                comma::say() << "restarting acquisition" << std::endl;
                                 acquisition_restarts++;
                             }
                             break;
@@ -429,18 +421,18 @@ int main( int argc, char** argv )
 
             if( is_shutdown )
             {
-                comma::verbose << "caught shutdown signal " << std::endl;
+                comma::saymore() << "caught shutdown signal " << std::endl;
                 acquiring = false;
             }
-            comma::verbose << "exited acquisition loop" << std::endl;
+            comma::saymore() << "exited acquisition loop" << std::endl;
 
             camera.stop_acquisition();
         }
         if( comma::verbose && acquisition_time_elapsed > 5 ) { print_stats( camera ); }
-        comma::verbose << "exiting with code " << exit_code << std::endl;
+        comma::saymore() << "exiting with code " << exit_code << std::endl;
         return exit_code;
     }
-    catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }

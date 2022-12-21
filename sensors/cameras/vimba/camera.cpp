@@ -1,40 +1,14 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <sstream>
 #include <boost/bind.hpp>
-#include <comma/application/verbose.h>
+#include <comma/application/command_line_options.h>
 #include <comma/name_value/map.h>
 
 #include "attribute.h"
 #include "camera.h"
-#include "error.h"
 #include "frame.h"
 #include "frame_observer.h"
 #include "system.h"
@@ -42,17 +16,22 @@
 namespace snark { namespace vimba {
 
 camera::camera( const std::string& camera_id )
-    : acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
+    : interface_type_( VmbInterfaceUnknown )
+    , acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
     , last_frame_id_( 0 )
 {
     camera_ = system::open_camera( camera_id );
+    camera_->GetInterfaceType( interface_type_ );
 }
 
 camera::camera( const AVT::VmbAPI::CameraPtr& camera_ptr )
     : camera_( camera_ptr )
+    , interface_type_( VmbInterfaceUnknown )
     , acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
     , last_frame_id_( 0 )
-{}
+{
+    camera_->GetInterfaceType( interface_type_ );
+}
 
 camera::~camera()
 {
@@ -63,28 +42,46 @@ camera::name_values camera::info() const
 {
     name_values name_value_pairs;
 
-    add_name_value( "id",            boost::bind( &AVT::VmbAPI::Camera::GetID,           boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "name",          boost::bind( &AVT::VmbAPI::Camera::GetName,         boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "model",         boost::bind( &AVT::VmbAPI::Camera::GetModel,        boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "serial_number", boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "interface_id",  boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID,  boost::cref( *camera_ ), _1 ), name_value_pairs );
+    add_name_value< std::string >( "id"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetID, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "name"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetName, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "model"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetModel, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< std::string >( "serial_number"
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 )
+                                 , name_value_pairs );
+    add_name_value< VmbInterfaceType >( "interface_type"
+                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceType, boost::cref( *camera_ ), _1 )
+                                      , name_value_pairs );
 
     return name_value_pairs;
 }
 
-void camera::add_name_value( const char* label, getter_fn fn, name_values& name_value_pairs )
+std::string camera::value_to_string( const std::string& value )
 {
-    std::string value;
-    VmbErrorType status = fn( value );
-    if( status == VmbErrorSuccess )
+    return value;
+}
+
+std::string camera::value_to_string( VmbInterfaceType value )
+{
+    return VmbInterfaceType_to_string( value );
+}
+
+const char* camera::VmbInterfaceType_to_string( VmbInterfaceType type )
+{
+    switch( type )
     {
-        name_value_pairs[ label ] = value;
-    }
-    else
-    {
-        std::ostringstream msg;
-        msg << "Count not get " << label;
-        write_error( msg.str(), status );
+        case VmbInterfaceUnknown:  return "Unknown";      // Interface is not known to this version of the API
+        case VmbInterfaceFirewire: return "Firewire";     // 1394
+        case VmbInterfaceEthernet: return "Ethernet";     // GigE
+        case VmbInterfaceUsb:      return "Usb";          // USB 3.0
+        case VmbInterfaceCL:       return "CL";           // Camera Link
+        case VmbInterfaceCSI2:     return "CSI2";         // CSI-2
+        default:                   return "Unknown";
     }
 }
 
@@ -92,6 +89,7 @@ std::vector< attribute > camera::attributes() const
 {
     std::vector< attribute > attributes;
     AVT::VmbAPI::FeaturePtrVector features;
+    comma::saymore() << "getting camera features" << std::endl;
     VmbErrorType status = camera_->GetFeatures( features );
     if( status == VmbErrorSuccess )
     {
@@ -99,8 +97,15 @@ std::vector< attribute > camera::attributes() const
              it != features.end();
              ++it )
         {
-            attribute a( *it );
-            attributes.push_back( a );
+            // Failing to read an attribute is not fatal.
+            // Could use Feature::IsReadable() but there are some features that
+            // pass that test but still fail to read. e.g CorrectionDataSize.
+            try
+            {
+                attribute a( *it );
+                attributes.push_back( a );
+            }
+            catch( comma::exception& ex ) { comma::saymore() << ex.what() << std::endl; }
         }
     }
     else
@@ -110,12 +115,70 @@ std::vector< attribute > camera::attributes() const
     return attributes;
 }
 
+// Available features and their names varies by interface type and by library version.
+// Allow for requests by a generic name that will be mapped to the actual name
+// for the given camera and version.
+
+std::string camera::feature_name( const std::string& which ) const
+{
+    if( which == "frames_delivered" )
+    {
+        switch( interface_type_ )
+        {
+            case VmbInterfaceEthernet: return "StatFrameDelivered";
+            case VmbInterfaceCSI2:     return "StatFrameDelivered";
+            default:
+                comma::say() << which << " not supported for " << VmbInterfaceType_to_string( interface_type_ ) << std::endl;
+                return "";
+        }
+    }
+    else
+    {
+        comma::say() << "unknown attribute: " << which << std::endl;
+    }
+    return "";
+}
+
+// return the names of the stat features, for a given interface type and library version
+//
+// Note that Alvium Features Reference v2.7.2 documents the StatFrame... features
+// as being called StatFrames... (plural), but when you list Features for a CSI camera
+// you get the spelling below. This difference between documentation and reality has
+// been confirmed by support, and applies also to GigE cameras.
+
+std::vector< std::string > camera::stat_feature_names() const
+{
+    switch( interface_type_ )
+    {
+        case VmbInterfaceEthernet:
+            {
+                return {
+                    "StatFrameRate", "StatFrameDelivered", "StatFrameDropped", "StatFrameRescued",
+                    "StatFrameShoved", "StatFrameUnderrun", "StatLocalRate", "StatPacketErrors",
+                    "StatPacketMissed", "StatPacketReceived", "StatPacketRequested", "StatPacketResent",
+                    "StatTimeElapsed"
+                };
+            }
+            break;
+
+        case VmbInterfaceCSI2:
+            return {
+                "StatFrameRate", "StatFrameDelivered", "StatFrameCRCError", "StatFrameIncomplete", "StatFrameUnderrun"
+            };
+            break;
+
+        default:
+            return std::vector< std::string >();
+    }
+}
+
 boost::optional< attribute > camera::get_attribute( const std::string& name ) const
 {
     boost::optional< attribute > a;
     AVT::VmbAPI::FeaturePtr feature;
     VmbErrorType status = camera_->GetFeatureByName( name.c_str(), feature );
     if( status == VmbErrorSuccess ) { a = attribute( feature ); }
+    else { comma::say() << error_msg( std::string("failed to get ") + name, status ) << std::endl; }
     return a;
 }
 
@@ -139,9 +202,16 @@ void camera::set_features( const std::string& name_value_pairs ) const
     for( const auto& f: comma::name_value::map::as_vector( name_value_pairs ) ) { set_feature( f.first, f.second ); }
 }
 
-void camera::start_acquisition( frame_observer::callback_fn callback, unsigned int num_frames ) const
+void camera::start_acquisition( frame_observer::callback_fn callback, boost::optional< unsigned int > num_frames ) const
 {
-    comma::verbose << "starting image acquisition..." << std::endl;
+    // Use the requested buffer_size if set, otherwise default to 3 frames unless CSI,
+    // in which case use 7. See "Getting Started with GenICam for CSI"
+    unsigned int buffer_size;
+    if( num_frames ) { buffer_size = *num_frames; }
+    else if( interface_type_ == VmbInterfaceCSI2 ) { buffer_size = 7; }
+    else { buffer_size = 3; }
+
+    comma::saymore() << "starting image acquisition using " << buffer_size << " buffers..." << std::endl;
 
     last_frame_id_ = 0;
 
@@ -150,18 +220,27 @@ void camera::start_acquisition( frame_observer::callback_fn callback, unsigned i
     frame_observer* fo = new frame_observer( camera_, callback );
 
     // Start streaming
-    VmbErrorType status = camera_->StartContinuousImageAcquisition( num_frames, AVT::VmbAPI::IFrameObserverPtr( fo ));
+    //
+    // It's recommended to just use the StartContinuousImageAcquisition / StopContinuousImageAcquisition pair
+    // and not manage buffers etc ourselves.
+    //
+    // AnnounceFrame is the preferred allocation mode for most cameras, but
+    // AllocAndAnnounceFrame is preferred for CSI cameras. See
+    // "Getting started with GenICam for CSI-3" - "Known issues and restrictions"
+    AVT::VmbAPI::FrameAllocationMode allocation_mode = AVT::VmbAPI::FrameAllocation_AnnounceFrame;
+    if( interface_type_ == VmbInterfaceCSI2 ) { allocation_mode = AVT::VmbAPI::FrameAllocation_AllocAndAnnounceFrame; }
+    VmbErrorType status = camera_->StartContinuousImageAcquisition( buffer_size, AVT::VmbAPI::IFrameObserverPtr( fo ), allocation_mode );
     if( status != VmbErrorSuccess ) {
         COMMA_THROW( comma::exception, error_msg( "StartContinuousImageAcquisition() failed", status ));
     }
-    comma::verbose << "started image acquisition" << std::endl;
+    comma::saymore() << "started image acquisition" << std::endl;
 }
 
 void camera::stop_acquisition() const
 {
-    comma::verbose << "stopping image acquisition..." << std::endl;
+    comma::saymore() << "stopping image acquisition..." << std::endl;
     camera_->StopContinuousImageAcquisition();
-    comma::verbose << "stopped image acquisition" << std::endl;
+    comma::saymore() << "stopped image acquisition" << std::endl;
 }
 
 camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba::frame& frame, snark::vimba::ptp_status& ptps_out ) const
@@ -178,13 +257,17 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     // Get the current time as soon as possible after entering the callback
     boost::posix_time::ptime current_time = boost::posix_time::microsec_clock::universal_time();
 
-    boost::optional< snark::vimba::attribute > ptp_status_attribute = get_attribute( "PtpStatus" );
-    if( ptp_status_attribute && ptp_status_attribute->value_as_string() != ptp_status )
+    // PTP is only supported on GigE cameras. See Alvium Features Reference
+    if( interface_type_ == VmbInterfaceEthernet )
     {
-        ptp_status = ptp_status_attribute->value_as_string();
-        comma::verbose << "PtpStatus changed value to " << ptp_status << std::endl;
-        use_ptp = ( ptp_status == "Slave" );
-        comma::verbose << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
+        boost::optional< snark::vimba::attribute > ptp_status_attribute = get_attribute( "PtpStatus" );
+        if( ptp_status_attribute && ptp_status_attribute->value_as_string() != ptp_status )
+        {
+            ptp_status = ptp_status_attribute->value_as_string();
+            comma::saymore() << "PtpStatus changed value to " << ptp_status << std::endl;
+            use_ptp = ( ptp_status == "Slave" );
+            comma::saymore() << ( use_ptp ? "" : "not " ) << "using PTP time source" << std::endl;
+        }
     }
 
     boost::posix_time::ptime timestamp =
@@ -196,7 +279,7 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     ptps_out.t=timestamp;
     ptps_out.use_ptp=use_ptp;
     ptps_out.value=ptp_status;
-    
+
     if( frame.status() == VmbFrameStatusComplete )
     {
         if( acquisition_mode_ == ACQUISITION_MODE_CONTINUOUS )
@@ -206,9 +289,8 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
                 VmbUint64_t missing_frames = frame.id() - last_frame_id_ - 1;
                 if( missing_frames > 0 )
                 {
-                    std::cerr << comma::verbose.app_name() << ": warning - "
-                              << missing_frames << " missing frame" << ( missing_frames == 1 ? "" : "s" )
-                              << " detected" << std::endl;
+                    comma::say() << "warning - " << missing_frames << " missing frame" << ( missing_frames == 1 ? "" : "s" )
+                                 << " detected" << std::endl;
                 }
             }
             last_frame_id_ = frame.id();
@@ -225,9 +307,9 @@ camera::timestamped_frame camera::frame_to_timestamped_frame( const snark::vimba
     }
     else
     {
-        std::cerr << comma::verbose.app_name() << ": warning - frame " << frame.id() << " status " << frame.status_as_string() << std::endl;
+        comma::say() << "warning - frame " << frame.id() << " status " << frame.status_as_string() << std::endl;
     }
-    comma::verbose << "returning empty frame" << std::endl;
+    comma::saymore() << "returning empty frame" << std::endl;
     return timestamped_frame();
 }
 
