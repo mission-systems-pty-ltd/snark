@@ -286,6 +286,7 @@ int main( int argc, char** argv )
                               << "\nModel Name    : " << info["model"]
                               << "\nSerial Number : " << info["serial_number"]
                               << "\nInterface Type: " << info["interface_type"]
+                              << "\nInterface ID  : " << info["interface_id"]
                               << std::endl;
                 }
                 else
@@ -293,7 +294,8 @@ int main( int argc, char** argv )
                     std::cout << "id=\"" << info["id"]
                               << "\",name=\"" << info["name"]
                               << "\",serial=\"" << info["serial_number"]
-                              << "\",interface=\"" << info["interface_type"]
+                              << "\",interface_type=\"" << info["interface_type"]
+                              << "\",interface_id=\"" << info["interface_id"]
                               << "\"" << std::endl;
                 }
             }

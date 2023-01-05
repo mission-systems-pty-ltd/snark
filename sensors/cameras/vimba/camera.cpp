@@ -57,6 +57,9 @@ camera::name_values camera::info() const
     add_name_value< VmbInterfaceType >( "interface_type"
                                       , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceType, boost::cref( *camera_ ), _1 )
                                       , name_value_pairs );
+    add_name_value< std::string >( "interface_id"
+                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID, boost::cref( *camera_ ), _1 )
+                                      , name_value_pairs );
 
     return name_value_pairs;
 }
