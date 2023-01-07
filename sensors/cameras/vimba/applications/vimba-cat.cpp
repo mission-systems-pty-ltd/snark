@@ -198,7 +198,7 @@ static void output_frame( const snark::vimba::frame& frame
     snark::vimba::camera::timestamped_frame timestamped_frame = camera.frame_to_timestamped_frame( frame, ptp_status );
     if( !timestamped_frame.first.is_not_a_date_time() )
     {
-        serialization.write( std::cout, timestamped_frame );
+        serialization.write_to_stdout( timestamped_frame );
         #ifdef VIMBA_PTP_SUPPORT
         ptp_status_writer::write(ptp_status);
         #endif
