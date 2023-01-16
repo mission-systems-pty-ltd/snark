@@ -361,7 +361,9 @@ int main( int argc, char** argv )
         float acquisition_start_delay = options.value< unsigned int >( "--acquisition-start-delay,--acquisition-delay", 10. );
 
         // Despite the documentation, CSI cameras don't support the StatFrameDelivered feature (or StatFramesDelivered)
+        #if VIMBA_SDK_VERSION >= 040200
         if( camera.interface_type() == VmbInterfaceCSI2 ) { check_frames = false; }
+        #endif
 
         snark::cv_mat::serialization serialization( fields, format, header_only );
         camera.set_acquisition_mode( snark::vimba::camera::ACQUISITION_MODE_CONTINUOUS );

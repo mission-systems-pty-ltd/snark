@@ -79,8 +79,12 @@ const char* camera::VmbInterfaceType_to_string( VmbInterfaceType type )
         case VmbInterfaceFirewire: return "Firewire";     // 1394
         case VmbInterfaceEthernet: return "Ethernet";     // GigE
         case VmbInterfaceUsb:      return "Usb";          // USB 3.0
+        #if VIMBA_SDK_VERSION >= 020000
         case VmbInterfaceCL:       return "CL";           // Camera Link
+        #endif
+        #if VIMBA_SDK_VERSION >= 040200
         case VmbInterfaceCSI2:     return "CSI2";         // CSI-2
+        #endif
         default:                   return "Unknown";
     }
 }
@@ -126,7 +130,9 @@ std::string camera::feature_name( const std::string& which ) const
         switch( interface_type_ )
         {
             case VmbInterfaceEthernet: return "StatFrameDelivered";
+            #if VIMBA_SDK_VERSION >= 040200
             case VmbInterfaceCSI2:     return "StatFrameDelivered";
+            #endif
             default:
                 comma::say() << which << " not supported for " << VmbInterfaceType_to_string( interface_type_ ) << std::endl;
                 return "";
@@ -161,11 +167,13 @@ std::vector< std::string > camera::stat_feature_names() const
             }
             break;
 
+        #if VIMBA_SDK_VERSION >= 040200
         case VmbInterfaceCSI2:
             return {
                 "StatFrameRate", "StatFrameDelivered", "StatFrameCRCError", "StatFrameIncomplete", "StatFrameUnderrun"
             };
             break;
+        #endif
 
         default:
             return std::vector< std::string >();
@@ -208,7 +216,9 @@ void camera::start_acquisition( frame_observer::callback_fn callback, boost::opt
     // in which case use 7. See "Getting Started with GenICam for CSI"
     unsigned int buffer_size;
     if( num_frames ) { buffer_size = *num_frames; }
+    #if VIMBA_SDK_VERSION >= 040200
     else if( interface_type_ == VmbInterfaceCSI2 ) { buffer_size = 7; }
+    #endif
     else { buffer_size = 3; }
 
     comma::saymore() << "starting image acquisition using " << buffer_size << " buffers..." << std::endl;
@@ -227,9 +237,14 @@ void camera::start_acquisition( frame_observer::callback_fn callback, boost::opt
     // AnnounceFrame is the preferred allocation mode for most cameras, but
     // AllocAndAnnounceFrame is preferred for CSI cameras. See
     // "Getting started with GenICam for CSI-3" - "Known issues and restrictions"
+    #if VIMBA_SDK_VERSION >= 060000
     AVT::VmbAPI::FrameAllocationMode allocation_mode = AVT::VmbAPI::FrameAllocation_AnnounceFrame;
     if( interface_type_ == VmbInterfaceCSI2 ) { allocation_mode = AVT::VmbAPI::FrameAllocation_AllocAndAnnounceFrame; }
     VmbErrorType status = camera_->StartContinuousImageAcquisition( buffer_size, AVT::VmbAPI::IFrameObserverPtr( fo ), allocation_mode );
+    #else
+    // earlier Vimba versions don't have the allocationMode parameter
+    VmbErrorType status = camera_->StartContinuousImageAcquisition( buffer_size, AVT::VmbAPI::IFrameObserverPtr( fo ) );
+    #endif
     if( status != VmbErrorSuccess ) {
         COMMA_THROW( comma::exception, error_msg( "StartContinuousImageAcquisition() failed", status ));
     }

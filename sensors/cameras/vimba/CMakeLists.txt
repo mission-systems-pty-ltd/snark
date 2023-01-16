@@ -1,6 +1,20 @@
 set( PROJECT "vimba" )
 set( TARGET_NAME snark_${PROJECT} )
 
+# ------------------------------------------------------------------------------
+# Version handling for the Vimba SDK
+#
+# The Vimba SDK changes from time to time but we only have access to some
+# releases. At time of writing: 1.4, 2.0, 4.2, 6.0, 6.1.
+#
+# The C++ code does conditional compilation based on the version (passed in
+# integer format, e.g. 060100), via the VIMBA_SDK_VERSION compile parameter.
+#
+# Given that we only have access to some releases, the conditionals use only
+# those versions, although it might be that other (lower) versions also have the
+# required functionality.
+# ------------------------------------------------------------------------------
+
 file( RELATIVE_PATH project_path ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} )
 
 if( WIN32 )
@@ -37,7 +51,7 @@ if( NOT EXISTS ${VIMBA_SDK_ROOT} )
     message( FATAL_ERROR "\nPlease install the Vimba SDK at ${VIMBA_SDK_ROOT} "
         "or set VIMBA_SDK_ROOT to point to the SDK installation directory.\n"
         "The SDK is available from https://www.alliedvision.com/en/products/software.html.\n"
-        "The code in this project is currently developed and tested against version 6.1 of the SDK although it has also been tested against version 2.0 and 1.4."
+        "The code in this project is currently developed and tested against version 6.1 of the SDK although it has also been tested against versions 4.2, 2.0 and 1.4."
         )
 endif()
 
@@ -73,6 +87,49 @@ install( CODE "execute_process( COMMAND ldconfig )" )
 # which are the ones we care about.
 string( REGEX REPLACE ".*/[Vv]imba_([0-9]+)_([0-9]+)$" "\\1.\\2" VIMBA_SDK_VERSION ${VIMBA_SDK_ROOT} )
 message( STATUS "VIMBA_SDK_VERSION=${VIMBA_SDK_VERSION}" )
+
+# ---------------------------------------------------------------
+# Turn dotted version string (e.g. 6.1) in to integerized version
+# string (e.g. 060100) so that we can use it in C++ code for
+# "if" macros
+function( pad_string output str padchar len )
+    string( LENGTH "${str}" _strlen )
+    math( EXPR _padlen "${len} - ${_strlen}" )
+    if( _padlen GREATER 0 )
+        unset( _pad )
+        foreach( _i RANGE 1 ${_strlen})
+            string( APPEND _pad ${padchar} )
+        endforeach()
+        string( PREPEND str ${_pad} )
+    endif()
+    set( ${output} "${str}" PARENT_SCOPE )
+endfunction()
+
+# dotted version: a.b.c (e.g. "6.1")
+# int version: xyz (e.g. "060100")
+function( dotted_version_to_int_version int_version dotted_version )
+    string( REGEX REPLACE "\\." ";" _version_list ${dotted_version} )
+    list( LENGTH _version_list _element_count )
+    if( _element_count EQUAL 1 )
+        list( APPEND _version_list "0;0" )
+    endif()
+    if( _element_count EQUAL 2 )
+        list( APPEND _version_list "0" )
+    endif()
+
+    set( _int_version "" )
+    foreach( _element ${_version_list} )
+        pad_string( _padded_element ${_element} "0" 2 )
+        string( APPEND _int_version ${_padded_element} )
+    endforeach()
+    set( ${int_version} "${_int_version}" PARENT_SCOPE )
+endfunction()
+# ---------------------------------------------------------------
+
+dotted_version_to_int_version( VIMBA_SDK_VERSION_INT ${VIMBA_SDK_VERSION} )
+message( STATUS "VIMBA_SDK_VERSION_INT=${VIMBA_SDK_VERSION_INT}" )
+
+set_source_files_properties( ${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "-DVIMBA_SDK_VERSION=${VIMBA_SDK_VERSION_INT}" )
 
 # Set up an environment variable default
 #
