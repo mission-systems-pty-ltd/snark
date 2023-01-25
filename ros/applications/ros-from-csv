@@ -63,7 +63,7 @@ def isstring_unless_numpy(s):
 
 genpy.message.isstring = isstring_unless_numpy
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser( description = help_description, epilog = help_examples, formatter_class = argparse.RawDescriptionHelpFormatter, conflict_handler = 'resolve' )
     parser.add_argument( '--index-output-fields', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
     parser.add_argument( '--message-type', '--type', help = 'message type, useful for debugging', type = str )
@@ -81,14 +81,21 @@ def main():
     group_dry = parser.add_mutually_exclusive_group()
     group_dry.add_argument( '--dry-run', '--dry', help = 'output messages to stdout, do not send to topic', action = 'store_true' )
     group_dry.add_argument( '--ros-queue-size', '--ros-queue', '--queue-size', '--queue', metavar = 'NUM', default = 1, help = 'length of ROS publisher queue', type = int )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
     signal( SIGPIPE, SIG_IGN ) # do no want the IOError message trace
+
     if args.dry_run:
         import numpy
-        numpy.set_printoptions( linewidth=numpy.inf, threshold=numpy.inf, precision=args.precision and args.precision or numpy.get_printoptions()['precision'] )
+        numpy.set_printoptions( linewidth=numpy.inf, threshold=numpy.inf,
+                                precision=args.precision and args.precision or numpy.get_printoptions()['precision'] )
+
     if args.topic is None and not args.dry_run and args.message_type is None:
         print( "ros-from-csv: please specify --topic", file=sys.stderr )
         sys.exit( 1 )
+
     if args.message_type is None:
         message_type = rostopic.get_topic_class( args.topic )[0]
     else:
@@ -97,25 +104,33 @@ def main():
         message_type = getattr( module, args.message_type.split('.')[-1] )
     message = message_type()
     record_type, record_ctor = convert.ros_message_to_csv_record( message_type() )
+
     if args.format or args.binary:
         formats = args.format if args.format else args.binary
         fields = args.fields if args.fields else detail.command_line.fields_of_record( record_type, args.index_output_fields )
         lengths = detail.command_line.lengths_of_strings( fields, comma.csv.format.expand( formats ))
         record_type, record_ctor = convert.ros_message_to_csv_record( message_type(), lengths )
+
     if args.output_fields: print( ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields ))); sys.exit( 0 )
     if args.output_format: print( ','.join( [ comma.csv.format.from_numpy( f ) for f in record_type.format.split(',') ] )); sys.exit( 0 )
+
     format = ','.join( comma.csv.format.to_numpy( args.binary and args.binary or args.format, compress=True ) )
     binary = not not args.binary
-    istream = comma.csv.stream( record_type, delimiter = args.delimiter, fields = args.fields, format = format, binary = binary, default_values = None, flush = args.flush )
+    istream = comma.csv.stream( record_type, delimiter = args.delimiter,
+                                fields = args.fields, format = format, binary = binary,
+                                default_values = None, flush = args.flush )
     assign = record_type.assign( message, convert.from_csv_supported_types )
+
     if args.dry_run:
         if args.verbose: print( "ros-from-csv: dry run, printing messages to stdout", file=sys.stderr )
     else:
         publisher = rospy.Publisher( args.topic, message_type, queue_size = args.ros_queue_size )
         rospy.init_node( 'ros_from_csv', anonymous = True )
         if args.verbose: print( "ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr )
+
     for records in istream:
-        for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
+        for record in records:                 # todo? try assigning the whole array at once? should be a better performance?
+                                               # but we may need to expand comma.csv.struct.assign() to make it working
             assign( record )
             if args.dry_run: print( message )
             else: publisher.publish( message )
