@@ -63,6 +63,16 @@ def isstring_unless_numpy(s):
 
 genpy.message.isstring = isstring_unless_numpy
 
+def fix_signal_handling():
+    # Reset SIGPIPE and SIGINT to their default OS behaviour.
+    # This stops python dumping a stack-trace on ctrl-c or broken pipe.
+    signal.signal( signal.SIGPIPE, signal.SIG_DFL )
+    s = signal.signal( signal.SIGINT, signal.SIG_DFL )
+    # but don't reset SIGINT if it's been assigned to something other
+    # than the Python default
+    if s != signal.default_int_handler:
+        signal.signal( signal.SIGINT, s )
+
 def parse_args():
     parser = argparse.ArgumentParser( description = help_description, epilog = help_examples, formatter_class = argparse.RawDescriptionHelpFormatter, conflict_handler = 'resolve' )
     parser.add_argument( '--index-output-fields', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
@@ -84,8 +94,8 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    fix_signal_handling()
     args = parse_args()
-    signal( SIGPIPE, SIG_IGN ) # do no want the IOError message trace
 
     if args.dry_run:
         import numpy
