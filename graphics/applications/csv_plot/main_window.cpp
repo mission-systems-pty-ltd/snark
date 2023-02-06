@@ -58,7 +58,6 @@ static QWidget* make_widget_( const std::string& l, main_window::charts_t& chart
 
 main_window::main_window( const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                         , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
-                        , const std::pair< unsigned int, unsigned int >& size
                         , const std::string& layout
                         , float timeout )
 {
@@ -84,7 +83,6 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
         for( auto& t: s->series ) { charts_[ t.config().chart ]->push_back( &t ); } // quick and dirty; todo? move to stream::make()? (then change series vector in stream to ptr_vector)
     }
     setCentralWidget( make_widget_( layout, charts_ ) );
-    resize( size.first, size.second );
     QObject::connect( &timer_, &QTimer::timeout, this, &main_window::update );
     timer_.setInterval( ( unsigned int )( timeout * 1000 ) );
 }

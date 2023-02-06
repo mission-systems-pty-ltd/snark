@@ -21,7 +21,6 @@ class main_window: public QMainWindow
         typedef std::map< std::string, snark::graphics::plotting::chart* > charts_t;
         main_window( const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                    , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
-                   , const std::pair< unsigned int, unsigned int >& size
                    , const std::string& layout
                    , float timeout );
         virtual ~main_window();
