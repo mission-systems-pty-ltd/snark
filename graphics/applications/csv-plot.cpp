@@ -112,7 +112,11 @@ static void usage( bool verbose = false )
     std::cerr << "                tabs: charts are arranged in single window as tabs" << std::endl;
     std::cerr << "                windows: todo: each chart is in its own window" << std::endl;
     std::cerr << "    --timeout=<seconds>; how often to update, overrides --fps" << std::endl;
-    std::cerr << "    --window-size=<x>,<y>: initial window size; default=800,600" << std::endl;
+    std::cerr << "    --window-position,--window=[<x>,<y>[,<width>,<height>]]: position of application window on screen in pixels" << std::endl;
+    std::cerr << "        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window" << std::endl;
+    std::cerr << "                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry" << std::endl;
+    std::cerr << "                   for now, find the desired window position by hand and use those window position values" << std::endl;
+    std::cerr << "    --window-size=<x>,<y>: initial window size, same as <width>,<height> in --window-position; default=800,600" << std::endl;
     std::cerr << std::endl;
     std::cerr << "zooming and panning" << std::endl;
     std::cerr << "    scroll wheel: zoom in and out about the mouse cursor" << std::endl;

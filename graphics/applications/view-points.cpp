@@ -278,6 +278,9 @@ static void usage( bool )
         "\n    --scene-radius,--radius=<value>: fixed scene radius in metres, since sometimes it is hard to imply"
         "\n                                     scene size from the dataset (e.g. for streams)"
         "\n    --window-position,--window=[<x>,<y>[,<width>,<height>]]: position of application window on screen in pixels"
+        "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
+        "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
+        "\n                   for now, find the desired window position by hand and use those window position values"
         qt55_unsupported_marker_start
         "\n    --z-is-up : z-axis is pointing up, default: pointing down ( north-east-down system )"
         qt55_unsupported_marker_end
