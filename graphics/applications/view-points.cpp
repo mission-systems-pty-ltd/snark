@@ -835,9 +835,12 @@ int main( int argc, char** argv )
         if( !window_position.empty() )
         {
             const auto& p = comma::split_as< unsigned int >( window_position, ',' );
-            if( p.size() != 2 && p.size() != 4 ) { std::cerr << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
-            main_window.move( p[0], p[1] );
-            if( p.size() == 4 ) { main_window.resize( p[2], p[3] ); }
+            switch( p.size() )
+            {
+                case 2: main_window.move( p[0], p[1] ); break;
+                case 4: main_window.setGeometry( p[0], p[1], p[2], p[3] ); break;
+                default: std::cerr << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1;
+            }
         }
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();
