@@ -277,6 +277,7 @@ static void usage( bool )
         "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
         "\n    --scene-radius,--radius=<value>: fixed scene radius in metres, since sometimes it is hard to imply"
         "\n                                     scene size from the dataset (e.g. for streams)"
+        "\n    --window-position,--window=[<x>,<y>,<width>,<height>]: position of application window on screen in pixels"
         qt55_unsupported_marker_start
         "\n    --z-is-up : z-axis is pointing up, default: pointing down ( north-east-down system )"
         qt55_unsupported_marker_end
@@ -830,6 +831,14 @@ int main( int argc, char** argv )
             if( options.exists( "--output-camera-config,--output-camera,--output-camera-position" ) ) { COMMA_THROW( comma::exception, "cannot use --output-camera-config or --output-camera-position whilst \"pass-through\" option is in use" ); }
         }
         snark::graphics::view::MainWindow main_window( comma::join( argv, argc, ' ' ), controller );
+        std::string window_position = options.value< std::string >( "--window-position,--window", "" );
+        if( !window_position.empty() )
+        {
+            const auto& p = comma::split_as< unsigned int >( window_position, ',' );
+            if( p.size() != 4 ) { std::cerr << "expected --window-position=<x>,<y>,<width>,<height>; got: \"" << window_position << "\"" << std::endl; return 1; }
+            main_window.resize( p[2], p[3] );
+            main_window.move( p[0], p[1] );
+        }
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();
         return 0;       // We never actually reach this line because we raise SIGINT when closing
