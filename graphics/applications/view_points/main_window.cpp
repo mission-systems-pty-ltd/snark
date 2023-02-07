@@ -39,8 +39,8 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
     m_fileLayout->setSpacing( 0 );
     m_fileLayout->setContentsMargins( 5, 5, 5, 0 );
 
-    QLabel* filenameLabel = new QLabel( "<b>filename</b>" );
-    QLabel* visibleLabel = new QLabel( "<b>view</b>" );
+    QLabel* filenameLabel = new QLabel( "<b>file/stream</b>" );
+    QLabel* visibleLabel = new QLabel( "<b>visible</b>" );
     m_fileLayout->addWidget( filenameLabel, 0, 0, Qt::AlignLeft | Qt::AlignTop );
     m_fileLayout->addWidget( visibleLabel, 0, 1, Qt::AlignRight | Qt::AlignTop );
     m_fileLayout->setRowStretch( 0, 0 );
@@ -143,7 +143,6 @@ void MainWindow::updateFileFrame() // quick and dirty
     {
         static const std::size_t maxLength = 30; // arbitrary
         std::string title = controller->readers[i]->title;
-
         if( title.length() > maxLength )
         {
             #ifdef WIN32
