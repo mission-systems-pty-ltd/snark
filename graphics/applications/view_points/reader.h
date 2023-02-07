@@ -74,9 +74,7 @@ class Reader : public reader_parameters
               , colored* c
               , const std::string& label
               , const Eigen::Vector3d& offset = Eigen::Vector3d( 0, 0, 0 ) );
-
         virtual ~Reader() {}
-
         virtual void start() = 0;
         virtual std::size_t update( const Eigen::Vector3d& offset ) = 0;
         virtual const Eigen::Vector3d& some_point() const = 0;
@@ -99,14 +97,14 @@ class Reader : public reader_parameters
         bool is_stdin() const { return _is_stdin; }
         void shutdown();
         void read();
-
+        const view::colored& get_colored() const { return *m_colored; } // quick and dirty
              
     protected:
         bool update_point( const Eigen::Vector3d& offset );
 
         boost::optional< snark::math::closed_interval< float, 3 > > m_extents;
         unsigned int m_num_points;
-        boost::scoped_ptr< colored > m_colored;
+        boost::scoped_ptr< view::colored > m_colored;
         bool m_shutdown;
         bool _is_stdin;
         bool m_show;

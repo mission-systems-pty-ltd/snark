@@ -35,6 +35,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <boost/optional.hpp>
 #include "types.h"
 #ifndef Q_MOC_RUN
 #include "../../../render/colour_map.h"
@@ -50,8 +51,8 @@ struct colored
                          , comma::uint32 id
                          , double scalar
                          , const color_t& c ) const = 0;
-
     virtual ~colored() {}
+    virtual boost::optional< std::pair< double, double > > extents() const { return boost::none; }
 };
 
 class fixed : public colored
@@ -80,6 +81,7 @@ struct by_height : public colored // todo: refactor and merge with byscalar
     double from, to, sum, diff, middle;
     color_t from_color, to_color, average_color;
     bool cyclic, linear, sharp;
+    boost::optional< std::pair< double, double > > extents() const { return std::make_pair( from, to ); }
 
     virtual color_t color( const Eigen::Vector3d& point
                          , comma::uint32 id
@@ -103,6 +105,8 @@ class by_scalar : public colored
                              , comma::uint32 id
                              , double scalar
                              , const color_t& c ) const;
+
+        boost::optional< std::pair< double, double > > extents() const { return std::make_pair( from, to ); }
 
     protected:
         double from, to, diff;

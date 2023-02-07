@@ -168,6 +168,27 @@ void MainWindow::updateFileFrame() // quick and dirty
         }
     }
     std::size_t i = 1 + controller->readers.size();
+    // for( std::size_t j = 0; j < controller->readers.size(); ++j ) // quick and dirty, just for now... todo! certainly make collapsable reader widget with properties including colorbar
+    // {
+    //     // todo: something like: https://code.qt.io/cgit/qt/qtdatavis3d.git/tree/examples/datavisualization/surface/main.cpp?h=5.15
+    //     const auto& c = controller->readers[j].colored();
+    //     if( !c.extents() ) { continue; }
+    //     auto e = *c.extents();        
+    //     QLinearGradient g(0, 0, 1, 100);
+    //     grBtoY.setColorAt(1.0, c.color( Eigen::Vector3d::Zero(), 0, e.first, color_t() ) );
+    //     grBtoY.setColorAt(0.67, ...);
+    //     grBtoY.setColorAt(0.33, ...);
+    //     grBtoY.setColorAt(0.0, c.color( Eigen::Vector3d::Zero(), 0, e.second, color_t() ) );
+    //     QPixmap pm(24, 100);
+    //     QPainter pmp(&pm);
+    //     pmp.setBrush(QBrush(grBtoY));
+    //     pmp.setPen(Qt::NoPen);
+    //     pmp.drawRect(0, 0, 24, 100);
+    //     QPushButton *gradientBtoYPB = new QPushButton(widget);
+    //     gradientBtoYPB->setIcon(QIcon(pm));
+    //     gradientBtoYPB->setIconSize(QSize(24, 100));
+    //     ++i;
+    // }
     m_fileLayout->addWidget( new QLabel( "<b>groups</b>" ), i++, 0, Qt::AlignLeft | Qt::AlignTop );
     for( FileGroupMap::const_iterator it = m_userGroups.begin(); it != m_userGroups.end(); ++it, ++i )
     {
