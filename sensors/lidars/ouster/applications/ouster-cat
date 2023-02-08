@@ -18,6 +18,8 @@ function description()
 --output-format;     show output format and exit
 --packet-size;       show packet size and exit
 --port=<port>;       default=7501; command port
+--all;               with alert operation, show all alerts, not just active
+--since=[<time>];    with alert operation, show alerts since <time>
 --use-host-time;     apply system time from host to data
 EOF
 }
@@ -141,6 +143,13 @@ EOF
 
         $scriptname init --config <file>
 
+alerts:
+    By default "alerts" will show only active alerts. Set --all to see all.
+
+    --since shows only recent alerts. <time> can either be an absolute time in
+    yyyymmddThhmmss format or an offset. Default for offset is seconds but
+    minutes, hours or days can be specified with a suffix. See examples.
+
 examples:
 
     --- commands ---
@@ -171,6 +180,7 @@ examples:
 
     --- alerts ---
     $scriptname alerts
+    $scriptname alerts --since 5m
     $scriptname stream_alerts
 
 EOF
@@ -250,6 +260,38 @@ if [[ $lidar_data_format_udp_profile_lidar ]]; then
     [[ $lidar_data_format_udp_profile_lidar == "LEGACY" ]] || die "only LEGACY format supported for v2 api"
 fi
 
+function run_cmd()
+{
+    [[ $1 == -q ]] && shift || verbose $1
+    echo $1 | socat tcp:$lidar:$command_port -
+}
+
+function version_ge()
+{
+    local value=$1
+    local compare_to=$2
+    echo -e "${compare_to}\n${value}" | sort -V | sed -n 2p | grep -q "^${value}$"
+}
+
+firmware_version=
+function get_firmware_version()
+{
+    [[ $firmware_version ]] || firmware_version=$( run_cmd get_sensor_info | name-value-get build_rev | sed 's/^v//' )
+    echo $firmware_version
+}
+
+function input_fields()
+{
+    case $1 in
+        alerts|stream_alerts)
+            local firmware=$( get_firmware_version )
+            version_ge $firmware 1.13.0 && { echo "category,level,realtime,active,msg,cursor,id,msg_verbose"; return; }
+            echo "cursor,code,level,realtime,brief,description"
+            ;;
+        *) die "input_fields() not valid for operation \"$1\""
+    esac
+}
+
 function output_fields()
 {
     case $1 in
@@ -261,6 +303,8 @@ function output_fields()
             echo $( echo start,acceleration,gyro | prefix time ),$( echo x,y,z | prefix acceleration ),$( echo -n x,y,z | prefix angular_acceleration )
             ;;
         alerts|stream_alerts)
+            local firmware=$( get_firmware_version )
+            version_ge $firmware 1.13.0 && { echo "t,cursor,category,msg,msg_verbose"; return; }
             echo "t,cursor,code,brief,description"
             ;;
         *) die "invalid operation: $1"
@@ -288,9 +332,12 @@ function packet_size()
     esac
 }
 
-(( $( comma_options_has --output-fields "$@" ) )) && { output_fields $operation; exit 0; }
-(( $( comma_options_has --output-format "$@" ) )) && { output_format $operation; exit 0; }
-(( $( comma_options_has --packet-size "$@" ) )) && { packet_size $operation; exit 0; }
+# alerts and stream_alerts needs a connection to the lidar to determine the version
+if [[ ! $operation =~ alerts|stream_alerts ]]; then
+    (( $( comma_options_has --output-fields "$@" ) )) && { output_fields $operation; exit 0; }
+    (( $( comma_options_has --output-format "$@" ) )) && { output_format $operation; exit 0; }
+    (( $( comma_options_has --packet-size "$@" ) )) && { packet_size $operation; exit 0; }
+fi
 
 [[ $options_device ]] && lidar=$options_device
 [[ $lidar ]] || die "lidar host name or ip address is required"
@@ -309,16 +356,15 @@ if [[ $operation =~ init|lidar|imu ]]; then
     [[ $host_ip ]] || die "unable to resolve $host"
 fi
 
+# in case we haven't already done this
+(( $( comma_options_has --output-fields "$@" ) )) && { output_fields $operation; exit 0; }
+(( $( comma_options_has --output-format "$@" ) )) && { output_format $operation; exit 0; }
+(( $( comma_options_has --packet-size "$@" ) )) && { packet_size $operation; exit 0; }
+
 # send stdout to stderr
 function log_stdout()
 {
     sed "s/^/$scriptname: /" >&2
-}
-
-function run_cmd()
-{
-    [[ $1 == -q ]] && shift || verbose $1
-    echo $1 | socat tcp:$lidar:$command_port -
 }
 
 function ping_lidar()
@@ -368,13 +414,6 @@ function wrap_json_arrays()
         '
 }
 
-function version_ge()
-{
-    local value=$1
-    local compare_to=$2
-    echo -e "${compare_to}\n${value}" | sort -V | sed -n 2p | grep -q "^${value}$"
-}
-
 function output_config()
 {
     ping_lidar
@@ -389,7 +428,7 @@ function output_config()
                 echo
             fi
         done
-        local firmware=$( run_cmd get_sensor_info | name-value-get build_rev | sed 's/^v//' )
+        local firmware=$( get_firmware_version )
         echo "device/host=$lidar"
         echo "device/target=$( load_config $( config_path_concat $options_config device/target ) 2>/dev/null )"
         echo "device/firmware=$firmware"
@@ -451,19 +490,47 @@ function initialize()
 
 function alerts()
 {
-    local input_fields="cursor,code,realtime,brief,description"
+    local input_fields=$( input_fields alerts )
     local output_fields=$( output_fields alerts ),next_cursor
+    local output_format=$( output_format alerts ),ul
     local eval_format=$( output_format alerts | csv-fields rename --fields t --to ul ),ul
+
+    # prefix in the json data
+    local firmware=$( get_firmware_version )
+    local alert_prefix=
+    if version_ge $( get_firmware_version ) 1.13.0; then
+        (( options_all )) && alert_prefix=log || alert_prefix=active
+    else
+        alert_prefix=alerts     # 1.12 and earlier
+    fi
+
+    local time_filter=cat
+    if [[ $options_since ]]; then
+        local time_since=$options_since
+        if [[ ! $time_since =~ [0-9]+T[0-9.]+ ]]; then
+            # not an absolute time, must be an offset in seconds
+            local current_time=$( date +%s )
+            local offset offset_units
+            read offset offset_units <<< $( sed -r 's/([0-9]+)([a-z])/\1 \2/' <<< $time_since )
+            [[ $offset_units == 'm' ]] && offset=$(( offset * 60 ))
+            [[ $offset_units == 'h' ]] && offset=$(( offset * 3600 ))
+            [[ $offset_units == 'd' ]] && offset=$(( offset * 86400 ))
+            local time_since_ut=$(( current_time - offset ))
+            time_since=$( date -u -d@$time_since_ut +'%Y%m%dT%H%M%S' )
+        fi
+        time_filter="csv-select --fields $output_fields --format $output_format t;from=$time_since;sorted"
+    fi
 
     verbose "alerts..."
     run_cmd get_alerts \
         | name-value-convert \
-        | name-value-to-csv --fields $input_fields --prefix alerts --unindexed-fields=next_cursor \
+        | name-value-to-csv --fields $input_fields --prefix $alert_prefix --unindexed-fields=next_cursor \
         | csv-quote --unquote | csv-quote \
         | csv-shuffle --fields $input_fields,next_cursor \
                       --output $( csv-fields rename --fields t --to realtime <<< $output_fields ) \
         | csv-eval --fields $output_fields --format $eval_format "t=t/1000000000" \
-        | csv-time --fields $( csv-fields clear --except t <<< $output_fields ) --from seconds --to iso
+        | csv-time --fields $( csv-fields clear --except t <<< $output_fields ) --from seconds --to iso \
+        | $time_filter
 }
 
 next_cursor=0
@@ -475,6 +542,7 @@ function stream_alerts()
 
     verbose "streaming alerts..."
     while : ; do
+        options_alerts="all"
         local alerts=$( alerts )
         local new_next_cursor=$( echo "$alerts" | head -1 | csv-shuffle --fields $fields --output next_cursor )
         verbose "new_next_cursor=$new_next_cursor"
