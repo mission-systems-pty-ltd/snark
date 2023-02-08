@@ -76,7 +76,21 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
     layout->setColumnMinimumWidth( 1, viewer->size().width() );
     frame->setLayout( layout );
     //resize( viewer->size().width(), viewer->size().height() ); // resize( 640, 480 );
-    setCentralWidget( frame );
+
+    QFrame* outer_frame = new QFrame; // lame, todo: use layout config files
+    outer_frame->setFrameStyle( QFrame::Plain | QFrame::NoFrame );
+    outer_frame->setContentsMargins( 0, 0, 0, 0 );
+    QGridLayout* outer_layout = new QGridLayout;
+    outer_layout->setContentsMargins( 0, 0, 0, 0 );
+    outer_layout->setSpacing( 0 );
+    outer_layout->setColumnStretch( 0, 0 );
+    outer_layout->setColumnStretch( 1, 0 );
+    outer_layout->setRowMinimumHeight( 0, viewer->size().height() );
+    outer_layout->setColumnMinimumWidth( 0, viewer->size().width() );
+    outer_layout->addWidget( frame, 0, 0 );
+    outer_frame->setLayout( outer_layout );
+
+    setCentralWidget( outer_frame ); // setCentralWidget( frame );
     m_viewMenu = menuBar()->addMenu( "View" );
     ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, boost::placeholders::_1 ) );
     action->setChecked( m_fileFrameVisible );
