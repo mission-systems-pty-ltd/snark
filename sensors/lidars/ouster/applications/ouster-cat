@@ -280,7 +280,10 @@ function version_ge()
 firmware_version=
 function get_firmware_version()
 {
-    [[ $firmware_version ]] || firmware_version=$( run_cmd get_sensor_info | name-value-get build_rev | sed 's/^v//' )
+    if [[ -z $firmware_version ]]; then
+        firmware_version=$( run_cmd get_sensor_info | name-value-get build_rev | sed 's/^v//' )
+        say "firmware=$firmware_version"
+    fi
     echo $firmware_version
 }
 
