@@ -479,6 +479,10 @@ function initialize()
     verbose "initializing from $options_config..."
     ping_lidar
 
+    local firmware=$( get_firmware_version )
+    local udp_dest_param=udp_ip
+    version_ge $firmware 2.4.0 && udp_dest_param=udp_dest
+
     local parameter parameter_var_name
     # sort the parameters so they always get set in the same order
     for parameter in $( tr " " "\n" <<< ${!configurable_parameters[@]} | sort ); do
@@ -491,8 +495,8 @@ function initialize()
     udp_port_imu=$( get_parameter udp_port_imu )
     verbose "lidar port=$udp_port_lidar"
     verbose "imu port=$udp_port_imu"
-    set_parameter udp_ip $host_ip
-    reinitialize                    # to set the udp_ip
+    set_parameter $udp_dest_param $host_ip
+    reinitialize                    # to set the udp_dest (udp_ip)
 }
 
 function alerts()
