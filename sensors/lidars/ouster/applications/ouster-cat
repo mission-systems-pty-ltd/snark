@@ -7,6 +7,8 @@ scriptname=$( basename $0 )
 
 source $( type -p comma-application-util ) || { echo "$scriptname: cannot source comma-application-util" >&2; exit 1; }
 
+default_config="config.json:ouster"
+
 function description()
 {
     cat <<EOF
@@ -240,6 +242,8 @@ operation=${unnamed_options[0]}
 
 if [[ $operation == "config" ]]; then
     [[ $options_config ]] || [[ $options_device ]] || die "one of --config or --device is required"
+else
+    [[ $options_config ]] || options_config=$default_config
 fi
 
 if [[ $options_config ]]; then
