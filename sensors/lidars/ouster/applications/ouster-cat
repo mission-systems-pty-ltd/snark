@@ -256,7 +256,7 @@ if [[ $options_config ]]; then
     lidar=$( load_config $( config_path_concat $options_config device/host ) )
 fi
 
-# default to api v1 values
+# read the data format from the device, but default to api v1 values
 lidar_pixels_per_column=${lidar_data_format_pixels_per_column:-64}
 lidar_azimuth_blocks_per_packet=${lidar_data_format_azimuth_blocks_per_packet:-16}
 
