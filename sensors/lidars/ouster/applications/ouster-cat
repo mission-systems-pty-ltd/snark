@@ -287,6 +287,17 @@ function get_firmware_version()
     echo $firmware_version
 }
 
+# get the name of the udp_dest parameter, which was udp_ip in firmware < 2.4.0
+function udp_dest_param()
+{
+    local firmware=$( get_firmware_version )
+    if version_ge $firmware 2.4.0; then
+        echo "udp_dest"
+    else
+        echo "udp_ip"
+    fi
+}
+
 function input_fields()
 {
     case $1 in
@@ -479,10 +490,6 @@ function initialize()
     verbose "initializing from $options_config..."
     ping_lidar
 
-    local firmware=$( get_firmware_version )
-    local udp_dest_param=udp_ip
-    version_ge $firmware 2.4.0 && udp_dest_param=udp_dest
-
     local parameter parameter_var_name
     # sort the parameters so they always get set in the same order
     for parameter in $( tr " " "\n" <<< ${!configurable_parameters[@]} | sort ); do
@@ -495,7 +502,7 @@ function initialize()
     udp_port_imu=$( get_parameter udp_port_imu )
     verbose "lidar port=$udp_port_lidar"
     verbose "imu port=$udp_port_imu"
-    set_parameter $udp_dest_param $host_ip
+    set_parameter $( udp_dest_param ) $host_ip
     reinitialize                    # to set the udp_dest (udp_ip)
 }
 
@@ -603,9 +610,9 @@ function stream()
     local firmware=$( run_cmd -q get_sensor_info | name-value-get build_rev 2> /dev/null )
     [[ $firmware =~ $tested_firmware_re ]] || { say "warning: verified against firmware versions $tested_firmware"; say "         this device is $firmware"; }
 
-    local active_udp_ip=$( get_parameter udp_ip )
-    if [[ $active_udp_ip != $host_ip ]]; then
-        verbose "active udp_ip=$active_udp_ip, should be $host_ip"
+    local active_udp_dest=$( get_parameter $( udp_dest_param ) )
+    if [[ $active_udp_dest != $host_ip ]]; then
+        verbose "active $( udp_dest_param ) udp_ip=$active_udp_dest, should be $host_ip"
         initialize | log_stdout
     fi
 
