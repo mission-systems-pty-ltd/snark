@@ -19,6 +19,7 @@ function description()
 --output-fields;     show output fields and exit
 --output-format;     show output format and exit
 --packet-size;       show packet size and exit
+--configurable-parameters; list configurable parameters and exit
 --port=<port>;       default=7501; command port
 --all;               with alert operation, show all alerts, not just active
 --since=[<time>];    with alert operation, show alerts since <time>
@@ -198,6 +199,12 @@ EOF
     exit 0
 }
 
+# sort the parameters so they always get displayed and set in the same order
+function list_configurable_parameters()
+{
+     tr ' ' '\n' <<< ${!configurable_parameters[@]} | sort
+}
+
 function say() { echo "$scriptname: $@" >&2; }
 function verbose() { (( options_verbose )) && say "$@"; }
 function die() { say "$@"; exit 1; }
@@ -215,8 +222,9 @@ fi
 
 options="$( description | comma-options-to-name-value "$@" )"
 comma_path_value_to_var --prefix=options < <( echo "$options" | grep '=' )
-
 unnamed_options=( $( echo "$options" | grep -v '=' | sed 's/^"//g; s/"$//g' | tr '\n' ' ' ) )
+
+(( options_configurable_parameters )) && { list_configurable_parameters; exit 0; }
 
 function prefix { csv-fields prefix --path $1; }
 
@@ -492,7 +500,7 @@ function initialize()
 
     local parameter parameter_var_name
     # sort the parameters so they always get set in the same order
-    for parameter in $( tr " " "\n" <<< ${!configurable_parameters[@]} | sort ); do
+    for parameter in $( list_configurable_parameters ); do
         parameter_var_name=parameter_$parameter
         update_parameter $parameter ${!parameter_var_name}
     done
