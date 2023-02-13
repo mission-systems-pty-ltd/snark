@@ -27,6 +27,7 @@ class MainWindow : public QMainWindow
 
     public:
         MainWindow( const std::string& title, const std::shared_ptr< snark::graphics::view::controller >& controller );
+        void toggle_file_frame( bool shown );
 
 private slots:
     void update_view();
@@ -42,7 +43,6 @@ private slots:
 
         void closeEvent( QCloseEvent* event );
         void updateFileFrame();
-        void toggleFileFrame( bool shown );
         void makeFileGroups();
         void showFileGroup( std::string const& name, bool shown );
         void load_camera_config();

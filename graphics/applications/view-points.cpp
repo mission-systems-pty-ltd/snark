@@ -272,6 +272,7 @@ static void usage( bool )
         "\nmore options"
         "\n    --background-colour,--background-color=<colour> : default: black"
         "\n    --full-screen,--maximize; start view-points in full-screen"
+        "\n    --hide-file-panel; do not show file pane on start"
         "\n    --output-camera-config,--output-camera: output camera config to stdout as stream of json structures"
         "\n    --output-camera-position: output camera position as x,y,z,roll,pitch,yaw in the world frame, i.e. same as --camera-position"
         "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
@@ -845,6 +846,7 @@ int main( int argc, char** argv )
                 default: std::cerr << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1;
             }
         }
+        if( options.exists( "--hide-file-panel" ) ) { main_window.toggle_file_frame( false ); }
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();
         return 0;       // We never actually reach this line because we raise SIGINT when closing

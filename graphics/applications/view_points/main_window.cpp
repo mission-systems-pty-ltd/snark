@@ -92,12 +92,12 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
 
     setCentralWidget( outer_frame ); // setCentralWidget( frame );
     m_viewMenu = menuBar()->addMenu( "View" );
-    ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, boost::placeholders::_1 ) );
+    ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggle_file_frame, this, boost::placeholders::_1 ) );
     action->setChecked( m_fileFrameVisible );
     m_viewMenu->addAction( action );
 
     updateFileFrame();
-    toggleFileFrame( m_fileFrameVisible );
+    toggle_file_frame( m_fileFrameVisible );
     setWindowTitle( &title[0] );
 
     #if Qt3D_VERSION>=2
@@ -232,7 +232,7 @@ void MainWindow::update_view()
 
 }
 
-void MainWindow::toggleFileFrame( bool visible )
+void MainWindow::toggle_file_frame( bool visible )
 {
     m_fileFrameVisible = visible;
     if( visible ) { m_fileFrame->show(); } else { m_fileFrame->hide(); }
