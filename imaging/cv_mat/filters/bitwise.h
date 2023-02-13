@@ -184,7 +184,7 @@ namespace bitwise
             void operator()( const std::string & s ) const { _os << s; }
             void operator()( const bracket & b ) const { _os << '('; ( *this )( b.s_ ); _os << ')'; }
             void operator()( const element & e ) const { boost::apply_visitor( *this, e ); }
-            void operator()( const sequence & s ) const { for ( const auto e : s ) { boost::apply_visitor( *this, e ); } }
+            void operator()( const sequence & s ) const { for ( const auto& e : s ) { boost::apply_visitor( *this, e ); } }
         };
 
         inline std::ostream & operator<<( std::ostream & os, const element & l ) {

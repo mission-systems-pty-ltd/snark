@@ -93,7 +93,7 @@ namespace {
         void operator()( const brackets::element & e ) { boost::apply_visitor( *this, e ); }
 
         expr operator()( const brackets::sequence & s ) {
-            for ( const auto e : s ) { boost::apply_visitor( *this, e ); }
+            for ( const auto& e : s ) { boost::apply_visitor( *this, e ); }
             expr result = logical::parse( value_ );
             resolver r( subexpressions_ );
             return boost::apply_visitor( r, result );
