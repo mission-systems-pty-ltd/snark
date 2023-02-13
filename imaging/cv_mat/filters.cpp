@@ -1,5 +1,5 @@
 // Copyright (c) 2011 The University of Sydney
-// Copyright (c) 2018-2023 Vsevolod Vlaskine
+// Copyright (c) 2018 Vsevolod Vlaskine
 
 #include <algorithm>
 #include <fstream>
@@ -73,6 +73,7 @@
 #include "filters/remap.h"
 #include "filters/remove_speckles.h"
 #include "filters/text.h"
+#include "filters/view.h"
 #include "filters/warp.h"
 
 namespace {
@@ -1084,51 +1085,6 @@ static typename impl::filters< H >::value_type merge_impl_( typename impl::filte
     cv::merge( channels, n.second );
     return n;
 }
-
-template < typename H >
-class view_impl_
-{
-public:
-    typename impl::filters< H >::get_timestamp_functor get_timestamp;
-    std::string name;
-    unsigned int delay;
-    std::string suffix;
-
-    view_impl_< H >( const typename impl::filters< H >::get_timestamp_functor& get_timestamp
-                   , const std::string& title
-                   , double delay
-                   , const std::string& suffix
-                   , const boost::optional< std::pair< int, int > >& window_position
-                   , const boost::optional< std::pair< int, int > >& window_size )
-        : get_timestamp( get_timestamp )
-        , name( make_name_() )
-        , delay( delay >= 0 ? int( delay * 1000 ) : -1 )
-        , suffix( suffix )
-    {
-        #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
-            cv::namedWindow( title.empty() ? &name[0] : &title[0] );
-        #else
-            cv::namedWindow( &name[0], cv::WINDOW_AUTOSIZE | cv::WINDOW_GUI_NORMAL );
-            std::string t = title.empty() ? std::string( "view" ) : title;
-            cv::setWindowTitle( &name[0], &t[0] );
-            if( window_position ) { cv::moveWindow( &name[0], window_position->first, window_position->second ); }
-            if( window_size ) { cv::resizeWindow( &name[0], window_size->first, window_size->second ); }
-        #endif
-    }
-
-    typename impl::filters< H >::value_type operator()( typename impl::filters< H >::value_type m )
-    {
-        cv::imshow( &name[0], m.second );
-        char c = cv::waitKey( delay );
-        if( c == 27 ) { return typename impl::filters< H >::value_type(); } // HACK to notify application to exit
-        if( c == ' ' ) { cv::imwrite( snark::cv_mat::make_filename( get_timestamp( m.first ), suffix ), m.second ); }
-        if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( get_timestamp( m.first ), suffix, unsigned(c-'0') ), m.second ); }
-        return m;
-    }
-
-private:
-    static std::string make_name_() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // quick and dirty
-};
 
 namespace drawing {
 
@@ -2678,25 +2634,26 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         }
         return std::make_pair( overlay_impl_ < H >( s[0], x, y ), true );
     }
-    if( e[0] == "view" )
-    {
-        double default_delay = 0.001; // todo!
-        double delay = default_delay;
-        std::string n;
-        std::string suffix="ppm";
-        boost::optional< std::pair< int, int > > position;
-        boost::optional< std::pair< int, int > > size;
-        if( e.size() > 1 )
-        {
-            const std::vector< std::string >& w = comma::split( e[1], ',' );
-            if( w.size() > 0 && !w[0].empty() ) { delay = w[0] == "stay" ? -1 : boost::lexical_cast< double >( w[0] ); }
-            if( w.size() > 1 && !w[1].empty() ) { n = w[1]; }
-            if( w.size() > 2 && !w[2].empty() ) { suffix = w[2]; }
-            if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
-            if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
-        }
-        return std::make_pair( boost::bind< value_type_t >( view_impl_< H >( get_timestamp, n, delay, suffix, position, size ), _1 ), false );
-    }
+    if( e[0] == "view" ) { return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
+    // if( e[0] == "view" )
+    // {
+    //     double default_delay = 0.001; // todo!
+    //     double delay = default_delay;
+    //     std::string n;
+    //     std::string suffix="ppm";
+    //     boost::optional< std::pair< int, int > > position;
+    //     boost::optional< std::pair< int, int > > size;
+    //     if( e.size() > 1 )
+    //     {
+    //         const std::vector< std::string >& w = comma::split( e[1], ',' );
+    //         if( w.size() > 0 && !w[0].empty() ) { delay = w[0] == "stay" ? -1 : boost::lexical_cast< double >( w[0] ); }
+    //         if( w.size() > 1 && !w[1].empty() ) { n = w[1]; }
+    //         if( w.size() > 2 && !w[2].empty() ) { suffix = w[2]; }
+    //         if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
+    //         if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
+    //     }
+    //     return std::make_pair( boost::bind< value_type_t >( view_impl_< H >( get_timestamp, n, delay, suffix, position, size ), _1 ), false );
+    // }
     boost::function< value_type_t( value_type_t ) > functor = imaging::vegetation::impl::filters< H >::make_functor( e );
     if( functor ) { return std::make_pair( functor, true ); }
     COMMA_THROW( comma::exception, "expected filter, got: \"" << comma::join( e, '=' ) << "\"" );
@@ -3239,24 +3196,7 @@ static std::string usage_impl_()
     oss << "                                                   | cv-cat --input 'no-header;rows=1280;cols=64;type=ub' \\\n";
     oss << "                                                                    'untile=5,4;encode=png' > untiled.png\n";
     oss << "                                             $ eog untiled.png\n";
-    oss << "    view[=<wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>]]]]]: view image;\n";
-    oss << "                            press <space> to save image (timestamp or system time as filename); \n";
-    oss << "                            press <esc>: to close\n";
-    oss << "                            press numerical '0' to '9' to add the id (0-9) to the file name:\n";
-    oss << "                                <timestamp>.<id>.<suffix>\n";
-    oss << "                            press any other key to show the next frame\n";
-    oss << "                            <wait-interval>: a hack for now; seconds to wait for image display or key press\n";
-    oss << "                                             e.g. view=0.1: wait for 100ms\n";
-    oss << "                                             view=-1 or view=stay: wait indefinitely\n";
-    oss << "                                             default: 0.001 (1 millisecond)\n";
-    oss << "                            <name>: view window name; default: the number of view occurence in the filter string\n";
-    oss << "                            <suffix>: image suffix type e.g. png, default ppm\n";
-    oss << "                            <offset/x>,<offset/y>: window position on screen in pixels\n";
-    oss << "                            <size/x>,<size/y>: window size on screen in pixels (not very useful, but it's there)\n";
-    oss << "            attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
-    oss << "                       in opencv or in underlying x window stuff therefore,\n";
-    oss << "                       instead of: cv-cat 'view;do-something;view'\n";
-    oss << "                              use: cv-cat 'view;do-something' | cv-cat 'view'\n";
+    oss << filters::view< boost::posix_time::ptime >::usage(4);
     oss << "\n";
     oss << "file read/write operations or generating images:\n";
     oss << "    blank=<rows>,<cols>,<type>: create black image of a given size and type\n";
