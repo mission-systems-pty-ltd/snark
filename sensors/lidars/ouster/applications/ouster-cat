@@ -16,6 +16,7 @@ function description()
 --verbose,-v;        show more information
 --config=[<file>];   defaults to config.json:ouster
 --device=[<lidar>];  host name of lidar
+--firmware-version;  output firmware version and exit
 --output-fields;     show output fields and exit
 --output-format;     show output format and exit
 --packet-size;       show packet size and exit
@@ -248,7 +249,7 @@ function load_config()
 
 operation=${unnamed_options[0]}
 
-if [[ $operation == "config" ]]; then
+if [[ $operation == "config" ]] || (( options_firmware_version )); then
     [[ $options_config ]] || [[ $options_device ]] || die "one of --config or --device is required"
 else
     [[ $options_config ]] || options_config=$default_config
@@ -374,6 +375,8 @@ else
     command_port=$options_port
 fi
 verbose "connecting to $lidar on command port $command_port"
+
+(( options_firmware_version )) && { get_firmware_version; exit 0; }
 
 if [[ $operation =~ init|lidar|imu ]]; then
     host=$( load_config $( config_path_concat $options_config device/target ) )
