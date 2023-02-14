@@ -629,9 +629,9 @@ class to_points
 {
 public:
     to_points( const comma::csv::options& csv
-          , const comma::csv::format& format
-          , const std::string& output_fields
-          , const std::string& frame_id )
+             , const comma::csv::format& format
+             , const std::string& output_fields
+             , const std::string& frame_id )
         : format( format )
         , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id )
         , data_size( format.size() )
