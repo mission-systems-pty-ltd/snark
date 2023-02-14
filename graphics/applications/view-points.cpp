@@ -736,7 +736,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if( options.exists( "--version" ) ) { version(); exit( 0 ); }
         comma::csv::options csv_options( argc, argv, "", false );
-        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill", "-[^;].*" );
+        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill,--hide-file-panel", "-[^;].*" );
         snark::graphics::view::color_t  background_color( QColor( QString( options.value< std::string >( "--background-colour,--background-color", "#000000" ).c_str() ) ) );
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;
