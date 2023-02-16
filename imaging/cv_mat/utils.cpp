@@ -5,7 +5,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
 #include <comma/base/exception.h>
 #include <comma/base/types.h>
@@ -231,5 +230,42 @@ template comma::int64 get_channel< comma::int64 >( unsigned char*, int );
 template comma::uint64 get_channel< comma::uint64 >( unsigned char*, int );
 template float get_channel< float >( unsigned char*, int );
 template double get_channel< double >( unsigned char*, int );
+
+cv::ColormapTypes colormap_from_string( const std::string& name )
+{
+    static std::map< std::string, cv::ColormapTypes > types = { { "autumn", cv::COLORMAP_AUTUMN }
+                                                              , { "autumn", cv::COLORMAP_AUTUMN }
+                                                              , { "bone", cv::COLORMAP_BONE }
+                                                              , { "jet", cv::COLORMAP_JET }
+                                                              , { "winter", cv::COLORMAP_WINTER }
+                                                              , { "rainbow", cv::COLORMAP_RAINBOW }
+                                                              , { "ocean", cv::COLORMAP_OCEAN }
+                                                              , { "summer", cv::COLORMAP_SUMMER }
+                                                              , { "spring", cv::COLORMAP_SPRING }
+                                                              , { "cool", cv::COLORMAP_COOL }
+                                                              , { "hsv", cv::COLORMAP_HSV }
+                                                              , { "pink", cv::COLORMAP_PINK }
+                                                              , { "hot", cv::COLORMAP_HOT } };
+    auto it = types.find( name );
+    if( it != types.end() ) { return it->second; }
+    try { return static_cast< cv::ColormapTypes >( boost::lexical_cast< int >( name ) ); } catch( ... ) {}
+    COMMA_THROW( comma::exception, "expected colour-map type; got: \"" << name << "\"; symbolic name may not be implemented, yet; see --help --verbose for numeric color-map types" );
+}
+
+cv::Scalar color_from_string( const std::string& name )
+{
+    static std::map< std::string, cv::Scalar > colors = { { "red", cv::Scalar( 0, 0, 0xffff ) }
+                                                        , { "green", cv::Scalar( 0, 0xffff, 0 ) }
+                                                        , { "blue", cv::Scalar( 0xffff, 0, 0 ) }
+                                                        , { "cyan", cv::Scalar( 0xffff, 0xffff, 0 ) }
+                                                        , { "magenta", cv::Scalar( 0xffff, 0, 0xffff ) }
+                                                        , { "white", cv::Scalar( 0xffff, 0xffff, 0xffff ) }
+                                                        , { "black", cv::Scalar( 0, 0, 0 ) }
+                                                        , { "yellow", cv::Scalar( 0, 0xffff, 0xffff ) }
+                                                        , { "", cv::Scalar( 0, 0xffff, 0xffff ) } };
+    auto it = colors.find( name );
+    if( it != colors.end() ) { return it->second; }
+    COMMA_THROW( comma::exception, "expected colour of text, e.g. 'red', got '" << name << "'" );
+}
 
 } }  // namespace snark { namespace cv_mat {

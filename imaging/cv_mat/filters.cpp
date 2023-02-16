@@ -58,6 +58,7 @@
 #include "filters/arithmetic.h"
 #include "filters/bitwise.h"
 #include "filters/blank.h"
+#include "filters/colorbar.h"
 #include "filters/colors.h"
 #include "filters/contraharmonic.h"
 #include "filters/convolution.h"
@@ -2258,6 +2259,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         const bool channels_to_cols = e[0] == "channels-to-cols";
         return std::make_pair( boost::bind< value_type_t >( channels_to_cols_impl_ < H >(), _1, channels_to_cols ), true );
     }
+    if( e[0] == "colorbar" ) { return filters::colorbar< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "cross" ) // todo: quick and dirty, implement using traits
     {
         boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
@@ -2470,25 +2472,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "color-map" )
     {
         if( e.size() != 2 ) { COMMA_THROW( comma::exception, "expected colour-map=<type>; got: \"" << e[1] << "\"" ); }
-        int type;
-        if( e[1] == "autumn" ) { type = cv::COLORMAP_AUTUMN; }
-        else if( e[1] == "bone" ) { type = cv::COLORMAP_BONE; }
-        else if( e[1] == "jet" ) { type = cv::COLORMAP_JET; }
-        else if( e[1] == "winter" ) { type = cv::COLORMAP_WINTER; }
-        else if( e[1] == "rainbow" ) { type = cv::COLORMAP_RAINBOW; }
-        else if( e[1] == "ocean" ) { type = cv::COLORMAP_OCEAN; }
-        else if( e[1] == "summer" ) { type = cv::COLORMAP_SUMMER; }
-        else if( e[1] == "spring" ) { type = cv::COLORMAP_SPRING; }
-        else if( e[1] == "cool" ) { type = cv::COLORMAP_COOL; }
-        else if( e[1] == "hsv" ) { type = cv::COLORMAP_HSV; }
-        else if( e[1] == "pink" ) { type = cv::COLORMAP_PINK; }
-        else if( e[1] == "hot" ) { type = cv::COLORMAP_HOT; }
-        else
-        {
-            try { type = boost::lexical_cast< int >( e[1] ); }
-            catch( ... ) { COMMA_THROW( comma::exception, "expected colour-map type; got: \"" << e[1] << "\"; symbolic name may not be implemented, yet; see --help --verbose for numeric color-map types" ); }
-        }
-        return std::make_pair( boost::bind< value_type_t >( colour_map_impl_< H >, _1, type ), true );
+        return std::make_pair( boost::bind< value_type_t >( colour_map_impl_< H >, _1, colormap_from_string( e[1] ) ), true );
     }
     if( e[0] == "blur" )
     {
@@ -3039,6 +3023,7 @@ static std::string usage_impl_()
     oss << "    clahe=<clip_limit>,<tile_size_x>[,<tile_size_y>]: CLAHE, contrast limited adaptive histogram equalization\n";
     oss << "                                                      (see opencv documentation for more), e.g. try clahe=2.0,8,8\n";
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
+    oss << filters::colorbar< boost::posix_time::ptime >::usage(4);
     oss << "    color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail\n";
     oss << "        <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot\n";
     oss << "                or numeric colormap code (names for colormaps in newer opencv versions: todo)\n";

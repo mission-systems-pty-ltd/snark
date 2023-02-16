@@ -106,18 +106,7 @@ std::pair< typename text< H >::functor_t, bool > text< H >::make( const std::str
     const std::vector< std::string >& v = comma::split( options, ',' );
     text_input t( cv::Point( 10, 10 ), cv::Scalar( 0, 0xffff, 0xffff ), v[0] );
     if( v.size() >= 3 ) { t.origin = cv::Point( boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ) ); }
-    if( v.size() >= 4 )
-    {
-        if( v[3] == "red" ) { t.colour = cv::Scalar( 0, 0, 0xffff ); }
-        else if( v[3] == "green" ) { t.colour = cv::Scalar( 0, 0xffff, 0 ); }
-        else if( v[3] == "blue" ) { t.colour = cv::Scalar( 0xffff, 0, 0 ); }
-        else if( v[3] == "cyan" ) { t.colour = cv::Scalar( 0xffff, 0xffff, 0 ); }
-        else if( v[3] == "magenta" ) { t.colour = cv::Scalar( 0xffff, 0, 0xffff ); }
-        else if( v[3] == "white" ) { t.colour = cv::Scalar( 0xffff, 0xffff, 0xffff ); }
-        else if( v[3] == "black" ) { t.colour = cv::Scalar( 0, 0, 0 ); }
-        else if( v[3] == "yellow" || v[3].empty() ) { t.colour = cv::Scalar( 0, 0xffff, 0xffff ); }
-        else { COMMA_THROW( comma::exception, "expected colour of text, e.g. 'red', in \"" << options << "\", got '" << v[3] << "'" ); }
-    }
+    if( v.size() >= 4 ) { t.colour = color_from_string( v[3] ); }
     comma::csv::options csv;
     std::vector< std::pair< unsigned int, unsigned int > > ranges;
     float font_scale = 1;

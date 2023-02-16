@@ -27,8 +27,6 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
     if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size ), _1 ), false );
-
-    //return std::make_pair( boost::bind< value_type_t >( view_impl_< H >( get_timestamp, n, delay, suffix, position, size ), _1 ), false );
 }
 
 static std::string _make_name() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // uber-quick and dirty
