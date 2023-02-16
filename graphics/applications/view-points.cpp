@@ -282,6 +282,7 @@ static void usage( bool )
         "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
         "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
         "\n                   for now, find the desired window position by hand and use those window position values"
+        "\n    --window-title=[<title>]: main window title; default: view-points command line"
         qt55_unsupported_marker_start
         "\n    --z-is-up : z-axis is pointing up, default: pointing down ( north-east-down system )"
         qt55_unsupported_marker_end
@@ -834,7 +835,7 @@ int main( int argc, char** argv )
             controller->inhibit_stdout();
             if( options.exists( "--output-camera-config,--output-camera,--output-camera-position" ) ) { COMMA_THROW( comma::exception, "cannot use --output-camera-config or --output-camera-position whilst \"pass-through\" option is in use" ); }
         }
-        snark::graphics::view::MainWindow main_window( comma::join( argv, argc, ' ' ), controller );
+        snark::graphics::view::MainWindow main_window( options.value( "--window-title", comma::join( argv, argc, ' ' ) ), controller );
         std::string window_position = options.value< std::string >( "--window-position,--window", "" );
         if( !window_position.empty() )
         {
