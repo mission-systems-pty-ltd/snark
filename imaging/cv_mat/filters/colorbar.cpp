@@ -27,9 +27,14 @@ std::pair< typename colorbar< H >::functor_t, bool > colorbar< H >::make( const 
     std::string middle = v.size() > 7 && !v[7].empty() ? v[7] : "";
     to += v.size() > 8 ? v[8] : "   "; // quick and dirty
     cv::Scalar colour = color_from_string( v.size() > 9 ? v[9] : "" );
-    bool vertical = v.size() > 10 && v[10] == "vertical";
+    bool vertical{false}, reverse{false};
+    for( unsigned int i = 10; i < v.size(); ++i )
+    {
+        if( v[i] == "vertical" ) { vertical = true; }
+        else if( v[i] == "reverse" ) { reverse = true; }
+    }
     cv::Mat grey( 1, 256, CV_8UC1 );
-    for( unsigned int i = 0; i < 256; ++i ) { grey.at< unsigned char >( 0, i ) = i; }
+    for( unsigned int i = 0; i < 256; ++i ) { grey.at< unsigned char >( 0, i ) = reverse ? 255 - i : i; }
     cv::Mat coloured;
     cv::applyColorMap( grey, coloured, colormap );
     cv::Mat bar;
@@ -40,12 +45,12 @@ std::pair< typename colorbar< H >::functor_t, bool > colorbar< H >::make( const 
     unsigned int w = c._rectangle.width;
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2
         cv::putText( c._colorbar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 15, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._colorbar, to, cv::Point( w - 50, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
+        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
+        cv::putText( c._colorbar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
     #else
         cv::putText( c._colorbar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 15, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._colorbar, to, cv::Point( w - 50, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
+        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
+        cv::putText( c._colorbar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
     #endif
     if( vertical ) { cv::Mat transposed; cv::transpose( c._colorbar, transposed ); transposed.copyTo( c._colorbar ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
@@ -67,7 +72,7 @@ std::string colorbar< H >::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "colorbar=<colormap>,<from/x>,<from/y>,<width>,<height>[,<from>,<to>[,<middle>[,<units>[,<text_color>[,vertical]]]]]; draw colorbar on image;\n";
+    oss << i << "colorbar=<colormap>,<from/x>,<from/y>,<width>,<height>[,<from>,<to>[,<middle>[,<units>[,<text_color>[,vertical[,reverse]]]]]]; draw colorbar on image;\n";
     oss << i << "    draw colorbar on image; currently only 3-byte rgb supported\n";
     oss << i << "    options\n";
     oss << i << "        <colormap>: e.g. jet, see color-map filter for options; default=jet\n";
@@ -76,7 +81,8 @@ std::string colorbar< H >::usage( unsigned int indent )
     oss << i << "                         display (as in numpy.linspace); default: from=0 to=255 n=2\n";
     oss << i << "        <units>: units to show, e.g. m\n";
     oss << i << "        <text_color>: default: white\n";
-    oss << i << "        <vertical>: bar is vertical; default: horizontal \n";
+    oss << i << "        <vertical>: bar is vertical; default: horizontal\n";
+    oss << i << "        <flip>: show colors in reverse order\n";
     return oss.str();
 }
 
