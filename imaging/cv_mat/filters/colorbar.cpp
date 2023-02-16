@@ -47,6 +47,7 @@ std::pair< typename colorbar< H >::functor_t, bool > colorbar< H >::make( const 
         cv::putText( c._colorbar, middle, cv::Point( w / 2 - 5, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
         cv::putText( c._colorbar, to, cv::Point( w - 60, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
     #endif
+    if( vertical ) { cv::Mat transposed; cv::transpose( c._colorbar, transposed ); transposed.copyTo( c._colorbar ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
 }
 
