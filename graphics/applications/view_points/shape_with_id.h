@@ -65,63 +65,18 @@ struct ShapeWithId // quick and dirty
 
 struct how_t { struct points; struct lines; struct loop; }; // quick and dirty; for points only
 
-template < class S, typename How = how_t::points >
-struct shape_traits {}; // quick and dirty
+template < class S, typename How = how_t::points > struct shape_traits; // quick and dirty
 
-template <>
-struct shape_traits< snark::math::closed_interval< double, 3 > >
+template <> struct shape_traits< snark::math::closed_interval< double, 3 > >
 {
     static const unsigned int size = 24; // quick and dirty, really wasteful on memory; todo! specialised shape class for boxes
+    static const unsigned int labels_per_instance = 1;
         
 #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl ) { return new snark::graphics::qopengl::shapes::lines( gl.weight ); }
 #endif
 
-    static void update( shape_reader_base& reader, const ShapeWithId< snark::math::closed_interval< double, 3 > >& s, const Eigen::Vector3d& offset )
-    {
-        Eigen::Vector3f min = ( s.shape.min() - offset ).cast< float >();
-        Eigen::Vector3f max = ( s.shape.max() - offset ).cast< float >();
-
-        #if Qt3D_VERSION==1
-        reader.add_vertex( vertex_t( QVector3D( min.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( min.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( min.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( min.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( max.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( max.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( max.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( QVector3D( max.x(), max.y(), min.z() ), s.color ), s.block );
-        #else
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), min.z() ), s.color ), s.block );
-        
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), max.z() ), s.color ), s.block );
-        
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( min.x(), max.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), min.y(), max.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), min.z() ), s.color ), s.block );
-        reader.add_vertex( vertex_t( Eigen::Vector3f( max.x(), max.y(), max.z() ), s.color ), s.block );
-        #endif
-
-        reader.extent_hull (snark::math::closed_interval< float, 3 >( min, max ) );
-    }
+    static void update( shape_reader_base& reader, const ShapeWithId< snark::math::closed_interval< double, 3 > >& s, const Eigen::Vector3d& offset );
 
     #if Qt3D_VERSION==1
     static void draw( QGLPainter* painter, unsigned int size, bool fill )
@@ -143,28 +98,16 @@ struct shape_traits< snark::math::closed_interval< double, 3 > >
     static Eigen::Vector3d center( const snark::math::closed_interval< double, 3 >& extents ) { return ( extents.min() + extents.max() ) / 2; }
 };
 
-template <>
-struct shape_traits< std::pair< Eigen::Vector3d, Eigen::Vector3d > >
+template <> struct shape_traits< std::pair< Eigen::Vector3d, Eigen::Vector3d > >
 {
     static const unsigned int size = 2;
+    static const unsigned int labels_per_instance = 1;
     
 #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl ) { return new snark::graphics::qopengl::shapes::lines( gl.weight ); }
 #endif
 
-    static void update( shape_reader_base& reader, const ShapeWithId< std::pair< Eigen::Vector3d, Eigen::Vector3d > >& s, const Eigen::Vector3d& offset )
-    {
-        Eigen::Vector3f first = ( s.shape.first - offset ).cast< float >();
-        Eigen::Vector3f second = ( s.shape.second - offset ).cast< float >();
-        //if(    comma::math::equal( first.x(), second.x() )
-        //    && comma::math::equal( first.y(), second.y() )
-        //    && comma::math::equal( first.z(), second.z() ) ) { return; } // todo: draw a point instead?
-        reader.add_vertex( vertex_t( first, s.color ), s.block );
-        reader.add_vertex( vertex_t( second, s.color ), s.block );
-
-        reader.extent_hull(first);
-        reader.extent_hull(second);
-    }
+    static void update( shape_reader_base& reader, const ShapeWithId< std::pair< Eigen::Vector3d, Eigen::Vector3d > >& s, const Eigen::Vector3d& offset );
 
     #if Qt3D_VERSION==1
     static void draw( QGLPainter* painter, unsigned int size, bool fill ) { painter->draw( QGL::Lines, size ); }
@@ -183,6 +126,7 @@ struct shape_traits< loop< Size > >
 {
     static_assert( Size > 2, "expected size greater than 2" );
     static const unsigned int size = Size;
+    static const unsigned int labels_per_instance = Size;
     
 #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl )
@@ -240,10 +184,10 @@ struct Ellipse // todo: quick and dirty, make size runtime variable
     Ellipse() : center( 0, 0, 0 ), orientation( 0, 0, 0 ) {}
 };
 
-template < std::size_t Size >
-struct shape_traits< Ellipse< Size > >
+template < std::size_t Size > struct shape_traits< Ellipse< Size > >
 {
     static const unsigned int size = Size;
+    static const unsigned int labels_per_instance = 1;
     
 #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl ) { return new snark::graphics::qopengl::shapes::line_loop( gl.weight, Size ); }
@@ -287,10 +231,10 @@ struct arc // todo: quick and dirty; generalize for ellipse; and maybe get rid o
     arc() : centre( 0, 0, 0 ) {}
 };
 
-template < std::size_t Size >
-struct shape_traits< arc< Size > >
+template < std::size_t Size > struct shape_traits< arc< Size > >
 {
     static const unsigned int size = Size;
+    static const unsigned int labels_per_instance = 1;
 
     static_assert( Size % 2 == 0, "expected even size" ); // quick and dirty: for simplicity support only only even sizes
     
@@ -421,16 +365,15 @@ template <> struct how_traits< how_t::lines >
 
 #endif
 
-template< typename How >
-struct shape_traits< Eigen::Vector3d, How >
+template< typename How > struct shape_traits< Eigen::Vector3d, How >
 {
     #if Qt3D_VERSION==1
     static const QGL::DrawingMode drawingMode = draw_traits_< How >::drawing_mode;
     #endif
     static const unsigned int size = 1;
+    static const unsigned int labels_per_instance = 1;
 
-    
-#if Qt3D_VERSION>=2
+#if Qt3D_VERSION >= 2
     static shape_t* make_shape( const gl_parameters& gl ) { return how_traits< How >::make_shape( gl ); }
 #endif
 
@@ -460,7 +403,8 @@ struct axis
 template <> struct shape_traits< axis >
 {
     static const unsigned int size = 6;
-    
+    static const unsigned int labels_per_instance = 4;
+
     #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl ) { return new snark::graphics::qopengl::shapes::lines( gl.weight ); }
     #endif
@@ -475,7 +419,6 @@ template <> struct shape_traits< axis >
 
     static Eigen::Vector3d center( const axis& axis ) { return axis.position; }
 };
-
 
 } } } // namespace snark { namespace graphics { namespace view {
 

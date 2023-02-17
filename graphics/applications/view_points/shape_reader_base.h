@@ -19,10 +19,16 @@ public:
     void add_label( const label_t& l, unsigned int block );
     void extent_hull( const snark::math::closed_interval< float, 3 >& x );
     void extent_hull( const Eigen::Vector3f& p );
+    const block_buffer< vertex_t >& vertices() const { return _buffer; }
+    const block_buffer< label_t >& labels() const { return _labels; }
     const std::vector< std::string >& axis_labels() const { return _axis_labels; }
 
 protected:
-    shape_reader_base( const reader_parameters& params, colored* c, const std::string& label, std::size_t shape_size );
+    shape_reader_base( const reader_parameters& params
+                     , colored* c
+                     , const std::string& label
+                     , std::size_t shape_size
+                     , std::size_t labels_per_instance = 1 );
     block_buffer< vertex_t > _buffer;
     block_buffer< label_t > _labels;
     std::vector< std::string > _axis_labels;

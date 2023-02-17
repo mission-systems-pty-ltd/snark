@@ -108,7 +108,7 @@ void widget::add_shape(const std::shared_ptr<shape>& shape) { shapes.push_back(s
 void widget::add_label_shader( const std::shared_ptr<label_shader>& label_shader )
 {
     label_shader->scaled=camera.orthographic;
-    label_shaders.push_back(label_shader);
+    label_shaders.push_back( label_shader );
 }
 
 void widget::add_texture_shader( const std::shared_ptr<texture_shader>& texture_shader ) { texture_shaders.push_back( texture_shader ); }
@@ -139,10 +139,10 @@ void widget::initializeGL()
     projection_matrix_location_ = program_->uniformLocation( "projection_matrix" );
     mv_matrix_location_ = program_->uniformLocation( "mv_matrix" );
 
-    for(auto& i : shapes) { i->init(); }
-    for(auto& i : label_shaders) { i->init(); }
-    for(auto& i : texture_shaders) { i->init(); }
-    for(auto& i : mesh_shaders) { i->init(); }
+    for( auto& i : shapes ) { i->init(); }
+    for( auto& i : label_shaders ) { i->init(); }
+    for( auto& i : texture_shaders ) { i->init(); }
+    for( auto& i : mesh_shaders ) { i->init(); }
 //     program_->release();
 
     init();
@@ -175,9 +175,9 @@ void widget::paintGL()
     program_->release();
 
     const auto& t = camera.transform();
-    for(auto& i : label_shaders) { i->paint(t, size()); }
-    for(auto& i : texture_shaders) { i->paint(t, size()); }
-    for(auto& i : mesh_shaders) { i->paint(t, size()); }
+    for( auto& i : label_shaders ) { i->paint(t, size()); }
+    for( auto& i : texture_shaders ) { i->paint(t, size()); }
+    for( auto& i : mesh_shaders ) { i->paint(t, size()); }
 
     painter.endNativePainting();
 

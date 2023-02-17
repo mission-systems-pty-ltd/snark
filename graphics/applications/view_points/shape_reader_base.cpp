@@ -1,17 +1,20 @@
 // Copyright (c) 2017 The University of Sydney
 
-#pragma once
-
 #include "shape_reader_base.h"
 
 namespace snark { namespace graphics { namespace view {
 
-shape_reader_base::shape_reader_base( const reader_parameters& params, colored* c, const std::string& label, std::size_t shape_size )
+shape_reader_base::shape_reader_base( const reader_parameters& params
+                                    , colored* c
+                                    , const std::string& label
+                                    , std::size_t shape_size
+                                    , std::size_t labels_per_instance )
     : Reader( params, c, label )
     , _buffer( size * shape_size )
-    , _labels( size )
+    , _labels( size * labels_per_instance )
     , _axis_labels( comma::split( params.labels, ':' ) )
 {
+    _axis_labels.resize( 3 );
 }
 
 void shape_reader_base::add_vertex( const vertex_t& v, unsigned int block ) { _buffer.add( v, block ); }

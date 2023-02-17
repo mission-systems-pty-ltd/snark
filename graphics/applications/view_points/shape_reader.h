@@ -42,8 +42,8 @@ protected:
     void update_shape();
     void update_labels();
 private:
-    std::shared_ptr< snark::graphics::qopengl::shape > shape;
-    std::shared_ptr< snark::graphics::qopengl::label_shader > label_shader;
+    std::shared_ptr< snark::graphics::qopengl::shape > shape; // todo? use std::unique_ptr?
+    std::shared_ptr< snark::graphics::qopengl::label_shader > label_shader; // todo? use std::unique_ptr?
 #endif
 
     private:
@@ -52,9 +52,9 @@ private:
         mutable boost::mutex m_mutex;
         boost::scoped_ptr< comma::csv::input_stream< ShapeWithId< S > > > m_stream;
         boost::scoped_ptr< comma::csv::passed< ShapeWithId< S > > > m_passed;
-
         ShapeWithId< S > sample_;
 };
+
 #if Qt3D_VERSION>=2
 template< typename S, typename How >
 inline void shape_reader< S, How >::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base )
@@ -62,38 +62,37 @@ inline void shape_reader< S, How >::add_shaders( snark::graphics::qopengl::viewe
     shape.reset( shape_traits< S, How >::make_shape( gl_parameters( point_size, fill ) ) );
     viewer_base->add_shape(shape);
     label_shader = std::shared_ptr< snark::graphics::qopengl::label_shader >( new snark::graphics::qopengl::label_shader() );
-    viewer_base->add_label_shader(label_shader);
+    viewer_base->add_label_shader( label_shader );
 }
-template< typename S, typename How >
-inline void shape_reader< S, How >::update_view()
+
+template< typename S, typename How > inline void shape_reader< S, How >::update_view()
 {
     update_shape();
     update_labels();
 }
-template< typename S, typename How >
-inline void shape_reader< S, How >::update_shape()
+
+template< typename S, typename How > inline void shape_reader< S, How >::update_shape()
 {
     if( !shape ) { return; }
     shape->visible = m_show;
     shape->update( _buffer.values().data(), _buffer.size() );
 }
 
-template< typename S, typename How >
-inline void shape_reader< S, How >::update_labels()
+template< typename S, typename How > inline void shape_reader< S, How >::update_labels() // todo! copying and heap allocation are pretty wasteful! improve performance
 {
     label_shader->clear();
     label_shader->visible=m_show;
-    label_shader->labels.reserve(_labels.size());
-    for( unsigned int i = 0; i < _labels.size(); i++ )
+    label_shader->labels.reserve( _labels.size() );
+    for( unsigned int i = 0; i < _labels.size(); ++i )
     {
-        if(!_labels.values()[i].text.empty())
+        if( !_labels.values()[i].text.empty() )
         {
-            label_shader->labels.push_back(std::shared_ptr<snark::graphics::qopengl::label>( new snark::graphics::qopengl::text_label( _labels.values()[i].position - m_offset, _labels.values()[i].text, _labels.values()[i].color, this->font_size ) ) );
+            label_shader->labels.push_back( std::shared_ptr< snark::graphics::qopengl::label >( new snark::graphics::qopengl::text_label( _labels.values()[i].position - m_offset, _labels.values()[i].text, _labels.values()[i].color, this->font_size ) ) );
         }
     }
     if( !m_label.empty() )
     {
-        label_shader->labels.push_back(std::shared_ptr<snark::graphics::qopengl::label>( new snark::graphics::qopengl::text_label( m_translation - m_offset, m_label, m_color, this->font_size ) ) );
+        label_shader->labels.push_back( std::shared_ptr< snark::graphics::qopengl::label >( new snark::graphics::qopengl::text_label( m_translation - m_offset, m_label, m_color, this->font_size ) ) );
     }
     label_shader->update();
 }
@@ -101,7 +100,7 @@ inline void shape_reader< S, How >::update_labels()
 
 template< typename S, typename How >
 inline shape_reader< S, How >::shape_reader( const reader_parameters& params, colored* c, const std::string& label, const S& sample  )
-    : shape_reader_base( params, c, label, shape_traits< S, How >::size )
+    : shape_reader_base( params, c, label, shape_traits< S, How >::size, shape_traits< S, How >::labels_per_instance )
     , sample_( sample )
 {
 }
