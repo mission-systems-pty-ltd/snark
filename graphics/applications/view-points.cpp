@@ -278,7 +278,7 @@ static void usage( bool )
         "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
         "\n    --scene-radius,--radius=<value>: fixed scene radius in metres, since sometimes it is hard to imply"
         "\n                                     scene size from the dataset (e.g. for streams)"
-        "\n    --window-position,--window=[<x>,<y>[,<width>,<height>]]: position of application window on screen in pixels"
+        "\n    --window-geometry=[<x>],[<y>],[<width>],[<height>: position of application window on screen in pixels"
         "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
         "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
         "\n                   for now, find the desired window position by hand and use those window position values"
@@ -835,18 +835,9 @@ int main( int argc, char** argv )
             controller->inhibit_stdout();
             if( options.exists( "--output-camera-config,--output-camera,--output-camera-position" ) ) { COMMA_THROW( comma::exception, "cannot use --output-camera-config or --output-camera-position whilst \"pass-through\" option is in use" ); }
         }
-        snark::graphics::view::MainWindow main_window( options.value( "--window-title", comma::join( argv, argc, ' ' ) ), controller );
-        std::string window_position = options.value< std::string >( "--window-position,--window", "" );
-        if( !window_position.empty() )
-        {
-            const auto& p = comma::split_as< unsigned int >( window_position, ',' );
-            switch( p.size() )
-            {
-                case 2: main_window.move( p[0], p[1] ); break;
-                case 4: main_window.setGeometry( p[0], p[1], p[2], p[3] ); break;
-                default: std::cerr << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1;
-            }
-        }
+        snark::graphics::view::MainWindow main_window( options.value( "--window-title", comma::join( argv, argc, ' ' ) )
+                                                     , controller
+                                                     , comma::split_as< int >( options.value< std::string >( "--window-geometry", ",,," ), ',', -1 ) );
         if( options.exists( "--hide-file-panel" ) ) { main_window.toggle_file_frame( false ); }
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();

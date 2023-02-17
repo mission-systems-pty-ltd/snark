@@ -21,7 +21,9 @@
 
 namespace snark { namespace graphics { namespace view {
 
-MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::graphics::view::controller >& c )
+MainWindow::MainWindow( const std::string& title
+                      , const std::shared_ptr< snark::graphics::view::controller >& c
+                      , const std::vector< int >& window_geometry )
     : controller( c )
     , m_fileFrameVisible( controller->readers.size() > 1 )
 {
@@ -61,6 +63,7 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
 
     layout->addWidget( m_fileFrame, 0, 0 );
     viewer_t* viewer = controller_traits< snark::graphics::view::controller >::get_widget( controller );
+    if( window_geometry[2] > 0 || window_geometry[3] > 0 ) { viewer->resize( 100, 100 ); } // quick and dirty, to make it possible to have small main window
     #if QT_VERSION >= 0x050000
         #if Qt3D_VERSION==1
         layout->addWidget( QWidget::createWindowContainer( viewer ), 0, 1 );
@@ -113,6 +116,7 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr< snark::
     #endif
 
     viewer->setFocus();
+    setGeometry( window_geometry[0], window_geometry[1], window_geometry[2], window_geometry[3] );
 }
 
 CheckBox::CheckBox( boost::function< void( bool ) > f ) : m_f( f ) { connect( this, SIGNAL( toggled( bool ) ), this, SLOT( action( bool ) ) ); }

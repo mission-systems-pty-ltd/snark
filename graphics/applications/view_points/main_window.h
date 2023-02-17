@@ -26,7 +26,9 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
     public:
-        MainWindow( const std::string& title, const std::shared_ptr< snark::graphics::view::controller >& controller );
+        MainWindow( const std::string& title
+                  , const std::shared_ptr< snark::graphics::view::controller >& controller
+                  , const std::vector< int >& window_geometry );
         void toggle_file_frame( bool shown );
 
 private slots:
