@@ -403,7 +403,7 @@ struct axis
 template <> struct shape_traits< axis >
 {
     static const unsigned int size = 6;
-    static const unsigned int labels_per_instance = 4;
+    static const unsigned int labels_per_instance = 4; // instance label + 3 axis labels
 
     #if Qt3D_VERSION>=2
     static shape_t* make_shape( const gl_parameters& gl ) { return new snark::graphics::qopengl::shapes::lines( gl.weight ); }
