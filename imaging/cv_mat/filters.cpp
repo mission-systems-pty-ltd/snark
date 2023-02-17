@@ -58,10 +58,11 @@
 #include "filters/arithmetic.h"
 #include "filters/bitwise.h"
 #include "filters/blank.h"
-#include "filters/colorbar.h"
+#include "filters/canvas.h"
 #include "filters/colors.h"
 #include "filters/contraharmonic.h"
 #include "filters/convolution.h"
+#include "filters/draw.h"
 #include "filters/file.h"
 #include "filters/gamma.h"
 #include "filters/hard_edge.h"
@@ -2259,7 +2260,8 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         const bool channels_to_cols = e[0] == "channels-to-cols";
         return std::make_pair( boost::bind< value_type_t >( channels_to_cols_impl_ < H >(), _1, channels_to_cols ), true );
     }
-    if( e[0] == "colorbar" ) { return filters::colorbar< H >::make( e.size() > 1 ? e[1] : "" ); }
+    if( e[0] == "canvas" ) { return filters::canvas< H >::make( e.size() > 1 ? e[1] : "" ); }
+    if( e[0] == "colorbar" ) { return filters::draw< H >::colorbar::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "cross" ) // todo: quick and dirty, implement using traits
     {
         boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
@@ -3023,7 +3025,8 @@ static std::string usage_impl_()
     oss << "    clahe=<clip_limit>,<tile_size_x>[,<tile_size_y>]: CLAHE, contrast limited adaptive histogram equalization\n";
     oss << "                                                      (see opencv documentation for more), e.g. try clahe=2.0,8,8\n";
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
-    oss << filters::colorbar< boost::posix_time::ptime >::usage(4);
+    oss << filters::canvas< boost::posix_time::ptime >::usage(4);
+    oss << filters::draw< boost::posix_time::ptime >::colorbar::usage(4);
     oss << "    color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail\n";
     oss << "        <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot\n";
     oss << "                or numeric colormap code (names for colormaps in newer opencv versions: todo)\n";

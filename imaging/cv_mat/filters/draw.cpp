@@ -9,16 +9,16 @@
 #include <comma/base/exception.h>
 #include <comma/string/string.h>
 #include "../utils.h"
-#include "colorbar.h"
+#include "draw.h"
 
 namespace snark { namespace cv_mat { namespace filters {
 
 template < typename H >
-std::pair< typename colorbar< H >::functor_t, bool > colorbar< H >::make( const std::string& options, char delimiter )
+std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( const std::string& options, char delimiter )
 {
     const auto& v = comma::split( options, delimiter );
     if( v.size() < 5 ) { COMMA_THROW( comma::exception, "expected <colormap>,<from/x>,<from/y>,<to/x>,<to/x> (at least 5 arguments); got: '" << options << "'" ); }
-    colorbar< H > c;
+    colorbar c;
     auto colormap = colormap_from_string( v[0].empty() ? "jet" : v[0] );
     c._rectangle = cv::Rect( boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ), boost::lexical_cast< unsigned int >( v[3] ), boost::lexical_cast< unsigned int >( v[4] ) );
     if( c._rectangle.width < 60 || c._rectangle.height < 20 ) { COMMA_THROW( comma::exception, "colormap: expected rectangle at least 60x20; got: " << c._rectangle.width << "x" << c._rectangle.height ); }
@@ -57,7 +57,7 @@ std::pair< typename colorbar< H >::functor_t, bool > colorbar< H >::make( const 
 }
 
 template < typename H >
-std::pair< H, cv::Mat > colorbar< H >::operator()( std::pair< H, cv::Mat > m )
+std::pair< H, cv::Mat > draw< H >::colorbar::operator()( std::pair< H, cv::Mat > m )
 {
     if( m.second.type() != CV_8UC3 ) { COMMA_THROW( comma::exception, "colorbar: only CV_8UC3 (" << CV_8UC3 << ") currently supported; got image of type: " << type_as_string( m.second.type() ) << " (" << m.second.type() << ")" ); }
     std::pair< H, cv::Mat > n;
@@ -68,11 +68,11 @@ std::pair< H, cv::Mat > colorbar< H >::operator()( std::pair< H, cv::Mat > m )
 }
 
 template < typename H >
-std::string colorbar< H >::usage( unsigned int indent )
+std::string draw< H >::colorbar::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "colorbar=<colormap>,<from/x>,<from/y>,<width>,<height>[,<from>,<to>[,<middle>[,<units>[,<text_color>[,vertical[,reverse]]]]]]; draw colorbar on image;\n";
+    oss << i << "colorbar=<colormap>,<from/x>,<from/y>,<width>,<height>[,<from>,<to>[,<middle>[,<units>[,<text_color>[,vertical[,reverse]]]]]]\n";
     oss << i << "    draw colorbar on image; currently only 3-byte rgb supported\n";
     oss << i << "    options\n";
     oss << i << "        <colormap>: e.g. jet, see color-map filter for options; default=jet\n";
@@ -86,7 +86,7 @@ std::string colorbar< H >::usage( unsigned int indent )
     return oss.str();
 }
 
-template struct colorbar< boost::posix_time::ptime >;
-template struct colorbar< std::vector< char > >;
+template struct draw< boost::posix_time::ptime >;
+template struct draw< std::vector< char > >;
 
 } } }  // namespace snark { namespace cv_mat { namespace filters {
