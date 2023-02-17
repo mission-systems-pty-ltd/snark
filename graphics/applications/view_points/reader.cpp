@@ -4,6 +4,7 @@
 
 #include "reader.h"
 #include <Eigen/Geometry>
+#include <comma/string/split.h>
 #include "../../../math/rotation_matrix.h"
 
 namespace snark { namespace graphics { namespace view {

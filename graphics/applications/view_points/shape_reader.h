@@ -75,7 +75,7 @@ inline void shape_reader< S, How >::update_shape()
 {
     if( !shape ) { return; }
     shape->visible = m_show;
-    shape->update( buffer_.values().data(), buffer_.size() );
+    shape->update( _buffer.values().data(), _buffer.size() );
 }
 
 template< typename S, typename How >
@@ -83,12 +83,12 @@ inline void shape_reader< S, How >::update_labels()
 {
     label_shader->clear();
     label_shader->visible=m_show;
-    label_shader->labels.reserve(labels_.size());
-    for( unsigned int i = 0; i < labels_.size(); i++ )
+    label_shader->labels.reserve(_labels.size());
+    for( unsigned int i = 0; i < _labels.size(); i++ )
     {
-        if(!labels_.values()[i].text.empty())
+        if(!_labels.values()[i].text.empty())
         {
-            label_shader->labels.push_back(std::shared_ptr<snark::graphics::qopengl::label>( new snark::graphics::qopengl::text_label( labels_.values()[i].position - m_offset, labels_.values()[i].text, labels_.values()[i].color, this->font_size ) ) );
+            label_shader->labels.push_back(std::shared_ptr<snark::graphics::qopengl::label>( new snark::graphics::qopengl::text_label( _labels.values()[i].position - m_offset, _labels.values()[i].text, _labels.values()[i].color, this->font_size ) ) );
         }
     }
     if( !m_label.empty() )
@@ -116,12 +116,12 @@ inline std::size_t shape_reader< S, How >::update( const Eigen::Vector3d& offset
     for( typename deque_t_::iterator it = m_deque.begin(); it != m_deque.end(); ++it )
     {
         shape_traits< S, How >::update( *this, *it, offset );
-        labels_.add( label_t( shape_traits< S, How >::center( it->shape ), it->color, it->label ), it->block );
+        _labels.add( label_t( shape_traits< S, How >::center( it->shape ), it->color, it->label ), it->block );
     }
     if( m_shutdown )
     {
-        buffer_.toggle();
-        labels_.toggle();
+        _buffer.toggle();
+        _labels.toggle();
     }
     std::size_t s = m_deque.size();
     m_deque.clear();
@@ -154,20 +154,20 @@ inline void shape_reader< S, How >::render( Viewer& viewer, QGLPainter* painter 
     QGLAttributeValue position_attribute( sizeof((( vertex_t* )0 )->position ) / sizeof( float )
                                         , GL_FLOAT
                                         , sizeof( vertex_t )
-                                        , (char *)buffer_.values().data() + offsetof( vertex_t, position )
-                                        , buffer_.size() );
+                                        , reinterpret_cast< char* >( _buffer.values().data() ) + offsetof( vertex_t, position )
+                                        , _buffer.size() );
 
     QGLAttributeValue color_attribute( sizeof((( vertex_t* )0 )->color ) / sizeof( char )
                                      , GL_UNSIGNED_BYTE
                                      , sizeof( vertex_t )
-                                     , (char *)buffer_.values().data() + offsetof( vertex_t, color )
-                                     , buffer_.size());
+                                     , reinterpret_cast< char* >( _buffer.values().data() ) + offsetof( vertex_t, color )
+                                     , _buffer.size());
 
     painter->setVertexAttribute( QGL::Position, position_attribute );
     painter->setVertexAttribute( QGL::Color, color_attribute );
 
-    shape_traits< S, How >::draw( painter, buffer_.size(), fill );
-    for( unsigned int i = 0; i < labels_.size(); i++ ) { viewer.draw_label( painter, labels_.values()[i].position - m_offset, labels_.values()[i].color, labels_.values()[i].text ); }
+    shape_traits< S, How >::draw( painter, _buffer.size(), fill );
+    for( unsigned int i = 0; i < _labels.size(); i++ ) { viewer.draw_label( painter, _labels.values()[i].position - m_offset, _labels.values()[i].color, _labels.values()[i].text ); }
     if( !m_label.empty() ) { viewer.draw_label( painter, m_translation - m_offset, m_color, m_label ); }
 }
 #endif

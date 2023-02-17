@@ -555,10 +555,10 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         show = !m.exists( "hide" );
         param.pass_through = param.pass_through || ( m.exists( "pass-through" ) || m.exists( "pass" ));
         param.fill = param.fill || m.exists( "fill" );
-        param.labels=m.value("labels",param.labels);
-        param.length=m.value("length",param.length);
+        param.labels = m.value( "labels", param.labels );
+        param.length = m.value( "length", param.length );
         if( param.options.has_field( "id,scalar" ) ) { param.has_color = true; }
-        param.font_size=m.value("font-size",param.font_size);
+        param.font_size=m.value( "font-size", param.font_size );
     }
     if( param.pass_through )
     {
