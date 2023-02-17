@@ -14,6 +14,25 @@
 namespace snark { namespace cv_mat { namespace filters {
 
 template < typename H >
+std::pair< typename draw< H >::functor_t, bool > draw< H >::make( const std::string& options, char delimiter )
+{
+    const auto& v = comma::split( options, delimiter );
+    auto second = v.begin();
+    if( v[0] == "colorbar" ) { return colorbar::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
+    COMMA_THROW( comma::exception, "draw: expected draw primitive name; got: '" << v[0] << "'" );
+}
+
+template < typename H >
+std::string draw< H >::usage( unsigned int indent )
+{
+    std::ostringstream oss;
+    std::string i( indent, ' ' );
+    oss << i << "draw=<what>[,<options>]; draw one of these:\n";
+    oss << colorbar::usage( 4 + indent );
+    return oss.str();
+}
+
+template < typename H >
 std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( const std::string& options, char delimiter )
 {
     const auto& v = comma::split( options, delimiter );
@@ -39,31 +58,31 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     cv::applyColorMap( grey, coloured, colormap );
     cv::Mat bar;
     cv::resize( coloured, bar, cv::Size( c._rectangle.width, c._rectangle.height / 4 ) );
-    c._colorbar = cv::Mat( c._rectangle.height, c._rectangle.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
-    bar.copyTo( c._colorbar( cv::Rect( 0, c._rectangle.height * 3 / 4, c._rectangle.width, c._rectangle.height / 4 ) ) );
+    c._bar = cv::Mat( c._rectangle.height, c._rectangle.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
+    bar.copyTo( c._bar( cv::Rect( 0, c._rectangle.height * 3 / 4, c._rectangle.width, c._rectangle.height / 4 ) ) );
     unsigned int h = c._rectangle.height / 2;
     unsigned int w = c._rectangle.width;
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2
-        cv::putText( c._colorbar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._colorbar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
+        cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
+        cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
+        cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
     #else
-        cv::putText( c._colorbar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._colorbar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._colorbar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
+        cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
+        cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
+        cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
     #endif
-    if( vertical ) { cv::Mat transposed; cv::transpose( c._colorbar, transposed ); transposed.copyTo( c._colorbar ); }
+    if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); transposed.copyTo( c._bar ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
 }
 
 template < typename H >
-std::pair< H, cv::Mat > draw< H >::colorbar::operator()( std::pair< H, cv::Mat > m )
+std::pair< H, cv::Mat > draw< H >::bar::operator()( std::pair< H, cv::Mat > m )
 {
     if( m.second.type() != CV_8UC3 ) { COMMA_THROW( comma::exception, "colorbar: only CV_8UC3 (" << CV_8UC3 << ") currently supported; got image of type: " << type_as_string( m.second.type() ) << " (" << m.second.type() << ")" ); }
     std::pair< H, cv::Mat > n;
     n.first = m.first;
     m.second.copyTo( n.second );
-    _colorbar.copyTo( n.second( _rectangle ) );
+    _bar.copyTo( n.second( _rectangle ) );
     return n;
 }
 
@@ -81,10 +100,26 @@ std::string draw< H >::colorbar::usage( unsigned int indent )
     oss << i << "                         display (as in numpy.linspace); default: from=0 to=255 n=2\n";
     oss << i << "        <units>: units to show, e.g. m\n";
     oss << i << "        <text_color>: default: white\n";
-    oss << i << "        <vertical>: bar is vertical; default: horizontal\n";
-    oss << i << "        <flip>: show colors in reverse order\n";
+    oss << i << "        vertical: bar is vertical; default: horizontal\n";
+    oss << i << "        reverse: show colors in reverse order\n";
     return oss.str();
 }
+
+// template < typename H >
+// std::string draw< H >::scale::usage( unsigned int indent )
+// {
+//     std::ostringstream oss;
+//     std::string i( indent, ' ' );
+//     oss << i << "scale=<x>,<y>,<width>,<label>[,<color>[,vertical]]\n";
+//     oss << i << "    draw scale on image; currently only 3-byte rgb supported\n";
+//     oss << i << "    options\n";
+//     oss << i << "        <x>,<y>: position\n";
+//     oss << i << "        <width>: scale size in pixels\n";
+//     oss << i << "        <label>: e.g. 100m\n";
+//     oss << i << "        <color>: default: white\n";
+//     oss << i << "        vertical: bar is vertical; default: horizontal\n";
+//     return oss.str();
+// }
 
 template struct draw< boost::posix_time::ptime >;
 template struct draw< std::vector< char > >;

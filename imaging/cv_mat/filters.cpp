@@ -2262,6 +2262,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     }
     if( e[0] == "canvas" ) { return filters::canvas< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "colorbar" ) { return filters::draw< H >::colorbar::make( e.size() > 1 ? e[1] : "" ); }
+    if( e[0] == "draw" ) { return filters::draw< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "cross" ) // todo: quick and dirty, implement using traits
     {
         boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
@@ -3026,7 +3027,6 @@ static std::string usage_impl_()
     oss << "                                                      (see opencv documentation for more), e.g. try clahe=2.0,8,8\n";
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
     oss << filters::canvas< boost::posix_time::ptime >::usage(4);
-    oss << filters::draw< boost::posix_time::ptime >::colorbar::usage(4);
     oss << "    color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail\n";
     oss << "        <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot\n";
     oss << "                or numeric colormap code (names for colormaps in newer opencv versions: todo)\n";
@@ -3320,12 +3320,13 @@ static std::string usage_impl_()
     oss << "                  \"crop-rows=5,1,25,1,15,1\"; block height is 1, block starts can be out of order\n";
     oss << "    rows-to-channels=1,4,5[,pad:value,repeat:step]; same as cols-to-channels but operates on rows\n";
     oss << "\n";
-    oss << "basic drawing on images\n";
+    oss << "drawing on images\n";
     oss << "    cross[=<x>,<y>]: draw cross-hair at x,y; default: at image center\n";
     oss << "    circle=<x>,<y>,<radius>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw circle\n";
     oss << "        see cv::circle for details on parameters and defaults\n";
     oss << "    rectangle,box=<x>,<y>,<x>,<y>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw rectangle\n";
     oss << "        see cv::rectangle for details on parameters and defaults\n";
+    oss << filters::draw< boost::posix_time::ptime >::usage(4);
     oss << "\n";
     oss << "morphology operations\n";
     oss << "    opencv morphology operations\n";
