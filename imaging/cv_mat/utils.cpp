@@ -260,12 +260,14 @@ cv::Scalar color_from_string( const std::string& name )
                                                         , { "cyan", cv::Scalar( 0xffff, 0xffff, 0 ) }
                                                         , { "magenta", cv::Scalar( 0xffff, 0, 0xffff ) }
                                                         , { "white", cv::Scalar( 0xffff, 0xffff, 0xffff ) }
-                                                        , { "black", cv::Scalar( 0, 0, 0 ) }
                                                         , { "yellow", cv::Scalar( 0, 0xffff, 0xffff ) }
+                                                        , { "black", cv::Scalar( 0, 0, 0 ) }
+                                                        , { "light-grey", cv::Scalar( 200, 200, 200 ) }
+                                                        , { "grey", cv::Scalar( 128, 128, 128 ) }
                                                         , { "", cv::Scalar( 0, 0xffff, 0xffff ) } };
     auto it = colors.find( name );
     if( it != colors.end() ) { return it->second; }
-    COMMA_THROW( comma::exception, "expected colour of text, e.g. 'red', got '" << name << "'" );
+    COMMA_THROW( comma::exception, "expected colour, e.g. 'red', got '" << name << "'" );
 }
 
 } }  // namespace snark { namespace cv_mat {
