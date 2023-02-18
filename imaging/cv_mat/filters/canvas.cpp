@@ -6,6 +6,7 @@
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/types_c.h>
 #include <comma/base/exception.h>
 #include <comma/string/string.h>
 #include "../utils.h"
