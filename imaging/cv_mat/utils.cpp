@@ -234,7 +234,6 @@ template double get_channel< double >( unsigned char*, int );
 cv::ColormapTypes colormap_from_string( const std::string& name )
 {
     static std::map< std::string, cv::ColormapTypes > types = { { "autumn", cv::COLORMAP_AUTUMN }
-                                                              , { "autumn", cv::COLORMAP_AUTUMN }
                                                               , { "bone", cv::COLORMAP_BONE }
                                                               , { "jet", cv::COLORMAP_JET }
                                                               , { "winter", cv::COLORMAP_WINTER }
@@ -264,10 +263,26 @@ cv::Scalar color_from_string( const std::string& name )
                                                         , { "black", cv::Scalar( 0, 0, 0 ) }
                                                         , { "light-grey", cv::Scalar( 200, 200, 200 ) }
                                                         , { "grey", cv::Scalar( 128, 128, 128 ) }
+                                                        , { "perceptual-green", cv::Scalar( 0x9f43, 0xe725, 0 ) }
                                                         , { "", cv::Scalar( 0, 0xffff, 0xffff ) } };
     auto it = colors.find( name );
     if( it != colors.end() ) { return it->second; }
     COMMA_THROW( comma::exception, "expected colour, e.g. 'red', got '" << name << "'" );
+}
+
+void apply_color_range( const cv::Mat& in, cv::Mat& out, const std::pair< cv::Scalar, cv::Scalar >& color_range )
+{
+    if( in.type() != CV_8UC1 ) { COMMA_THROW( comma::exception, "expected greyscale 8-bit image (CV_8UC1); got image type: " << type_as_string( in.type() ) ); }
+    out = cv::Mat( in.rows, in.cols, CV_8UC3 );
+    const unsigned char* begin = &( in.at< unsigned char >( 0 ) );
+    const unsigned char* end = begin + in.rows * in.cols;
+    unsigned char* p = &( out.at< unsigned char >( 0 ) );
+    for( const unsigned char* in_p = begin; in_p < end; ++in_p )
+    {
+        float c = float( *in_p ) / 255;
+        auto s = color_range.first * ( 1. - c ) + color_range.second * c;
+        for( unsigned int i = 0; i < 3; ++i ) { *p++ = s[i] / 255; }
+    }
 }
 
 } }  // namespace snark { namespace cv_mat {

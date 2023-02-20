@@ -29,6 +29,8 @@ cv::ColormapTypes colormap_from_string( const std::string& name );
 
 cv::Scalar color_from_string( const std::string& name );
 
+void apply_color_range( const cv::Mat& in, cv::Mat& out, const std::pair< cv::Scalar, cv::Scalar >& color_range );
+
 template < typename T >
 void set_channel( unsigned char* channel, T value, int depth );
 
