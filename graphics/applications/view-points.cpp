@@ -837,8 +837,8 @@ int main( int argc, char** argv )
         }
         snark::graphics::view::MainWindow main_window( options.value( "--window-title", comma::join( argv, argc, ' ' ) )
                                                      , controller
-                                                     , comma::split_as< int >( options.value< std::string >( "--window-geometry", ",,," ), ',', -1 ) );
-        if( options.exists( "--hide-file-panel" ) ) { main_window.toggle_file_frame( false ); }
+                                                     , comma::split_as< int >( options.value< std::string >( "--window-geometry", ",,," ), ',', -1 )
+                                                     , options.exists( "--hide-file-panel" ) );
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();
         return 0;       // We never actually reach this line because we raise SIGINT when closing

@@ -23,9 +23,10 @@ namespace snark { namespace graphics { namespace view {
 
 MainWindow::MainWindow( const std::string& title
                       , const std::shared_ptr< snark::graphics::view::controller >& c
-                      , const std::vector< int >& window_geometry )
+                      , const std::vector< int >& window_geometry
+                      , bool minimalistic )
     : controller( c )
-    , m_fileFrameVisible( controller->readers.size() > 1 )
+    , m_fileFrameVisible( !minimalistic && controller->readers.size() > 1 )
 {
     new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) );
     QMenu* fileMenu = menuBar()->addMenu( "File" );
