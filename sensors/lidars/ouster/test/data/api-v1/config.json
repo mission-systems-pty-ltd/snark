@@ -1,4 +1,23 @@
 {
+    "parameters": {
+        "udp_ip": "192.168.10.20",
+        "udp_port_lidar": 7502,
+        "udp_port_imu": 7503,
+        "timestamp_mode": "TIME_FROM_PTP_1588",
+        "sync_pulse_in_polarity": "ACTIVE_HIGH",
+        "nmea_in_polarity": "ACTIVE_HIGH",
+        "nmea_ignore_valid_char": 0,
+        "nmea_baud_rate": "BAUD_9600",
+        "nmea_leap_seconds": 0,
+        "multipurpose_io_mode": "OFF",
+        "sync_pulse_out_polarity": "ACTIVE_HIGH",
+        "sync_pulse_out_frequency": 1,
+        "sync_pulse_out_angle": 360,
+        "sync_pulse_out_pulse_width": 10,
+        "auto_start_flag": 1,
+        "lidar_mode": "2048x10",
+        "window_rejection_enable": 1
+    },
     "beam_intrinsics": {
         "beam_altitude_angles": [
              16.5,  16,  15.5,  15,
