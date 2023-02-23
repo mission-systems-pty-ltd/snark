@@ -252,7 +252,7 @@ operation=${unnamed_options[0]}
 if [[ $operation == "config" ]] || (( options_firmware_version )); then
     [[ $options_config ]] || [[ $options_device ]] || die "one of --config or --device is required"
 else
-    [[ $options_config ]] || options_config=$default_config
+    [[ $options_config ]] || { [[ -f ${default_config%:*} ]] && options_config=$default_config; }
 fi
 
 if [[ $options_config ]]; then
