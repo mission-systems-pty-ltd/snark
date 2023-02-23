@@ -35,6 +35,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
+//#include <exiv2/exiv2.hpp>
 #include <comma/base/exception.h>
 #include <comma/base/types.h>
 #include <comma/csv/ascii.h>
@@ -1160,6 +1161,20 @@ struct encode_impl_ {
         typename impl::filters< H >::value_type p;
         p.first = m.first;
         p.second = cv::Mat( buffer.size(), 1, CV_8UC1 );
+        // Exiv2::Image::AutoPtr exiv2_image = Exiv2::ImageFactory::open((const Exiv2::byte*)&buffer[0], buffer.size());
+        // exiv2_image->readMetadata();
+        // Exiv2::ExifData& exif_data = exiv2_image->exifData();
+        // exif_data["Exif.Image.Artist"] = "ChatGPT";
+        // exiv2_image->setExifData(exif_data);
+        // exiv2_image->writeMetadata();
+        // unsigned int buffersize = exiv2_image->io().size(); 
+        // std::cerr << "image class has io size of " << buffersize << std::endl;
+        // exiv2_image->io().seek(0,Exiv2::BasicIo::beg);
+        // Exiv2::DataBuf buff = exiv2_image->io().read(buffersize);
+        // std::ofstream ofs( "metacat.jpg" );
+        // ofs.write( ( const char* )( buff.pData_ ), buffersize );
+        // ofs.write( buff.pData_, buffersize );
+        // ofs.close();
         ::memcpy( p.second.data, &buffer[0] , buffer.size() );
         return p;
     }
