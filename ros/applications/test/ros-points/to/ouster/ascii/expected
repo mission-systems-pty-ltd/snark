@@ -1,0 +1,27 @@
+#python
+
+expect rosbag/num_msgs = input/num_scans
+expect rosbag/topic = input/topic
+expect rosbag/msg_type = "sensor_msgs/PointCloud2"
+
+pi = 3.14159265
+deg2rad = 2 * pi / 360
+
+def between( var, min, max ):
+    expect var >= min
+    expect var <= max
+
+# sanity-check all the values
+# if something goes wrong then it'll probably go wrong catastrophically and these values will be completely out of range
+
+for i in range( input/num_scans ):
+    for j in range( input/points_per_scan ):
+        entry = rosbag/pointfield[ i * input/points_per_scan + j ]
+        expect entry/t >= input/data_start_time
+        expect entry/block = i
+        expect entry/channel >= 0
+        expect entry/channel < input/channels
+        between( entry/range, input/range_min, input/range_max )
+        between( entry/bearing, 0, 2 * pi )
+        between( entry/elevation, -input/elevation_max * deg2rad, input/elevation_max * deg2rad )
+        between( entry/signal, input/signal_min, input/signal_max )

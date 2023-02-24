@@ -1,0 +1,144 @@
+#!/bin/bash
+
+# create output similar to an Ouster
+# in particular
+#   * include ring (called channel in the ouster driver)
+#   * point timestamps are offsets from header timestamp, rather than absolute
+
+# input files in sub-directories can define their tests by setting the
+# parameters included below
+#
+# e.g. change the number of channels by setting
+# channel=64
+# in an input file
+
+scriptname=$( basename $0 )
+
+source $( type -p comma-application-util ) || { echo "$name: cannot source 'comma-application-util'" >&2; exit 1; }
+
+for distro in noetic melodic kinetic; do
+    setup_script=/opt/ros/$distro/setup.bash
+    [[ -f $setup_script ]] && source $setup_script && break
+done
+[[ -f $setup_script ]] || { echo "$scriptname: couldn't source ros setup.bash script" >&2; exit 1; }
+
+input_vars="data_start_time horiz_res channels rotation_rate elevation_max range_min range_max signal_min signal_max hit_prob fields format num_scans points_per_scan topic mode"
+
+data_start_time="20200101T120000"
+
+# ----------------------------------------------------------
+# make pointcloud
+# ----------------------------------------------------------
+
+# lidar config
+horiz_res=512                   # sample points per revolution
+channels=32                     # vertical channels
+rotation_rate=10                # rotations per second
+elevation_max=30                # elevation range assumed to be -elevation_max -> elevation_max (degrees)
+range_min=1
+range_max=100
+signal_min=0
+signal_max=255
+hit_prob=0.5                    # probably of a return for any given point in space
+fields=t,measurement_id,block,channel,range,bearing,elevation,signal,x,y,z
+format=t,uw,ui,uw,d,d,d,uw,d,d,d
+
+# test config
+# horiz_res=4                     # sample points per revolution
+# channels=2                      # vertical channels
+# rotation_rate=2                 # rotations per second
+
+# create block,measurement_id,channel
+# keep a random set of points based on hit_prob
+# add a random range
+# add a random signal
+# add time (based on rotation angle and rate)
+# convert az, el to radians
+# add cartesian coordinates
+# reorder fields
+function pointcloud()
+{
+    csv-paste "line-number;size=$(( horiz_res * channels ))" "line-number;shape=$horiz_res,$channels" \
+        | csv-random sample --fields block --ratio $hit_prob \
+        | csv-random make --range $range_min,$range_max --append \
+        | csv-random make --range $signal_min,$signal_max --append \
+        | csv-eval --fields block,measurement_id,channel,range,signal "t = $( echo $data_start_time | csv-time --to us ) + ( block / $rotation_rate + measurement_id / $(( horiz_res * rotation_rate )) ) * 1000000" --output-format t \
+        | csv-eval --fields block,measurement_id,channel,range,signal,t "az = measurement_id / $horiz_res * 2 * pi; el = ( channel - $(( channels / 2 )) ) / $(( channels / 2 )) * $elevation_max / 360 * 2 * pi" \
+        | points-to-cartesian --fields block,measurement_id,channel,range,signal,t,bearing,elevation --append \
+        | csv-shuffle --fields block,measurement_id,channel,range,signal,t,bearing,elevation,x,y,z --output $fields
+}
+
+# ----------------------------------------------------------
+# filter pointcloud to a smaller selection of points
+# ----------------------------------------------------------
+
+num_scans=5
+points_per_scan=100
+
+function filter()
+{
+    csv-blocks index --reverse --fields $fields \
+        | csv-blocks head --num-of-blocks $num_scans --fields $fields,index \
+        | csv-shuffle --fields $fields,index --output $fields \
+        | csv-random sample --fields $fields --size $points_per_scan
+}
+
+# ----------------------------------------------------------
+# create ros bag
+# ----------------------------------------------------------
+
+function cleanup()
+{
+    for f in $_bag_file $_input_file; do
+        [[ -f $f ]] && rm $f;
+    done
+}
+trap cleanup EXIT
+
+_bag_file=test_$$.bag
+topic=/points
+mode=binary
+
+# data always enters as ascii but we can process it in ros-points as ascii or binary
+function ros_bag()
+{
+    # assume ascii mode, but switch to binary if requested
+    local input_filter=cat
+    local format_option="--format $format"
+    if [[ $mode == "binary" ]]; then
+        input_filter="csv-to-bin $format"
+        format_option="--binary $format"
+    fi
+
+    $input_filter | ros-points --to $topic --fields $fields $format_option --output $_bag_file
+}
+
+# ----------------------------------------------------------
+# run test
+# ----------------------------------------------------------
+
+_input_file=test_$$.input
+cat > $_input_file
+comma_path_value_to_var < $_input_file        # load settings from input file
+for v in $input_vars; do
+    echo "input/$v=${!v}"
+done
+
+pointcloud | filter | ros_bag
+
+# ----------------------------------------------------------
+# analyse bag
+# ----------------------------------------------------------
+
+echo "rosbag/num_msgs=$( rosbag info $_bag_file -y -k messages )"
+echo "rosbag/topic=$( rosbag info $_bag_file -y -k topics | sed -n '/topic:/s/.* //p' )"
+echo "rosbag/msg_type=$( rosbag info $_bag_file -y -k topics | sed -n '/type:/s/.* //p' )"
+
+ros_fields=$( rostopic echo --noarr -p --bag $_bag_file $topic | sed -n '1s/^%//p' | sed 's!\.!/!g' )
+rostopic echo --noarr -p -b $_bag_file $topic | sed 1d | name-value-from-csv $ros_fields --prefix rosbag/msg -n
+
+# we can't usefully use rostopic (or any other native ros application) to look inside the individual messages
+# since they just present it as a big data field, so we use ros-points --from to extract meaningful data
+ros-points --from $topic --bags $_bag_file --binary $format \
+    | csv-from-bin $format \
+    | name-value-from-csv $fields --prefix rosbag/pointfield --line-number --unquote-numbers
