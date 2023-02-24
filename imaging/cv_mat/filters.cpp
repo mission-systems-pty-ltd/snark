@@ -35,7 +35,6 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
-//#include <exiv2/exiv2.hpp>
 #include <comma/base/exception.h>
 #include <comma/base/types.h>
 #include <comma/csv/ascii.h>
@@ -64,6 +63,7 @@
 #include "filters/contraharmonic.h"
 #include "filters/convolution.h"
 #include "filters/draw.h"
+#include "filters/encode.h"
 #include "filters/file.h"
 #include "filters/gamma.h"
 #include "filters/hard_edge.h"
@@ -1141,45 +1141,6 @@ static typename impl::filters< H >::value_type rectangle_impl_( typename impl::f
 
 template < typename H >
 static typename impl::filters< H >::value_type cross_impl_( typename impl::filters< H >::value_type m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
-
-template < typename H >
-struct encode_impl_ {
-    typedef typename impl::filters< H >::value_type value_type;
-    typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
-    const get_timestamp_functor get_timestamp_;
-
-    encode_impl_< H >( const get_timestamp_functor& gt ) : get_timestamp_(gt) {}
-    value_type operator()( const value_type& m, const std::string& type, const boost::optional<int>& quality )
-    {
-        if( is_empty< H >( m, get_timestamp_ ) ) { return m; }
-        snark::cv_mat::check_image_type( m.second, type );
-        std::vector< unsigned char > buffer;
-        std::vector<int> params;
-        if (quality) { params = snark::cv_mat::imwrite_params(type, *quality); }
-        std::string format = "." + type;
-        cv::imencode( format, m.second, buffer, params );
-        typename impl::filters< H >::value_type p;
-        p.first = m.first;
-        p.second = cv::Mat( buffer.size(), 1, CV_8UC1 );
-        // Exiv2::Image::AutoPtr exiv2_image = Exiv2::ImageFactory::open((const Exiv2::byte*)&buffer[0], buffer.size());
-        // exiv2_image->readMetadata();
-        // Exiv2::ExifData& exif_data = exiv2_image->exifData();
-        // exif_data["Exif.Image.Artist"] = "ChatGPT";
-        // exiv2_image->setExifData(exif_data);
-        // exiv2_image->writeMetadata();
-        // unsigned int buffersize = exiv2_image->io().size(); 
-        // std::cerr << "image class has io size of " << buffersize << std::endl;
-        // exiv2_image->io().seek(0,Exiv2::BasicIo::beg);
-        // Exiv2::DataBuf buff = exiv2_image->io().read(buffersize);
-        // std::ofstream ofs( "metacat.jpg" );
-        // ofs.write( ( const char* )( buff.pData_ ), buffersize );
-        // ofs.write( buff.pData_, buffersize );
-        // ofs.close();
-        ::memcpy( p.second.data, &buffer[0] , buffer.size() );
-        return p;
-    }
-
-};
 
 template < typename T > static comma::csv::options make_csv_options_( bool binary ) // quick and dirty
 {
@@ -2889,16 +2850,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         }
         else if( e[0] == "encode" )
         {
-            if( i < v.size() - 1 )
-            {
-                std::string next_filter = comma::split( v[i+1], '=' )[0];
-                if( next_filter != "head" ) COMMA_THROW( comma::exception, "cannot have a filter after encode unless next filter is head" );
-            }
-            if( e.size() < 2 ) { COMMA_THROW( comma::exception, "expected encoding type like jpg, ppm, etc" ); }
-            std::vector< std::string > s = comma::split( e[1], ',' );
-            boost::optional < int > quality;
-            if (s.size()> 1) { quality = boost::lexical_cast<int>(s[1]); }
-            f.push_back( filter_type( boost::bind< value_type_t >( encode_impl_< H >( get_timestamp ), _1, s[0], quality ), false ) );
+            f.push_back( snark::cv_mat::filters::encode< H >::make( e.size() > 1 ? e[1] : "", i < v.size() - 1 ? comma::split( v[i+1], '=' )[0] : "", get_timestamp ) );
         }
         else if( e[0] == "grab" )
         {
@@ -3075,9 +3027,7 @@ static std::string usage_impl_()
     oss << "            \"crop-tile=2,5,1,0,2,3,horizontal\": crop 2 tiles out of image split into 2x5 tiles;\n";
     oss << "                                                tile at 1,0 and at 2,3; arrange tiles horizontally\n";
     oss << "        deprecated: old syntax <i>,<j>,<ncols>,<nrows> is used for one tile if i < ncols and j < ncols\n";
-    oss << "    encode=<format>[,<quality>]: encode images to the specified format.\n";
-    oss << "                                 <format>: jpg|ppm|png|tiff..., make sure to use --no-header\n";
-    oss << "                                 <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)\n";
+    oss << filters::encode< boost::posix_time::ptime >::usage(4);
     oss << "    equalize-histogram: equalize each channel by its histogram\n";
     oss << "    fft[=<options>]: do fft on a floating point image\n";
     oss << "        options: inverse: do inverse fft\n";
@@ -3451,8 +3401,7 @@ static std::string usage_impl_()
     return oss.str();
 }
 
-template < typename H >
-const std::string& impl::filters< H >::usage( const std::string & operation )
+template < typename H > const std::string& impl::filters< H >::usage( const std::string & operation )
 {
     if( operation.empty() ) { static const std::string s = usage_impl_< H >(); return s; }
     if ( operation == "ratio" || operation == "linear-combination" ) { static const std::string s = snark::cv_mat::ratios::ratio::describe_syntax(); return s; }
@@ -3464,8 +3413,7 @@ const std::string& impl::filters< H >::usage( const std::string & operation )
 
 namespace comma { namespace visiting {
 
-template <>
-struct traits< typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::logger::indexer >
+template <> struct traits< typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::logger::indexer >
 {
     template < typename K, typename V > static void visit( const K&, const typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::logger::indexer& t, V& v )
     {
@@ -3482,8 +3430,7 @@ struct traits< typename snark::cv_mat::log_impl_< boost::posix_time::ptime >::lo
     }
 };
 
-template <>
-struct traits< typename snark::cv_mat::log_impl_< snark::cv_mat::header_type >::logger::indexer >
+template <> struct traits< typename snark::cv_mat::log_impl_< snark::cv_mat::header_type >::logger::indexer >
 {
     template < typename K, typename V > static void visit( const K&, const typename snark::cv_mat::log_impl_< snark::cv_mat::header_type >::logger::indexer& t, V& v )
     {
