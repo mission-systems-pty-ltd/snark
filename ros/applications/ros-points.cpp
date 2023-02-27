@@ -276,6 +276,7 @@ public:
             }
             buf.resize( size );
         }
+
         /// shuffle
         const char* get( const char* data )
         {
@@ -287,6 +288,7 @@ public:
             }
             return buf.data();
         }
+
         bool empty() const { return ranges.empty(); }
         std::size_t size() const { return buf.size(); }
 
@@ -404,11 +406,14 @@ private:
     {
         comma::csv::binary< header > header_csv_bin;
         std::vector< char > header_buf;
+
         bin_writer() : header_buf( header_csv_bin.format().size() ) { }
+
         void write_header( const header& h )
         {
             std::cout.write( header_csv_bin.put( h, &header_buf[0] ), header_buf.size() );
         }
+
         void write( const char* buf, uint32_t size )
         {
             std::cout.write( buf, size );
@@ -420,10 +425,12 @@ private:
         virtual ~filter_base() { }
         virtual bool valid( const char* buf, uint32_t size ) = 0;
     };
+
     struct float_filter : public filter_base
     {
         const comma::csv::format& format;
         std::vector< std::size_t > offsets;
+
         float_filter( const comma::csv::format& format ) : format( format )
         {
             offsets.reserve( format.elements().size() );
@@ -437,6 +444,7 @@ private:
                 }
             }
         }
+
         bool valid( const char* buf, uint32_t size )
         {
             for( const std::size_t offset : offsets )
@@ -701,6 +709,7 @@ int main( int argc, char** argv )
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" )) bash_completion( argc, argv );
+
         if( options.exists( "--from" ))
         {
             if( options.exists( "--header-fields" )) { std::cout << comma::join( comma::csv::names< header >(), ',' ) << std::endl; return 0; }
