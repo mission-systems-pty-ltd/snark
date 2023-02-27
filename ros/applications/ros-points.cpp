@@ -24,7 +24,7 @@ void bash_completion( unsigned int const ac, char const * const * av )
         " --help -h --verbose -v"
         " --header-fields --header-format --node-name --output-fields --output-format"
         " --from --bags --fields --flush --header --output-header --max-datagram-size --no-discard --queue-size"
-        " --to --all --hang-on --stay --frame --latch --node-name --pass-through --pass --queue-size"
+        " --to --all --field-name-map --hang-on --stay --frame --latch --node-name --pass-through --pass --queue-size"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
@@ -62,17 +62,18 @@ void usage( bool detail )
     std::cerr << "\n    --topic=<topic>:     name of the topic to subscribe to";
     std::cerr << "\n";
     std::cerr << "\nto options";
-    std::cerr << "\n    --to=<topic>:          topic to publish to";
-    std::cerr << "\n    --all:                 send all records as one ros message";
-    std::cerr << "\n    --fields,-f=<fields>:  fields names; default=x,y,z";
-    std::cerr << "\n    --frame=[<frame>]:     ros message frame as string";
-    std::cerr << "\n    --hang-on,--stay:      wait before exiting so that subscribers can receive";
-    std::cerr << "\n                           the last message";
-    std::cerr << "\n    --latch:               last message will be saved for future subscribers";
-    std::cerr << "\n    --output,-o=[<bag>]:   write to bag rather than publish";
+    std::cerr << "\n    --to=<topic>:             topic to publish to";
+    std::cerr << "\n    --all:                    send all records as one ros message";
+    std::cerr << "\n    --fields,-f=<fields>:     fields names; default=x,y,z";
+    std::cerr << "\n    --field-name-map=[<map>]: rename fields; format: old:new,...";
+    std::cerr << "\n    --frame=[<frame>]:        ros message frame as string";
+    std::cerr << "\n    --hang-on,--stay:         wait before exiting so that subscribers can";
+    std::cerr << "\n                              receive the last message";
+    std::cerr << "\n    --latch:                  last message will be saved for future subscribers";
+    std::cerr << "\n    --output,-o=[<bag>]:      write to bag rather than publish";
     std::cerr << "\n    --output-fields=[<fields>]: fields to output; default: all input fields";
-    std::cerr << "\n    --pass-through,--pass: pass input data to stdout";
-    std::cerr << "\n    --queue-size=[<n>]:    ROS publisher queue size, default=1";
+    std::cerr << "\n    --pass-through,--pass:    pass input data to stdout";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
     std::cerr << "\n";
     std::cerr << "\nexamples:";
     std::cerr << "\n    view points from a published topic:";
@@ -267,8 +268,9 @@ public:
             }
             for( const auto& f : fields )
             {
-                unsigned int index = msg_field_name_map.at( f );
-//                 comma::verbose << "bin_shuffle " << f << "; " << index << "; " << elements[index].first << "," << elements[index].second << std::endl;
+                unsigned int index;
+                try { index = msg_field_name_map.at( f ); }
+                catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << f << " in msg_field_name_map" ); }
                 ranges.push_back( elements[index] );
                 size += elements[index].second;
             }
@@ -498,7 +500,8 @@ public:
     to_point_cloud( const std::string& fields_str
                   , const std::string& format_str
                   , const std::string& output_fields_str
-                  , const std::string& frame_id )
+                  , const std::string& frame_id
+                  , const std::string& field_name_mappings )
         : frame_id( frame_id )
     {
         comma::csv::format format( format_str );
@@ -507,6 +510,18 @@ public:
         const auto& elements = format.elements();
         if( fields.size() != elements.size() ) { COMMA_THROW( comma::exception, "size of fields and binary mismatch: " << fields.size() << " vs " << elements.size() ); }
         field_descs.reserve( fields.size() );
+
+        if( !field_name_mappings.empty() )
+        {
+            std::vector< std::string > field_name_mapping_pairs = comma::split( field_name_mappings, '.' );
+            for( const auto& field_name_mapping_pair : field_name_mapping_pairs )
+            {
+                std::vector< std::string > field_name_pair = comma::split( field_name_mapping_pair, ':' );
+                comma::verbose << "mapping " << field_name_pair[0] << " to " << field_name_pair[1] << std::endl;
+                field_name_map[ field_name_pair[0] ] = field_name_pair[1];
+            }
+        }
+
         std::size_t output_offset = 0;
         for( auto& output_field : output_fields )
         {
@@ -515,7 +530,7 @@ public:
             {
                 auto i = std::distance( fields.begin(), it );
                 sensor_msgs::PointField point_field;
-                point_field.name = fields[i];
+                point_field.name = map_field_name( fields[i] );
                 point_field.offset = output_offset;
                 point_field.datatype = map_data_type( elements[i].type );
                 point_field.count = elements[i].count;
@@ -566,6 +581,12 @@ public:
     }
 
 private:
+    std::string map_field_name( const std::string& src_name )
+    {
+        try { return field_name_map.at( src_name ); }
+        catch( std::out_of_range& ex ) { return src_name; }
+    }
+
     static unsigned int map_data_type( comma::csv::format::types_enum t )
     {
         switch(t)
@@ -621,6 +642,7 @@ private:
     std::vector< field_desc > field_descs;
     std::size_t output_data_size;
     std::string frame_id;
+    std::unordered_map< std::string, std::string > field_name_map;
 };
 
 } } // namespace snark { namespace ros {
@@ -631,9 +653,10 @@ public:
     to_points( const comma::csv::options& csv
              , const comma::csv::format& format
              , const std::string& output_fields
-             , const std::string& frame_id )
+             , const std::string& frame_id
+             , const std::string& field_name_mapping )
         : format( format )
-        , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id )
+        , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id, field_name_mapping )
         , data_size( format.size() )
         , ascii( !csv.binary() )
     {}
@@ -743,6 +766,7 @@ int main( int argc, char** argv )
                                         : comma::csv::format( options.value< std::string >( "--format" )));
             std::string output_fields = options.value< std::string >( "--output-fields", csv.fields );
             comma::verbose << "outputting " << output_fields << std::endl;
+            std::string field_name_mapping = options.value< std::string >( "--field-name-map", "" );
             bool has_block = csv.has_field( "block" );
             bool all = options.exists( "--all" );
             std::string frame_id = options.value< std::string >( "--frame", "" );
@@ -790,7 +814,7 @@ int main( int argc, char** argv )
             comma::csv::input_stream< record > is( std::cin, csv );
             comma::csv::passed< record > passed( is, std::cout, csv.flush );
             unsigned int block = 0;
-            to_points points( csv, format, output_fields, frame_id );
+            to_points points( csv, format, output_fields, frame_id, field_name_mapping );
 
             while( std::cin.good() )
             {
