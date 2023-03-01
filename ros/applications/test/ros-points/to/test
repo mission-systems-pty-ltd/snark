@@ -119,7 +119,9 @@ function ros_bag()
     [[ $field_mapping ]] && options+=" --field-name-map=$field_mapping"
     (( verbose )) && options+=" --verbose"
 
-    $input_filter | ros-points --to $topic --fields $fields $options --output $_bag_file
+    # use the --pass option to also record the input data
+    $input_filter | ros-points --to $topic --fields $fields $options --output $_bag_file --pass \
+        | $output_filter | name-value-from-csv $fields --prefix input/point --line-number --unquote-numbers
 }
 
 # ----------------------------------------------------------
