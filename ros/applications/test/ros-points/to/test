@@ -129,7 +129,8 @@ function ros_bag()
 output_fields=$fields
 
 _input_file=test_$$.input
-cat > $_input_file
+
+grep -v "^#" | grep -v "^ *$" > $_input_file
 comma_path_value_to_var < $_input_file        # load settings from input file
 for v in $input_vars; do
     echo "input/$v=${!v}"
