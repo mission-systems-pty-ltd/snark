@@ -619,19 +619,20 @@ class to_point_cloud
     };
 
 public:
-    to_point_cloud( const std::string& fields_str
-                  , const std::string& format_str
-                  , const std::string& output_fields_str
-                  , const std::string& frame_id
-                  , const std::string& field_name_mappings
-                  , time_format_enum time_format )
-        : frame_id( frame_id )
-        , time_format( time_format )
+    to_point_cloud( const comma::command_line_options& options
+                  , const comma::csv::options& csv
+                  , const comma::csv::format& format )
     {
-        comma::csv::format format( format_str );
-        std::vector< std::string > fields = comma::split( fields_str, ',' );
+        std::string output_fields_str = options.value< std::string >( "--output-fields", csv.fields );
+        comma::verbose << "outputting " << output_fields_str << std::endl;
+        frame_id = options.value< std::string >( "--frame", "" );
+        std::string field_name_mappings = options.value< std::string >( "--field-name-map", "" );
+        time_format = snark::ros::string_to_time_format( options.value< std::string >( "--time-format", "none" ));
+
+        comma::csv::format expanded_format( format.expanded_string() );
+        std::vector< std::string > fields = comma::split( csv.fields, ',' );
         std::vector< std::string > output_fields = comma::split( output_fields_str, ',' );
-        const auto& elements = format.elements();
+        const auto& elements = expanded_format.elements();
         if( fields.size() != elements.size() ) { COMMA_THROW( comma::exception, "size of fields and binary mismatch: " << fields.size() << " vs " << elements.size() ); }
         field_descs.reserve( fields.size() );
 
@@ -798,14 +799,10 @@ private:
 class to_points
 {
 public:
-    to_points( const comma::csv::options& csv
-             , const comma::csv::format& format
-             , const std::string& output_fields
-             , const std::string& frame_id
-             , const std::string& field_name_mapping
-             , snark::ros::time_format_enum time_format )
-        : format( format )
-        , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id, field_name_mapping, time_format )
+    to_points( const comma::command_line_options& options
+             , const comma::csv::options& csv )
+        : format( csv.binary() ? csv.format() : comma::csv::format( options.value< std::string >( "--format" )))
+        , point_cloud( options, csv, format )
         , data_size( format.size() )
         , ascii( !csv.binary() )
     {}
@@ -911,20 +908,12 @@ int main( int argc, char** argv )
             std::string topic = options.value< std::string >( "--to" );
             unsigned int queue_size = options.value< unsigned int >( "--queue-size", 1 );
             if( csv.fields.empty() ) { csv.fields = "x,y,z"; }
-            comma::csv::format format = ( csv.binary()
-                                        ? csv.format()
-                                        : comma::csv::format( options.value< std::string >( "--format" )));
-            std::string output_fields = options.value< std::string >( "--output-fields", csv.fields );
-            comma::verbose << "outputting " << output_fields << std::endl;
-            std::string field_name_mapping = options.value< std::string >( "--field-name-map", "" );
             bool has_block = csv.has_field( "block" );
             bool all = options.exists( "--all" );
-            std::string frame_id = options.value< std::string >( "--frame", "" );
             boost::optional< std::string > node_name = options.optional< std::string >( "--node-name" );
             bool pass_through = options.exists( "--pass-through,--pass" );
             std::string output_option = options.value< std::string >( "--output,-o", "" );
             bool publishing = output_option.empty();
-            snark::ros::time_format_enum time_format = snark::ros::string_to_time_format( options.value< std::string >( "--time-format", "none" ));
 
             std::unique_ptr< ros::NodeHandle > ros_node;
             std::unique_ptr< ros::Publisher > publisher;
@@ -965,7 +954,7 @@ int main( int argc, char** argv )
             comma::csv::input_stream< record > is( std::cin, csv );
             comma::csv::passed< record > passed( is, std::cout, csv.flush );
             unsigned int block = 0;
-            to_points points( csv, format, output_fields, frame_id, field_name_mapping, time_format );
+            to_points points( options, csv );
 
             while( std::cin.good() )
             {
