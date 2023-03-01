@@ -106,6 +106,7 @@ trap cleanup EXIT
 _bag_file=test_$$.bag
 topic=/points
 field_mapping=
+time_format=
 mode=binary
 
 # data always enters as ascii but we can process it in ros-points as ascii or binary
@@ -113,14 +114,17 @@ function ros_bag()
 {
     # assume ascii mode, but switch to binary if requested
     local input_filter=cat
+    local output_filter=cat
     local format_option="--format $format"
     if [[ $mode == "binary" ]]; then
         input_filter="csv-to-bin $format"
+        output_filter="csv-from-bin $format"
         format_option="--binary $format"
     fi
 
     local options=$format_option
     [[ $field_mapping ]] && options+=" --field-name-map=$field_mapping"
+    [[ $time_format ]] && options+=" --time-format=$time_format"
     (( verbose )) && options+=" --verbose"
 
     # use the --pass option to also record the input data
@@ -140,7 +144,7 @@ grep -v "^#" | grep -v "^ *$" > $_input_file
 comma_path_value_to_var < $_input_file        # load settings from input file
 for v in $input_vars; do
     echo "input/$v=${!v}"
-done
+done | csv-quote --fields ,x -d =
 
 pointcloud | filter | ros_bag
 
@@ -155,7 +159,7 @@ echo "rosbag/msg_type=$( rosbag info $_bag_file -y -k topics | sed -n '/type:/s/
 # this is just the fields that describe the message, which isn't very interesting
 # all the interesting stuff is in the big data field that follows
 ros_fields=$( rostopic echo --noarr -p --bag $_bag_file $topic | sed -n '1s/^%//p' | sed 's!\.!/!g' )
-rostopic echo --noarr -p -b $_bag_file $topic | sed 1d | name-value-from-csv $ros_fields --prefix rosbag/msg -n
+rostopic echo --noarr -p -b $_bag_file $topic | sed 1d | name-value-from-csv $ros_fields --prefix rosbag/msg --line-nunber
 
 # map a:b,c:d,... to a,c,... b,d,...
 # extract <pos> <field-map>
@@ -164,18 +168,35 @@ function extract()
     [[ $2 ]] && tr , '\n' <<< $2 | cut -f$1 -d: | paste -s -d, || echo "---empty---"
 }
 
-ros_output_format=$( echo $format | csv-format expand | csv-shuffle --fields $fields --output $output_fields | csv-format collapse )
+output_format=$( echo $format | csv-format expand | csv-shuffle --fields $fields --output $output_fields | csv-format collapse )
 ros_output_fields=$( echo $output_fields | csv-fields rename --fields $( extract 1 $field_mapping ) --to $( extract 2 $field_mapping ) )
+ros_format=$output_format
 
 # we can't usefully use rostopic (or any other native ros application) to look inside the individual messages
 # since they just present it as a big data field, so we use ros-points --from to extract meaningful data
+
+if [[ $time_format ]]; then
+    time_format_option="--time-format=$time_format"
+    case $time_format in
+        offset-seconds)     ros_format=$( csv-fields rename --fields t --to f <<< $ros_format ) ;;
+        offset-nanoseconds) ros_format=$( csv-fields rename --fields t --to ui <<< $ros_format ) ;;
+    esac
+fi
+
 verbose_option=
 if (( verbose )); then
     echo "ros fields: $ros_output_fields" >&2
-    echo "ros format: $ros_output_format" >&2
+    echo "ros format: $ros_format" >&2
+    echo "bin format: $output_format" >&2
     verbose_option="--verbose"
 fi
 
-ros-points --from $topic --bags $_bag_file --fields $ros_output_fields --binary $ros_output_format $verbose_option  \
-    | csv-from-bin $ros_output_format \
+# look at the raw data inside the ros bag
+ros-points --from $topic --bags $_bag_file --fields $ros_output_fields --binary $ros_format --ignore-time-format $verbose_option \
+    | csv-from-bin $ros_format \
     | name-value-from-csv $ros_output_fields --prefix rosbag/pointfield --line-number --unquote-numbers
+
+# look at the interpreted data - only the time field might change
+ros-points --from $topic --bags $_bag_file --fields $ros_output_fields --binary $output_format $verbose_option $time_format_option \
+    | csv-from-bin $output_format \
+    | name-value-from-csv $ros_output_fields --prefix ros_points/output --line-number --unquote-numbers

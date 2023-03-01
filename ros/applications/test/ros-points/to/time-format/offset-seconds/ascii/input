@@ -1,0 +1,4 @@
+num_scans=3
+points_per_scan=5
+time_format=offset-seconds
+mode=ascii

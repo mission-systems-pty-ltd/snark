@@ -23,14 +23,14 @@ void bash_completion( unsigned int const ac, char const * const * av )
     static const char* completion_options =
         " --help -h --verbose -v"
         " --header-fields --header-format --node-name --output-fields --output-format"
-        " --from --bags --fields --flush --header --output-header --max-datagram-size --no-discard --queue-size"
-        " --to --all --field-name-map --hang-on --stay --frame --latch --node-name --pass-through --pass --queue-size"
+        " --from --bags --fields --flush --header --output-header --ignore-time-format --max-datagram-size --no-discard --queue-size"
+        " --to --all --field-name-map --hang-on --stay --frame --latch --node-name --pass-through --pass --queue-size --time-format"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
 }
 
-void usage( bool detail )
+void usage( bool verbose = false )
 {
     std::cerr << "\nconvert ROS PointCloud2 to csv and vice-versa";
     std::cerr << "\n";
@@ -51,15 +51,16 @@ void usage( bool detail )
     std::cerr << "\n    subscribed topic";
     std::cerr << "\n";
     std::cerr << "\nfrom options";
-    std::cerr << "\n    --from=<topic>:      topic to read";
-    std::cerr << "\n    --bags=[<bags>]:     load from rosbags rather than subscribe";
-    std::cerr << "\n    --fields=[<names>]:  only output listed fields";
-    std::cerr << "\n    --flush:             call flush on stdout after each write";
+    std::cerr << "\n    --from=<topic>:        topic to read";
+    std::cerr << "\n    --bags=[<bags>]:       load from rosbags rather than subscribe";
+    std::cerr << "\n    --fields=[<names>]:    only output listed fields";
+    std::cerr << "\n    --flush:               call flush on stdout after each write";
     std::cerr << "\n    --header,--output-header: prepend t,block header to output with t,ui format";
-    std::cerr << "\n    --max-datagram-size: for UDP transport. See ros::TransportHints";
-    std::cerr << "\n    --no-discard:        don't discard points with nan or inf in their values";
-    std::cerr << "\n    --queue-size=[<n>]:  ROS Subscriber queue size, default 1";
-    std::cerr << "\n    --topic=<topic>:     name of the topic to subscribe to";
+    std::cerr << "\n    --ignore-time-format:  don't do any interpretation of time format";
+    std::cerr << "\n    --max-datagram-size:   for UDP transport. See ros::TransportHints";
+    std::cerr << "\n    --no-discard:          don't discard points with nan or inf in their values";
+    std::cerr << "\n    --queue-size=[<n>]:    ROS Subscriber queue size, default 1";
+    std::cerr << "\n    --topic=<topic>:       name of the topic to subscribe to";
     std::cerr << "\n";
     std::cerr << "\nto options";
     std::cerr << "\n    --to=<topic>:             topic to publish to";
@@ -74,21 +75,64 @@ void usage( bool detail )
     std::cerr << "\n    --output-fields=[<fields>]: fields to output; default: all input fields";
     std::cerr << "\n    --pass-through,--pass:    pass input data to stdout";
     std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
+    std::cerr << "\n    --time-format=<fmt>:      time format in ROS pointfield; default: none";
     std::cerr << "\n";
-    std::cerr << "\nexamples:";
-    std::cerr << "\n    view points from a published topic:";
-    std::cerr << "\n    " << comma::verbose.app_name() << " --from some_topic --fields x,y,z --binary 3f --header \\";
-    std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+    std::cerr << "\nfield names";
+    std::cerr << "\n    Field names are generally duplicated in the ROS PointCloud2 message.";
+    std::cerr << "\n    They can be mapped to another name with the --field-name-map option.";
     std::cerr << "\n";
-    std::cerr << "\n    view points from a set of bags:";
-    std::cerr << "\n    " << comma::verbose.app_name() << " --from some_topic --bags \"*.bag\" --fields x,y,z --binary 3f --header \\";
-    std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+    std::cerr << "\ntime formats";
+    std::cerr << "\n    The ROS PointCloud2 message contains a ROS-format timestamp in the message";
+    std::cerr << "\n    header and also contains a time field in each point field if that has been";
+    std::cerr << "\n    included in the fields (usually it is).";
     std::cerr << "\n";
-    std::cerr << "\n    csv-random make --type 3d | csv-paste line-number - \\";
-    std::cerr << "\n        | csv-blocks group --fields scalar --span 1000 | csv-time-stamp \\";
-    std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3d,ui";
+    std::cerr << "\n    For the individual point timestamp there are several options:";
+    std::cerr << "\n        none:               straight copy of the incoming timestamp";
+    std::cerr << "\n        offset-seconds:     offset in seconds from header timestamp (float)";
+    std::cerr << "\n        offset-nanoseconds: offset in nanoseconds from header timestamp (uint32)";
     std::cerr << "\n";
-    std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -f t,block,x,y,z -b t,ui,3f";
+    std::cerr << "\n    The --time-format option applies to both --to and --from operations.";
+    std::cerr << "\n    For --to it describes how to write that field, and for --from it describes";
+    std::cerr << "\n    how to read it.";
+    std::cerr << "\n";
+    if( verbose )
+    {
+        std::cerr << "\nexamples";
+        std::cerr << "\n    --- view points from a published topic ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --fields x,y,z --binary 3f --header \\";
+        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- view points from a set of bags ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --bags \"*.bag\" --fields x,y,z --binary 3f \\";
+        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- publish on /points topic ---";
+        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -f t,block,x,y,z -b t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- write /points topic to a bag file ---";
+        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -o my.bag -f t,block,x,y,z -b t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- change a field name ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,channel,x,y,z --format t,ui,3d \\";
+        std::cerr << "\n               --field-name-map channel:ring";
+        std::cerr << "\n";
+        std::cerr << "\n    --- read or write timestamps as offsets ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,x,y,z --format t,3d \\";
+        std::cerr << "\n               --time-format offset-seconds";
+        std::cerr << "\n";
+        std::cerr << "\n    -- see underlying data in bag file written with offset-seconds ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --bags <file> --from /points --fields t,x,y,z --format f,3d \\";
+        std::cerr << "\n               --ignore-time-format";
+        std::cerr << "\n";
+        std::cerr << "\n    --- create random test data ---";
+        std::cerr << "\n    csv-random make --type 3d | csv-paste line-number - \\";
+        std::cerr << "\n        | csv-blocks group --fields scalar --span 1000 | csv-time-stamp \\";
+        std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3d,ui";
+    }
+    else
+    {
+        std::cerr << "\nrun \"" << comma::verbose.app_name() << " --help --verbose\" for examples of use";
+    }
     std::cerr << "\n" << std::endl;
 }
 
@@ -249,8 +293,27 @@ public:
     /// copy specified fields from a point record, given msg point field info and a list of field names
     struct bin_shuffle : public bin_base
     {
+        //first: offset, second: size
+        typedef typename std::pair< std::size_t, std::size_t > range_t;
+
+        struct field_desc_t
+        {
+            range_t range;
+            unsigned int datatype;
+            bool is_time_field;
+
+            field_desc_t() : datatype(0), is_time_field( false ) {}
+            field_desc_t( range_t range, unsigned int datatype, bool is_time_field )
+                : range( range ), datatype( datatype ), is_time_field( is_time_field ) {}
+        };
+
         /// prepare
-        bin_shuffle( const std::string& field_names, const sensor_msgs::PointCloud2::_fields_type& msg_fields )
+        bin_shuffle( const std::string& field_names
+                   , const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                   , const ::ros::Time& header_time_stamp
+                   , bool ignore_time_format )
+            : header_time_stamp( header_time_stamp.toBoost() )
+            , ignore_time_format( ignore_time_format )
         {
             std::vector< std::string > fields = comma::split( field_names, "," );
             std::unordered_map< std::string, unsigned int > msg_field_name_map;
@@ -271,8 +334,10 @@ public:
                 unsigned int index;
                 try { index = msg_field_name_map.at( f ); }
                 catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << f << " in msg_field_name_map" ); }
-                ranges.push_back( elements[index] );
-                size += elements[index].second;
+                bool is_time_field = ( f == "t" || f == "time" );
+                field_descs.push_back( field_desc_t( elements[index], msg_fields[index].datatype, is_time_field ));
+                if( is_time_field && !ignore_time_format ) { size += sizeof( boost::posix_time::ptime ); }
+                else { size += elements[index].second; }
             }
             buf.resize( size );
         }
@@ -281,22 +346,52 @@ public:
         const char* get( const char* data )
         {
             std::size_t offset = 0;
-            for( const auto& i : ranges )
+            for( const auto& field_desc : field_descs )
             {
-                std::memcpy( &buf[offset], data+i.first, i.second );
-                offset += i.second;
+                if( field_desc.is_time_field )
+                {
+                    // when reading a ros topic we deduce the time format by the data type,
+                    // unless we have been explicitly told not to do any processing by --ignore-time-format
+                    // that option is useful if you want to output whatever is in the time field and not interpret it
+                    if( !ignore_time_format )
+                    {
+                        // is the time format either offset_seconds (float32) or offset_nanoseconds (uint32)?
+                        if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 ||
+                            field_desc.datatype == sensor_msgs::PointField::UINT32 )
+                        {
+                            boost::posix_time::time_duration time_offset;
+                            if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 )
+                            {
+                                float offset_seconds = comma::csv::format::traits< float >::from_bin( data + field_desc.range.first );
+                                time_offset = boost::posix_time::microseconds( static_cast< long >( offset_seconds * 1000000 ));
+                            }
+                            else
+                            {
+                                comma::uint32 offset_nanoseconds = comma::csv::format::traits< comma::uint32 >::from_bin( data + field_desc.range.first );
+                                // we're using the 64 bit boost ptime implementation, which is accurate to microseconds
+                                time_offset = boost::posix_time::microseconds( offset_nanoseconds / 1000 );
+                            }
+                            boost::posix_time::ptime time = header_time_stamp + time_offset;
+                            comma::csv::format::traits< boost::posix_time::ptime, comma::csv::format::time >::to_bin( time, &buf[offset] );
+                            offset += sizeof( time );
+                            continue;   // we've copied the data, go to the next iteration of the loop
+                        }
+                    }
+                }
+                std::memcpy( &buf[offset], data + field_desc.range.first, field_desc.range.second );
+                offset += field_desc.range.second;
             }
             return buf.data();
         }
 
-        bool empty() const { return ranges.empty(); }
+        bool empty() const { return field_descs.empty(); }
         std::size_t size() const { return buf.size(); }
 
     private:
         std::vector< char > buf;
-        //first: offset, second: size
-        typedef typename std::pair< std::size_t, std::size_t > range_t;
-        std::vector< range_t > ranges;
+        std::vector< field_desc_t > field_descs;
+        boost::posix_time::ptime header_time_stamp;
+        bool ignore_time_format;
     };
 };
 
@@ -336,6 +431,7 @@ struct points
     bool flush;
     bool write_header;
     bool discard;
+    bool ignore_time_format;
 
     points( const comma::command_line_options& options )
         : csv( options )
@@ -344,6 +440,7 @@ struct points
         , flush( options.exists( "--flush" ))
         , write_header( options.exists( "--header,--output-header" ))
         , discard( !options.exists( "--no-discard" ))
+        , ignore_time_format( options.exists( "--ignore-time-format" ))
     {
         fields = comma::split( options.value< std::string >( "--fields", "" ), ',' );
         if( fields.size() == 1 && fields[0].empty() ) { fields.clear(); } // comma::split quirk
@@ -378,7 +475,7 @@ struct points
 
             std::unique_ptr< snark::ros::point_cloud::bin_base > bin;
             if( csv.fields.empty() ) { bin.reset( new snark::ros::point_cloud::bin_cat( record_size )); }
-            else { bin.reset( new snark::ros::point_cloud::bin_shuffle( csv.fields, input->fields )); }
+            else { bin.reset( new snark::ros::point_cloud::bin_shuffle( csv.fields, input->fields, input->header.stamp, ignore_time_format )); }
 
             bin_writer writer;
 
@@ -490,15 +587,31 @@ template <> struct traits< record >
 
 namespace snark { namespace ros {
 
+enum class time_format_enum { none, offset_seconds, offset_nanoseconds };
+
+static time_format_enum string_to_time_format( const std::string& time_format_str )
+{
+    if( time_format_str == "none" ) { return time_format_enum::none; }
+    if( time_format_str == "offset-seconds" ) { return time_format_enum::offset_seconds; }
+    if( time_format_str == "offset-nanoseconds" ) { return time_format_enum::offset_nanoseconds; }
+    COMMA_THROW( comma::exception, "unknown time format \"" << time_format_str << "\"" );
+}
+
 class to_point_cloud
 {
     struct field_desc
     {
-        sensor_msgs::PointField point_field;
+        sensor_msgs::PointField point_field; // includes name,offset,datatype,count for ROS data
+        comma::csv::format::types_enum input_type;
         std::size_t input_offset;
-        std::size_t size;
-        field_desc( sensor_msgs::PointField point_field, std::size_t input_offset, std::size_t size )
+        std::size_t size;               // target size = sizeof( output datatype ) * count
+
+        field_desc( sensor_msgs::PointField point_field
+                  , comma::csv::format::types_enum input_type
+                  , std::size_t input_offset
+                  , std::size_t size )
             : point_field( point_field )
+            , input_type( input_type )
             , input_offset( input_offset )
             , size( size )
         {}
@@ -509,8 +622,10 @@ public:
                   , const std::string& format_str
                   , const std::string& output_fields_str
                   , const std::string& frame_id
-                  , const std::string& field_name_mappings )
+                  , const std::string& field_name_mappings
+                  , time_format_enum time_format )
         : frame_id( frame_id )
+        , time_format( time_format )
     {
         comma::csv::format format( format_str );
         std::vector< std::string > fields = comma::split( fields_str, ',' );
@@ -543,7 +658,7 @@ public:
                 point_field.datatype = map_data_type( elements[i].type );
                 point_field.count = elements[i].count;
                 std::size_t total_size = sizeof_datatype( point_field.datatype ) * point_field.count;
-                field_descs.push_back( field_desc( point_field, elements[i].offset, total_size ));
+                field_descs.push_back( field_desc( point_field, elements[i].type, elements[i].offset, total_size ));
                 output_offset += total_size;
                 comma::verbose << "added " << point_field.name
                                << "(" << comma::csv::format::to_format( elements[i].type )
@@ -562,7 +677,9 @@ public:
         std::vector< sensor_msgs::PointField > point_fields;
         for( const auto& field_desc : field_descs ) { point_fields.push_back( field_desc.point_field ); }
 
-        msg.header.stamp = ::ros::Time::fromBoost( records[0].t );
+        boost::posix_time::ptime msg_start_time = records[0].t;
+
+        msg.header.stamp = ::ros::Time::fromBoost( msg_start_time );
         msg.header.seq = records[0].block;
         msg.header.frame_id = frame_id;
         msg.height = 1;
@@ -578,9 +695,30 @@ public:
             size_t field_offset = 0;
             for( const auto& field_desc : field_descs )
             {
-                std::memcpy( &msg.data[msg_data_offset] + field_offset
-                           , &record.data[0] + field_desc.input_offset
-                           , field_desc.size );
+                const char* input_address = &record.data[0] + field_desc.input_offset;
+                if( field_desc.input_type == comma::csv::format::types_enum::time )
+                {
+                    if( time_format == time_format_enum::offset_seconds ||
+                        time_format == time_format_enum::offset_nanoseconds )
+                    {
+                        char* field_address = reinterpret_cast< char*>( &msg.data[msg_data_offset] + field_offset );
+                        boost::posix_time::ptime point_time( comma::csv::format::traits< boost::posix_time::ptime, comma::csv::format::time >::from_bin( input_address ));
+                        boost::posix_time::time_duration time_offset = point_time - msg_start_time;
+                        if( time_format == time_format_enum::offset_seconds )
+                        {
+                            float time_offset_seconds = static_cast< float >( time_offset.total_microseconds() ) / 1000000.0;
+                            comma::csv::format::traits< float >::to_bin( time_offset_seconds, field_address );
+                        }
+                        else // time_format_enum::offset_nanoseconds )
+                        {
+                            comma::uint32 time_offset_nanoseconds = time_offset.total_microseconds() * 1000.0;
+                            comma::csv::format::traits< comma::uint32 >::to_bin( time_offset_nanoseconds, field_address );
+                        }
+                        field_offset += field_desc.size;
+                        continue;
+                    }
+                }
+                std::memcpy( &msg.data[msg_data_offset] + field_offset, input_address, field_desc.size );
                 field_offset += field_desc.size;
             }
             msg_data_offset += output_data_size;
@@ -595,7 +733,7 @@ private:
         catch( std::out_of_range& ex ) { return src_name; }
     }
 
-    static unsigned int map_data_type( comma::csv::format::types_enum t )
+    unsigned int map_data_type( comma::csv::format::types_enum t )
     {
         switch(t)
         {
@@ -609,10 +747,22 @@ private:
             case comma::csv::format::float_t:  return sensor_msgs::PointField::FLOAT32;
             case comma::csv::format::double_t: return sensor_msgs::PointField::FLOAT64;
             case comma::csv::format::int64:
-            case comma::csv::format::uint64:
+            case comma::csv::format::uint64:   comma::verbose << "warning: ROS PointCloud2 doesn't support data type '"
+                                                              << comma::csv::format::to_format( t )
+                                                              << "', using FLOAT64 instead" << std::endl;
+                                               return sensor_msgs::PointField::FLOAT64;
             case comma::csv::format::time:
-                comma::verbose << "warning: ROS PointCloud2 doesn't support data type '" << comma::csv::format::to_format(t) << "', using FLOAT64 instead" << std::endl;
-                return sensor_msgs::PointField::FLOAT64;
+                {
+                    switch( time_format )
+                    {
+                        case time_format_enum::none:               comma::verbose << "warning: ROS PointCloud2 doesn't support data type '"
+                                                                                  << comma::csv::format::to_format( t )
+                                                                                  << "', using FLOAT64 instead" << std::endl;
+                                                                   return sensor_msgs::PointField::FLOAT64;
+                        case time_format_enum::offset_seconds:     return sensor_msgs::PointField::FLOAT32;
+                        case time_format_enum::offset_nanoseconds: return sensor_msgs::PointField::UINT32;
+                    }
+                }
             default:
                 { COMMA_THROW( comma::exception, "data type not supported: " << comma::csv::format::to_format(t) ); }
         }
@@ -639,6 +789,7 @@ private:
     std::size_t output_data_size;
     std::string frame_id;
     std::unordered_map< std::string, std::string > field_name_map;
+    time_format_enum time_format;
 };
 
 } } // namespace snark { namespace ros {
@@ -650,9 +801,10 @@ public:
              , const comma::csv::format& format
              , const std::string& output_fields
              , const std::string& frame_id
-             , const std::string& field_name_mapping )
+             , const std::string& field_name_mapping
+             , snark::ros::time_format_enum time_format )
         : format( format )
-        , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id, field_name_mapping )
+        , point_cloud( csv.fields, format.expanded_string(), output_fields, frame_id, field_name_mapping, time_format )
         , data_size( format.size() )
         , ascii( !csv.binary() )
     {}
@@ -771,6 +923,7 @@ int main( int argc, char** argv )
             bool pass_through = options.exists( "--pass-through,--pass" );
             std::string output_option = options.value< std::string >( "--output,-o", "" );
             bool publishing = output_option.empty();
+            snark::ros::time_format_enum time_format = snark::ros::string_to_time_format( options.value< std::string >( "--time-format", "none" ));
 
             std::unique_ptr< ros::NodeHandle > ros_node;
             std::unique_ptr< ros::Publisher > publisher;
@@ -811,7 +964,7 @@ int main( int argc, char** argv )
             comma::csv::input_stream< record > is( std::cin, csv );
             comma::csv::passed< record > passed( is, std::cout, csv.flush );
             unsigned int block = 0;
-            to_points points( csv, format, output_fields, frame_id, field_name_mapping );
+            to_points points( csv, format, output_fields, frame_id, field_name_mapping, time_format );
 
             while( std::cin.good() )
             {
