@@ -91,11 +91,15 @@ function filter()
 # create ros bag
 # ----------------------------------------------------------
 
+keep_input=0
+
 function cleanup()
 {
-    for f in $_bag_file $_input_file; do
-        [[ -f $f ]] && rm $f;
-    done
+    if (( ! keep_input )); then
+        for f in $_bag_file $_input_file $_input_data; do
+            [[ -f $f ]] && rm $f;
+        done
+    fi
 }
 trap cleanup EXIT
 
