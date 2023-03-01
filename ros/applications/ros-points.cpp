@@ -600,22 +600,14 @@ private:
         switch(t)
         {
             case comma::csv::format::char_t:
-            case comma::csv::format::int8:
-                return sensor_msgs::PointField::INT8;
-            case comma::csv::format::uint8:
-                return sensor_msgs::PointField::UINT8;
-            case comma::csv::format::int16:
-                return sensor_msgs::PointField::INT16;
-            case comma::csv::format::uint16:
-                return sensor_msgs::PointField::UINT16;
-            case comma::csv::format::int32:
-                return sensor_msgs::PointField::INT32;
-            case comma::csv::format::uint32:
-                return sensor_msgs::PointField::UINT32;
-            case comma::csv::format::float_t:
-                return sensor_msgs::PointField::FLOAT32;
-            case comma::csv::format::double_t:
-                return sensor_msgs::PointField::FLOAT64;
+            case comma::csv::format::int8:     return sensor_msgs::PointField::INT8;
+            case comma::csv::format::uint8:    return sensor_msgs::PointField::UINT8;
+            case comma::csv::format::int16:    return sensor_msgs::PointField::INT16;
+            case comma::csv::format::uint16:   return sensor_msgs::PointField::UINT16;
+            case comma::csv::format::int32:    return sensor_msgs::PointField::INT32;
+            case comma::csv::format::uint32:   return sensor_msgs::PointField::UINT32;
+            case comma::csv::format::float_t:  return sensor_msgs::PointField::FLOAT32;
+            case comma::csv::format::double_t: return sensor_msgs::PointField::FLOAT64;
             case comma::csv::format::int64:
             case comma::csv::format::uint64:
             case comma::csv::format::time:
@@ -631,17 +623,13 @@ private:
         switch( datatype )
         {
             case sensor_msgs::PointField::INT8:
-            case sensor_msgs::PointField::UINT8:
-                return 1;
+            case sensor_msgs::PointField::UINT8:   return 1;
             case sensor_msgs::PointField::INT16:
-            case sensor_msgs::PointField::UINT16:
-                return 2;
+            case sensor_msgs::PointField::UINT16:  return 2;
             case sensor_msgs::PointField::INT32:
             case sensor_msgs::PointField::UINT32:
-            case sensor_msgs::PointField::FLOAT32:
-                return 4;
-            case sensor_msgs::PointField::FLOAT64:
-                return 8;
+            case sensor_msgs::PointField::FLOAT32: return 4;
+            case sensor_msgs::PointField::FLOAT64: return 8;
             default:
                 { COMMA_THROW( comma::exception, "unknown data type: " << datatype ); }
         }
