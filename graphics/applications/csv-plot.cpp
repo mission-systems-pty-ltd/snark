@@ -38,9 +38,14 @@ static void usage( bool verbose = false )
     std::cerr << "stream options" << std::endl;
     std::cerr << "    --input-fields; print possible input fields to stdout and exit" << std::endl;
     std::cerr << "    --input-fields-example; print input fields example to stdout and exit" << std::endl;
-    std::cerr << "    --fields: t,series,block where series is an array; also see --number-of-series" << std::endl;
+    std::cerr << "    --fields: t,series,block,size,number-of-series,block-by-size where series is an array; also see --number-of-series" << std::endl;
     std::cerr << "              x,y: aliases for series[0]/x and series[0]/y" << std::endl;
     std::cerr << "              series fields: x,y,z" << std::endl;
+    std::cerr << "              number-of-series: see --number-of-series" << std::endl;
+    std::cerr << "              size: see --size" << std::endl;
+    std::cerr << "              block-by-size: fixed-size blocks, no block field required" << std::endl;
+    std::cerr << "                             e.g: csv-plot '-;fields=x,y;size=256,block-by-size'" << std::endl;
+    std::cerr << "                                  also see histogram example below" << std::endl;
     std::cerr << "              default: x,y" << std::endl;
     std::cerr << "              if x is not present in series n, x will be same as in series 0" << std::endl;
     std::cerr << "              examples" << std::endl;
@@ -188,10 +193,9 @@ static void usage( bool verbose = false )
         std::cerr << "    display image histogram from the laptop camera" << std::endl;
         std::cerr << "        cv-cat --camera 'resize=640,480;view' \\" << std::endl;
         std::cerr << "            | cv-calc histogram --interleave --output no-header \\" << std::endl;
-        std::cerr << "            | csv-paste 'line-number;size=256;binary=ui' \\" << std::endl;
-        std::cerr << "                        'line-number;size=256;index;binary=ui' \\" << std::endl;
+        std::cerr << "            | csv-paste 'line-number;size=256;index;binary=ui' \\" << std::endl;
         std::cerr << "                        '-;binary=3ui' \\" << std::endl;
-        std::cerr << "            | csv-plot '-;fields=block,x,series[0]/y,series[1]/y,series[2]/y;binary=5ui;series[0]=color:blue|title:blue;series[1]=color:green|title:green;series[2]=color:red|title:red;chart=histogram' \\" << std::endl;
+        std::cerr << "            | csv-plot '-;fields=x,series[0]/y,series[1]/y,series[2]/y;binary=4ui;series[0]=color:blue|title:blue;series[1]=color:green|title:green;series[2]=color:red|title:red;chart=histogram;size=256;block-by-size' \\" << std::endl;
         std::cerr << "                       --chart='histogram;min/y=0;max/y=8000;axes/x/title=pixel value;axes/y/title=number of pixels'" << std::endl;
         std::cerr << std::endl;
     }

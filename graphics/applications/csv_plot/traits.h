@@ -86,6 +86,7 @@ template <> struct traits< snark::graphics::plotting::stream::config_t >
         v.apply( "pass-through", t.pass_through );
         v.apply( "size", t.size );
         v.apply( "number-of-series", t.number_of_series );
+        v.apply( "block-by-size", t.block_by_size );
         if( t.series.size() < t.number_of_series ) { t.series.resize( t.number_of_series ); } // quick and dirty
         v.apply( "series", t.series[0] );
         for( unsigned int i = 1; i < t.series.size(); ++i ) { t.series[i] = t.series[0]; } // todo: options per series

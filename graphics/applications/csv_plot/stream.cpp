@@ -33,7 +33,7 @@ stream::config_t::config_t( const comma::command_line_options& options )
     , number_of_series( options.value( "--number-of-series,-n", 1 ) )
 {
     csv.fields = fields_from_aliases_( csv.fields );
-    const auto& o = plotting::series::config( options );
+    const auto& o = plotting::series::config( options ); // todo! fix optional reuse of x in all series!
     series.resize( number_of_series );
     for( auto& s: series ) { s = o; }
 }
@@ -113,7 +113,8 @@ void stream::read_()
         if( !p ) { break; }
         if( passed_ ) { passed_->write(); }
         record q = *p;
-        if( !has_x_ ) { q.series[0].x = count_; }
+        if( !has_x_ ) { q.series[0].x = config.block_by_size ? count_ % config.size : count_; } // todo! fix optional reuse of x in all series!
+        if( config.block_by_size ) { q.block = count_ / config.size; }
         ++count_;
         comma::synchronized< records_t >::scoped_transaction( records )->push_back( q );
     }
