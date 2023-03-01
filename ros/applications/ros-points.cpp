@@ -421,18 +421,9 @@ template <> struct traits< header >
 } } // namespace comma { namespace visiting {
 
 /// process ros sensor_msgs::PointCloud2 message
-struct points
+class points
 {
-    std::vector< std::string > fields;
-    comma::csv::format format;
-    comma::csv::options csv;
-    bool output_fields;
-    bool output_format;
-    bool flush;
-    bool write_header;
-    bool discard;
-    bool ignore_time_format;
-
+public:
     points( const comma::command_line_options& options )
         : csv( options )
         , output_fields( options.exists( "--output-fields" ))
@@ -553,6 +544,16 @@ private:
             return true;
         }
     };
+
+    std::vector< std::string > fields;
+    comma::csv::format format;
+    comma::csv::options csv;
+    bool output_fields;
+    bool output_format;
+    bool flush;
+    bool write_header;
+    bool discard;
+    bool ignore_time_format;
 };
 
 // =========================
