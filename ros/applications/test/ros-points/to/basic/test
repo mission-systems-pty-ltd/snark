@@ -1,0 +1,43 @@
+#!/bin/bash
+
+scriptname=$( basename $0 )
+
+source $( type -p comma-application-util ) || { echo "$name: cannot source 'comma-application-util'" >&2; exit 1; }
+
+comma_path_value_to_var --prefix=input --export
+
+for distro in noetic melodic kinetic; do
+    setup_script=/opt/ros/$distro/setup.bash
+    [[ -f $setup_script ]] && source $setup_script && break
+done
+[[ -f $setup_script ]] || { echo "$scriptname: couldn't source ros setup.bash script" >&2; exit 1; }
+
+num_points=2000
+points_per_scan=1000
+bag_file=test_$$.bag
+topic=/points
+fields=t,id,x,y,z,block
+format=t,ui,3d,ui
+
+function cleanup() { rm $bag_file; }
+trap cleanup EXIT
+
+# assume ascii tests, but switch to binary if requested
+convert_to_binary=cat
+ros_points_format_option="--format $format"
+if [[ $input_type == "binary" ]]; then
+    convert_to_binary="csv-to-bin $format"
+    ros_points_format_option="--binary $format"
+fi
+
+csv-random make --type 3d | head -n $num_points | csv-paste line-number - \
+    | csv-blocks group --fields scalar --span $points_per_scan | csv-time-stamp \
+    | $convert_to_binary \
+    | ros-points --to $topic --fields $fields $ros_points_format_option --output $bag_file
+
+echo "rosbag/num_msgs=$( rosbag info $bag_file -y -k messages )"
+echo "rosbag/topic=$( rosbag info $bag_file -y -k topics | sed -n '/topic:/s/.* //p' )"
+echo "rosbag/msg_type=$( rosbag info $bag_file -y -k topics | sed -n '/type:/s/.* //p' )"
+
+ros_fields=$( rostopic echo --noarr -p --bag $bag_file $topic | sed -n '1s/^%//p' | sed 's!\.!/!g' )
+rostopic echo --noarr -p -b $bag_file $topic | sed 1d | name-value-from-csv $ros_fields --prefix rosbag/msg -n

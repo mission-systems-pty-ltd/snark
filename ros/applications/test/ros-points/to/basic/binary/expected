@@ -1,0 +1,5 @@
+rosbag/num_msgs=2
+rosbag/topic="/points"
+rosbag/msg_type="sensor_msgs/PointCloud2"
+rosbag/msg[0]/field/width="1000"
+rosbag/msg[1]/field/width="1000"
