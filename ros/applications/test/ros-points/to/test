@@ -28,7 +28,7 @@ input_vars+=" num_scans points_per_scan topic mode"
 input_vars+=" output_fields field_mapping"
 
 data_start_time="20200101T120000"
-verbose=0
+verbose=1
 
 # ----------------------------------------------------------
 # make pointcloud

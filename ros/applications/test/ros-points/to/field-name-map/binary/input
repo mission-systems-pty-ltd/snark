@@ -3,4 +3,3 @@ points_per_scan=5
 mode=binary
 output_fields=t,block,channel,range,bearing,elevation,signal,x,y,z
 field_mapping=channel:ring
-verbose=1
