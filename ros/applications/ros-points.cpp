@@ -441,23 +441,26 @@ public:
     {
         try
         {
+            std::string pointcloud_fields = snark::ros::point_cloud::msg_fields_names( input->fields, fields );
+            std::string pointcloud_format = snark::ros::point_cloud::msg_fields_format( input->fields, fields );
+
             if( output_fields )
             {
                 if( write_header ) { std::cout << comma::join( comma::csv::names< header >(), ',' ) << ","; }
-                std::cout << snark::ros::point_cloud::msg_fields_names( input->fields, fields ) << std::endl;
+                std::cout << pointcloud_fields << std::endl;
                 ros::shutdown();
                 return;
             }
             if( output_format )
             {
                 if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
-                std::cout << snark::ros::point_cloud::msg_fields_format( input->fields, fields ) << std::endl;
+                std::cout << pointcloud_format << std::endl;
                 ros::shutdown();
                 return;
             }
             if( format.count() == 0 )
             {
-                format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields, fields ));
+                format = comma::csv::format( pointcloud_format );
                 comma::verbose << "setting format to " << format.string() << std::endl;
             }
             unsigned int count = input->width * input->height;
@@ -465,8 +468,20 @@ public:
             ::header header( input->header.stamp, input->header.seq );
 
             std::unique_ptr< snark::ros::point_cloud::bin_base > bin;
-            if( csv.fields.empty() ) { bin.reset( new snark::ros::point_cloud::bin_cat( record_size )); }
-            else { bin.reset( new snark::ros::point_cloud::bin_shuffle( csv.fields, input->fields, input->header.stamp, ignore_time_format )); }
+            // if we haven't selected a subset fields or re-arranged the fields;
+            // and there are no time fields which might need intepretation:
+            // we can do a straight copy from ros data to output
+            // in practice this will rarely be the case
+            bool has_time_field = comma::csv::fields_exist( pointcloud_fields, "t" ) || comma::csv::fields_exist( pointcloud_fields, "time" );
+            if( csv.fields.empty() && !has_time_field )
+            {
+                bin.reset( new snark::ros::point_cloud::bin_cat( record_size ));
+            }
+            else
+            {
+                bin.reset( new snark::ros::point_cloud::bin_shuffle( csv.fields.empty() ? pointcloud_fields : csv.fields
+                                                                   , input->fields, input->header.stamp, ignore_time_format ));
+            }
 
             bin_writer writer;
 
