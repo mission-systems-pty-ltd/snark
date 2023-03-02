@@ -165,6 +165,7 @@ public:
         }
         return rmap_data_type;
     }
+
     static std::size_t size_of_type( comma::csv::format::types_enum t )
     {
         switch( t )
@@ -329,12 +330,12 @@ public:
 //                 elements.push_back(range_t(msg_fields[i].offset, msg_fields[i].count * comma::csv::format::size_of(type)));
                 elements.push_back( range_t( msg_fields[i].offset, msg_fields[i].count * point_cloud::size_of_type( type )));
             }
-            for( const auto& f : fields )
+            for( const std::string& field_name : fields )
             {
                 unsigned int index;
-                try { index = msg_field_name_map.at( f ); }
-                catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << f << " in msg_field_name_map" ); }
-                bool is_time_field = ( f == "t" || f == "time" );
+                try { index = msg_field_name_map.at( field_name ); }
+                catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << field_name << " in msg_field_name_map" ); }
+                bool is_time_field = ( field_name == "t" || field_name == "time" );
                 field_descs.push_back( field_desc_t( elements[index], msg_fields[index].datatype, is_time_field ));
                 if( is_time_field && !ignore_time_format ) { size += sizeof( boost::posix_time::ptime ); }
                 else { size += elements[index].second; }
