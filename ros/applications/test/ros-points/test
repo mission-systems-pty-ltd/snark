@@ -214,10 +214,16 @@ if (( verbose )); then
     verbose_option="--verbose"
 fi
 
+echo "test/output_fields=\"$ros_output_fields\""
+echo "test/output_format=\"$ros_output_format\""
+
 # look at the raw data inside the ros bag
 ros-points --from $topic --bags $bag_file --fields $ros_fields --ignore-time-format $verbose_option \
     | csv-from-bin $ros_format \
     | name-value-from-csv $ros_fields --prefix rosbag/pointfield --line-number --unquote-numbers
+
+echo "ros_points/options/output_fields=$( ros-points --from $topic --bags $bag_file --output-fields )"
+echo "ros_points/options/output_format=$( ros-points --from $topic --bags $bag_file --output-format )"
 
 # look at the interpreted data - only the time field might change
 ros-points --from $topic --bags $bag_file $output_fields_option $verbose_option $time_format_option \
