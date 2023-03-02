@@ -141,13 +141,10 @@ void usage( bool verbose = false )
 
 static bool status = 0; // quick and dirty
 
-namespace snark { namespace ros {
-
 /// utility functions for ros sensor_msgs::PointCloud2
-struct point_cloud
+namespace snark { namespace ros { namespace point_cloud
 {
-public:
-    static const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
+    const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
     {
         static std::vector< comma::csv::format::types_enum > rmap_data_type;
 
@@ -166,7 +163,7 @@ public:
         return rmap_data_type;
     }
 
-    static std::size_t size_of_type( comma::csv::format::types_enum t )
+    std::size_t size_of_type( comma::csv::format::types_enum t )
     {
         switch( t )
         {
@@ -188,7 +185,7 @@ public:
         }
     }
 
-    static std::vector< comma::csv::format::types_enum > padding_types( std::size_t num_bytes )
+    std::vector< comma::csv::format::types_enum > padding_types( std::size_t num_bytes )
     {
         std::vector< comma::csv::format::types_enum > result;
         std::vector< comma::csv::format::types_enum > candidates = {
@@ -209,8 +206,8 @@ public:
     }
 
     /// returns list of field names from the message
-    static std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                                       , const std::vector< std::string >& field_filter = std::vector< std::string >() )
+    std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                , const std::vector< std::string >& field_filter = std::vector< std::string >() )
     {
         if( !field_filter.empty() ) { return comma::join( field_filter, ',' ); }
 
@@ -239,9 +236,9 @@ public:
     }
 
     /// returns csv format from the message, optionally filtered by field name
-    static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                                        , const std::vector< std::string >& field_filter = std::vector< std::string >()
-                                        , bool unmap_time_fields = false )
+    std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                 , const std::vector< std::string >& field_filter = std::vector< std::string >()
+                                 , bool unmap_time_fields = false )
     {
         std::string s;
         std::string delimiter;
@@ -396,9 +393,7 @@ public:
         boost::posix_time::ptime header_time_stamp;
         bool ignore_time_format;
     };
-};
-
-} } // namespace snark { namespace ros {
+} } } //  namespace point_cloud { namespace snark { namespace ros {
 
 struct header
 {
