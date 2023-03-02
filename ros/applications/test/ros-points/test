@@ -96,7 +96,7 @@ keep_input=0
 function cleanup()
 {
     if (( ! keep_input )); then
-        for f in $_bag_file $_input_file $_input_data; do
+        for f in $_bag_file $_input_file; do
             [[ -f $f ]] && rm $f;
         done
     fi
