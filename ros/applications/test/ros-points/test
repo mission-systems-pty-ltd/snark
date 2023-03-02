@@ -174,9 +174,26 @@ function extract()
     [[ $2 ]] && tr , '\n' <<< $2 | cut -f$1 -d: | paste -s -d, || echo "---empty---"
 }
 
-output_format=$( echo $format | csv-format expand | csv-shuffle --fields $fields --output $output_fields | csv-format collapse )
-ros_output_fields=$( echo $output_fields | csv-fields rename --fields $( extract 1 $field_mapping ) --to $( extract 2 $field_mapping ) )
-ros_format=$output_format
+function fields_to_ros_fields()
+{
+    local fields=$1
+    local field_mapping=$2
+    csv-fields rename --fields $( extract 1 $field_mapping ) --to $( extract 2 $field_mapping ) <<< $fields
+}
+
+# fields and format of the pointcloud as stored in the ROS bag
+ros_fields=$( fields_to_ros_fields $fields $field_mapping )
+ros_format=$format
+
+# fields and format of the pointcloud as output by ros-points
+ros_output_fields=$ros_fields
+ros_output_format=$ros_format
+output_fields_option=
+if [[ $output_fields ]]; then
+    ros_output_fields=$( fields_to_ros_fields $output_fields $field_mapping )
+    ros_output_format=$( echo $format | csv-format expand | csv-shuffle --fields $fields --output $output_fields | csv-format collapse )
+    output_fields_option="--fields $ros_output_fields"
+fi
 
 # we can't usefully use rostopic (or any other native ros application) to look inside the individual messages
 # since they just present it as a big data field, so we use ros-points --from to extract meaningful data
@@ -193,16 +210,16 @@ verbose_option=
 if (( verbose )); then
     echo "ros fields: $ros_output_fields" >&2
     echo "ros format: $ros_format" >&2
-    echo "bin format: $output_format" >&2
+    echo "bin format: $ros_output_format" >&2
     verbose_option="--verbose"
 fi
 
 # look at the raw data inside the ros bag
-ros-points --from $topic --bags $bag_file --fields $ros_output_fields --ignore-time-format $verbose_option \
+ros-points --from $topic --bags $bag_file --fields $ros_fields --ignore-time-format $verbose_option \
     | csv-from-bin $ros_format \
-    | name-value-from-csv $ros_output_fields --prefix rosbag/pointfield --line-number --unquote-numbers
+    | name-value-from-csv $ros_fields --prefix rosbag/pointfield --line-number --unquote-numbers
 
 # look at the interpreted data - only the time field might change
-ros-points --from $topic --bags $bag_file --fields $ros_output_fields $verbose_option $time_format_option \
-    | csv-from-bin $output_format \
+ros-points --from $topic --bags $bag_file $output_fields_option $verbose_option $time_format_option \
+    | csv-from-bin $ros_output_format \
     | name-value-from-csv $ros_output_fields --prefix ros_points/output --line-number --unquote-numbers
