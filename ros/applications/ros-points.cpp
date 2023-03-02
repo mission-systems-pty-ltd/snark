@@ -240,7 +240,8 @@ public:
 
     /// returns csv format from the message, optionally filtered by field name
     static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                                        , const std::vector< std::string >& field_filter = std::vector< std::string >() )
+                                        , const std::vector< std::string >& field_filter = std::vector< std::string >()
+                                        , bool unmap_time_fields = false )
     {
         std::string s;
         std::string delimiter;
@@ -250,6 +251,7 @@ public:
         for( const auto& f : msg_fields )
         {
             comma::csv::format::types_enum type = rmap.at( f.datatype );
+            if( unmap_time_fields && ( f.name == "t" || f.name == "time" )) { type = comma::csv::format::time; }
             if( field_filter.empty() )
             {
                 if( f.offset > expected_offset )
@@ -444,6 +446,7 @@ public:
         {
             std::string pointcloud_fields = snark::ros::point_cloud::msg_fields_names( input->fields, fields );
             std::string pointcloud_format = snark::ros::point_cloud::msg_fields_format( input->fields, fields );
+            std::string output_format_str = snark::ros::point_cloud::msg_fields_format( input->fields, fields, true );
 
             if( output_fields )
             {
@@ -455,7 +458,8 @@ public:
             if( output_format )
             {
                 if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
-                std::cout << pointcloud_format << std::endl;
+                // output as collapsed string, to match expectations
+                std::cout << comma::csv::format( output_format_str ).collapsed_string() << std::endl;
                 ros::shutdown();
                 return;
             }
