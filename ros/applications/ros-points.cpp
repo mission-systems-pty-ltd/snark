@@ -653,7 +653,7 @@ public:
 
         if( !field_name_mappings.empty() )
         {
-            std::vector< std::string > field_name_mapping_pairs = comma::split( field_name_mappings, '.' );
+            std::vector< std::string > field_name_mapping_pairs = comma::split( field_name_mappings, ',' );
             for( const auto& field_name_mapping_pair : field_name_mapping_pairs )
             {
                 std::vector< std::string > field_name_pair = comma::split( field_name_mapping_pair, ':' );
