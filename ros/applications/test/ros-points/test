@@ -139,7 +139,7 @@ function ros_bag()
 }
 
 # ----------------------------------------------------------
-# load input and run test
+# load input and create bag file
 # ----------------------------------------------------------
 
 # ----- configurable -----
