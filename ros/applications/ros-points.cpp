@@ -146,11 +146,11 @@ namespace snark { namespace ros {
 /// utility functions for ros sensor_msgs::PointCloud2
 struct point_cloud
 {
-private:
-    static std::vector< comma::csv::format::types_enum > rmap_data_type;
 public:
     static const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
     {
+        static std::vector< comma::csv::format::types_enum > rmap_data_type;
+
         if( rmap_data_type.size() == 0 )
         {
             rmap_data_type.resize( 9 );
@@ -397,8 +397,6 @@ public:
         bool ignore_time_format;
     };
 };
-
-std::vector< comma::csv::format::types_enum > point_cloud::rmap_data_type;
 
 } } // namespace snark { namespace ros {
 
