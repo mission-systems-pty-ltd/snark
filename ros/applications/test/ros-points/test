@@ -202,11 +202,11 @@ if (( verbose )); then
 fi
 
 # look at the raw data inside the ros bag
-ros-points --from $topic --bags $bag_file --fields $ros_output_fields --binary $ros_format --ignore-time-format $verbose_option \
+ros-points --from $topic --bags $bag_file --fields $ros_output_fields --ignore-time-format $verbose_option \
     | csv-from-bin $ros_format \
     | name-value-from-csv $ros_output_fields --prefix rosbag/pointfield --line-number --unquote-numbers
 
 # look at the interpreted data - only the time field might change
-ros-points --from $topic --bags $bag_file --fields $ros_output_fields --binary $output_format $verbose_option $time_format_option \
+ros-points --from $topic --bags $bag_file --fields $ros_output_fields $verbose_option $time_format_option \
     | csv-from-bin $output_format \
     | name-value-from-csv $ros_output_fields --prefix ros_points/output --line-number --unquote-numbers
