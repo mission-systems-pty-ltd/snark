@@ -101,9 +101,7 @@ function filter()
 function cleanup()
 {
     if (( ! keep_input )); then
-        for f in $bag_file $input_file; do
-            [[ -f $f ]] && rm $f;
-        done
+        [[ -f $bag_file ]] && rm $bag_file;
     fi
 }
 trap cleanup EXIT
@@ -148,10 +146,8 @@ function ros_bag()
 output_fields=$fields
 # ----- configurable -----
 
-input_file=test_$$.input
+source <( cat )                 # load input
 
-grep -v "^#" | grep -v "^ *$" > $input_file
-comma_path_value_to_var < $input_file        # load settings from input file
 for v in $input_vars; do
     echo "input/$v=${!v}"
 done | csv-quote --fields ,x -d =
