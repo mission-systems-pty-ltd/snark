@@ -6,7 +6,7 @@
 #   * point timestamps are offsets from header timestamp, rather than absolute
 
 # input files in sub-directories can define their tests by setting the
-# parameters included below
+# parameters included below. Configurable parameters are so marked.
 #
 # e.g. change the number of channels by setting
 # channel=64
@@ -28,13 +28,17 @@ input_vars+=" num_scans points_per_scan topic mode"
 input_vars+=" output_fields field_mapping"
 
 data_start_time="20200101T120000"
+
+# ----- configurable -----
 verbose=1
+keep_input=0
+# ----- configurable -----
 
 # ----------------------------------------------------------
 # make pointcloud
 # ----------------------------------------------------------
 
-# lidar config
+# ----- configurable -----
 horiz_res=512                   # sample points per revolution
 channels=32                     # vertical channels
 rotation_rate=10                # rotations per second
@@ -46,8 +50,9 @@ signal_max=255
 hit_prob=0.5                    # probably of a return for any given point in space
 fields=t,measurement_id,block,channel,range,bearing,elevation,signal,x,y,z
 format=t,uw,ui,uw,d,d,d,uw,d,d,d
+# ----- configurable -----
 
-# test config
+# e.g. input file
 # horiz_res=4                     # sample points per revolution
 # channels=2                      # vertical channels
 # rotation_rate=2                 # rotations per second
@@ -76,8 +81,10 @@ function pointcloud()
 # filter pointcloud to a smaller selection of points
 # ----------------------------------------------------------
 
+# ----- configurable -----
 num_scans=5
 points_per_scan=100
+# ----- configurable -----
 
 function filter()
 {
@@ -91,23 +98,24 @@ function filter()
 # create ros bag
 # ----------------------------------------------------------
 
-keep_input=0
-
 function cleanup()
 {
     if (( ! keep_input )); then
-        for f in $_bag_file $_input_file; do
+        for f in $bag_file $input_file; do
             [[ -f $f ]] && rm $f;
         done
     fi
 }
 trap cleanup EXIT
 
-_bag_file=test_$$.bag
+bag_file=test_$$.bag
+
+# ----- configurable -----
 topic=/points
 field_mapping=
 time_format=
 mode=binary
+# ----- configurable -----
 
 # data always enters as ascii but we can process it in ros-points as ascii or binary
 function ros_bag()
@@ -128,20 +136,22 @@ function ros_bag()
     (( verbose )) && options+=" --verbose"
 
     # use the --pass option to also record the input data
-    $input_filter | ros-points --to $topic --fields $fields $options --output $_bag_file --pass \
+    $input_filter | ros-points --to $topic --fields $fields $options --output $bag_file --pass \
         | $output_filter | name-value-from-csv $fields --prefix input/point --line-number --unquote-numbers
 }
 
 # ----------------------------------------------------------
-# run test
+# load input and run test
 # ----------------------------------------------------------
 
+# ----- configurable -----
 output_fields=$fields
+# ----- configurable -----
 
-_input_file=test_$$.input
+input_file=test_$$.input
 
-grep -v "^#" | grep -v "^ *$" > $_input_file
-comma_path_value_to_var < $_input_file        # load settings from input file
+grep -v "^#" | grep -v "^ *$" > $input_file
+comma_path_value_to_var < $input_file        # load settings from input file
 for v in $input_vars; do
     echo "input/$v=${!v}"
 done | csv-quote --fields ,x -d =
@@ -152,14 +162,14 @@ pointcloud | filter | ros_bag
 # analyse bag
 # ----------------------------------------------------------
 
-echo "rosbag/num_msgs=$( rosbag info $_bag_file -y -k messages )"
-echo "rosbag/topic=$( rosbag info $_bag_file -y -k topics | sed -n '/topic:/s/.* //p' )"
-echo "rosbag/msg_type=$( rosbag info $_bag_file -y -k topics | sed -n '/type:/s/.* //p' )"
+echo "rosbag/num_msgs=$( rosbag info $bag_file -y -k messages )"
+echo "rosbag/topic=$( rosbag info $bag_file -y -k topics | sed -n '/topic:/s/.* //p' )"
+echo "rosbag/msg_type=$( rosbag info $bag_file -y -k topics | sed -n '/type:/s/.* //p' )"
 
 # this is just the fields that describe the message, which isn't very interesting
 # all the interesting stuff is in the big data field that follows
-ros_fields=$( rostopic echo --noarr -p --bag $_bag_file $topic | sed -n '1s/^%//p' | sed 's!\.!/!g' )
-rostopic echo --noarr -p -b $_bag_file $topic | sed 1d | name-value-from-csv $ros_fields --prefix rosbag/msg --line-nunber
+ros_msg_fields=$( rostopic echo --noarr -p --bag $bag_file $topic | sed -n '1s/^%//p' | sed 's!\.!/!g' )
+rostopic echo --noarr -p -b $bag_file $topic | sed 1d | name-value-from-csv $ros_msg_fields --prefix rosbag/msg --line-nunber
 
 # map a:b,c:d,... to a,c,... b,d,...
 # extract <pos> <field-map>
@@ -192,11 +202,11 @@ if (( verbose )); then
 fi
 
 # look at the raw data inside the ros bag
-ros-points --from $topic --bags $_bag_file --fields $ros_output_fields --binary $ros_format --ignore-time-format $verbose_option \
+ros-points --from $topic --bags $bag_file --fields $ros_output_fields --binary $ros_format --ignore-time-format $verbose_option \
     | csv-from-bin $ros_format \
     | name-value-from-csv $ros_output_fields --prefix rosbag/pointfield --line-number --unquote-numbers
 
 # look at the interpreted data - only the time field might change
-ros-points --from $topic --bags $_bag_file --fields $ros_output_fields --binary $output_format $verbose_option $time_format_option \
+ros-points --from $topic --bags $bag_file --fields $ros_output_fields --binary $output_format $verbose_option $time_format_option \
     | csv-from-bin $output_format \
     | name-value-from-csv $ros_output_fields --prefix ros_points/output --line-number --unquote-numbers
