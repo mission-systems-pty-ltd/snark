@@ -275,23 +275,41 @@ std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg
     return s;
 }
 
-struct bin_base
+// Interface class for accessing the pointcloud data. Allowing configuration and
+// then interrogation of the ROS bag pointcloud data and returning data as per
+// the configuration. Provides:
+//
+//     constructor - configures the class for required transformation
+//     get( ptr to ros bag record ) - return transformed data from the given record
+//     size() - size of an output record
+//
+// Transformations can be anything but typically are:
+//     selection of a subset of fields
+//     re-ordering of fields
+//     some processing of data (e.g. converting time offsets to absolute time)
+class bin_base
 {
+public:
     virtual ~bin_base() {}
     virtual const char* get( const char* data ) = 0;
     virtual std::size_t size() const = 0;
 };
 
-struct bin_cat : public bin_base
+// Direct copy of ros bag data to output
+class bin_cat : public bin_base
 {
-    uint32_t size_;
+public:
     bin_cat( uint32_t s = 0 ) : size_( s ) { }
     const char* get( const char* data ){ return data; }
     std::size_t size() const { return size_; }
+
+private:
+    uint32_t size_;
 };
 
-/// copy specified fields from a point record, given msg point field info and a list of field names
-struct bin_shuffle : public bin_base
+// copy specified fields from a point record, given msg point field info and a list of field names
+// also handle different time formats
+class bin_shuffle : public bin_base
 {
     //first: offset, second: size
     typedef typename std::pair< std::size_t, std::size_t > range_t;
@@ -307,6 +325,7 @@ struct bin_shuffle : public bin_base
             : range( range ), datatype( datatype ), is_time_field( is_time_field ) {}
     };
 
+public:
     /// prepare
     bin_shuffle( const std::string& field_names
                , const sensor_msgs::PointCloud2::_fields_type& msg_fields
