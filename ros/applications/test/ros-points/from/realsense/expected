@@ -5,11 +5,11 @@ output_fields[1]/status=0
 output_fields[2]/output="x,y"
 output_fields[2]/status=0
 
-output_format[0]/output="f,f,f,ui"
+output_format[0]/output="3f,ui"
 output_format[0]/status=0
-output_format[1]/output="t,ui,f,f,f,ui"
+output_format[1]/output="t,ui,3f,ui"
 output_format[1]/status=0
-output_format[2]/output="f,f"
+output_format[2]/output="2f"
 output_format[2]/status=0
 
 basic[0]/output/line[0]="0.199391,-0.24161,0.762,12562859"
