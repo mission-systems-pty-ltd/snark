@@ -236,12 +236,11 @@ std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_
 }
 
 /// returns csv format from the message, optionally filtered by field name
-std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                             , const std::vector< std::string >& field_filter = std::vector< std::string >()
-                             , bool unmap_time_fields = false )
+comma::csv::format msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                    , const std::vector< std::string >& field_filter = std::vector< std::string >()
+                                    , bool unmap_time_fields = false )
 {
-    std::string s;
-    std::string delimiter;
+    comma::csv::format format;
     std::size_t expected_offset = 0;
     bool add_field;
     const auto& rmap = get_rmap_data_type();
@@ -255,7 +254,7 @@ std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg
             {
                 for( auto t: padding_types( f.offset - expected_offset ))
                 {
-                    s += delimiter + comma::csv::format::to_format( t );
+                    format += comma::csv::format::to_format( t );
                 }
             }
             expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
@@ -267,12 +266,10 @@ std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg
         }
         if( add_field )
         {
-            s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
-                + comma::csv::format::to_format( type );
-            if( delimiter.empty() ) { delimiter = ","; }
+            for( unsigned int i = 0; i < f.count; i++ ) { format += comma::csv::format::to_format( type ); }
         }
     }
-    return s;
+    return format;
 }
 
 // Interface class for accessing the pointcloud data. Allowing configuration and
@@ -441,8 +438,8 @@ class points
 public:
     points( const comma::command_line_options& options )
         : csv( options )
-        , output_fields( options.exists( "--output-fields" ))
-        , output_format( options.exists( "--output-format" ))
+        , output_fields_option( options.exists( "--output-fields" ))
+        , output_format_option( options.exists( "--output-format" ))
         , flush( options.exists( "--flush" ))
         , write_header( options.exists( "--header,--output-header" ))
         , discard( !options.exists( "--no-discard" ))
@@ -457,27 +454,27 @@ public:
         try
         {
             std::string pointcloud_fields = snark::ros::pointcloud::msg_fields_names( input->fields, fields );
-            std::string pointcloud_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields );
-            std::string output_format_str = snark::ros::pointcloud::msg_fields_format( input->fields, fields, true );
+            comma::csv::format pointcloud_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields );
+            comma::csv::format output_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields, true );
 
-            if( output_fields )
+            if( output_fields_option )
             {
                 if( write_header ) { std::cout << comma::join( comma::csv::names< header >(), ',' ) << ","; }
                 std::cout << pointcloud_fields << std::endl;
                 ros::shutdown();
                 return;
             }
-            if( output_format )
+            if( output_format_option )
             {
                 if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
                 // output as collapsed string, to match expectations
-                std::cout << comma::csv::format( output_format_str ).collapsed_string() << std::endl;
+                std::cout << output_format.collapsed_string() << std::endl;
                 ros::shutdown();
                 return;
             }
             if( format.count() == 0 )
             {
-                format = comma::csv::format( pointcloud_format );
+                format = pointcloud_format;
                 comma::verbose << "setting format to " << format.string() << std::endl;
             }
             unsigned int count = input->width * input->height;
@@ -580,8 +577,8 @@ private:
     std::vector< std::string > fields;
     comma::csv::format format;
     comma::csv::options csv;
-    bool output_fields;
-    bool output_format;
+    bool output_fields_option;
+    bool output_format_option;
     bool flush;
     bool write_header;
     bool discard;
