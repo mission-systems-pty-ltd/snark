@@ -142,257 +142,258 @@ void usage( bool verbose = false )
 static bool status = 0; // quick and dirty
 
 /// utility functions for ros sensor_msgs::PointCloud2
-namespace snark { namespace ros { namespace point_cloud
+namespace snark { namespace ros { namespace point_cloud {
+
+const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
 {
-    const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
-    {
-        static std::vector< comma::csv::format::types_enum > rmap_data_type;
+    static std::vector< comma::csv::format::types_enum > rmap_data_type;
 
-        if( rmap_data_type.size() == 0 )
-        {
-            rmap_data_type.resize( 9 );
-            rmap_data_type.at( sensor_msgs::PointField::INT8 ) = comma::csv::format::char_t;
-            rmap_data_type.at( sensor_msgs::PointField::UINT8 ) = comma::csv::format::uint8;
-            rmap_data_type.at( sensor_msgs::PointField::INT16 ) = comma::csv::format::int16;
-            rmap_data_type.at( sensor_msgs::PointField::UINT16 ) = comma::csv::format::uint16;
-            rmap_data_type.at( sensor_msgs::PointField::INT32 ) = comma::csv::format::int32;
-            rmap_data_type.at( sensor_msgs::PointField::UINT32 ) = comma::csv::format::uint32;
-            rmap_data_type.at( sensor_msgs::PointField::FLOAT32 ) = comma::csv::format::float_t;
-            rmap_data_type.at( sensor_msgs::PointField::FLOAT64 ) = comma::csv::format::double_t;
-        }
-        return rmap_data_type;
+    if( rmap_data_type.size() == 0 )
+    {
+        rmap_data_type.resize( 9 );
+        rmap_data_type.at( sensor_msgs::PointField::INT8 ) = comma::csv::format::char_t;
+        rmap_data_type.at( sensor_msgs::PointField::UINT8 ) = comma::csv::format::uint8;
+        rmap_data_type.at( sensor_msgs::PointField::INT16 ) = comma::csv::format::int16;
+        rmap_data_type.at( sensor_msgs::PointField::UINT16 ) = comma::csv::format::uint16;
+        rmap_data_type.at( sensor_msgs::PointField::INT32 ) = comma::csv::format::int32;
+        rmap_data_type.at( sensor_msgs::PointField::UINT32 ) = comma::csv::format::uint32;
+        rmap_data_type.at( sensor_msgs::PointField::FLOAT32 ) = comma::csv::format::float_t;
+        rmap_data_type.at( sensor_msgs::PointField::FLOAT64 ) = comma::csv::format::double_t;
     }
+    return rmap_data_type;
+}
 
-    std::size_t size_of_type( comma::csv::format::types_enum t )
+std::size_t size_of_type( comma::csv::format::types_enum t )
+{
+    switch( t )
     {
-        switch( t )
+        case comma::csv::format::char_t: return sizeof( char );
+        case comma::csv::format::int8: return sizeof( char );
+        case comma::csv::format::uint8: return sizeof( unsigned char );
+        case comma::csv::format::int16: return sizeof( int16_t );
+        case comma::csv::format::uint16: return sizeof( uint16_t );
+        case comma::csv::format::int32: return sizeof( int32_t );
+        case comma::csv::format::uint32: return sizeof( uint32_t );
+        case comma::csv::format::int64: return sizeof( int64_t );
+        case comma::csv::format::uint64: return sizeof( uint64_t );
+        case comma::csv::format::float_t: return sizeof( float );
+        case comma::csv::format::double_t: return sizeof( double );
+        case comma::csv::format::time: return sizeof( int64_t );
+        case comma::csv::format::long_time: return sizeof( int64_t ) + sizeof( int32_t );
+        case comma::csv::format::fixed_string: return 0; // will it blast somewhere?
+        default: { COMMA_THROW( comma::exception, "invalid type " << unsigned( t )); }
+    }
+}
+
+std::vector< comma::csv::format::types_enum > padding_types( std::size_t num_bytes )
+{
+    std::vector< comma::csv::format::types_enum > result;
+    std::vector< comma::csv::format::types_enum > candidates = {
+        comma::csv::format::uint64,
+        comma::csv::format::uint32,
+        comma::csv::format::uint16,
+        comma::csv::format::uint8
+    };
+    for( auto candidate: candidates )
+    {
+        while( num_bytes >= comma::csv::format::size_of( candidate ))
         {
-            case comma::csv::format::char_t: return sizeof( char );
-            case comma::csv::format::int8: return sizeof( char );
-            case comma::csv::format::uint8: return sizeof( unsigned char );
-            case comma::csv::format::int16: return sizeof( int16_t );
-            case comma::csv::format::uint16: return sizeof( uint16_t );
-            case comma::csv::format::int32: return sizeof( int32_t );
-            case comma::csv::format::uint32: return sizeof( uint32_t );
-            case comma::csv::format::int64: return sizeof( int64_t );
-            case comma::csv::format::uint64: return sizeof( uint64_t );
-            case comma::csv::format::float_t: return sizeof( float );
-            case comma::csv::format::double_t: return sizeof( double );
-            case comma::csv::format::time: return sizeof( int64_t );
-            case comma::csv::format::long_time: return sizeof( int64_t ) + sizeof( int32_t );
-            case comma::csv::format::fixed_string: return 0; // will it blast somewhere?
-            default: { COMMA_THROW( comma::exception, "invalid type " << unsigned( t )); }
+            result.push_back( candidate );
+            num_bytes -= comma::csv::format::size_of( candidate );
         }
     }
+    return result;
+}
 
-    std::vector< comma::csv::format::types_enum > padding_types( std::size_t num_bytes )
+/// returns list of field names from the message
+std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                            , const std::vector< std::string >& field_filter = std::vector< std::string >() )
+{
+    if( !field_filter.empty() ) { return comma::join( field_filter, ',' ); }
+
+    std::string s;
+    std::string delimiter;
+    std::size_t expected_offset = 0;
+    static unsigned int padding_field_count = 0;
+    const auto& rmap = get_rmap_data_type();
+    for( const auto& f : msg_fields )
     {
-        std::vector< comma::csv::format::types_enum > result;
-        std::vector< comma::csv::format::types_enum > candidates = {
-            comma::csv::format::uint64,
-            comma::csv::format::uint32,
-            comma::csv::format::uint16,
-            comma::csv::format::uint8
-        };
-        for( auto candidate: candidates )
+        comma::csv::format::types_enum type = rmap.at( f.datatype );
+        if( f.offset > expected_offset )
         {
-            while( num_bytes >= comma::csv::format::size_of( candidate ))
+            for( unsigned int i = 0; i < padding_types( f.offset - expected_offset ).size(); ++i )
             {
-                result.push_back( candidate );
-                num_bytes -= comma::csv::format::size_of( candidate );
+                s += delimiter + "padding";
+                if( padding_field_count > 0 ) { s += boost::lexical_cast< std::string >( padding_field_count ); }
+                padding_field_count++;
             }
         }
-        return result;
+        s += delimiter + f.name;
+        expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
+        if( delimiter.empty() ) { delimiter = ","; }
     }
+    return s;
+}
 
-    /// returns list of field names from the message
-    std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                                , const std::vector< std::string >& field_filter = std::vector< std::string >() )
+/// returns csv format from the message, optionally filtered by field name
+std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                             , const std::vector< std::string >& field_filter = std::vector< std::string >()
+                             , bool unmap_time_fields = false )
+{
+    std::string s;
+    std::string delimiter;
+    std::size_t expected_offset = 0;
+    bool add_field;
+    const auto& rmap = get_rmap_data_type();
+    for( const auto& f : msg_fields )
     {
-        if( !field_filter.empty() ) { return comma::join( field_filter, ',' ); }
-
-        std::string s;
-        std::string delimiter;
-        std::size_t expected_offset = 0;
-        static unsigned int padding_field_count = 0;
-        const auto& rmap = get_rmap_data_type();
-        for( const auto& f : msg_fields )
+        comma::csv::format::types_enum type = rmap.at( f.datatype );
+        if( unmap_time_fields && ( f.name == "t" || f.name == "time" )) { type = comma::csv::format::time; }
+        if( field_filter.empty() )
         {
-            comma::csv::format::types_enum type = rmap.at( f.datatype );
             if( f.offset > expected_offset )
             {
-                for( unsigned int i = 0; i < padding_types( f.offset - expected_offset ).size(); ++i )
+                for( auto t: padding_types( f.offset - expected_offset ))
                 {
-                    s += delimiter + "padding";
-                    if( padding_field_count > 0 ) { s += boost::lexical_cast< std::string >( padding_field_count ); }
-                    padding_field_count++;
+                    s += delimiter + comma::csv::format::to_format( t );
                 }
             }
-            s += delimiter + f.name;
             expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
+            add_field = true;
+        }
+        else
+        {
+            add_field = ( std::find( field_filter.begin(), field_filter.end(), f.name ) != field_filter.end() );
+        }
+        if( add_field )
+        {
+            s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
+                + comma::csv::format::to_format( type );
             if( delimiter.empty() ) { delimiter = ","; }
         }
-        return s;
     }
+    return s;
+}
 
-    /// returns csv format from the message, optionally filtered by field name
-    std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                                 , const std::vector< std::string >& field_filter = std::vector< std::string >()
-                                 , bool unmap_time_fields = false )
+struct bin_base
+{
+    virtual ~bin_base() {}
+    virtual const char* get( const char* data ) = 0;
+    virtual std::size_t size() const = 0;
+};
+
+struct bin_cat : public bin_base
+{
+    uint32_t size_;
+    bin_cat( uint32_t s = 0 ) : size_( s ) { }
+    const char* get( const char* data ){ return data; }
+    std::size_t size() const { return size_; }
+};
+
+/// copy specified fields from a point record, given msg point field info and a list of field names
+struct bin_shuffle : public bin_base
+{
+    //first: offset, second: size
+    typedef typename std::pair< std::size_t, std::size_t > range_t;
+
+    struct field_desc_t
     {
-        std::string s;
-        std::string delimiter;
-        std::size_t expected_offset = 0;
-        bool add_field;
+        range_t range;
+        unsigned int datatype;
+        bool is_time_field;
+
+        field_desc_t() : datatype(0), is_time_field( false ) {}
+        field_desc_t( range_t range, unsigned int datatype, bool is_time_field )
+            : range( range ), datatype( datatype ), is_time_field( is_time_field ) {}
+    };
+
+    /// prepare
+    bin_shuffle( const std::string& field_names
+               , const sensor_msgs::PointCloud2::_fields_type& msg_fields
+               , const ::ros::Time& header_time_stamp
+               , bool ignore_time_format )
+        : header_time_stamp( header_time_stamp.toBoost() )
+        , ignore_time_format( ignore_time_format )
+    {
+        std::vector< std::string > fields = comma::split( field_names, "," );
+        std::unordered_map< std::string, unsigned int > msg_field_name_map;
+        std::vector< range_t > elements;
         const auto& rmap = get_rmap_data_type();
-        for( const auto& f : msg_fields )
+        std::size_t size = 0;
+        for( std::size_t i = 0; i < msg_fields.size(); i++ )
         {
-            comma::csv::format::types_enum type = rmap.at( f.datatype );
-            if( unmap_time_fields && ( f.name == "t" || f.name == "time" )) { type = comma::csv::format::time; }
-            if( field_filter.empty() )
-            {
-                if( f.offset > expected_offset )
-                {
-                    for( auto t: padding_types( f.offset - expected_offset ))
-                    {
-                        s += delimiter + comma::csv::format::to_format( t );
-                    }
-                }
-                expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
-                add_field = true;
-            }
-            else
-            {
-                add_field = ( std::find( field_filter.begin(), field_filter.end(), f.name ) != field_filter.end() );
-            }
-            if( add_field )
-            {
-                s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
-                    + comma::csv::format::to_format( type );
-                if( delimiter.empty() ) { delimiter = ","; }
-            }
+            msg_field_name_map[ msg_fields[i].name ] = i;
+            if( msg_fields[i].datatype < 1 || msg_fields[i].datatype >= rmap.size() ) { COMMA_THROW( comma::exception, "datatype out of range (1 to 8) " << unsigned( msg_fields[i].datatype )); }
+            comma::csv::format::types_enum type = rmap.at( msg_fields[i].datatype );
+            //using comma::csv::format::size_of(type) corrupts stack
+            //                 elements.push_back(range_t(msg_fields[i].offset, msg_fields[i].count * comma::csv::format::size_of(type)));
+            elements.push_back( range_t( msg_fields[i].offset, msg_fields[i].count * point_cloud::size_of_type( type )));
         }
-        return s;
+        for( const std::string& field_name : fields )
+        {
+            unsigned int index;
+            try { index = msg_field_name_map.at( field_name ); }
+            catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << field_name << " in msg_field_name_map" ); }
+            bool is_time_field = ( field_name == "t" || field_name == "time" );
+            field_descs.push_back( field_desc_t( elements[index], msg_fields[index].datatype, is_time_field ));
+            if( is_time_field && !ignore_time_format ) { size += sizeof( boost::posix_time::ptime ); }
+            else { size += elements[index].second; }
+        }
+        buf.resize( size );
     }
 
-    struct bin_base
+    /// shuffle
+    const char* get( const char* data )
     {
-        virtual ~bin_base() {}
-        virtual const char* get( const char* data ) = 0;
-        virtual std::size_t size() const = 0;
-    };
-
-    struct bin_cat : public bin_base
-    {
-        uint32_t size_;
-        bin_cat( uint32_t s = 0 ) : size_( s ) { }
-        const char* get( const char* data ){ return data; }
-        std::size_t size() const { return size_; }
-    };
-
-    /// copy specified fields from a point record, given msg point field info and a list of field names
-    struct bin_shuffle : public bin_base
-    {
-        //first: offset, second: size
-        typedef typename std::pair< std::size_t, std::size_t > range_t;
-
-        struct field_desc_t
+        std::size_t offset = 0;
+        for( const auto& field_desc : field_descs )
         {
-            range_t range;
-            unsigned int datatype;
-            bool is_time_field;
-
-            field_desc_t() : datatype(0), is_time_field( false ) {}
-            field_desc_t( range_t range, unsigned int datatype, bool is_time_field )
-                : range( range ), datatype( datatype ), is_time_field( is_time_field ) {}
-        };
-
-        /// prepare
-        bin_shuffle( const std::string& field_names
-                   , const sensor_msgs::PointCloud2::_fields_type& msg_fields
-                   , const ::ros::Time& header_time_stamp
-                   , bool ignore_time_format )
-            : header_time_stamp( header_time_stamp.toBoost() )
-            , ignore_time_format( ignore_time_format )
-        {
-            std::vector< std::string > fields = comma::split( field_names, "," );
-            std::unordered_map< std::string, unsigned int > msg_field_name_map;
-            std::vector< range_t > elements;
-            const auto& rmap = get_rmap_data_type();
-            std::size_t size = 0;
-            for( std::size_t i = 0; i < msg_fields.size(); i++ )
+            if( field_desc.is_time_field )
             {
-                msg_field_name_map[ msg_fields[i].name ] = i;
-                if( msg_fields[i].datatype < 1 || msg_fields[i].datatype >= rmap.size() ) { COMMA_THROW( comma::exception, "datatype out of range (1 to 8) " << unsigned( msg_fields[i].datatype )); }
-                comma::csv::format::types_enum type = rmap.at( msg_fields[i].datatype );
-                //using comma::csv::format::size_of(type) corrupts stack
-//                 elements.push_back(range_t(msg_fields[i].offset, msg_fields[i].count * comma::csv::format::size_of(type)));
-                elements.push_back( range_t( msg_fields[i].offset, msg_fields[i].count * point_cloud::size_of_type( type )));
-            }
-            for( const std::string& field_name : fields )
-            {
-                unsigned int index;
-                try { index = msg_field_name_map.at( field_name ); }
-                catch( std::out_of_range& ex ) { COMMA_THROW( comma::exception, "couldn't find " << field_name << " in msg_field_name_map" ); }
-                bool is_time_field = ( field_name == "t" || field_name == "time" );
-                field_descs.push_back( field_desc_t( elements[index], msg_fields[index].datatype, is_time_field ));
-                if( is_time_field && !ignore_time_format ) { size += sizeof( boost::posix_time::ptime ); }
-                else { size += elements[index].second; }
-            }
-            buf.resize( size );
-        }
-
-        /// shuffle
-        const char* get( const char* data )
-        {
-            std::size_t offset = 0;
-            for( const auto& field_desc : field_descs )
-            {
-                if( field_desc.is_time_field )
+                // when reading a ros topic we deduce the time format by the data type,
+                // unless we have been explicitly told not to do any processing by --ignore-time-format
+                // that option is useful if you want to output whatever is in the time field and not interpret it
+                if( !ignore_time_format )
                 {
-                    // when reading a ros topic we deduce the time format by the data type,
-                    // unless we have been explicitly told not to do any processing by --ignore-time-format
-                    // that option is useful if you want to output whatever is in the time field and not interpret it
-                    if( !ignore_time_format )
+                    // is the time format either offset_seconds (float32) or offset_nanoseconds (uint32)?
+                    if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 ||
+                      field_desc.datatype == sensor_msgs::PointField::UINT32 )
                     {
-                        // is the time format either offset_seconds (float32) or offset_nanoseconds (uint32)?
-                        if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 ||
-                            field_desc.datatype == sensor_msgs::PointField::UINT32 )
+                        boost::posix_time::time_duration time_offset;
+                        if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 )
                         {
-                            boost::posix_time::time_duration time_offset;
-                            if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 )
-                            {
-                                float offset_seconds = comma::csv::format::traits< float >::from_bin( data + field_desc.range.first );
-                                time_offset = boost::posix_time::microseconds( static_cast< long >( offset_seconds * 1000000 ));
-                            }
-                            else
-                            {
-                                comma::uint32 offset_nanoseconds = comma::csv::format::traits< comma::uint32 >::from_bin( data + field_desc.range.first );
-                                // we're using the 64 bit boost ptime implementation, which is accurate to microseconds
-                                time_offset = boost::posix_time::microseconds( offset_nanoseconds / 1000 );
-                            }
-                            boost::posix_time::ptime time = header_time_stamp + time_offset;
-                            comma::csv::format::traits< boost::posix_time::ptime, comma::csv::format::time >::to_bin( time, &buf[offset] );
-                            offset += sizeof( time );
-                            continue;   // we've copied the data, go to the next iteration of the loop
+                            float offset_seconds = comma::csv::format::traits< float >::from_bin( data + field_desc.range.first );
+                            time_offset = boost::posix_time::microseconds( static_cast< long >( offset_seconds * 1000000 ));
                         }
+                        else
+                        {
+                            comma::uint32 offset_nanoseconds = comma::csv::format::traits< comma::uint32 >::from_bin( data + field_desc.range.first );
+                            // we're using the 64 bit boost ptime implementation, which is accurate to microseconds
+                            time_offset = boost::posix_time::microseconds( offset_nanoseconds / 1000 );
+                        }
+                        boost::posix_time::ptime time = header_time_stamp + time_offset;
+                        comma::csv::format::traits< boost::posix_time::ptime, comma::csv::format::time >::to_bin( time, &buf[offset] );
+                        offset += sizeof( time );
+                        continue;   // we've copied the data, go to the next iteration of the loop
                     }
                 }
-                std::memcpy( &buf[offset], data + field_desc.range.first, field_desc.range.second );
-                offset += field_desc.range.second;
             }
-            return buf.data();
+            std::memcpy( &buf[offset], data + field_desc.range.first, field_desc.range.second );
+            offset += field_desc.range.second;
         }
+        return buf.data();
+    }
 
-        bool empty() const { return field_descs.empty(); }
-        std::size_t size() const { return buf.size(); }
+    bool empty() const { return field_descs.empty(); }
+    std::size_t size() const { return buf.size(); }
 
-    private:
-        std::vector< char > buf;
-        std::vector< field_desc_t > field_descs;
-        boost::posix_time::ptime header_time_stamp;
-        bool ignore_time_format;
-    };
+private:
+    std::vector< char > buf;
+    std::vector< field_desc_t > field_descs;
+    boost::posix_time::ptime header_time_stamp;
+    bool ignore_time_format;
+};
+
 } } } //  namespace point_cloud { namespace snark { namespace ros {
 
 struct header
