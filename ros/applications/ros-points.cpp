@@ -384,7 +384,6 @@ struct bin_shuffle : public bin_base
         return buf.data();
     }
 
-    bool empty() const { return field_descs.empty(); }
     std::size_t size() const { return buf.size(); }
 
 private:
