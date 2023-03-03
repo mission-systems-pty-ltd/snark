@@ -38,13 +38,13 @@ public:
     virtual ~label();
 protected:
     /// see labels::text for an example of implementation
-    virtual void update()=0;
+    virtual void update() = 0;
     /// update position vertex
-    void update(float x,float y,float z);
+    void update( float x, float y, float z );
     /// resize texture buffer
-    void resize(int width,int height);
+    void resize( int width, int height );
 protected:
-    virtual void draw(QPainter& painter)=0;
+    virtual void draw( QPainter& painter ) = 0;
     virtual void init();
     virtual void paint();
     void draw();
@@ -52,8 +52,8 @@ protected:
     
     QOpenGLVertexArrayObject vao;
     QOpenGLBuffer vbo;
-    std::vector<label_vertex> quad;
-    std::unique_ptr<QOpenGLFramebufferObject> fbo;
+    std::vector< label_vertex > quad;
+    std::unique_ptr< QOpenGLFramebufferObject > fbo;
     int width;
     int height;
 };

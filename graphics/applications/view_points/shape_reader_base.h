@@ -32,6 +32,7 @@ protected:
     block_buffer< vertex_t > _buffer;
     block_buffer< label_t > _labels;
     std::vector< std::string > _axis_labels;
+    bool _labels_no_more_updates{false}; // uber-quick and dirty
 };
 
 } } } // namespace snark { namespace graphics { namespace view {

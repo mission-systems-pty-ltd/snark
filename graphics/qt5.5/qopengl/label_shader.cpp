@@ -169,7 +169,6 @@ void label::paint()
 //             std::cerr<<"label_shader::paint"<<std::endl;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
-    
     QOpenGLVertexArrayObject::Binder binder(&vao);
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
     glDrawArrays(GL_TRIANGLE_FAN,0,4);
@@ -203,6 +202,6 @@ void label::draw(QPainter& painter)
 }
 */
 
-void label::destroy() { fbo.release(); }
+void label::destroy() { fbo.release(); vao.release(); } // void label::destroy() { fbo.release(); }
 
 } } } // namespace snark { namespace graphics { namespace qopengl {

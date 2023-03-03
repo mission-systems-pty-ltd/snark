@@ -80,6 +80,7 @@ template< typename S, typename How > inline void shape_reader< S, How >::update_
 
 template< typename S, typename How > inline void shape_reader< S, How >::update_labels() // todo! copying and heap allocation are pretty wasteful! improve performance
 {
+    if( _labels_no_more_updates ) { return; } // uber-quick and dirty
     label_shader->clear();
     label_shader->visible = m_show;
     label_shader->labels.reserve( _labels.size() + ( m_label.empty() ? 0 : 1 ) );
@@ -97,6 +98,7 @@ template< typename S, typename How > inline void shape_reader< S, How >::update_
         label_shader->labels.push_back( std::shared_ptr< snark::graphics::qopengl::label >( new snark::graphics::qopengl::text_label( m_translation - m_offset, m_label, m_color, this->font_size ) ) );
     }
     label_shader->update();
+    if( isShutdown() ) { _labels_no_more_updates = true; }
 }
 #endif
 
