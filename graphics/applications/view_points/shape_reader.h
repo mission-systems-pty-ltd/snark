@@ -84,8 +84,6 @@ template< typename S, typename How > inline void shape_reader< S, How >::update_
     label_shader->clear();
     label_shader->visible = m_show;
     label_shader->labels.reserve( _labels.size() + ( m_label.empty() ? 0 : 1 ) );
-    //std::cerr << "==> shape_reader::update_labels(): _labels.size(): " << _labels.size() << " tail: " << std::endl;
-    //for( unsigned int i = _labels.size() > 10 ? _labels.size() - 10 : 0; i < _labels.size(); ++i  ) { std::cerr << "    " << i << ": '" << _labels.values()[i].text << "'" << std::endl; }
     for( unsigned int i = 0; i < _labels.size(); ++i )
     {
         if( !_labels.values()[i].text.empty() )
@@ -93,7 +91,7 @@ template< typename S, typename How > inline void shape_reader< S, How >::update_
             label_shader->labels.push_back( std::shared_ptr< snark::graphics::qopengl::label >( new snark::graphics::qopengl::text_label( _labels.values()[i].position - m_offset, _labels.values()[i].text, _labels.values()[i].color, this->font_size ) ) );
         }
     }
-    if( !m_label.empty() )
+    if( !m_label.empty() ) // todo! push once! no point to push it back all the time!
     {
         label_shader->labels.push_back( std::shared_ptr< snark::graphics::qopengl::label >( new snark::graphics::qopengl::text_label( m_translation - m_offset, m_label, m_color, this->font_size ) ) );
     }

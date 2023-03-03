@@ -114,14 +114,13 @@ void label_shader::paint(const QMatrix4x4& projection_matrix, const QSize& size)
 }
 void label_shader::destroy() { for( auto& j : labels ) { j->destroy(); } }
 
-label::label(): width( 0 ),height( 0 ) {} 
+label::label(): width( 0 ), height( 0 ) { quad.reserve( 4 ); } 
 
 label::~label() {}
 
 void label::init()
 {
     initializeOpenGLFunctions();
-    //shape init
     vao.create();
     QOpenGLVertexArrayObject::Binder binder(&vao);
     vbo.create();
@@ -130,43 +129,40 @@ void label::init()
     glEnableVertexAttribArray( 0 );
     glEnableVertexAttribArray( 1 );
     glEnableVertexAttribArray( 2 );
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast<void *>( offsetof( label_vertex, position )));
-    glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast<void *>( offsetof( label_vertex, offset )));
-    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast<void *>( offsetof( label_vertex, texture_size )));
+    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast< void * >( offsetof( label_vertex, position ) ) );
+    glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast< void * >( offsetof( label_vertex, offset ) ) );
+    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, sizeof( label_vertex ), reinterpret_cast< void * >( offsetof( label_vertex, texture_size ) ) );
     vbo.release();
 }
-void label::resize( int w, int h )
+
+void label::resize( int w, int h ) // todo? do we need to call resize all the time?
 {
     if( width == w && height == h ) { return; }
     width = w;
     height = h;
-//         std::cerr<<"label::resize "<<width<<","<<height<<std::endl;
     QOpenGLFramebufferObjectFormat format;
-    format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    format.setAttachment( QOpenGLFramebufferObject::CombinedDepthStencil );
     fbo.reset( new QOpenGLFramebufferObject( width, height, format ) );
 }
+
 void label::update( float x,float y,float z )
 {
-//     std::cerr<<"label::update "<<width<<", "<<height<<std::endl;
     quad.clear();
     quad.push_back(label_vertex(x,y,z,0,0,width,height));
     quad.push_back(label_vertex(x,y,z,1,0,width,height));
     quad.push_back(label_vertex(x,y,z,1,1,width,height));
     quad.push_back(label_vertex(x,y,z,0,1,width,height));
-    QOpenGLVertexArrayObject::Binder binder(&vao);
+    QOpenGLVertexArrayObject::Binder binder( &vao );
     vbo.bind();
-    size_t size=quad.size()*sizeof(label_vertex);
-    vbo.allocate(size);
-    vbo.write(0,&quad[0],size);
+    size_t size = quad.size() * sizeof( label_vertex );
+    vbo.allocate( size );
+    vbo.write( 0, &quad[0], size );
     vbo.release();
 }
 
 void label::paint()
 {
     if( !fbo ) { return; }
-//         static int counter=0;
-//         if(counter++<2)
-//             std::cerr<<"label_shader::paint"<<std::endl;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
     QOpenGLVertexArrayObject::Binder binder(&vao);
@@ -177,7 +173,6 @@ void label::paint()
 void label::draw()    //draw to texture
 {
     if( !fbo ) { return; }
-//         std::cerr<<"label_shader::draw"<<std::endl;
     fbo->bind();
     QOpenGLPaintDevice paint_dev( width, height );
     QPainter painter( &paint_dev );
@@ -202,6 +197,13 @@ void label::draw(QPainter& painter)
 }
 */
 
-void label::destroy() { fbo.release(); vao.release(); } // void label::destroy() { fbo.release(); }
+// void label::destroy() { fbo.release(); }
+
+void label::destroy()
+{
+    vao.release(); // paranoia?
+    vbo.release(); // paranoia?
+    if( fbo ) { fbo->release(); }
+}
 
 } } } // namespace snark { namespace graphics { namespace qopengl {

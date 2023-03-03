@@ -25,11 +25,12 @@ struct label_vertex
     /// size of the image texture in pixels
     Eigen::Vector2f texture_size;
 
-    label_vertex(float x,float y,float z,float ox,float oy,float width, float height);
+    label_vertex( float x,float y,float z,float ox,float oy,float width, float height );
 };
     
 /// a billboard 2d texture, drawn at the apparent position of a 3d point
 /// this class has the texture buffer for each label
+/// @todo opengl buffer per label looks very memory-fragmented; can it be improved?
 class label : protected QOpenGLFunctions
 {
     friend class label_shader;
