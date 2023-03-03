@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2016 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
@@ -87,15 +60,11 @@ void widget::cleanup()
 {
     makeCurrent();
     //TODO refactor all shader types to have unifrom interface (pure virtual base); is order of paint important?
-    for(auto& i : shapes) { i->destroy(); }
-    for(auto& i : label_shaders) { i->destroy(); }
-    for(auto& i : texture_shaders) { i->destroy(); }
-    for(auto& i : mesh_shaders) { i->destroy(); }
-    if(program_)
-    {
-        delete program_;
-        program_ = 0;
-    }
+    for( auto& i : shapes ) { i->destroy(); }
+    for( auto& i : label_shaders ) { i->destroy(); }
+    for( auto& i : texture_shaders ) { i->destroy(); }
+    for( auto& i : mesh_shaders ) { i->destroy(); }
+    if( program_ ) { delete program_; program_ = nullptr; }
     doneCurrent();
 }
 
@@ -103,17 +72,17 @@ void widget::begin_update() { makeCurrent(); }
 
 void widget::end_update() { doneCurrent(); }
 
-void widget::add_shape(const std::shared_ptr<shape>& shape) { shapes.push_back(shape); }
+void widget::add_shape( const std::shared_ptr<shape>& shape ) { shapes.push_back(shape); }
 
 void widget::add_label_shader( const std::shared_ptr<label_shader>& label_shader )
 {
-    label_shader->scaled=camera.orthographic;
+    label_shader->scaled = camera.orthographic;
     label_shaders.push_back( label_shader );
 }
 
 void widget::add_texture_shader( const std::shared_ptr<texture_shader>& texture_shader ) { texture_shaders.push_back( texture_shader ); }
 
-void widget::add_mesh_shader( const std::shared_ptr<mesh_shader>& mesh_shader ) { mesh_shaders.push_back(mesh_shader); }
+void widget::add_mesh_shader( const std::shared_ptr<mesh_shader>& mesh_shader ) { mesh_shaders.push_back( mesh_shader ); }
 
 void widget::initializeGL()
 {
@@ -168,28 +137,29 @@ void widget::paintGL()
     program_->setUniformValue( projection_matrix_location_, camera.projection );
     program_->setUniformValue( mv_matrix_location_, camera.camera * camera.world );
 
-    for(auto& i : shapes) { if(i->visible) { i->paint(); } }
+    for( auto& i : shapes ) { if( i->visible ) { i->paint(); } }
 
 //     glDisable( GL_DEPTH_TEST );
 
     program_->release();
 
     const auto& t = camera.transform();
-    for( auto& i : label_shaders ) { i->paint(t, size()); }
-    for( auto& i : texture_shaders ) { i->paint(t, size()); }
-    for( auto& i : mesh_shaders ) { i->paint(t, size()); }
+    for( auto& i : label_shaders ) { i->paint( t, size() ); }
+    for( auto& i : texture_shaders ) { i->paint( t, size() ); }
+    for( auto& i : mesh_shaders ) { i->paint( t, size() ); }
 
     painter.endNativePainting();
 
     painter.setPen( Qt::gray );
     painter.setFont( QFont( "Arial", 10 ));
-    painter.drawText( rect(), Qt::AlignRight | Qt::AlignBottom
+    painter.drawText( rect()
+                    , Qt::AlignRight | Qt::AlignBottom
                     , QString("centre of rotation: %1 %2 %3").arg( camera.center.x() )
                                                              .arg( camera.center.y() )
                                                              .arg( camera.center.z() ));
 }
 
-void widget::set_far_plane(float f)
+void widget::set_far_plane( float f )
 {
     camera.far_plane=f;
     camera.update_projection();

@@ -81,8 +81,10 @@ template< typename S, typename How > inline void shape_reader< S, How >::update_
 template< typename S, typename How > inline void shape_reader< S, How >::update_labels() // todo! copying and heap allocation are pretty wasteful! improve performance
 {
     label_shader->clear();
-    label_shader->visible=m_show;
-    label_shader->labels.reserve( _labels.size() );
+    label_shader->visible = m_show;
+    label_shader->labels.reserve( _labels.size() + ( m_label.empty() ? 0 : 1 ) );
+    //std::cerr << "==> shape_reader::update_labels(): _labels.size(): " << _labels.size() << " tail: " << std::endl;
+    //for( unsigned int i = _labels.size() > 10 ? _labels.size() - 10 : 0; i < _labels.size(); ++i  ) { std::cerr << "    " << i << ": '" << _labels.values()[i].text << "'" << std::endl; }
     for( unsigned int i = 0; i < _labels.size(); ++i )
     {
         if( !_labels.values()[i].text.empty() )
@@ -115,7 +117,7 @@ inline std::size_t shape_reader< S, How >::update( const Eigen::Vector3d& offset
     for( typename deque_t_::iterator it = m_deque.begin(); it != m_deque.end(); ++it )
     {
         shape_traits< S, How >::update( *this, *it, offset );
-        _labels.add( label_t( shape_traits< S, How >::center( it->shape ), it->color, it->label ), it->block );
+        if( !it->label.empty() ) { _labels.add( label_t( shape_traits< S, How >::center( it->shape ), it->color, it->label ), it->block ); }
     }
     if( m_shutdown )
     {

@@ -84,7 +84,7 @@ struct label_t
     Eigen::Vector3d position;
     color_t color;
     std::string text;
-    label_t() { }
+    label_t() {}
     label_t( const Eigen::Vector3d& position, const color_t& color, const std::string& text ) : position( position ), color( color ), text( text ) { }
 };
 

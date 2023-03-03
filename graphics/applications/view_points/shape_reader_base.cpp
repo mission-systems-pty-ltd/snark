@@ -19,7 +19,7 @@ shape_reader_base::shape_reader_base( const reader_parameters& params
 
 void shape_reader_base::add_vertex( const vertex_t& v, unsigned int block ) { _buffer.add( v, block ); }
 
-void shape_reader_base::add_label( const label_t& l, unsigned int block ) { _labels.add( l, block ); }
+void shape_reader_base::add_label( const label_t& l, unsigned int block ) { if( !l.text.empty() ) { _labels.add( l, block ); } }
 
 void shape_reader_base::extent_hull( const snark::math::closed_interval< float, 3 >& x ) { m_extents = m_extents ? m_extents->hull( x ) : x; }
 
