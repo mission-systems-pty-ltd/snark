@@ -142,7 +142,7 @@ void usage( bool verbose = false )
 static bool status = 0; // quick and dirty
 
 /// utility functions for ros sensor_msgs::PointCloud2
-namespace snark { namespace ros { namespace point_cloud {
+namespace snark { namespace ros { namespace pointcloud {
 
 const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
 {
@@ -327,7 +327,7 @@ struct bin_shuffle : public bin_base
             comma::csv::format::types_enum type = rmap.at( msg_fields[i].datatype );
             //using comma::csv::format::size_of(type) corrupts stack
             //                 elements.push_back(range_t(msg_fields[i].offset, msg_fields[i].count * comma::csv::format::size_of(type)));
-            elements.push_back( range_t( msg_fields[i].offset, msg_fields[i].count * point_cloud::size_of_type( type )));
+            elements.push_back( range_t( msg_fields[i].offset, msg_fields[i].count * pointcloud::size_of_type( type )));
         }
         for( const std::string& field_name : fields )
         {
@@ -394,7 +394,7 @@ private:
     bool ignore_time_format;
 };
 
-} } } //  namespace point_cloud { namespace snark { namespace ros {
+} } } //  namespace pointcloud { namespace snark { namespace ros {
 
 struct header
 {
@@ -438,9 +438,9 @@ public:
     {
         try
         {
-            std::string pointcloud_fields = snark::ros::point_cloud::msg_fields_names( input->fields, fields );
-            std::string pointcloud_format = snark::ros::point_cloud::msg_fields_format( input->fields, fields );
-            std::string output_format_str = snark::ros::point_cloud::msg_fields_format( input->fields, fields, true );
+            std::string pointcloud_fields = snark::ros::pointcloud::msg_fields_names( input->fields, fields );
+            std::string pointcloud_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields );
+            std::string output_format_str = snark::ros::pointcloud::msg_fields_format( input->fields, fields, true );
 
             if( output_fields )
             {
@@ -466,7 +466,7 @@ public:
             unsigned int record_size = input->point_step;
             ::header header( input->header.stamp, input->header.seq );
 
-            std::unique_ptr< snark::ros::point_cloud::bin_base > bin;
+            std::unique_ptr< snark::ros::pointcloud::bin_base > bin;
             // if we haven't selected a subset fields or re-arranged the fields;
             // and there are no time fields which might need intepretation:
             // we can do a straight copy from ros data to output
@@ -474,12 +474,12 @@ public:
             bool has_time_field = comma::csv::fields_exist( pointcloud_fields, "t" ) || comma::csv::fields_exist( pointcloud_fields, "time" );
             if( csv.fields.empty() && !has_time_field )
             {
-                bin.reset( new snark::ros::point_cloud::bin_cat( record_size ));
+                bin.reset( new snark::ros::pointcloud::bin_cat( record_size ));
             }
             else
             {
-                bin.reset( new snark::ros::point_cloud::bin_shuffle( csv.fields.empty() ? pointcloud_fields : csv.fields
-                                                                   , input->fields, input->header.stamp, ignore_time_format ));
+                bin.reset( new snark::ros::pointcloud::bin_shuffle( csv.fields.empty() ? pointcloud_fields : csv.fields
+                                                                  , input->fields, input->header.stamp, ignore_time_format ));
             }
 
             bin_writer writer;
