@@ -82,7 +82,9 @@ private:
     bool m_cameraFixed;
     //add camera_position_output
     bool m_exit_on_end_of_input;
+    bool _camera_config_from_file{false}; // quick and dirty
     boost::optional< snark::math::closed_interval< float, 3 > > _extents;
+
     void _update_view();
 
 public:

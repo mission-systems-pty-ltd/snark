@@ -1,31 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2017 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /// @author Navid Pirmarzdashti
 
@@ -37,7 +10,11 @@
 
 namespace snark { namespace graphics { namespace qopengl {
 
-camera_transform::camera_transform(bool orthographic,double field_of_view,const QVector3D& up,const QVector3D& c,float z)
+camera_transform::camera_transform( bool orthographic
+                                  , double field_of_view
+                                  , const QVector3D& up
+                                  , const QVector3D& c
+                                  , float z )
     : center(c)
     , up(up)
     , orthographic(orthographic)
@@ -54,15 +31,15 @@ camera_transform::camera_transform(bool orthographic,double field_of_view,const 
     world.setToIdentity();
     world.translate(-center);
 }
-void camera_transform::pan(float dx,float dy) { camera.translate(dx,dy,0); }
+void camera_transform::pan( float dx, float dy ) { camera.translate(dx,dy,0); }
 
-void camera_transform::zoom(float dz)
+void camera_transform::zoom( float dz )
 {
     camera.translate(0,0,dz);
     if(orthographic) { update_projection(); }
 }
 
-void camera_transform::pivot(float dx,float dy)
+void camera_transform::pivot( float dx,float dy )
 {
     world.translate(center);
     QMatrix4x4 inverted_world = world.inverted();
@@ -103,8 +80,8 @@ static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
-    world.setToIdentity();
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    world.setToIdentity();
     world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
     // if( from_ned )
@@ -133,14 +110,21 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
 
 QVector3D camera_transform::get_orientation( bool to_ned ) const // todo? fix?
 {
-    Eigen::Matrix3d m = Eigen::Matrix3d::Identity();
+    if( to_ned )
+    {
+        Eigen::Matrix3d m = Eigen::Matrix3d::Identity();
+        for( unsigned int row = 0; row < 3; ++row ) { for( unsigned int col = 0; col < 3; ++col ) { m( row, col ) = world( row, col ); } }
+        static const Eigen::Matrix3d ned = snark::rotation_matrix( Eigen::Vector3d( M_PI / 2, M_PI / 2, 0 ) ).rotation().inverse(); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
+        //std::cerr << "==> camera_transform::get_orientation:     rpy: " << snark::rotation_matrix::roll_pitch_yaw(m).transpose() << std::endl;
+        //std::cerr << "==> camera_transform::get_orientation: (0) rpy: " << snark::rotation_matrix::roll_pitch_yaw(m*ned).transpose() << std::endl;
+        //std::cerr << "==> camera_transform::get_orientation: (1) rpy: " << snark::rotation_matrix::roll_pitch_yaw(ned*m).transpose() << std::endl;
+        const auto& rpy = snark::rotation_matrix::roll_pitch_yaw( ned * m ); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
+        return QVector3D( rpy.y(), rpy.x(), -rpy.z() );
+    }
+    QMatrix3x3 m;
     for( unsigned int row = 0; row < 3; ++row ) { for( unsigned int col = 0; col < 3; ++col ) { m( row, col ) = world( row, col ); } }
-    static const Eigen::Matrix3d ned = snark::rotation_matrix( Eigen::Vector3d( M_PI / 2, M_PI / 2, 0 ) ).rotation().inverse(); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
-    //std::cerr << "==> camera_transform::get_orientation:     rpy: " << snark::rotation_matrix::roll_pitch_yaw(m).transpose() << std::endl;
-    //std::cerr << "==> camera_transform::get_orientation: (0) rpy: " << snark::rotation_matrix::roll_pitch_yaw(m*ned).transpose() << std::endl;
-    //std::cerr << "==> camera_transform::get_orientation: (1) rpy: " << snark::rotation_matrix::roll_pitch_yaw(ned*m).transpose() << std::endl;
-    const auto& rpy = snark::rotation_matrix::roll_pitch_yaw( to_ned ? ned * m : m ); // todo! super-quick and dirty, just to get there; get the bloody correct transform!!!
-    return QVector3D( rpy.y(), rpy.x(), -rpy.z() );
+    const auto& pyr = QQuaternion::fromRotationMatrix( m ).toEulerAngles() * M_PI / 180;
+    return QVector3D( pyr.z(), pyr.x(), pyr.y() );
 }
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << ',' << v.y() << ',' << v.z(); }

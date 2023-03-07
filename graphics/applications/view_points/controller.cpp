@@ -50,6 +50,7 @@ controller::controller( const color_t& background_color
     , m_cameraposition( cameraposition )
     , m_cameraorientation( cameraorientation )
     , m_exit_on_end_of_input( exit_on_end_of_input )
+    , _camera_config_from_file( !camera_config_file_name.empty() )
 {
 #if Qt3D_VERSION==1
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
@@ -122,7 +123,7 @@ void controller::read()
         if( !_extents || *_extents != *( readers[0]->m_extents ) ) // quick and dirty; // todo? call _update_view() on camera moves?
         {
             _extents = readers[0]->m_extents;
-            _update_view();
+            if( !_camera_config_from_file ) { _update_view(); } // quick and dirty
         }
     }
     if( !m_cameraReader && m_cameraposition )
