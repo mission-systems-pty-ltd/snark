@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <QKeyEvent>
@@ -100,6 +101,8 @@ private slots:
     void on_timeout();
 
 private:
+    std::deque< snark::graphics::qopengl::camera_transform > _camera_bookmarks;
+    unsigned int _camera_bookmarks_offset{1};
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;
