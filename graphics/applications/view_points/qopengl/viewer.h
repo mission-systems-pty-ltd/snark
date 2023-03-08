@@ -84,7 +84,7 @@ public:
     void load_camera_config( const std::string& file_name );
     void set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation );
     void update_view( const QVector3D& min, const QVector3D& max );
-    void write_camera_config( std::ostream& os, bool on_change = false );
+    void write_camera_config( std::ostream& os, bool on_change = false, bool pretty = true );
 
 public slots:
     void toggle_block_mode( bool );

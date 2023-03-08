@@ -88,7 +88,7 @@ void viewer::paintGL()
 {
     widget::paintGL();
     _grab.once( this );
-    if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true ); }
+    if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true, false ); }
     if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
     painter.setPen( Qt::gray );
@@ -189,14 +189,14 @@ void viewer::load_camera_config(const std::string& file_name)
     comma::visiting::apply( from_ptree ).to( camera );
 }
 
-void viewer::write_camera_config( std::ostream& os, bool on_change )
+void viewer::write_camera_config( std::ostream& os, bool on_change, bool pretty )
 {
     if( on_change && previous_camera_ && camera == *previous_camera_ ) { return; }
     previous_camera_ = camera;
     boost::property_tree::ptree p;
     comma::to_ptree to_ptree( p );
     comma::visiting::apply( to_ptree ).to( camera );
-    boost::property_tree::write_json( os, p );
+    boost::property_tree::write_json( os, p, pretty );
 }
 
 void viewer::write_camera_position_( std::ostream& os, bool on_change )
