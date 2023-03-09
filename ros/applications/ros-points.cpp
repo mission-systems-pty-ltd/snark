@@ -719,6 +719,7 @@ public:
         msg.row_step = output_data_size * count;
         msg.fields = point_fields;
         msg.data.resize( output_data_size * count );
+        msg.is_dense = true;
 
         std::size_t msg_data_offset = 0;
         for( const auto& record : records )
