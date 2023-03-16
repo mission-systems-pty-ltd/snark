@@ -106,6 +106,14 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
     std::cout << std::setprecision( 16 ) << p.x() << "," << p.y() << "," << p.z() << click_mode.double_right_click.to_output_string() << std::endl;
 }
 
+template < typename T > static void _write_json( const T& t, std::ostream& os, bool pretty )
+{
+    boost::property_tree::ptree p;
+    comma::to_ptree to_ptree( p );
+    comma::visiting::apply( to_ptree ).to( t );
+    boost::property_tree::write_json( os, p, pretty );
+}
+
 void viewer::keyPressEvent( QKeyEvent *event )
 {
     click_mode.double_right_click.on_key_press( event );
@@ -137,7 +145,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     --_camera_bookmarks_offset;
                     if( _camera_bookmarks_offset == 0 ) { _camera_bookmarks_offset = _camera_bookmarks.size(); }
                 }
-                std::cerr << "view-points: camera position restored to camera position " << ( _camera_bookmarks.size() - _camera_bookmarks_offset + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
+                std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks.size() - _camera_bookmarks_offset + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 camera = _camera_bookmarks[ _camera_bookmarks.size() - _camera_bookmarks_offset ];
             }
             break;
@@ -145,17 +153,22 @@ void viewer::keyPressEvent( QKeyEvent *event )
             if( event->modifiers() == Qt::NoModifier )
             {
                 _camera_bookmarks.push_back( camera );
-                std::cerr << "view-points: saved camera position; currently: " << _camera_bookmarks.size() << " saved camera position(s)" << std::endl;
-                std::cerr << "             press 'r' to restore view to this camera position" << std::endl;
+                std::cerr << "view-points: saved camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                std::cerr << "             press 'r' to restore view to this camera configuration" << std::endl;
                 std::cerr << "             press 'ctrl+r' to restore previos view" << std::endl;
                 std::cerr << "             press 'ctrl+r' to restore next view" << std::endl;
             }
             else if( event->modifiers() == Qt::ControlModifier )
             {
+                if( stdout_allowed ) { _write_json( camera, std::cout, false ); }
+                else { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream" << std::endl; }
+            }
+            else if( event->modifiers() == Qt::AltModifier )
+            {
                 if( !_camera_bookmarks.empty() )
                 {
                     _camera_bookmarks.pop_front();
-                    std::cerr << "view-points: popped first saved camera position; currently: " << _camera_bookmarks.size() << " saved camera position(s)" << std::endl;
+                    std::cerr << "view-points: popped first saved camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
                     if( _camera_bookmarks_offset > _camera_bookmarks.size() + 1 ) { _camera_bookmarks_offset = 1; }
                 }
             }
@@ -230,10 +243,7 @@ void viewer::write_camera_config( std::ostream& os, bool on_change, bool pretty 
 {
     if( on_change && previous_camera_ && camera == *previous_camera_ ) { return; }
     previous_camera_ = camera;
-    boost::property_tree::ptree p;
-    comma::to_ptree to_ptree( p );
-    comma::visiting::apply( to_ptree ).to( camera );
-    boost::property_tree::write_json( os, p, pretty );
+    _write_json( camera, os, pretty );
 }
 
 void viewer::write_camera_position_( std::ostream& os, bool on_change )
