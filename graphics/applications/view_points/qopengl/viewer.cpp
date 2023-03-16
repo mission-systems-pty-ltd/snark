@@ -3,8 +3,10 @@
 
 #include <array>
 #include <fstream>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <boost/lexical_cast.hpp>
 #include <QChar>
 #include <QGuiApplication>
@@ -230,13 +232,34 @@ void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::
     camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
 }
 
-void viewer::load_camera_config(const std::string& file_name)
+void viewer::load_camera_config( const std::string& filename )
 {
-    boost::property_tree::ptree camera_config;
-    boost::property_tree::read_json( file_name, camera_config );
-    comma::from_ptree from_ptree( camera_config, true );
-    comma::visiting::apply( from_ptree ).to( camera );
-    _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+    try
+    {
+        boost::property_tree::ptree camera_config;
+        boost::property_tree::read_json( filename, camera_config );
+        comma::from_ptree from_ptree( camera_config, true );
+        comma::visiting::apply( from_ptree ).to( camera );
+        _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+    }
+    catch( ... )
+    {
+        std::ifstream ifs( filename );
+        if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open file: '" << filename << "'" ); }
+        while( true )
+        {
+            std::string line;
+            std::getline( ifs, line );
+            if( line.empty() ) { break; }
+            if( comma::strip( line ).empty() ) { continue; }
+            std::istringstream iss( line );
+            boost::property_tree::ptree camera_config;
+            boost::property_tree::read_json( iss, camera_config );
+            comma::from_ptree from_ptree( camera_config, true );
+            comma::visiting::apply( from_ptree ).to( camera );
+            _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+        }
+    }
 }
 
 void viewer::write_camera_config( std::ostream& os, bool on_change, bool pretty )
