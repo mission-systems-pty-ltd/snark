@@ -60,7 +60,7 @@ controller::controller( const color_t& background_color
     viewer->output_camera_config = output_camera_config; // super-quick and dirty
     viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif
-    if(!camera_config_file_name.empty()) { viewer->load_camera_config( camera_config_file_name ); }
+    if( !camera_config_file_name.empty() ) { viewer->load_camera_config( camera_config_file_name ); }
     if( camera_csv ) { m_cameraReader.reset( new CameraReader( *camera_csv ) ); }
     m_cameraFixed = m_cameraposition || m_cameraReader || !camera_config_file_name.empty();
 }

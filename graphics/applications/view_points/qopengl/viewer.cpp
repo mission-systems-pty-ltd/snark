@@ -244,6 +244,8 @@ void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::
 
 void viewer::load_camera_config( const std::string& filename )
 {
+    auto camera_bookmarks = _camera_bookmarks;
+    _camera_bookmarks.clear();
     try
     {
         boost::property_tree::ptree camera_config;
@@ -255,22 +257,30 @@ void viewer::load_camera_config( const std::string& filename )
     }
     catch( ... )
     {
-        std::ifstream ifs( filename );
-        if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open file: '" << filename << "'" ); }
-        while( true )
+        try
         {
-            std::string line;
-            std::getline( ifs, line );
-            if( line.empty() ) { break; }
-            if( comma::strip( line ).empty() ) { continue; }
-            std::istringstream iss( line );
-            boost::property_tree::ptree camera_config;
-            boost::property_tree::read_json( iss, camera_config );
-            comma::from_ptree from_ptree( camera_config, true );
-            comma::visiting::apply( from_ptree ).to( camera );
-            _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+            std::ifstream ifs( filename );
+            if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open file: '" << filename << "'" ); }
+            while( true )
+            {
+                std::string line;
+                std::getline( ifs, line );
+                if( line.empty() ) { break; }
+                if( comma::strip( line ).empty() ) { continue; }
+                std::istringstream iss( line );
+                boost::property_tree::ptree camera_config;
+                boost::property_tree::read_json( iss, camera_config );
+                comma::from_ptree from_ptree( camera_config, true );
+                comma::visiting::apply( from_ptree ).to( camera );
+                _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+            }
+            std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
         }
-        std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
+        catch( ... )
+        {
+            _camera_bookmarks = camera_bookmarks;
+            throw;
+        }
     }
     _print_keys_help();
 }
