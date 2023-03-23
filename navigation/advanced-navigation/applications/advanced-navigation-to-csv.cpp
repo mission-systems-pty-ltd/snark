@@ -393,8 +393,7 @@ struct app_all : public app_t< output_all >
         , received_messages_mask( 0 )
         , wait_for_all_counter( 0 )
     {
-        if( !options.exists( "--wait-for-all" ))
-            received_messages_mask = all_mask;
+        if( !options.exists( "--wait-for-all" )) { received_messages_mask = all_mask; }
     }
 
     void handle( const messages::system_state* msg )
@@ -410,32 +409,32 @@ struct app_all : public app_t< output_all >
         else if( wait_for_all_counter++ == 100 )
         {
             std::cerr << "(--wait-for-all specified) still waiting for messages: ";
-            if( !( received_messages_mask & raw_sensors_mask ))
-                std::cerr << "raw_sensors ";
-            if( !( received_messages_mask & velocity_standard_deviation_mask ))
-                std::cerr << "velocity_standard_deviation ";
-            if( !( received_messages_mask & orientation_standard_deviation_mask ))
-                std::cerr << "orientation_standard_deviation ";
-            if( !( received_messages_mask & satellites_mask ))
-                std::cerr << "satellites ";
+            if( !( received_messages_mask & raw_sensors_mask )) { std::cerr << "raw_sensors "; }
+            if( !( received_messages_mask & velocity_standard_deviation_mask )) { std::cerr << "velocity_standard_deviation "; }
+            if( !( received_messages_mask & orientation_standard_deviation_mask )) { std::cerr << "orientation_standard_deviation "; }
+            if( !( received_messages_mask & satellites_mask )) { std::cerr << "satellites "; }
             std::cerr << std::endl;
         }
     }
+
     void handle( const messages::raw_sensors* msg )
     {
         received_messages_mask |= raw_sensors_mask;
         std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
     }
+
     void handle( const messages::velocity_standard_deviation* msg )
     {
         received_messages_mask |= velocity_standard_deviation_mask;
         output.velocity_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
     }
+
     void handle( const messages::orientation_standard_deviation* msg )
     {
         received_messages_mask |= orientation_standard_deviation_mask;
         output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
     }
+
     void handle( const messages::satellites* msg )
     {
         received_messages_mask |= satellites_mask;
