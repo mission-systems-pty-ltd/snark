@@ -31,6 +31,7 @@ void usage( bool verbose )
     std::cerr << "\n";
     std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
     std::cerr << "\n        system-state:   system state packet (20)";
+    std::cerr << "\n        unix-time:      timestamp packet (21)";
     std::cerr << "\n        raw-sensors:    raw sensors packet (28)";
     std::cerr << "\n        satellites:     satellites packet (30)";
     std::cerr << "\n        filter-options: filter options packet (186)";
@@ -93,7 +94,7 @@ void usage( bool verbose )
 static void bash_completion()
 {
     std::cout << "--help --verbose"
-              << " raw-sensors system-state satellites magnetic-calibration navigation all packet-ids"
+              << " system-state unix-time raw-sensors satellites magnetic-calibration navigation all packet-ids"
               << " --output-fields --output-format --send --json"
               << " --magnetic-calibration-description --status --status-description"
               << std::endl;
