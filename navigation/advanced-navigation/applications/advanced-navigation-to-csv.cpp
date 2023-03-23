@@ -416,8 +416,7 @@ struct app_all : public app_t< output_all >
 
     void handle( const messages::system_state* msg )
     {
-        //make copy
-        memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
+        std::memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
         output_record();
     }
 
