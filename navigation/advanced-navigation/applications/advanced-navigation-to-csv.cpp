@@ -36,8 +36,11 @@ void usage( bool verbose )
     std::cerr << "\n        satellites:     satellites packet (30)";
     std::cerr << "\n        filter-options: filter options packet (186)";
     std::cerr << "\n        magnetic-calibration: magnetic calibration status packet (191)";
+    std::cerr << "\n";
     std::cerr << "\n        navigation:     navigation data from system-state packet (default)";
+    std::cerr << "\n        imu:            combine unix-time and raw-sensors packets";
     std::cerr << "\n        all:            combine several packets as described below";
+    std::cerr << "\n";
     std::cerr << "\n        packet-ids:     just display id's of all received packets";
     std::cerr << "\n";
     std::cerr << "\n        all is a combination of system-state(20), raw-sensors(28),";
@@ -118,6 +121,13 @@ struct output_nav
     uint16_t filter_status;
 };
 
+struct output_imu
+{
+    output_imu() {}
+    messages::unix_time unix_time;
+    messages::raw_sensors raw_sensors;
+};
+
 struct output_all
 {
     output_all() : velocity_stddev( 0, 0, 0 ), orientation_stddev( 0, 0, 0 ) {}
@@ -178,6 +188,16 @@ struct traits< output_nav >
         v.apply( "orientation", p.orientation );
         v.apply( "system_status", p.system_status );
         v.apply( "filter_status", p.filter_status );
+    }
+};
+
+template <>
+struct traits< output_imu >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const output_imu& p, Visitor& v )
+    {
+        v.apply( "", p.unix_time );
+        v.apply( "", p.raw_sensors );
     }
 };
 
@@ -273,6 +293,8 @@ struct app_packet_id : public app_t< output_packet_id >
     }
 };
 
+// ------------------------- navigation ------------------------
+//
 struct app_nav : public app_t< output_nav >
 {
     app_nav( const comma::command_line_options& options ) : app_t( options )
@@ -293,7 +315,65 @@ struct app_nav : public app_t< output_nav >
     }
 };
 
-/// accumulate several packets into one big output record
+// ---------------------------- imu ----------------------------
+//
+// accumulate unix-time and raw-sensors packets into one output record
+//
+// configure packets to output at the same rate, then packets are received in
+// order of lowest to highest packet id
+struct app_imu : public app_t< output_imu >
+{
+    enum {
+        unix_time_mask = 1,
+        raw_sensors_mask = 2,
+        all_mask = 3
+    };
+
+    unsigned int received_messages_mask;
+    unsigned int wait_for_all_counter;
+    output_imu output;
+
+    app_imu( const comma::command_line_options& options )
+        : app_t( options )
+        , received_messages_mask( 0 )
+        , wait_for_all_counter( 0 )
+    {}
+
+    void output_record()
+    {
+        if(( received_messages_mask & all_mask ) == all_mask )
+        {
+            os.write( output );
+            if( flush ) { os.flush(); }
+            received_messages_mask = 0;
+        }
+        else if( wait_for_all_counter++ == 100 )
+        {
+            std::cerr << "still waiting for ";
+            if( !( received_messages_mask & unix_time_mask )) { std::cerr << "unix_time "; }
+            if( !( received_messages_mask & raw_sensors_mask )) { std::cerr << "raw_sensors "; }
+            std::cerr << "messages" << std::endl;
+            wait_for_all_counter = 0;   // reset so we don't spam error logs
+        }
+    }
+
+    void handle( const messages::unix_time* msg )
+    {
+        received_messages_mask |= unix_time_mask;
+        std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
+    }
+
+    void handle( const messages::raw_sensors* msg )
+    {
+        received_messages_mask |= raw_sensors_mask;
+        std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
+        output_record();                // call output_record() on packet with highest id
+    }
+};
+
+// ---------------------------- all ----------------------------
+//
+// accumulate several packets into one big output record
 struct app_all : public app_t< output_all >
 {
     enum {
@@ -363,6 +443,8 @@ struct app_all : public app_t< output_all >
     }
 };
 
+// ----------------------- single packets ----------------------
+//
 template< typename T >
 struct app_packet : public app_t< T >
 {
@@ -472,6 +554,7 @@ int main( int argc, char** argv )
         std::string packet = unnamed[0];
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
+        else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
         else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
         else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet <messages::unix_time > >() ); }
