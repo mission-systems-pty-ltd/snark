@@ -44,7 +44,9 @@ void usage( bool verbose )
     std::cerr << "\n        packet-ids:     just display id's of all received packets";
     std::cerr << "\n";
     std::cerr << "\n        all is a combination of system-state(20), raw-sensors(28),";
-    std::cerr << "\n        velocity-std-dev(25), euler-orientation-std-dev(26) and satellites(30)";
+    std::cerr << "\n        velocity-std-dev(25), euler-orientation-std-dev(26) and satellites(30).";
+    std::cerr << "\n        It outputs on receipt of the satellites packet. If you are seeing no";
+    std::cerr << "\n        output use the packet-ids option to see what packets are being sent.";
     std::cerr << "\n";
     std::cerr << "\noptions:";
     std::cerr << "\n    --help,-h:         show help";
@@ -57,7 +59,6 @@ void usage( bool verbose )
     std::cerr << "\n    --sleep=<microseconds>: sleep between reading, default " << sleep_us;
     std::cerr << "\n    --status=<packet>: print out expanded status bit map of input values";
     std::cerr << "\n    --status-description=<packet>: print description of status bit field";
-    std::cerr << "\n    --wait-for-all:    when <packet>=all don't output until all types received";
     std::cerr << "\n";
     std::cerr << "\n    where <packet> is one of:";
     std::cerr << "\n        system_status,filter_status for --status";
@@ -70,20 +71,26 @@ void usage( bool verbose )
         std::cerr << comma::csv::options::usage();
         std::cerr << "\nexamples:";
         std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " all";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " raw-sensors";
+        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " imu";
+        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state";
         std::cerr << "\n";
-        std::cerr << "\n  see description of system_status values";
+        std::cerr << "\n    --- see description of system_status values ---";
         std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state \\";
         std::cerr << "\n        | " << comma::verbose.app_name() << " --fields system_status \\";
         std::cerr << "\n                                     --status system_status";
         std::cerr << "\n    echo 128 | " << comma::verbose.app_name() << " --status system_status --json";
         std::cerr << "\n";
-        std::cerr << "\n  see description of filter_status values";
+        std::cerr << "\n    --- see description of filter_status values ---";
         std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state \\";
         std::cerr << "\n        | " << comma::verbose.app_name() << " --fields ,filter_status \\";
         std::cerr << "\n                                     --status filter_status";
         std::cerr << "\n    echo 1029 | " << comma::verbose.app_name() << " --status filter_status";
         std::cerr << "\n    " << comma::verbose.app_name() << " --status-description filter_status";
+        std::cerr << "\n";
+        std::cerr << "\n    --- see packet data rates (hz,id) ---";
+        std::cerr << "\n    <raw-data> | timeout 2 " << comma::verbose.app_name() << " packet-ids \\";
+        std::cerr << "\n        | csv-paste - value=0 | csv-calc --fields id size \\";
+        std::cerr << "\n        | csv-eval --fields c --format d 'c*=0.5'";
         std::cerr << "\n";
         std::cerr << "\n  where <raw-data> is coming from advanced-navigation-cat or similar";
     }
@@ -323,125 +330,66 @@ struct app_nav : public app_t< output_nav >
 // order of lowest to highest packet id
 struct app_imu : public app_t< output_imu >
 {
-    enum {
-        unix_time_mask = 1,
-        raw_sensors_mask = 2,
-        all_mask = 3
-    };
-
-    unsigned int received_messages_mask;
-    unsigned int wait_for_all_counter;
     output_imu output;
 
     app_imu( const comma::command_line_options& options )
         : app_t( options )
-        , received_messages_mask( 0 )
-        , wait_for_all_counter( 0 )
     {}
-
-    void output_record()
-    {
-        if(( received_messages_mask & all_mask ) == all_mask )
-        {
-            os.write( output );
-            if( flush ) { os.flush(); }
-            received_messages_mask = 0;
-        }
-        else if( wait_for_all_counter++ == 100 )
-        {
-            std::cerr << "still waiting for ";
-            if( !( received_messages_mask & unix_time_mask )) { std::cerr << "unix_time "; }
-            if( !( received_messages_mask & raw_sensors_mask )) { std::cerr << "raw_sensors "; }
-            std::cerr << "messages" << std::endl;
-            wait_for_all_counter = 0;   // reset so we don't spam error logs
-        }
-    }
 
     void handle( const messages::unix_time* msg )
     {
-        received_messages_mask |= unix_time_mask;
         std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
     }
 
     void handle( const messages::raw_sensors* msg )
     {
-        received_messages_mask |= raw_sensors_mask;
         std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
-        output_record();                // call output_record() on packet with highest id
+        os.write( output );
+        if( flush ) { os.flush(); }
     }
 };
 
 // ---------------------------- all ----------------------------
 //
 // accumulate several packets into one big output record
+//
+// Configure packets to output at the same rate, then packets are received in
+// order of lowest to highest packet id. We output when we received the last packet.
+// All data is then guarenteed to align with the timestamp in the system state packet.
+// See section 13.6 of the Reference Manual for details.
 struct app_all : public app_t< output_all >
 {
-    enum {
-        velocity_standard_deviation_mask = 1,
-        orientation_standard_deviation_mask = 2,
-        raw_sensors_mask = 4,
-        satellites_mask = 8,
-        all_mask = 15
-    };
-
-    unsigned int received_messages_mask;
-    unsigned int wait_for_all_counter;
     output_all output;
 
     app_all( const comma::command_line_options& options )
         : app_t( options )
-        , received_messages_mask( 0 )
-        , wait_for_all_counter( 0 )
-    {
-        if( !options.exists( "--wait-for-all" )) { received_messages_mask = all_mask; }
-    }
-
-    void output_record()
-    {
-        if(( received_messages_mask & all_mask ) == all_mask )
-        {
-            os.write( output );
-            if( flush ) { os.flush(); }
-        }
-        else if( wait_for_all_counter++ == 100 )
-        {
-            std::cerr << "(--wait-for-all specified) still waiting for messages: ";
-            if( !( received_messages_mask & velocity_standard_deviation_mask )) { std::cerr << "velocity_standard_deviation "; }
-            if( !( received_messages_mask & orientation_standard_deviation_mask )) { std::cerr << "orientation_standard_deviation "; }
-            if( !( received_messages_mask & raw_sensors_mask )) { std::cerr << "raw_sensors "; }
-            if( !( received_messages_mask & satellites_mask )) { std::cerr << "satellites "; }
-            std::cerr << std::endl;
-        }
-    }
+    {}
 
     void handle( const messages::system_state* msg )
     {
         std::memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
-        output_record();
     }
 
     void handle( const messages::velocity_standard_deviation* msg )
     {
-        received_messages_mask |= velocity_standard_deviation_mask;
         output.velocity_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
     }
 
     void handle( const messages::orientation_standard_deviation* msg )
     {
-        received_messages_mask |= orientation_standard_deviation_mask;
         output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
     }
 
     void handle( const messages::raw_sensors* msg )
     {
-        received_messages_mask |= raw_sensors_mask;
         std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
     }
 
     void handle( const messages::satellites* msg )
     {
-        received_messages_mask |= satellites_mask;
         std::memcpy( output.satellites.data(), msg->data(), messages::satellites::size );
+        os.write( output );
+        if( flush ) { os.flush(); }
     }
 };
 
