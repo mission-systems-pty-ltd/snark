@@ -396,11 +396,8 @@ struct app_all : public app_t< output_all >
         if( !options.exists( "--wait-for-all" )) { received_messages_mask = all_mask; }
     }
 
-    void handle( const messages::system_state* msg )
+    void output_record()
     {
-        //make copy
-        memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
-
         if(( received_messages_mask & all_mask ) == all_mask )
         {
             os.write( output );
@@ -415,6 +412,13 @@ struct app_all : public app_t< output_all >
             if( !( received_messages_mask & satellites_mask )) { std::cerr << "satellites "; }
             std::cerr << std::endl;
         }
+    }
+
+    void handle( const messages::system_state* msg )
+    {
+        //make copy
+        memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
+        output_record();
     }
 
     void handle( const messages::raw_sensors* msg )
