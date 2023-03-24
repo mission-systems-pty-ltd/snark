@@ -154,6 +154,39 @@ struct traits< snark::navigation::advanced_navigation::messages::satellites >
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::acceleration >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::acceleration& p, Visitor& v )
+    {
+        v.apply( "x", p.x() );
+        v.apply( "y", p.y() );
+        v.apply( "z", p.z() );
+    }
+};
+
+template <>
+struct traits< snark::navigation::advanced_navigation::messages::euler_orientation >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::euler_orientation& p, Visitor& v )
+    {
+        v.apply( "roll", p.roll() );
+        v.apply( "pitch", p.pitch() );
+        v.apply( "heading", p.heading() );
+    }
+};
+
+template <>
+struct traits< snark::navigation::advanced_navigation::messages::angular_velocity >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::angular_velocity& p, Visitor& v )
+    {
+        v.apply( "x", p.x() );
+        v.apply( "y", p.y() );
+        v.apply( "z", p.z() );
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::external_time >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::external_time& p, Visitor& v )

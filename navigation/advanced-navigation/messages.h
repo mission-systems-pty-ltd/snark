@@ -209,6 +209,30 @@ struct satellites : public comma::packed::packed_struct< satellites, 13 >
     comma::packed::uint8 sbas_satellites;
 };
 
+struct acceleration : public comma::packed::packed_struct< acceleration, 12 >
+{
+    enum { id = 37 };
+    comma::packed::little_endian::float32 x;
+    comma::packed::little_endian::float32 y;
+    comma::packed::little_endian::float32 z;
+};
+
+struct euler_orientation : public comma::packed::packed_struct< euler_orientation, 12 >
+{
+    enum { id = 39 };
+    comma::packed::little_endian::float32 roll;
+    comma::packed::little_endian::float32 pitch;
+    comma::packed::little_endian::float32 heading;
+};
+
+struct angular_velocity : public comma::packed::packed_struct< angular_velocity, 12 >
+{
+    enum { id = 37 };
+    comma::packed::little_endian::float32 x;
+    comma::packed::little_endian::float32 y;
+    comma::packed::little_endian::float32 z;
+};
+
 struct external_time : public comma::packed::packed_struct< external_time, 8 >
 {
     enum { id = 52 };
