@@ -43,10 +43,15 @@ void usage( bool verbose )
     std::cerr << "\n";
     std::cerr << "\n        packet-ids:     just display id's of all received packets";
     std::cerr << "\n";
-    std::cerr << "\n        all is a combination of system-state(20), raw-sensors(28),";
-    std::cerr << "\n        velocity-std-dev(25), euler-orientation-std-dev(26) and satellites(30).";
-    std::cerr << "\n        It outputs on receipt of the satellites packet. If you are seeing no";
-    std::cerr << "\n        output use the packet-ids option to see what packets are being sent.";
+    std::cerr << "\n        imu is a combination of unix-time(21), euler-orientation-std-dev(26),";
+    std::cerr << "\n        acceleration(37), euler-orientation(39) and angular-velocity(42)";
+    std::cerr << "\n";
+    std::cerr << "\n        all is a combination of system-state(20), velocity-std-dev(25),";
+    std::cerr << "\n        euler-orientation-std-dev(26), raw-sensors(28) and satellites(30).";
+    std::cerr << "\n";
+    std::cerr << "\n        The combination packets output on receipt of their last packet.";
+    std::cerr << "\n        If you are seeing no output use the packet-ids option to see what";
+    std::cerr << "\n        packets are being sent.";
     std::cerr << "\n";
     std::cerr << "\noptions:";
     std::cerr << "\n    --help,-h:         show help";
@@ -132,7 +137,10 @@ struct output_imu
 {
     output_imu() {}
     messages::unix_time unix_time;
-    messages::raw_sensors raw_sensors;
+    Eigen::Vector3f orientation_stddev;
+    Eigen::Vector3f acceleration;
+    messages::euler_orientation orientation;
+    messages::angular_velocity angular_velocity;
 };
 
 struct output_all
@@ -204,7 +212,10 @@ struct traits< output_imu >
     template < typename Key, class Visitor > static void visit( const Key&, const output_imu& p, Visitor& v )
     {
         v.apply( "", p.unix_time );
-        v.apply( "", p.raw_sensors );
+        v.apply( "orientation", p.orientation );
+        v.apply( "orientation_stddev", p.orientation_stddev );
+        v.apply( "angular_velocity", p.angular_velocity );
+        v.apply( "acceleration", p.acceleration );
     }
 };
 
@@ -336,14 +347,34 @@ struct app_imu : public app_t< output_imu >
         : app_t( options )
     {}
 
+    // Unix Time, packet id 21
     void handle( const messages::unix_time* msg )
     {
         std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
     }
 
-    void handle( const messages::raw_sensors* msg )
+    // Euler Orientation Std Dev, packet id 26
+    void handle( const messages::orientation_standard_deviation* msg )
     {
-        std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
+        output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
+    }
+
+    // Acceleration, packet id 37
+    void handle( const messages::acceleration* msg )
+    {
+        std::memcpy( output.acceleration.data(), msg->data(), messages::acceleration::size );
+    }
+
+    // Euler Orientation, packet id 39
+    void handle( const messages::euler_orientation* msg )
+    {
+        std::memcpy( output.orientation.data(), msg->data(), messages::euler_orientation::size );
+    }
+
+    // Angular Velocity, packet id 42
+    void handle( const messages::angular_velocity* msg )
+    {
+        std::memcpy( output.angular_velocity.data(), msg->data(), messages::angular_velocity::size );
         os.write( output );
         if( flush ) { os.flush(); }
     }
