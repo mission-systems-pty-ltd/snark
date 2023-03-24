@@ -180,8 +180,7 @@ struct velocity_standard_deviation : public comma::packed::packed_struct< veloci
     boost::array< comma::packed::little_endian::float32, 3 > stddev;
 };
 
-//euler_orientation_standard_deviation_packet_t
-struct orientation_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
+struct orientation_standard_deviation : public comma::packed::packed_struct< orientation_standard_deviation, 12 >
 {
     enum { id = 26 };
     boost::array< comma::packed::little_endian::float32, 3 > stddev;
