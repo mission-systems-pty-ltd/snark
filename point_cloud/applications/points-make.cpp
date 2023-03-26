@@ -179,6 +179,8 @@ struct sphere : public operation_t< Eigen::Vector3d >
         std::cerr << "\n        --fill; todo";
         std::cerr << "\n        --radius=<radius>";
         std::cerr << "\n        --center,-c=<point>; default=0,0,0";
+        std::cerr << "\n        --fibonacci; fibonacci spiral-based sphere, a reasonably uniform distribution";
+        std::cerr << "\n                     todo: a more accurate uniform distribution";
         std::cerr << "\n        --resolution,-r=<resolution>; roughly how far points need to be from each other; default=1";
         std::cerr << "\n        --random; output random points";
         std::cerr << "\n        --random-seed,--seed,-s=<seed>; if present, output uniform random sample on sphere";
@@ -198,16 +200,21 @@ struct sphere : public operation_t< Eigen::Vector3d >
     static int run( const comma::command_line_options& options )
     {
         options.assert_mutually_exclusive( "--resolution,-r", "--size" );
+        options.assert_mutually_exclusive( "--fibonacci", "--fill,--random,--seed,--random-seed,-s" );
+        options.assert_exists_if( "--fibonacci", "--size" );
         bool fill = options.exists( "--fill" );
         auto center = comma::csv::ascii< Eigen::Vector3d >().get( options.value< std::string >( "--center,-c", "0,0,0" ) );
         double radius = options.value< double >( "--radius" );
         auto resolution = options.value( "--resolution,-r", 1.0 );
         auto size = options.optional< unsigned int >( "--size" );
+        bool fibonacci = options.exists( "--fibonacci" );
+        if( fibonacci && !size ) { COMMA_THROW( comma::exception, "for --fibonacci, please specify --size" ); }
         auto seed = options.optional< std::string >( "--random-seed,--seed,-s" );
         if( options.exists( "--random" ) && !seed ) { seed = "0"; } // quick and dirty
         comma::csv::output_stream< Eigen::Vector3d > ostream( std::cout, comma::csv::options( options ) );
         if( seed )
         {
+            if( size ) { COMMA_THROW( comma::exception, "sphere: --size for --random: todo; meanwhile use --resolution" ); }
             points_make::random rd( *seed );
             unsigned int n = size ? *size
                                   : fill ? ( ( radius * radius * radius * 4. / 3. * M_PI ) / ( resolution * resolution * resolution / ( 6. * std::sqrt( 2 ) ) ) ) * 4 / 20  // quick and dirty: assuming resolution much less than radius
@@ -215,34 +222,48 @@ struct sphere : public operation_t< Eigen::Vector3d >
             for( unsigned int i = 0; i < n; ++i )
             {
                 double a = ( rd() * 2 - 1 ) * M_PI;
-                double e = std::asin( rd() * 2 - 1 ); // todo: improve; even though it's reasonably uniform, there are local irregularities
+                double e = std::asin( rd() * 2 - 1 ); // todo: improve; even though it'sfibo reasonably uniform, there are local irregularities
                 double r = ( fill ? std::pow( rd(), 1. / 3 ) : 1 ) * radius;
                 ostream.write( snark::range_bearing_elevation( r, a, e ).to_cartesian() + center );
             }
         }
         else
         {
-            if( size ) { COMMA_THROW( comma::exception, "sphere: --size for --random: todo; meanwhile use --resolution" ); }
             if( fill )
             {
-                COMMA_THROW( comma::exception, "sphere: --fill" );
+                COMMA_THROW( comma::exception, "sphere: --fill: implemented only for --random" );
             }
             else
             {
-                double as = std::asin( ( resolution / 2 ) / radius ) * 2;
-                for( double a = 0; a < M_PI * 2; a += as ) { ostream.write( snark::range_bearing_elevation( radius, a, 0 ).to_cartesian() + center ); }
-                double es = std::asin( resolution / radius * std::sqrt( 3 ) / 2 );
-                double t = 0;
-                for( double e = es; e < M_PI / 2; e += es )
+                if( fibonacci )
                 {
-                    t = 0.5 - t; // quick and dirty
-                    double s = std::asin( ( resolution / 2 ) / ( radius * std::cos( e ) ) ) * 2;
-                    for( double a = s * t; a < M_PI * 2; a += s )
+                    double phi = M_PI * ( 3 - std::sqrt( 5. ) );
+                    double theta = 0;
+                    for( unsigned int i = 0; i < *size; ++i, theta += phi )
                     {
-                        auto p = snark::range_bearing_elevation( radius, a, e ).to_cartesian();
-                        ostream.write( p + center );
-                        p[2] = -p[2];
-                        ostream.write( p + center );
+                        double y = 1 - double( i * 2 ) / ( *size - 1 );
+                        double r = std::sqrt( 1 - y * y );
+                        Eigen::Vector3d p;
+                        ostream.write( Eigen::Vector3d( std::cos( theta ) * r, y, std::sin( theta ) * r ) * radius + center );
+                    }
+                }
+                else
+                {
+                    double as = std::asin( ( resolution / 2 ) / radius ) * 2;
+                    for( double a = 0; a < M_PI * 2; a += as ) { ostream.write( snark::range_bearing_elevation( radius, a, 0 ).to_cartesian() + center ); }
+                    double es = std::asin( resolution / radius * std::sqrt( 3 ) / 2 );
+                    double t = 0;
+                    for( double e = es; e < M_PI / 2; e += es )
+                    {
+                        t = 0.5 - t; // quick and dirty
+                        double s = std::asin( ( resolution / 2 ) / ( radius * std::cos( e ) ) ) * 2;
+                        for( double a = s * t; a < M_PI * 2; a += s )
+                        {
+                            auto p = snark::range_bearing_elevation( radius, a, e ).to_cartesian();
+                            ostream.write( p + center );
+                            p[2] = -p[2];
+                            ostream.write( p + center );
+                        }
                     }
                 }
             }
@@ -518,7 +539,7 @@ int main( int argc, char** argv )
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) { bash_completion( argc, argv ); }
-        std::vector< std::string > unnamed = options.unnamed( "--help,-h,--fill,--flush,--random,--verbose,-v", "--.*" );
+        std::vector< std::string > unnamed = options.unnamed( "--help,-h,--fibonacci,--fill,--flush,--random,--verbose,-v", "--.*" );
         if( unnamed.empty() ) { std::cerr << "points-make: please specify operation" << std::endl; return 1; }
         std::string operation = unnamed[0];
         if( operation == "box" ) { return run< snark::points_make::box >( options ); }
