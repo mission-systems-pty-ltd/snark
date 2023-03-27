@@ -160,6 +160,15 @@ void device::process()
                 case messages::satellites::id:
                     handle( reinterpret_cast< messages::satellites* >( &buf[msg_start] ));
                     break;
+                case messages::acceleration::id:
+                    handle( reinterpret_cast< messages::acceleration* >( &buf[msg_start] ));
+                    break;
+                case messages::euler_orientation::id:
+                    handle( reinterpret_cast< messages::euler_orientation* >( &buf[msg_start] ));
+                    break;
+                case messages::angular_velocity::id:
+                    handle( reinterpret_cast< messages::angular_velocity* >( &buf[msg_start] ));
+                    break;
                 case messages::filter_options::id:
                     handle( reinterpret_cast< messages::filter_options* >( &buf[msg_start] ));
                     break;

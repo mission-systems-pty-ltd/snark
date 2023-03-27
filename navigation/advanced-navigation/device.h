@@ -30,6 +30,9 @@ protected:
     virtual void handle( const messages::orientation_standard_deviation* msg ) {}
     virtual void handle( const messages::raw_sensors* msg ) {}
     virtual void handle( const messages::satellites* msg ) {}
+    virtual void handle( const messages::acceleration* msg ) {}
+    virtual void handle( const messages::euler_orientation* msg ) {}
+    virtual void handle( const messages::angular_velocity* msg ) {}
     virtual void handle( const messages::filter_options* msg ) {}
     virtual void handle( const messages::magnetic_calibration_status* msg ) {}
     virtual void handle_raw( messages::header* msg_header, const char* msg_data,std::size_t msg_data_length) {}
