@@ -227,7 +227,7 @@ struct euler_orientation : public comma::packed::packed_struct< euler_orientatio
 
 struct angular_velocity : public comma::packed::packed_struct< angular_velocity, 12 >
 {
-    enum { id = 37 };
+    enum { id = 42 };
     comma::packed::little_endian::float32 x;
     comma::packed::little_endian::float32 y;
     comma::packed::little_endian::float32 z;
