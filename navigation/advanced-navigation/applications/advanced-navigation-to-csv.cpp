@@ -30,13 +30,17 @@ void usage( bool verbose )
     std::cerr << "\n       " << comma::verbose.app_name() << " --status-description=<packet>";
     std::cerr << "\n";
     std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
-    std::cerr << "\n        system-state:   system state packet (20)";
-    std::cerr << "\n        unix-time:      timestamp packet (21)";
-    std::cerr << "\n        raw-sensors:    raw sensors packet (28)";
-    std::cerr << "\n        satellites:     satellites packet (30)";
-    std::cerr << "\n        filter-options: filter options packet (186)";
-    std::cerr << "\n        magnetic-calibration: magnetic calibration status packet (191)";
+    std::cerr << "\n        system-state (20)";
+    std::cerr << "\n        unix-time (21)";
+    std::cerr << "\n        raw-sensors (28)";
+    std::cerr << "\n        satellites (30)";
+    std::cerr << "\n        acceleration (37)";
+    std::cerr << "\n        euler-orientation (39)";
+    std::cerr << "\n        angular-velocity (42)";
+    std::cerr << "\n        filter-options (186)";
+    std::cerr << "\n        magnetic-calibration (191)";
     std::cerr << "\n";
+    std::cerr << "\n    or a combination or subset of packets";
     std::cerr << "\n        navigation:     navigation data from system-state packet (default)";
     std::cerr << "\n        imu:            combine unix-time and raw-sensors packets";
     std::cerr << "\n        all:            combine several packets as described below";
@@ -541,6 +545,9 @@ int main( int argc, char** argv )
         else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet <messages::unix_time > >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
+        else if( packet == "acceleration" ) { factory.reset( new factory_t< app_packet< messages::acceleration > >() ); }
+        else if( packet == "euler-orientation" ) { factory.reset( new factory_t< app_packet< messages::euler_orientation > >() ); }
+        else if( packet == "angular-velocity" ) { factory.reset( new factory_t< app_packet< messages::angular_velocity > >() ); }
         else if( packet == "external-time" ) { factory.reset( new factory_t< app_packet <messages::external_time > >() ); }
         else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
