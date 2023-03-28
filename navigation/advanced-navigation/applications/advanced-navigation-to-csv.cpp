@@ -47,8 +47,9 @@ void usage( bool verbose )
     std::cerr << "\n";
     std::cerr << "\n        packet-ids:     just display id's of all received packets";
     std::cerr << "\n";
-    std::cerr << "\n        imu is a combination of unix-time(21), euler-orientation-std-dev(26),";
-    std::cerr << "\n        acceleration(37), euler-orientation(39) and angular-velocity(42)";
+    std::cerr << "\n        imu is a combination of unix-time(21), raw-sensors(28),";
+    std::cerr << "\n        euler-orientation-std-dev(26), euler-orientation(39) and";
+    std::cerr << "\n        angular-velocity(42)";
     std::cerr << "\n";
     std::cerr << "\n        all is a combination of system-state(20), velocity-std-dev(25),";
     std::cerr << "\n        euler-orientation-std-dev(26), raw-sensors(28) and satellites(30).";
@@ -141,8 +142,8 @@ struct output_imu
 {
     output_imu() {}
     messages::unix_time unix_time;
+    messages::raw_sensors raw_sensors;
     Eigen::Vector3f orientation_stddev;
-    Eigen::Vector3f acceleration;
     messages::euler_orientation orientation;
     messages::angular_velocity angular_velocity;
 };
@@ -216,10 +217,10 @@ struct traits< output_imu >
     template < typename Key, class Visitor > static void visit( const Key&, const output_imu& p, Visitor& v )
     {
         v.apply( "", p.unix_time );
+        v.apply( "", p.raw_sensors );
         v.apply( "orientation", p.orientation );
         v.apply( "orientation_stddev", p.orientation_stddev );
         v.apply( "angular_velocity", p.angular_velocity );
-        v.apply( "acceleration", p.acceleration );
     }
 };
 
@@ -363,10 +364,10 @@ struct app_imu : public app_t< output_imu >
         output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
     }
 
-    // Acceleration, packet id 37
-    void handle( const messages::acceleration* msg )
+    // Raw Sensors, packet id 28
+    void handle( const messages::raw_sensors* msg )
     {
-        std::memcpy( output.acceleration.data(), msg->data(), messages::acceleration::size );
+        std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
     }
 
     // Euler Orientation, packet id 39
