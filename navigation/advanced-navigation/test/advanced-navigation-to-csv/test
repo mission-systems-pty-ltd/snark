@@ -12,7 +12,7 @@ function read_packets()
         | name-value-from-csv $( advanced-navigation-to-csv $packet --output-fields ) --line-number --prefix ${prefix}
 }
 
-cat ../data/packets-20-28 | read_packets all
+cat ../data/packets-20-30 | read_packets all
 cat ../data/packets-20-28 | read_packets navigation
 cat ../data/packets-20-28 | read_packets raw-sensors 0
 cat ../data/packets-20-28 | read_packets system-state 0
