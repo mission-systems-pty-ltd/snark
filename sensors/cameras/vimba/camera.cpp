@@ -21,7 +21,8 @@ camera::camera( const std::string& camera_id )
     , last_frame_id_( 0 )
 {
     camera_ = system::open_camera( camera_id );
-    camera_->GetInterfaceType( interface_type_ );
+    VmbErrorType status = camera_->GetInterfaceType( interface_type_ );
+    if( status != VmbErrorSuccess ) { comma::say() << error_msg( std::string("couldn't get interface type for camera ") + camera_id, status ) << std::endl; }
 }
 
 camera::camera( const AVT::VmbAPI::CameraPtr& camera_ptr )
@@ -30,7 +31,8 @@ camera::camera( const AVT::VmbAPI::CameraPtr& camera_ptr )
     , acquisition_mode_( ACQUISITION_MODE_UNKNOWN )
     , last_frame_id_( 0 )
 {
-    camera_->GetInterfaceType( interface_type_ );
+    VmbErrorType status = camera_->GetInterfaceType( interface_type_ );
+    if( status != VmbErrorSuccess ) { std::string id; camera_->GetID( id );  comma::say() << error_msg( std::string("couldn't get interface type for camera ") + id, status ) << std::endl; }
 }
 
 camera::~camera()
