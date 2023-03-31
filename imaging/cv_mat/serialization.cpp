@@ -1,32 +1,4 @@
-// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the University of Sydney nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 #include <stdio.h>
 #include <sstream>
@@ -78,10 +50,11 @@ serialization::serialization() :
     m_binary->put( m_header, &m_buffer[0]); // make sure that the default timestamp (if not read from input) is not-a-date-time, and not 19700101T00000
 }
 
-serialization::serialization( const std::string& fields, const comma::csv::format& format, bool headerOnly, const header& default_header ):
-    m_buffer( format.size() ),
-    m_headerOnly( headerOnly ),
-    m_header( default_header )
+serialization::serialization( const std::string& fields, const comma::csv::format& format, bool headerOnly, const header& default_header, bool set_timestamp )
+    : m_buffer( format.size() )
+    , m_headerOnly( headerOnly )
+    , m_header( default_header )
+    , _set_timestamp( set_timestamp )
 {
     if( !fields.empty() )
     { 
@@ -97,6 +70,7 @@ serialization::serialization( const std::string& fields, const comma::csv::forma
 }
 
 serialization::serialization( const serialization::options& options )
+    : _set_timestamp( options.timestamp )
 {
     if( options.no_header && options.header_only ) { COMMA_THROW( comma::exception, "cannot have no-header and header-only at the same time" ); }
     std::string fields = options.fields.empty() ? header::default_fields() : options.fields;
@@ -153,13 +127,10 @@ std::pair< boost::posix_time::ptime, cv::Mat > serialization::get( const char* b
 
 serialization::header serialization::get_header( const char* buf ) const
 {
-    if( m_binary )
-    {
-        header h;
-        m_binary->get( h, buf );
-        return h;
-    }
-    return m_header;
+    if( !m_binary ) { return m_header; }
+    header h;
+    m_binary->get( h, buf );
+    return h;
 }
 
 const std::vector< char >& serialization::header_buffer() const { return m_buffer; }
@@ -171,16 +142,11 @@ std::size_t serialization::size( const cv::Mat& m ) const
     return headerSize + ( m.dataend - m.datastart );
 }
 
-std::size_t serialization::size(const std::pair< serialization::header::buffer_t, cv::Mat >& m) const
-{
-    return size(m.second);
-}
-
+std::size_t serialization::size( const std::pair< serialization::header::buffer_t, cv::Mat >& m ) const { return size( m.second ); }
 
 std::size_t serialization::size( const std::pair< boost::posix_time::ptime, cv::Mat >& m ) const { return size( m.second ); }
 
-template <>
-std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< serialization::header::buffer_t >( std::istream& is )
+template <> std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< serialization::header::buffer_t >( std::istream& is )
 {
     std::pair< serialization::header::buffer_t, cv::Mat > p;
     if( m_binary )
@@ -190,6 +156,11 @@ std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< seria
         if( count <= 0 ) { return p; }
         if( count < int( m_buffer.size() ) ) { COMMA_THROW( comma::exception, "expected " << m_buffer.size() << " bytes, got " << count ); }        
         m_binary->get( m_header, &m_buffer[0] );
+    }
+    if( _set_timestamp ) // quick and dirty; todo: watch performance!
+    {
+        m_header.timestamp = boost::posix_time::microsec_clock::universal_time();
+        m_binary->put( m_header, &m_buffer[0] );
     }
     p.first = m_buffer;
     try
@@ -208,11 +179,10 @@ std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< seria
     return count < int( size ) ? std::pair< serialization::header::buffer_t, cv::Mat >() : p;
 }
 
-template <>
-std::pair< boost::posix_time::ptime, cv::Mat > serialization::read< boost::posix_time::ptime >( std::istream& is )
+template <> std::pair< boost::posix_time::ptime, cv::Mat > serialization::read< boost::posix_time::ptime >( std::istream& is )
 {
     std::pair< serialization::header::buffer_t, cv::Mat > p = read< serialization::header::buffer_t >( is );
-    return std::make_pair( m_header.timestamp, p.second );
+    return std::make_pair( _set_timestamp ? boost::posix_time::microsec_clock::universal_time() : m_header.timestamp, p.second );
 }
 
 void serialization::write( std::ostream& os, const std::pair< boost::posix_time::ptime, cv::Mat >& m, bool flush )
@@ -426,6 +396,7 @@ std::string serialization::options::usage()
     stream << "    rows=<rows>: default number of rows (input only)\n";
     stream << "    cols=<cols>: default number of columns (input only)\n";
     stream << "    type=<type>: default image type (input only)\n";
+    stream << "    timestamp: if present, set to timestamp to current UTC time\n";
     stream << type_usage();
     return stream.str();
 }

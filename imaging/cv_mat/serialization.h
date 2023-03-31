@@ -53,13 +53,13 @@ class serialization
             std::string fields;
             comma::csv::format format;
             
-            comma::uint32 rows;
-            comma::uint32 cols;
+            comma::uint32 rows{0};
+            comma::uint32 cols{0};
             std::string type;
-            bool no_header;
-            bool header_only;
+            bool no_header{false};
+            bool header_only{false};
+            bool timestamp{false};
             
-            options() : rows( 0 ), cols( 0 ), no_header( false ), header_only( false ) {}
             header get_header() const; /// make header (to be used as default)
             static std::string usage();
             static std::string type_usage();
@@ -69,7 +69,7 @@ class serialization
         serialization();
 
         /// constructor
-        serialization( const std::string& fields, const comma::csv::format& format, bool headerOnly = false, const header& default_header = header() );
+        serialization( const std::string& fields, const comma::csv::format& format, bool headerOnly = false, const header& default_header = header(), bool set_timestamp = false );
         
         /// constructor
         serialization( const options& options );
@@ -127,6 +127,7 @@ class serialization
         std::vector< char > m_buffer;
         bool m_headerOnly;
         header m_header; /// default header
+        bool _set_timestamp{false};
 };
 
 } }  // namespace snark{ namespace cv_mat {
@@ -170,6 +171,7 @@ template <> struct traits< snark::cv_mat::serialization::options >
         v.apply( "type", h.type );
         v.apply( "no-header", h.no_header );
         v.apply( "header-only", h.header_only );
+        v.apply( "timestamp", h.timestamp );
     }
 
     template < typename K, typename V >
@@ -182,6 +184,7 @@ template <> struct traits< snark::cv_mat::serialization::options >
         v.apply( "type", h.type );
         v.apply( "no-header", h.no_header );
         v.apply( "header-only", h.header_only );
+        v.apply( "timestamp", h.timestamp );
     }
 };
 
