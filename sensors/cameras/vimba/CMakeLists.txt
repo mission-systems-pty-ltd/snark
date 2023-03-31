@@ -130,6 +130,7 @@ dotted_version_to_int_version( VIMBA_SDK_VERSION_INT ${VIMBA_SDK_VERSION} )
 message( STATUS "VIMBA_SDK_VERSION_INT=${VIMBA_SDK_VERSION_INT}" )
 
 add_compile_definitions( VIMBA_SDK_VERSION=${VIMBA_SDK_VERSION_INT} )
+add_compile_definitions( VIMBA_SDK_DOTTED_VERSION=${VIMBA_SDK_VERSION} )
 
 # Set up an environment variable default
 #

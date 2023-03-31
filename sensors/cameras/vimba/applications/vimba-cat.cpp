@@ -241,9 +241,6 @@ static void print_stats( const snark::vimba::camera& camera )
 }
 
 
-#define QUOTED( arg ) #arg
-#define STRINGIZED( arg ) QUOTED( arg )
-
 int main( int argc, char** argv )
 {
     if( !getenv( "GENICAM_GENTL64_PATH" ))
@@ -264,8 +261,16 @@ int main( int argc, char** argv )
         if( options.exists( "--version" ))
         {
             VmbVersionInfo_t version = snark::vimba::system::vmb_version();
+            std::cout << "Vimba SDK version: " << snark::vimba::system::sdk_version() << std::endl;
             std::cout << "Vimba library version: " << version.major << "." << version.minor << "." << version.patch << std::endl;
             std::cout << "GENICAM_GENTL64_PATH=" << getenv( "GENICAM_GENTL64_PATH" ) << std::endl;
+            std::cout << "PTP supported: ";
+            #ifdef VIMBA_PTP_SUPPORT
+            std::cout << "yes";
+            #else
+            std::cout << "no";
+            #endif
+            std::cout << std::endl;
             return 0;
         }
 

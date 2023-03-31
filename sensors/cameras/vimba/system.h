@@ -7,6 +7,9 @@
 
 #include <VimbaCPP/Include/VimbaSystem.h>
 
+#define QUOTED( arg ) #arg
+#define STRINGIZED( arg ) QUOTED( arg )
+
 namespace snark { namespace vimba {
 
 class system
@@ -17,6 +20,7 @@ public:
     system();
     ~system() { instance.Shutdown(); }
 
+    static std::string sdk_version() { return STRINGIZED( VIMBA_SDK_DOTTED_VERSION ); }
     static VmbVersionInfo_t vmb_version();
     static version_t version();
     static AVT::VmbAPI::CameraPtrVector cameras();
