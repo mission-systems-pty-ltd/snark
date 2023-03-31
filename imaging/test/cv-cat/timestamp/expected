@@ -1,0 +1,10 @@
+timestamp[0]/output="20170102T001122"
+timestamp[0]/status=0
+timestamp[1]/output != "20170102T001122"
+timestamp[1]/status=0
+timestamp[2]/output="not-a-date-time"
+timestamp[2]/status=0
+timestamp[3]/output != "not-a-date-time"
+timestamp[3]/status=0
+timestamp[4]/output != "not-a-date-time"
+timestamp[4]/status=0

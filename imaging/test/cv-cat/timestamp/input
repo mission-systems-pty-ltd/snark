@@ -1,0 +1,6 @@
+timestamp[0]="echo 20170102T001122,2,3,0,0,1,2,3,4,5 | csv-to-bin t,3ui,6ub | cv-cat --output header-only | csv-from-bin t,3ui | cut -d, -f1"
+timestamp[1]="echo 20170102T001122,2,3,0,0,1,2,3,4,5 | csv-to-bin t,3ui,6ub | cv-cat --input timestamp --output header-only | csv-from-bin t,3ui | cut -d, -f1"
+timestamp[2]="echo 0,1,2,3,4,5 | csv-to-bin 6ub | cv-cat --input 'rows=2;cols=3;type=ub;no-header' --output header-only | csv-from-bin t,3ui | cut -d, -f1"
+timestamp[3]="echo 0,1,2,3,4,5 | csv-to-bin 6ub | cv-cat --input 'rows=2;cols=3;type=ub;no-header;timestamp' --output header-only | csv-from-bin t,3ui | cut -d, -f1"
+timestamp[4]="echo 0,1,2,3,4,5 | csv-to-bin 6ub | cv-cat --input 'rows=2;cols=3;type=ub;no-header;timestamp' --output header | head -c20 | csv-from-bin t,3ui | cut -d, -f1"
+# todo: non-default header fields
