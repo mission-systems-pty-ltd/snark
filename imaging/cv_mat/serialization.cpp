@@ -81,7 +81,11 @@ serialization::serialization( const serialization::options& options )
     m_buffer.resize( format.size() );
     m_headerOnly = options.header_only;
     m_header = options.get_header();
-    if( !options.no_header )
+    if( options.no_header )
+    {
+        _no_header_binary.reset( comma::csv::binary< header >( "t,3ui", "t,rows,cols,type", false, m_header ) );
+    }
+    else
     { 
         m_binary.reset( comma::csv::binary< header >( format.string(), fields, false, m_header ) );
         for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "t" ) { v[i] = ""; } } 
@@ -98,10 +102,11 @@ bool serialization::no_header() const { return !static_cast< bool >( m_binary );
 
 std::size_t serialization::put( const std::pair< boost::posix_time::ptime, cv::Mat >& p, char* buf ) const
 {
-    if( m_binary )
+    const auto& b = m_binary ? m_binary : _no_header_binary;
+    if( b )
     {
         header h( p );
-        m_binary->put( h, buf );
+        b->put( h, buf );
     }
     std::size_t size = p.second.dataend - p.second.datastart;
     ::memcpy( buf + m_binary->format().size(), p.second.datastart, size );
@@ -160,7 +165,7 @@ template <> std::pair< serialization::header::buffer_t, cv::Mat > serialization:
     if( _set_timestamp ) // quick and dirty; todo: watch performance!
     {
         m_header.timestamp = boost::posix_time::microsec_clock::universal_time();
-        m_binary->put( m_header, &m_buffer[0] );
+        ( m_binary ? m_binary : _no_header_binary )->put( m_header, &m_buffer[0] );
     }
     p.first = m_buffer;
     try

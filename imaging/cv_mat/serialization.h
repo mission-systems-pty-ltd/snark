@@ -122,6 +122,7 @@ class serialization
 
     private:
         boost::optional< comma::csv::binary< header > > m_binary;
+        boost::optional< comma::csv::binary< header > > _no_header_binary;
         /// Same header binary as m_binary, however it ignores the timestamp field 't'
         boost::optional< comma::csv::binary< header > > m_binary_no_timestamp; // ignores timestamp 't' field
         std::vector< char > m_buffer;
