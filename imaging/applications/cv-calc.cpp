@@ -30,8 +30,9 @@
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include "../../imaging/cv_mat/filters.h"
-#include "../../imaging/cv_mat/serialization.h"
 #include "../../imaging/cv_mat/filters/life.h"
+#include "../../imaging/cv_mat/serialization.h"
+#include "../../imaging/cv_mat/traits.h"
 #include "../../visiting/eigen.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
@@ -716,21 +717,6 @@ template <> struct traits< stride_positions_t >
     {
         v.apply( "index", p.index );
         traits< ::positions_t >::visit( k, p, v );
-    }
-};
-
-template < typename T > struct traits< cv::Point_< T > >
-{
-    template < typename Key, class Visitor > static void visit( const Key&, cv::Point_< T >& p, Visitor& v )
-    {
-        v.apply( "x", p.x );
-        v.apply( "y", p.y );
-    }
-
-    template < typename Key, class Visitor > static void visit( const Key&, const cv::Point_< T >& p, Visitor& v )
-    {
-        v.apply( "x", p.x );
-        v.apply( "y", p.y );
     }
 };
 
