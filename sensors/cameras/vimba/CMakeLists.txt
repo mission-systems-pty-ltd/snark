@@ -129,7 +129,7 @@ endfunction()
 dotted_version_to_int_version( VIMBA_SDK_VERSION_INT ${VIMBA_SDK_VERSION} )
 message( STATUS "VIMBA_SDK_VERSION_INT=${VIMBA_SDK_VERSION_INT}" )
 
-set_source_files_properties( ${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "-DVIMBA_SDK_VERSION=${VIMBA_SDK_VERSION_INT}" )
+add_compile_definitions( VIMBA_SDK_VERSION=${VIMBA_SDK_VERSION_INT} )
 
 # Set up an environment variable default
 #
