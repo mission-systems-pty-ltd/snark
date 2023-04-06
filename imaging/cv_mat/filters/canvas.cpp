@@ -44,10 +44,10 @@ std::string canvas< H >::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "canvas=<width>,<height>,<x>,<y>,<color>; make a larger canvas under image\n";
+    oss << i << "canvas=<width>,<height>[,<x>,<y>][,<color>]; make a larger canvas under image\n";
     oss << i << "    options\n";
     oss << i << "        <width>,<height>: canvas size\n";
-    oss << i << "        <x>,<y>: image origin\n";
+    oss << i << "        <x>,<y>: image origin, default: 0,0\n";
     oss << i << "        <canvas_color>: default: black\n";
     return oss.str();
 }
