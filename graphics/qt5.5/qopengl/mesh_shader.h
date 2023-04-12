@@ -31,12 +31,11 @@ typedef aiVector3D mesh_vertex_t;
 /// model vertex has a 3d point and its normalized texture position
 struct mesh_data
 {
-    Eigen::Vector3f* vertices;
-    Eigen::Vector3f* normals;
-    unsigned size;
-    unsigned int* faces;
-    unsigned faces_size;
-    mesh_data();
+    Eigen::Vector3f* vertices{nullptr};
+    Eigen::Vector3f* normals{nullptr};
+    unsigned size{0};
+    unsigned int* faces{nullptr};
+    unsigned faces_size{0};
     //Eigen::Vector2f texture_coords
 //     model_vertex(float x,float y,float z,float ox,float oy);
     // material index?
@@ -45,7 +44,7 @@ struct mesh_data
  * x mesh_data -> mesh
  * x mesh -> model
  * x mesh_shader -> model_shader
- * x each model has one transform and multiple mesh
+ * x each model has one transform and multiple meshes
  * x each mesh has one material? -> material should go with vertex data
  *          that wouldn't work, 
  *      alt1 -> bind and run program for each transform
@@ -54,6 +53,9 @@ struct mesh_data
  */
 /// a mesh paints vertices, normals and one material
 /// each model consists of one or more meshes
+/// todo? something like:
+/// - https://doc.qt.io/qt-6/qtopengl-cube-example.html
+/// - https://learnopengl.com/Model-Loading/Mesh
 class mesh : protected QOpenGLFunctions
 {
 public:

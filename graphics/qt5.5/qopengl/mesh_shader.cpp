@@ -52,8 +52,6 @@ static const char *fragment_shader_source = R"(
     }
 )";
 
-mesh_data::mesh_data() : vertices(NULL), normals(NULL), size(0), faces(NULL), faces_size(0) { }
-
 mesh_shader::mesh_shader() { model_transform.setToIdentity(); }
 
 mesh_shader::~mesh_shader() { clear(); }

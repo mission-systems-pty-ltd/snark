@@ -149,19 +149,18 @@ void widget::paintGL()
     for( auto& i : mesh_shaders ) { i->paint( t, size() ); }
 
     painter.endNativePainting();
-
     painter.setPen( Qt::gray );
     painter.setFont( QFont( "Arial", 10 ));
     painter.drawText( rect()
                     , Qt::AlignRight | Qt::AlignBottom
-                    , QString("centre of rotation: %1 %2 %3").arg( camera.center.x() )
-                                                             .arg( camera.center.y() )
-                                                             .arg( camera.center.z() ));
+                    , QString( "centre of rotation: %1 %2 %3" ).arg( camera.center.x() )
+                                                               .arg( camera.center.y() )
+                                                               .arg( camera.center.z() ));
 }
 
 void widget::set_far_plane( float f )
 {
-    camera.far_plane=f;
+    camera.far_plane = f;
     camera.update_projection();
     update();
 }
@@ -175,12 +174,12 @@ void widget::mouseMoveEvent( QMouseEvent *event )
     float dx = event->x() - last_pos_.x();
     float dy = event->y() - last_pos_.y();
 
-    if ( event->buttons() & Qt::LeftButton )
+    if( event->buttons() & Qt::LeftButton )
     {
         camera.pivot(dx,dy);
         update();
     }
-    else if ( event->buttons() & Qt::RightButton )
+    else if( event->buttons() & Qt::RightButton )
     {
         float factor=1/500;
         double distance=camera.distance();
@@ -201,27 +200,24 @@ void widget::mouseMoveEvent( QMouseEvent *event )
 
 void widget::mouseDoubleClickEvent( QMouseEvent *event )
 {
-    if(event->button()==Qt::RightButton)
+    if( event->button() == Qt::RightButton )
     {
-        boost::optional<QVector3D> point=viewport_to_3d(event->pos());
-        double_right_click(point);
+        boost::optional< QVector3D > point = viewport_to_3d( event->pos() );
+        double_right_click( point );
     }
     else if( event->button() == Qt::LeftButton )
     {
         boost::optional< QVector3D > point = viewport_to_3d( event->pos() );
-        if( point ) { camera.set_center(*point); }
+        if( point ) { camera.set_center( *point ); }
     }
 }
 
 void widget::wheelEvent( QWheelEvent *event )
 {
-    qreal distance=camera.distance();
-    const qreal coef=( event->modifiers() & Qt::ShiftModifier ) ? (0.2 * scene_radius) : qMax(distance, 0.2 * scene_radius);
-    qreal zoomIncrement= 0.001 * event->delta() * coef;
-    if ( !qFuzzyIsNull( zoomIncrement ) )
-    {
-        camera.zoom(zoomIncrement);
-    }
+    qreal distance = camera.distance();
+    const qreal coef = ( event->modifiers() & Qt::ShiftModifier ) ? 0.2 * scene_radius : qMax( distance, 0.2 * scene_radius );
+    qreal zoomIncrement = 0.001 * event->delta() * coef;
+    if( !qFuzzyIsNull( zoomIncrement ) ) { camera.zoom( zoomIncrement ); }
     update();
 }
 
