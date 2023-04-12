@@ -38,10 +38,10 @@ void model_reader::start()
     if( !m_plyLoader )
     {
         if( !comma::math::equal( scale_, 1.0 ) ) { std::cerr << "view-points: warning: scale supported only for ply models; others: todo" << std::endl; }
-        model.load(m_file);
+        model.load( m_file );
     }
 #elif Qt3D_VERSION>=2
-    model.load(m_file);
+    model.load( m_file );
 #endif
     m_thread.reset( new boost::thread( boost::bind( &Reader::read, boost::ref( *this ) ) ) );
 }
@@ -71,13 +71,13 @@ void model_reader::render( Viewer& viewer, QGLPainter* painter )
 }
 
 #elif Qt3D_VERSION>=2
-void model_reader::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base ) { model.add_shaders(viewer_base); }
+void model_reader::add_shaders( snark::graphics::qopengl::viewer_base* viewer_base ) { model.add_shaders( viewer_base ); }
 
 void model_reader::update_view()
 {
     model.update_view();
-    model.mesh_shader->update_transform(m_translation-m_offset, m_orientation ? *m_orientation : Eigen::Vector3d(0,0,0));
-    model.mesh_shader->visible=m_show;
+    model.mesh_shader->update_transform( m_translation - m_offset, m_orientation ? *m_orientation : Eigen::Vector3d( 0, 0, 0 ) );
+    model.mesh_shader->visible = m_show;
 }
 #endif
 

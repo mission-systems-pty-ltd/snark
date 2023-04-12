@@ -15,6 +15,7 @@
 #if Qt3D_VERSION>=2
 #include "view_points/traits.h"
 #include "../qt5.5/qopengl/labels.h"
+#include "view_points/qopengl/model.h"
 #endif
 #include <comma/application/command_line_options.h>
 #include <comma/base/types.h>
