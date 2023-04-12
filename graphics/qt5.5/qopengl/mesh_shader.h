@@ -58,7 +58,7 @@ struct mesh_data
 /// - https://learnopengl.com/Model-Loading/Mesh
 /// more examples (probably more useful than above):
 /// - https://stackoverflow.com/questions/45434065/qt3d-how-to-render-a-mesh-in-wireframe-mode-using-qt-c
-/// - https://doc.qt.io/qt-5/qt3d-basicshapes-cpp-example.html
+/// - https://doc.qt.io/qt-5/qt3d-basicshapes-cpp-example.html ... #include <Qt3DExtras/QConeMesh>
 /// - https://doc.qt.io/qt-5/qt3d-wireframe-example.html
 /// - https://doc.qt.io/GammaRay/gammaray-qt3d-geometry-example.html
 /// - https://learnopengl.com/Getting-started/Hello-Triangle
