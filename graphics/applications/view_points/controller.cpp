@@ -55,7 +55,7 @@ controller::controller( const color_t& background_color
 {
 #if Qt3D_VERSION==1
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
-    COMMA_THROW( comma::exception," not implemented ");
+    COMMA_THROW( comma::exception,"view-points: Qt3D_VERSION==1: not supported");
 #elif Qt3D_VERSION>=2
     viewer.reset( new viewer_t( this,background_color, camera_options, scene_center, scene_radius, click_mode, grab_options ) );
     viewer->output_camera_config = output_camera_config; // super-quick and dirty
@@ -131,7 +131,8 @@ void controller::read()
     {
         viewer->load_camera_config( _camera_config_filename );
         _camera_config_filename.clear();
-        _update_view();
+        //_update_view();
+        need_update = true;
     }
     else if( !m_cameraReader && m_cameraposition )
     {
