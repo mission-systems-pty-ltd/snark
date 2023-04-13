@@ -118,12 +118,13 @@ template < typename T > static void _write_json( const T& t, std::ostream& os, b
 
 static void _print_keys_help()
 {
-    std::cerr << "             press 'r' to restore view to this camera configuration" << std::endl;
-    std::cerr << "             press 'ctrl+r' to restore next view" << std::endl;
-    std::cerr << "             press 'shift+ctrl+r' to restore previous view" << std::endl;
-    std::cerr << "             press 'v' to store camera config" << std::endl;
-    std::cerr << "             press 'alt-v' to discard the oldest camera config" << std::endl;
-    std::cerr << "             press 'ctrl-v' to output camera config to stdout" << std::endl;
+    std::cerr << "             'r'            : restore view to this camera configuration" << std::endl;
+    std::cerr << "             'ctrl+r'       : restore next view" << std::endl;
+    std::cerr << "             'shift+ctrl+r' : restore previous view" << std::endl;
+    std::cerr << "             'v'            : store camera config" << std::endl;
+    std::cerr << "             'alt-v'        : discard the oldest camera config" << std::endl;
+    std::cerr << "             'shift-alt-v'  : discard the current camera config" << std::endl;
+    std::cerr << "             'ctrl-v'       : output camera config to stdout" << std::endl;
 }
 
 void viewer::keyPressEvent( QKeyEvent *event )
@@ -178,9 +179,20 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 if( !_camera_bookmarks.empty() )
                 {
                     _camera_bookmarks.pop_front();
-                    std::cerr << "view-points: popped first saved camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
-                    _print_keys_help();
                     if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
+                    std::cerr << "view-points: removed first camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                    _print_keys_help();
+                }
+            }
+            else if( event->modifiers() == ( Qt::AltModifier | Qt::ShiftModifier ) )
+            {
+                if( !_camera_bookmarks.empty() )
+                {
+                    unsigned int i{0};
+                    for( auto it = _camera_bookmarks.begin(); it != _camera_bookmarks.end(); ++it, ++i ) { if( i == _camera_bookmarks_index ) { _camera_bookmarks.erase( it ); break; } }
+                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
+                    std::cerr << "view-points: removed current camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                    _print_keys_help();
                 }
             }
             break;
@@ -285,6 +297,7 @@ void viewer::load_camera_config( const std::string& filename )
             throw;
         }
     }
+    _camera_bookmarks_index = 0;
     _camera = _camera_bookmarks.front();
     _print_keys_help();
 }
