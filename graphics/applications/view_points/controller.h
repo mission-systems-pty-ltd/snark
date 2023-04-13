@@ -75,11 +75,11 @@ public:
 
 private:
     bool m_shutdown;
-    bool m_lookAt;
-    boost::scoped_ptr< CameraReader > m_cameraReader;
+    boost::scoped_ptr< CameraReader > _camera_reader;
     boost::optional< Eigen::Vector3d > m_cameraposition;
     boost::optional< Eigen::Vector3d > m_cameraorientation;
-    bool m_cameraFixed;
+    bool _initial_camera_position_from_scene_extents{true};
+    bool _initial_camera_position_set{false};
     //add camera_position_output
     bool m_exit_on_end_of_input;
     std::string _camera_config_filename;  // quick and dirty

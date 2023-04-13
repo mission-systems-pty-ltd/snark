@@ -29,7 +29,7 @@ void controller::add(std::unique_ptr<snark::graphics::view::Reader>&& reader)
 
 void controller::init()
 {
-    if( m_cameraReader ) { m_cameraReader->start(); }
+    if( _camera_reader ) { _camera_reader->start(); }
     for( auto& i : readers ) { i->start(); }
 }
 
@@ -46,8 +46,7 @@ controller::controller( const color_t& background_color
                       , bool output_camera_position
                       , const snark::graphics::view::click_mode& click_mode
                       , const std::string& grab_options )
-    : m_lookAt( false )
-    , m_cameraposition( cameraposition )
+    : m_cameraposition( cameraposition )
     , m_cameraorientation( cameraorientation )
     , m_exit_on_end_of_input( exit_on_end_of_input )
     , _camera_config_filename( camera_config_filename )
@@ -62,8 +61,8 @@ controller::controller( const color_t& background_color
     viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif
     //if( !camera_config_file_name.empty() ) { viewer->load_camera_config( camera_config_file_name ); }
-    if( camera_csv ) { m_cameraReader.reset( new CameraReader( *camera_csv ) ); }
-    m_cameraFixed = m_cameraposition || m_cameraReader || !camera_config_filename.empty(); // todo: simplify camera logic
+    if( camera_csv ) { _camera_reader.reset( new CameraReader( *camera_csv ) ); }
+    _initial_camera_position_from_scene_extents = !( m_cameraposition || _camera_reader || !camera_config_filename.empty() ); // todo: simplify camera logic
 }
 
 controller::~controller() { shutdown( false ); }
@@ -81,7 +80,7 @@ void controller::shutdown( bool kill )
         ::raise( SIGINT ); // quick and dirty... or maybe not so dirty: to interrupt blocking read() in reader threads, if closed from qt window
         #endif // #ifdef WIN32
     }
-    if( m_cameraReader ) { m_cameraReader->shutdown(); }
+    if( _camera_reader ) { _camera_reader->shutdown(); }
     for( auto& i: readers ) { i->shutdown(); }
 }
 
@@ -131,10 +130,9 @@ void controller::read()
     {
         viewer->load_camera_config( _camera_config_filename );
         _camera_config_filename.clear();
-        //_update_view();
         need_update = true;
     }
-    else if( !m_cameraReader && m_cameraposition )
+    else if( !_camera_reader && m_cameraposition )
     {
         viewer->set_camera_position( *m_cameraposition, *m_cameraorientation );
         _update_view();
@@ -142,10 +140,10 @@ void controller::read()
         m_cameraorientation.reset();
         need_update = true;
     }
-    else if( m_cameraReader )
+    else if( _camera_reader )
     {
-        Eigen::Vector3d position = m_cameraReader->position();
-        Eigen::Vector3d orientation = m_cameraReader->orientation();
+        Eigen::Vector3d position = _camera_reader->position();
+        Eigen::Vector3d orientation = _camera_reader->orientation();
         if( !m_cameraposition || !m_cameraposition->isApprox( position ) || !m_cameraorientation->isApprox( orientation ) ) // todo? move to viewer::set_camera_position()?
         {
             m_cameraposition = position;
@@ -155,12 +153,12 @@ void controller::read()
             need_update = true;
         }
     }
-    else if( extents_ready )
+    else if( _initial_camera_position_from_scene_extents && extents_ready )
     {
-        if( !m_cameraFixed && !m_lookAt )
+        if( !_initial_camera_position_set )
         {
-            m_lookAt = true;
             viewer->look_at_center();
+            _initial_camera_position_set = true;
         }
     }
     if( need_update ) { update_view(); }
