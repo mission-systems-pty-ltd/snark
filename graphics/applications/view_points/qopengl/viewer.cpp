@@ -52,6 +52,19 @@ namespace snark { namespace graphics { namespace view { namespace qopengl {
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << "," << v.y() << "," << v.z(); }
 
+static void _print_keys_help()
+{
+    std::cerr << "             'p'            : save screenshot to timestamped file" << std::endl;
+    std::cerr << "             'ctrl+p'       : start/stop continuous screen grab (see --help for --grab)" << std::endl;
+    std::cerr << "             'r'            : restore view to this camera configuration" << std::endl;
+    std::cerr << "             'ctrl+r'       : restore next view" << std::endl;
+    std::cerr << "             'shift+ctrl+r' : restore previous view" << std::endl;
+    std::cerr << "             'v'            : store camera config" << std::endl;
+    std::cerr << "             'alt-v'        : discard the oldest camera config" << std::endl;
+    std::cerr << "             'shift-alt-v'  : discard the current camera config" << std::endl;
+    std::cerr << "             'ctrl-v'       : output camera config to stdout" << std::endl;
+}
+
 viewer::viewer( controller_base* handler
               , const color_t& background_color
               , const qt3d::camera_options& camera_options
@@ -69,6 +82,8 @@ viewer::viewer( controller_base* handler
     , click_mode( click_mode )
     , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options_t() ) )
 {
+    std::cerr << "view-points: hot keys:" << std::endl;
+    _print_keys_help();
     if( _grab.options().cols > 0 )
     {
         resize( _grab.options().cols, _grab.options().rows );
@@ -114,17 +129,6 @@ template < typename T > static void _write_json( const T& t, std::ostream& os, b
     comma::to_ptree to_ptree( p );
     comma::visiting::apply( to_ptree ).to( t );
     boost::property_tree::write_json( os, p, pretty );
-}
-
-static void _print_keys_help()
-{
-    std::cerr << "             'r'            : restore view to this camera configuration" << std::endl;
-    std::cerr << "             'ctrl+r'       : restore next view" << std::endl;
-    std::cerr << "             'shift+ctrl+r' : restore previous view" << std::endl;
-    std::cerr << "             'v'            : store camera config" << std::endl;
-    std::cerr << "             'alt-v'        : discard the oldest camera config" << std::endl;
-    std::cerr << "             'shift-alt-v'  : discard the current camera config" << std::endl;
-    std::cerr << "             'ctrl-v'       : output camera config to stdout" << std::endl;
 }
 
 void viewer::keyPressEvent( QKeyEvent *event )

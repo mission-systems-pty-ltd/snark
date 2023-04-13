@@ -14,15 +14,20 @@ template <> struct traits< snark::graphics::qopengl::camera_transform >
     template < typename Key, class Visitor >
     static void visit( Key, snark::graphics::qopengl::camera_transform& p, Visitor& v )
     {
-        QVector3D w;
-        w = p.get_position(); v.apply( "position", w ); p.set_position( w ); // should it be to_ned?
-        w = p.get_orientation(); v.apply( "orientation", w ); p.set_orientation( w ); // should it be to_ned?
-        w = p.center; v.apply( "center", w ); p.set_center( w );
+        QVector3D position = p.get_position();
+        v.apply( "position", position );
+        QVector3D orientation = p.get_orientation();
+        v.apply( "orientation", orientation );
+        QVector3D center = p.center;
+        v.apply( "center", center );
         v.apply( "up", p.up );
         v.apply( "orthographic", p.orthographic );
         v.apply( "near_plane", p.near_plane );
         v.apply( "far_plane", p.far_plane );
         v.apply( "field_of_view", p.field_of_view );
+        p.set_position( position ); // should it be to_ned?
+        p.set_center( center ); // quick and dirty: has to be before setting orientation since the latter depends on center
+        p.set_orientation( orientation ); // should it be to_ned?
         p.update_projection();
     }
     template < typename Key, class Visitor >
