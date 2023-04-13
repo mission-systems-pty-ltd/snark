@@ -159,19 +159,19 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 }
                 std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks.size() - _camera_bookmarks_offset + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 _print_keys_help();
-                camera = _camera_bookmarks[ _camera_bookmarks.size() - _camera_bookmarks_offset ];
+                _camera = _camera_bookmarks[ _camera_bookmarks.size() - _camera_bookmarks_offset ];
             }
             break;
         case Qt::Key_V:
             if( event->modifiers() == Qt::NoModifier )
             {
-                _camera_bookmarks.push_back( camera );
+                _camera_bookmarks.push_back( _camera );
                 std::cerr << "view-points: stored camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
                 _print_keys_help();
             }
             else if( event->modifiers() == Qt::ControlModifier )
             {
-                if( stdout_allowed ) { _write_json( camera, std::cout, false ); }
+                if( stdout_allowed ) { _write_json( _camera, std::cout, false ); }
                 else { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream" << std::endl; }
             }
             else if( event->modifiers() == Qt::AltModifier )
@@ -199,8 +199,8 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
 {
     float r = 0.5 * ( max - min ).length();
     if( !scene_radius_fixed ) { scene_radius = r; }
-    if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); camera.set_center( scene_center ); }
-    const auto& d = camera.get_position() - camera.center;
+    if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); _camera.set_center( scene_center ); }
+    const auto& d = _camera.get_position() - _camera.center;
 //     std::cerr<<"viewer::update_view "<<min<<" "<<max<<"; "<<scene_radius<<"; "<<scene_center<<std::endl;
 //     update the position of the far plane so that the full scene is displayed
     //std::cerr << "--> scene_radius: " << scene_radius << " radius: " << radius << " far_plane: " << 4.6 * radius << std::endl;
@@ -210,9 +210,9 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
 void viewer::look_at_center()
 {
     //std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
-    camera.set_center(scene_center);
-    camera.set_orientation(3*M_PI/4, -M_PI/4, -M_PI/4);
-    camera.set_position(QVector3D(0,0,-2.6*scene_radius));
+    _camera.set_center( scene_center );
+    _camera.set_orientation( 3 * M_PI / 4, -M_PI / 4, -M_PI / 4 );
+    _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) );
 }
 
 // void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation)
@@ -237,9 +237,9 @@ void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::
     //std::cerr << "==> viewer::set_camera_position: " << std::setprecision(16) << position.transpose() << "; " << orientation.transpose() << std::endl;
     const Eigen::Vector3d& p = position - *m_offset;
     const QVector3D& c = QVector3D( p.x(), p.y(), p.z() );
-    camera.set_center( c ); // camera.set_center( c, true );
-    camera.set_position( QVector3D( 0, 0, 0 ) ); // camera.set_position( c, true );
-    camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
+    _camera.set_center( c ); // camera.set_center( c, true );
+    _camera.set_position( QVector3D( 0, 0, 0 ) ); // camera.set_position( c, true );
+    _camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
 }
 
 void viewer::load_camera_config( const std::string& filename )
@@ -251,8 +251,8 @@ void viewer::load_camera_config( const std::string& filename )
         boost::property_tree::ptree camera_config;
         boost::property_tree::read_json( filename, camera_config );
         comma::from_ptree from_ptree( camera_config, true );
-        comma::visiting::apply( from_ptree ).to( camera );
-        _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+        comma::visiting::apply( from_ptree ).to( _camera );
+        _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
         std::cerr << "view-points: loaded camera config from " << filename << std::endl;
     }
     catch( ... )
@@ -272,8 +272,8 @@ void viewer::load_camera_config( const std::string& filename )
                 boost::property_tree::ptree camera_config;
                 boost::property_tree::read_json( iss, camera_config );
                 comma::from_ptree from_ptree( camera_config, true );
-                comma::visiting::apply( from_ptree ).to( camera );
-                _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+                comma::visiting::apply( from_ptree ).to( _camera );
+                _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
             }
             std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
         }
@@ -288,17 +288,17 @@ void viewer::load_camera_config( const std::string& filename )
 
 void viewer::write_camera_config( std::ostream& os, bool on_change, bool pretty )
 {
-    if( on_change && previous_camera_ && camera == *previous_camera_ ) { return; }
-    previous_camera_ = camera;
-    _write_json( camera, os, pretty );
+    if( on_change && previous_camera_ && _camera == *previous_camera_ ) { return; }
+    previous_camera_ = _camera;
+    _write_json( _camera, os, pretty );
 }
 
 void viewer::write_camera_position_( std::ostream& os, bool on_change )
 {
-    if( on_change && previous_camera_ && camera.camera == previous_camera_->camera && camera.world == previous_camera_->world ) { return; }
-    previous_camera_ = camera;
-    const auto& position = camera.get_position( true );
-    const auto& orientation = camera.get_orientation( true );
+    if( on_change && previous_camera_ && _camera.camera == previous_camera_->camera && _camera.world == previous_camera_->world ) { return; }
+    previous_camera_ = _camera;
+    const auto& position = _camera.get_position( true ); // todo: fix frame
+    const auto& orientation = _camera.get_orientation( true );  // todo: fix frame
     os << std::setprecision( 16 ) << position.x() + m_offset->x() << ',' << position.y() + m_offset->y() << ',' << position.z() + m_offset->z() << ',' << orientation.x() << ',' << orientation.y() << ',' << orientation.z() << std::endl;
 }
 

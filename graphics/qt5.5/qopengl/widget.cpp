@@ -42,11 +42,11 @@ static const char *fragment_shader_source = R"(
 widget::widget(const color_t& background_color, const qt3d::camera_options& camera_options, QWidget *parent )
     : QOpenGLWidget( parent )
     , program_( 0 )
-    , camera( camera_options.orthographic
-            , camera_options.field_of_view
-            , QVector3D( 0, 0, camera_options.z_is_up ? 1 : -1 ) )
-            , scene_radius( 10 )
-            , background_color( background_color )
+    , _camera( camera_options.orthographic
+             , camera_options.field_of_view
+             , QVector3D( 0, 0, camera_options.z_is_up ? 1 : -1 ) )
+             , scene_radius( 10 )
+             , background_color( background_color )
 {
 }
 
@@ -76,7 +76,7 @@ void widget::add_shape( const std::shared_ptr<shape>& shape ) { shapes.push_back
 
 void widget::add_label_shader( const std::shared_ptr<label_shader>& label_shader )
 {
-    label_shader->scaled = camera.orthographic;
+    label_shader->scaled = _camera.orthographic;
     label_shaders.push_back( label_shader );
 }
 
@@ -134,38 +134,34 @@ void widget::paintGL()
 
 //     QOpenGLVertexArrayObject::Binder binder(&(shapes[0]->vao));
     program_->bind();
-    program_->setUniformValue( projection_matrix_location_, camera.projection );
-    program_->setUniformValue( mv_matrix_location_, camera.camera * camera.world );
-
+    program_->setUniformValue( projection_matrix_location_, _camera.projection );
+    program_->setUniformValue( mv_matrix_location_, _camera.camera * _camera.world );
     for( auto& i : shapes ) { if( i->visible ) { i->paint(); } }
-
 //     glDisable( GL_DEPTH_TEST );
 
     program_->release();
-
-    const auto& t = camera.transform();
+    const auto& t = _camera.transform();
     for( auto& i : label_shaders ) { i->paint( t, size() ); }
     for( auto& i : texture_shaders ) { i->paint( t, size() ); }
     for( auto& i : mesh_shaders ) { i->paint( t, size() ); }
-
     painter.endNativePainting();
     painter.setPen( Qt::gray );
     painter.setFont( QFont( "Arial", 10 ));
     painter.drawText( rect()
                     , Qt::AlignRight | Qt::AlignBottom
-                    , QString( "centre of rotation: %1 %2 %3" ).arg( camera.center.x() )
-                                                               .arg( camera.center.y() )
-                                                               .arg( camera.center.z() ));
+                    , QString( "centre of rotation: %1 %2 %3" ).arg( _camera.center.x() )
+                                                               .arg( _camera.center.y() )
+                                                               .arg( _camera.center.z() ));
 }
 
 void widget::set_far_plane( float f )
 {
-    camera.far_plane = f;
-    camera.update_projection();
+    _camera.far_plane = f;
+    _camera.update_projection();
     update();
 }
 
-void widget::resizeGL( int w, int h ) { camera.update_projection( size() ); }
+void widget::resizeGL( int w, int h ) { _camera.update_projection( size() ); }
 
 void widget::mousePressEvent( QMouseEvent *event ) { last_pos_ = event->pos(); }
 
@@ -176,23 +172,22 @@ void widget::mouseMoveEvent( QMouseEvent *event )
 
     if( event->buttons() & Qt::LeftButton )
     {
-        camera.pivot(dx,dy);
+        _camera.pivot(dx,dy);
         update();
     }
     else if( event->buttons() & Qt::RightButton )
     {
-        float factor=1/500;
-        double distance=camera.distance();
+        float factor = 1 / 500;
+        double distance = _camera.distance();
         if( distance > 5 )
         {
-            factor=1.5 * distance / width();
+            factor = 1.5 * distance / width();
         }
         else
         {
-            // HACK for the case where the camera center has been moved by zooming in
-            factor=0.5 * scene_radius / width();
+            factor = 0.5 * scene_radius / width(); // HACK for the case where the camera center has been moved by zooming in
         }
-        camera.pan(factor*dx, -factor*dy);
+        _camera.pan( factor * dx, -factor * dy );
         update();
     }
     last_pos_ = event->pos();
@@ -208,16 +203,16 @@ void widget::mouseDoubleClickEvent( QMouseEvent *event )
     else if( event->button() == Qt::LeftButton )
     {
         boost::optional< QVector3D > point = viewport_to_3d( event->pos() );
-        if( point ) { camera.set_center( *point ); }
+        if( point ) { _camera.set_center( *point ); }
     }
 }
 
 void widget::wheelEvent( QWheelEvent *event )
 {
-    qreal distance = camera.distance();
+    qreal distance = _camera.distance();
     const qreal coef = ( event->modifiers() & Qt::ShiftModifier ) ? 0.2 * scene_radius : qMax( distance, 0.2 * scene_radius );
     qreal zoomIncrement = 0.001 * event->delta() * coef;
-    if( !qFuzzyIsNull( zoomIncrement ) ) { camera.zoom( zoomIncrement ); }
+    if( !qFuzzyIsNull( zoomIncrement ) ) { _camera.zoom( zoomIncrement ); }
     update();
 }
 
@@ -228,7 +223,7 @@ static const int pixel_search_width = 15;
 boost::optional< QVector3D > widget::viewport_to_3d( const QPoint& viewport_point )
 {
     boost::optional< QVector3D > pixel = pixel_at_point( viewport_point, pixel_search_width );
-    if( pixel ) { return QVector3D( pixel->unproject( camera.camera * camera.world, camera.projection , QRect( 0, 0, width(), height() ) ) ); }
+    if( pixel ) { return QVector3D( pixel->unproject( _camera.camera * _camera.world, _camera.projection , QRect( 0, 0, width(), height() ) ) ); }
     return boost::none;
 }
 

@@ -78,7 +78,8 @@ protected:
     QOpenGLShaderProgram *program_;
     int projection_matrix_location_;
     int mv_matrix_location_;
-    camera_transform camera;
+    camera_transform _camera;
+
 public:
     float near_plane;
     float far_plane;
