@@ -119,7 +119,7 @@ template < typename T > static void _write_json( const T& t, std::ostream& os, b
 static void _print_keys_help()
 {
     std::cerr << "             press 'r' to restore view to this camera configuration" << std::endl;
-    std::cerr << "             press 'ctrl+r' to restore previos view" << std::endl;
+    std::cerr << "             press 'ctrl+r' to restore previous view" << std::endl;
     std::cerr << "             press 'shift+ctrl+r' to restore next view" << std::endl;
     std::cerr << "             press 'v' to store camera config" << std::endl;
     std::cerr << "             press 'alt-v' to discard the oldest camera config" << std::endl;
@@ -266,8 +266,9 @@ void viewer::load_camera_config( const std::string& filename )
                 std::string line;
                 std::getline( ifs, line );
                 if( line.empty() ) { break; }
-                if( comma::strip( line ).empty() ) { continue; }
-                std::istringstream iss( line );
+                const auto& s = comma::strip( line );
+                if( s.empty() || s[0] == '#' ) { continue; }
+                std::istringstream iss( s );
                 boost::property_tree::ptree camera_config;
                 boost::property_tree::read_json( iss, camera_config );
                 comma::from_ptree from_ptree( camera_config, true );
