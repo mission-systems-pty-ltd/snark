@@ -102,7 +102,7 @@ private slots:
 
 private:
     std::deque< snark::graphics::qopengl::camera_transform > _camera_bookmarks;
-    unsigned int _camera_bookmarks_offset{1};
+    unsigned int _camera_bookmarks_index{0};
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;

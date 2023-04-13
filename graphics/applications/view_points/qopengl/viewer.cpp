@@ -119,8 +119,8 @@ template < typename T > static void _write_json( const T& t, std::ostream& os, b
 static void _print_keys_help()
 {
     std::cerr << "             press 'r' to restore view to this camera configuration" << std::endl;
-    std::cerr << "             press 'ctrl+r' to restore previous view" << std::endl;
-    std::cerr << "             press 'shift+ctrl+r' to restore next view" << std::endl;
+    std::cerr << "             press 'ctrl+r' to restore next view" << std::endl;
+    std::cerr << "             press 'shift+ctrl+r' to restore previous view" << std::endl;
     std::cerr << "             press 'v' to store camera config" << std::endl;
     std::cerr << "             press 'alt-v' to discard the oldest camera config" << std::endl;
     std::cerr << "             press 'ctrl-v' to output camera config to stdout" << std::endl;
@@ -147,19 +147,18 @@ void viewer::keyPressEvent( QKeyEvent *event )
         case Qt::Key_R:
             if( !_camera_bookmarks.empty() )
             {
-                if( event->modifiers() == Qt::ControlModifier ) // todo: undocumented feature; finalise and document
+                if( event->modifiers() == Qt::ControlModifier )
                 {
-                    ++_camera_bookmarks_offset;
-                    if( _camera_bookmarks_offset > _camera_bookmarks.size() ) { _camera_bookmarks_offset = 1; }
+                    ++_camera_bookmarks_index;
+                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = 0; }
                 }
-                else if( event->modifiers() == ( Qt::ControlModifier | Qt::ShiftModifier ) ) // todo: undocumented feature; finalise and document
+                else if( event->modifiers() == ( Qt::ControlModifier | Qt::ShiftModifier ) )
                 {
-                    --_camera_bookmarks_offset;
-                    if( _camera_bookmarks_offset == 0 ) { _camera_bookmarks_offset = _camera_bookmarks.size(); }
+                    _camera_bookmarks_index = ( _camera_bookmarks_index == 0 ? _camera_bookmarks.size() : _camera_bookmarks_index ) - 1;
                 }
-                std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks.size() - _camera_bookmarks_offset + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
+                std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 _print_keys_help();
-                _camera = _camera_bookmarks[ _camera_bookmarks.size() - _camera_bookmarks_offset ];
+                _camera = _camera_bookmarks[_camera_bookmarks_index];
             }
             break;
         case Qt::Key_V:
@@ -181,7 +180,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     _camera_bookmarks.pop_front();
                     std::cerr << "view-points: popped first saved camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
                     _print_keys_help();
-                    if( _camera_bookmarks_offset > _camera_bookmarks.size() + 1 ) { _camera_bookmarks_offset = 1; }
+                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
                 }
             }
             break;
@@ -245,6 +244,7 @@ void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::
 void viewer::load_camera_config( const std::string& filename )
 {
     auto camera_bookmarks = _camera_bookmarks;
+    auto camera = _camera;
     _camera_bookmarks.clear();
     try
     {
@@ -275,14 +275,17 @@ void viewer::load_camera_config( const std::string& filename )
                 comma::visiting::apply( from_ptree ).to( _camera );
                 _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
             }
+            if( _camera_bookmarks.empty() ) { COMMA_THROW( comma::exception, "no camera configs found in '" << filename << "'" ); }
             std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
         }
         catch( ... )
         {
             _camera_bookmarks = camera_bookmarks;
+            _camera = camera;
             throw;
         }
     }
+    _camera = _camera_bookmarks.front();
     _print_keys_help();
 }
 
