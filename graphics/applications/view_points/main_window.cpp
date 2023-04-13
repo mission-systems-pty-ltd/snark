@@ -31,7 +31,7 @@ MainWindow::MainWindow( const std::string& title
     new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) );
     QMenu* fileMenu = menuBar()->addMenu( "File" );
     menuBar()->addMenu( fileMenu );
-    fileMenu->addAction(new Action("Load Camera Config...", boost::bind(&MainWindow::load_camera_config,this)));
+    fileMenu->addAction( new Action( "Load Camera Config...", boost::bind( &MainWindow::load_camera_config, this ) ) );
     fileMenu->addAction( new Action( "Save Camera Config...", boost::bind( &MainWindow::save_camera_config, this ) ) );
 
     m_fileFrame = new QFrame;
@@ -247,20 +247,22 @@ void MainWindow::closeEvent( QCloseEvent * ) { controller->shutdown(); }
 
 void MainWindow::load_camera_config()
 {
-    QString filename=QFileDialog::getOpenFileName(this,"Load Camera Config");
-//     std::cerr<<"MainWindow::load_camera_config "<<filename<<std::endl;
-    if( !filename.isNull() ) { controller->load_camera_config(filename.toStdString()); }
+    QString filename = QFileDialog::getOpenFileName( this, "Load Camera Config" );
+    if( filename.isNull() ) { return; }
+    std::cerr << "view-points: loading camera config from '" << filename.toStdString() << "'" << std::endl;
+    controller->load_camera_config( filename.toStdString() );
+    std::cerr << "view-points: loaded camera config from '" << filename.toStdString() << "'" << std::endl;
 }
 
 void MainWindow::save_camera_config()
 {
-    QString filename=QFileDialog::getSaveFileName(this, "Save Camera Config");
-//     std::cerr<<"MainWindow::save_camera_config "<<filename<<std::endl;
-    if(!filename.isNull())
-    {
-        std::ofstream fs(filename.toStdString());
-        controller->write_camera_config(fs);
-    }
+    QString filename = QFileDialog::getSaveFileName( this, "Save Camera Config" );
+    if( filename.isNull() ) { return; }
+    std::cerr << "view-points: saving camera config to '" << filename.toStdString() << "'" << std::endl;
+    std::ofstream fs( filename.toStdString() );
+    if( !fs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << filename.toStdString() << "'" ); }
+    controller->write_camera_config( fs );
+    std::cerr << "view-points: saved camera config to '" << filename.toStdString() << "'" << std::endl;
 }
 
 } } } // namespace snark { namespace graphics { namespace view {
