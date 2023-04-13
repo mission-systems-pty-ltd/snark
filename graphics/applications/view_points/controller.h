@@ -53,10 +53,10 @@ public:
     controller( const color_t& background_color
               , const qt3d::camera_options& camera_options
               , bool exit_on_end_of_input
-              , const boost::optional< comma::csv::options >& cameracsv
-              , const boost::optional< Eigen::Vector3d >& cameraposition
-              , const boost::optional< Eigen::Vector3d >& cameraorientation
-              , const std::string& camera_config_file_name
+              , const boost::optional< comma::csv::options >& camera_csv
+              , const boost::optional< Eigen::Vector3d >& camera_position
+              , const boost::optional< Eigen::Vector3d >& camera_orientation
+              , const std::string& camera_config_filename
               , const QVector3D& scene_center
               , double scene_radius
               , bool output_camera_config
@@ -70,8 +70,8 @@ public:
 
     void read();
     void update_view();
-    void load_camera_config(const std::string& file_name);
-    void write_camera_config(std::ostream& os);
+    void load_camera_config( const std::string& filename );
+    void write_camera_config( std::ostream& os );
 
 private:
     bool m_shutdown;
@@ -82,6 +82,7 @@ private:
     bool m_cameraFixed;
     //add camera_position_output
     bool m_exit_on_end_of_input;
+    std::string _camera_config_filename;  // quick and dirty
     bool _camera_config_from_file{false}; // quick and dirty
     boost::optional< snark::math::closed_interval< float, 3 > > _extents;
 

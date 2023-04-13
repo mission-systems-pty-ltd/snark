@@ -39,7 +39,7 @@ controller::controller( const color_t& background_color
                       , const boost::optional< comma::csv::options >& camera_csv
                       , const boost::optional< Eigen::Vector3d >& cameraposition
                       , const boost::optional< Eigen::Vector3d >& cameraorientation
-                      , const std::string& camera_config_file_name
+                      , const std::string& camera_config_filename
                       , const QVector3D& scene_center
                       , double scene_radius
                       , bool output_camera_config
@@ -50,7 +50,8 @@ controller::controller( const color_t& background_color
     , m_cameraposition( cameraposition )
     , m_cameraorientation( cameraorientation )
     , m_exit_on_end_of_input( exit_on_end_of_input )
-    , _camera_config_from_file( !camera_config_file_name.empty() )
+    , _camera_config_filename( camera_config_filename )
+    , _camera_config_from_file( !camera_config_filename.empty() )
 {
 #if Qt3D_VERSION==1
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
@@ -60,9 +61,9 @@ controller::controller( const color_t& background_color
     viewer->output_camera_config = output_camera_config; // super-quick and dirty
     viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif
-    if( !camera_config_file_name.empty() ) { viewer->load_camera_config( camera_config_file_name ); }
+    //if( !camera_config_file_name.empty() ) { viewer->load_camera_config( camera_config_file_name ); }
     if( camera_csv ) { m_cameraReader.reset( new CameraReader( *camera_csv ) ); }
-    m_cameraFixed = m_cameraposition || m_cameraReader || !camera_config_file_name.empty();
+    m_cameraFixed = m_cameraposition || m_cameraReader || !camera_config_filename.empty(); // todo: simplify camera logic
 }
 
 controller::~controller() { shutdown( false ); }
@@ -126,7 +127,13 @@ void controller::read()
             if( !_camera_config_from_file ) { _update_view(); } // quick and dirty
         }
     }
-    if( !m_cameraReader && m_cameraposition )
+    if( !_camera_config_filename.empty() ) // quick and dirty; for some fiddly reason, initialising camera from config in controller constructor screws camera in a number of whimsical ways
+    {
+        viewer->load_camera_config( _camera_config_filename );
+        _camera_config_filename.clear();
+        _update_view();
+    }
+    else if( !m_cameraReader && m_cameraposition )
     {
         viewer->set_camera_position( *m_cameraposition, *m_cameraorientation );
         _update_view();
