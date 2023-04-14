@@ -56,6 +56,13 @@ QMatrix4x4 camera_transform::transform() const { return projection * camera * wo
 static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
 
+void camera_transform::set( const QVector3D& center, const QVector3D& position, const QVector3D& orientation, bool from_ned )
+{
+    set_center( center );
+    set_position( position, from_ned );
+    set_orientation( orientation, from_ned );
+}
+
 void camera_transform::set_center( const QVector3D& v )
 {
     //world.translate( center );
