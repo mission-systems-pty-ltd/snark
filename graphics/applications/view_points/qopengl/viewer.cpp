@@ -91,7 +91,8 @@ viewer::viewer( controller_base* handler
     }
     scene_radius = arg_scene_radius;
     QTimer* timer = new QTimer( this );
-    connect( timer, SIGNAL( timeout() ), this, SLOT( on_timeout() ) );
+    connect( timer, SIGNAL( timeout() ), this, SLOT( _on_timeout() ) );
+    connect( &_camera_transition_timer, SIGNAL( timeout() ), this, SLOT( _on_camera_transition() ) );
     timer->start( 40 );
 }
 
@@ -99,7 +100,21 @@ void viewer::reset_handler( controller_base* h ) { handler = h; }
 
 void viewer::init() { if( handler != nullptr ) { handler->init(); } }
 
-void viewer::on_timeout() { if( handler != nullptr ) { handler->tick(); } }
+void viewer::_on_timeout() { if( handler != nullptr ) { handler->tick(); } }
+
+void viewer::_on_camera_transition()
+{
+    ++_camera_transition_index;
+    if( _camera_transition_index < _camera_transitions.size() )
+    { 
+        _camera = _camera_transitions[_camera_transition_index];
+        update();
+        return;
+    }
+    _camera_transitions.clear();
+    _camera_transition_index = 0;
+    _camera_transition_timer.stop();
+}
 
 void viewer::paintGL()
 {
@@ -150,6 +165,9 @@ void viewer::keyPressEvent( QKeyEvent *event )
             }
             break;
         case Qt::Key_R:
+            _camera_transition_timer.stop();
+            _camera_transitions.clear();
+            _camera_transition_index = 0;
             if( !_camera_bookmarks.empty() )
             {
                 if( event->modifiers() == Qt::ControlModifier )
@@ -163,7 +181,27 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 }
                 std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 _print_keys_help();
-                _camera = _camera_bookmarks[_camera_bookmarks_index];
+                if( true ) // todo: seems to work very poorly on large point clouds
+                {
+                    unsigned int size = 25; // todo: quick and dirty; make timeout configurable?
+                    _camera_transitions.resize( size, _camera ); // quick and dirty for now
+                    _camera_transitions.back() = _camera_bookmarks[_camera_bookmarks_index];
+                    QVector3D dc = ( _camera_transitions.back().center - _camera_transitions.front().center ) / ( size - 1 );
+                    QVector3D dp = ( _camera_transitions.back().get_position() - _camera_transitions.front().get_position() ) / ( size - 1 );
+                    QVector3D dr = ( _camera_transitions.back().get_orientation() - _camera_transitions.front().get_orientation() ) / ( size - 1 );
+                    for( unsigned int i = 1; i < size - 1; ++i ) // quick and dirty; implement using set_camera_position instead
+                    {
+                        _camera_transitions[i].set_center( _camera_transitions[ i - 1 ].center + dc ); // todo: smooth, e.g. quadratic, transition
+                        _camera_transitions[i].set_position( _camera_transitions[ i - 1 ].get_position() + dp );
+                        _camera_transitions[i].set_orientation( _camera_transitions[ i - 1 ].get_orientation() + dr );
+                        _camera_transitions[i].update_projection();
+                    }
+                    _camera_transition_timer.start( 500 / size ); // _camera_transition_timer.start( 250 / size );
+                }
+                else
+                {
+                    _camera = _camera_bookmarks[_camera_bookmarks_index]; // todo: enable, make configurable
+                }
             }
             break;
         case Qt::Key_V:

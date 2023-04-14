@@ -19,7 +19,7 @@
 
 namespace snark { namespace graphics { namespace view {
 
-void controller::add(std::unique_ptr<snark::graphics::view::Reader>&& reader)
+void controller::add( std::unique_ptr<snark::graphics::view::Reader>&& reader )
 {
 #if Qt3D_VERSION>=2
     reader->add_shaders( viewer.get() ); //TODO rename add_shaders to init
@@ -167,8 +167,7 @@ void controller::read()
 
 void controller::update_view()
 {
-#if Qt3D_VERSION>=2
-    //update shapes
+#if Qt3D_VERSION >= 2
     viewer->begin_update();
     for( auto& i : readers ) { i->update_view(); }
     viewer->end_update();

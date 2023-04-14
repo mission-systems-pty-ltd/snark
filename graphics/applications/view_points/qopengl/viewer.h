@@ -9,6 +9,7 @@
 #include <string>
 #include <QKeyEvent>
 #include <QMainWindow>
+#include <QTimer>
 #include <boost/optional.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <comma/base/types.h>
@@ -98,11 +99,15 @@ protected:
     void double_right_click( const boost::optional< QVector3D >& point ) override;
 
 private slots:
-    void on_timeout();
+    void _on_timeout();
+    void _on_camera_transition();
 
 private:
     std::deque< snark::graphics::qopengl::camera_transform > _camera_bookmarks;
     unsigned int _camera_bookmarks_index{0};
+    std::vector< snark::graphics::qopengl::camera_transform > _camera_transitions; // todo? quick and dirty; camera transition class?
+    unsigned int _camera_transition_index{0};
+    QTimer _camera_transition_timer;
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;
