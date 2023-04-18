@@ -6,6 +6,7 @@
 
 #include <Eigen/Core>
 #include <QMatrix4x4>
+#include <QVector3D>
 
 namespace snark { namespace graphics { namespace qopengl {
 

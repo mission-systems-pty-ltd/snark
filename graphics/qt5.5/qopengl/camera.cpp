@@ -10,6 +10,8 @@
 
 namespace snark { namespace graphics { namespace qopengl {
 
+std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << "," << v.y() << "," << v.z(); }
+
 camera_transform::camera_transform( bool orthographic
                                   , double field_of_view
                                   , const QVector3D& up
@@ -27,27 +29,27 @@ camera_transform::camera_transform( bool orthographic
     // It starts at -1 because in OpenGL-land the transform is actually applied
     // to the world and the camera is stationary at 0,0,0.
     camera.setToIdentity();
-    camera.translate(0, 0, -1);
+    camera.translate( 0, 0, -1 );
     world.setToIdentity();
-    world.translate(-center);
+    world.translate( -center );
 }
-void camera_transform::pan( float dx, float dy ) { camera.translate(dx,dy,0); }
+void camera_transform::pan( float dx, float dy ) { camera.translate( dx, dy, 0 ); }
 
 void camera_transform::zoom( float dz )
 {
-    camera.translate(0,0,dz);
-    if(orthographic) { update_projection(); }
+    camera.translate( 0, 0, dz );
+    if( orthographic ) { update_projection(); }
 }
 
 void camera_transform::pivot( float dx,float dy )
 {
-    world.translate(center);
+    world.translate( center );
     QMatrix4x4 inverted_world = world.inverted();
-    QVector4D x_axis = inverted_world * QVector4D(1, 0, 0, 0);
-    QVector4D y_axis = inverted_world * QVector4D(0, 1, 0, 0);
-    world.rotate(dy, x_axis.toVector3D());
-    world.rotate(dx, y_axis.toVector3D());
-    world.translate(-center);
+    QVector4D x_axis = inverted_world * QVector4D( 1, 0, 0, 0 );
+    QVector4D y_axis = inverted_world * QVector4D( 0, 1, 0, 0 );
+    world.rotate( dy, x_axis.toVector3D() );
+    world.rotate( dx, y_axis.toVector3D() );
+    world.translate( -center );
 }
 
 QMatrix4x4 camera_transform::transform() const { return projection * camera * world; }
@@ -112,6 +114,7 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     // world.rotate( from_ned ? _quaternion( rpy.x(), rpy.y(), rpy.z() ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
     world.translate( -center );
+    //std::cerr << std::setprecision( 6 ) << "==> camera: set_orientation(): center: " << center << " r: " << roll << "," << pitch << "," << yaw << " get_orientation: " << get_orientation() << std::endl;
     //if( orthographic ) { update_projection(); } // todo? do we need to do it?
 }
 
@@ -133,8 +136,6 @@ QVector3D camera_transform::get_orientation( bool to_ned ) const // todo? fix?
     const auto& pyr = QQuaternion::fromRotationMatrix( m ).toEulerAngles() * M_PI / 180;
     return QVector3D( pyr.z(), pyr.x(), pyr.y() );
 }
-
-std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << ',' << v.y() << ',' << v.z(); }
 
 void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {

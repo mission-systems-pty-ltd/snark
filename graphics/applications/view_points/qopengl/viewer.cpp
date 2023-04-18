@@ -194,6 +194,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D dr = ( _camera_transitions.back().get_orientation() - r );
                     auto shortest = []( double a ) -> double { return a < -M_PI ? a + 2 * M_PI : a > M_PI ? a - 2 * M_PI : a; };
                     dr = QVector3D( shortest( dr.x() ), shortest( dr.y() ), shortest( dr.z() ) ) / ( size - 1 );
+                    //std::cerr << std::setprecision( 8 ) << "==> center: from: " << c << " to: " << _camera_transitions.back().center << std::endl;
                     for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
                     {
                         _camera_transitions[i].set( c, p, r ); // todo: smooth, e.g. quadratic, transition
