@@ -181,7 +181,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 }
                 std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 _print_keys_help();
-                if( true ) // todo: seems to work very poorly on large point clouds
+                if( true )
                 {
                     unsigned int size = 25; // todo: quick and dirty; make timeout configurable?
                     _camera_transitions.resize( size, _camera ); // quick and dirty for now
@@ -191,7 +191,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D r = _camera.get_orientation();
                     QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
-                    QVector3D dr = ( _camera_transitions.back().get_orientation() - r ); // QVector3D dr = ( _camera_transitions.back().get_orientation() - r ) / ( size - 1 );
+                    QVector3D dr = ( _camera_transitions.back().get_orientation() - r );
                     auto shortest = []( double a ) -> double { return a < -M_PI ? a + 2 * M_PI : a > M_PI ? a - 2 * M_PI : a; };
                     dr = QVector3D( shortest( dr.x() ), shortest( dr.y() ), shortest( dr.z() ) ) / ( size - 1 );
                     for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
