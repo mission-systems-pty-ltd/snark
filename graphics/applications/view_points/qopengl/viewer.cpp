@@ -2,7 +2,7 @@
 // Copyright (c) 2020 Vsevolod Vlaskine
 
 #include <array>
-#include <fstream>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -191,7 +191,9 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D r = _camera.get_orientation();
                     QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
-                    QVector3D dr = ( _camera_transitions.back().get_orientation() - r ) / ( size - 1 );
+                    QVector3D dr = ( _camera_transitions.back().get_orientation() - r ); // QVector3D dr = ( _camera_transitions.back().get_orientation() - r ) / ( size - 1 );
+                    auto shortest = []( double a ) -> double { return a < -M_PI ? a + 2 * M_PI : a > M_PI ? a - 2 * M_PI : a; };
+                    dr = QVector3D( shortest( dr.x() ), shortest( dr.y() ), shortest( dr.z() ) ) / ( size - 1 );
                     for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
                     {
                         _camera_transitions[i].set( c, p, r ); // todo: smooth, e.g. quadratic, transition
