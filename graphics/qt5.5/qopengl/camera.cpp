@@ -58,18 +58,23 @@ QMatrix4x4 camera_transform::transform() const { return projection * camera * wo
 static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
 static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
 
-void camera_transform::set( const QVector3D& center, const QVector3D& position, const QVector3D& orientation, bool from_ned )
+void camera_transform::set( const QVector3D& center
+                          , const QVector3D& position
+                          , const QVector3D& orientation
+                          , bool from_ned
+                          , bool translate_center )
 {
-    set_center( center );
+    set_center( center, translate_center );
     set_position( position, from_ned );
     set_orientation( orientation, from_ned );
 }
 
-void camera_transform::set_center( const QVector3D& v )
+void camera_transform::set_center( const QVector3D& v, bool translate )
 {
-    //world.translate( center );
+    //std::cerr << "==> set_center: translate: " << translate << std::endl;
+    if( translate ) { world.translate( center ); }
     center = v;
-    //world.translate( -center );
+    if( translate ) { world.translate( -center ); }
 }
 
 bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
@@ -90,7 +95,7 @@ static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
-    world.setToIdentity();
+    world.setToIdentity(); // auto translation = world.column( 3 );
     world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
     // if( from_ned )
@@ -113,7 +118,7 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     // //world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
     // world.rotate( from_ned ? _quaternion( rpy.x(), rpy.y(), rpy.z() ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
-    world.translate( -center );
+    world.translate( -center ); // world.translate( QVector3D( translation.x(), translation.y(), translation.z() ) ); // world.translate( -center ); //world.setColumn( 3, translation );
     //std::cerr << std::setprecision( 6 ) << "==> camera: set_orientation(): center: " << center << " r: " << roll << "," << pitch << "," << yaw << " get_orientation: " << get_orientation() << std::endl;
     //if( orthographic ) { update_projection(); } // todo? do we need to do it?
 }

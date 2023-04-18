@@ -197,7 +197,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     //std::cerr << std::setprecision( 8 ) << "==> center: from: " << c << " to: " << _camera_transitions.back().center << std::endl;
                     for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
                     {
-                        _camera_transitions[i].set( c, p, r ); // todo: smooth, e.g. quadratic, transition
+                        _camera_transitions[i].set( c, p, r, false, true ); // todo? smoother, e.g. quadratic, transitions
                         _camera_transitions[i].update_projection();
                     }
                     _camera_transition_timer.start( 500 / size ); // _camera_transition_timer.start( 250 / size );
@@ -266,7 +266,7 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
 
 void viewer::look_at_center()
 {
-    //std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
+    // std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
     _camera.set_center( scene_center );
     _camera.set_orientation( 3 * M_PI / 4, -M_PI / 4, -M_PI / 4 );
     _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) );

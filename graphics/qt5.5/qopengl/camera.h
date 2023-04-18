@@ -29,9 +29,9 @@ struct camera_transform
 
     QMatrix4x4 transform() const;
 
-    void set( const QVector3D& center, const QVector3D& position, const QVector3D& orientation, bool from_ned = false );
+    void set( const QVector3D& center, const QVector3D& position, const QVector3D& orientation, bool from_ned = false, bool translate_center = false );
 
-    void set_center( const QVector3D& v );
+    void set_center( const QVector3D& v, bool translate = false ); // translate flag: quick and dirty; a mystery workaround; needed in camera transitions, it seems; still does not solve jerky move there
 
     void set_orientation( float roll,float pitch,float yaw, bool from_ned = false );
 
