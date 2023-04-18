@@ -25,9 +25,7 @@ template <> struct traits< snark::graphics::qopengl::camera_transform >
         v.apply( "near_plane", p.near_plane );
         v.apply( "far_plane", p.far_plane );
         v.apply( "field_of_view", p.field_of_view );
-        p.set_position( position ); // should it be to_ned?
-        p.set_center( center ); // quick and dirty: has to be before setting orientation since the latter depends on center
-        p.set_orientation( orientation ); // should it be to_ned?
+        p.set( center, position, orientation );
         p.update_projection();
     }
     template < typename Key, class Visitor >
