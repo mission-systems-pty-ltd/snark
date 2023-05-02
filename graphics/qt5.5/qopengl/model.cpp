@@ -22,9 +22,9 @@ void model::load( const std::string& file_name )
 void model::make_meshes( mesh_shader& shader )
 {
     if( !_scene || !_scene->mMeshes ) { COMMA_THROW( comma::exception, "scene is null!"); }
-    //std::cerr<<"model::make_meshes "<<scene->mNumMeshes<<std::endl;
+    //std::cerr<<"model::make_meshes " << _scene->mNumMeshes << std::endl;
     node_make_meshes( _scene->mRootNode, shader );
-    //std::cerr<<"/model::make_meshes"<<std::endl;
+    //std::cerr << "model::make_meshes" << std::endl;
 }
 
 void model::node_make_meshes( aiNode* node, mesh_shader& shader )

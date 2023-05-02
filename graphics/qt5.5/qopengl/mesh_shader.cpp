@@ -143,6 +143,8 @@ void mesh::update( const mesh_vertex_t* data,unsigned sz )
     vbo.allocate( size * sizeof( mesh_vertex_t ) );
     vbo.write( 0, data, size * sizeof( mesh_vertex_t ) );
     vbo.release();
+    //std::cout.write( ( const char* )( data ), size * sizeof( mesh_vertex_t ) );
+    //std::cout.flush();
 //     std::cerr<<"/mesh::update"<<std::endl;
 }
 
