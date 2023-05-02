@@ -38,6 +38,15 @@ void model::node_make_meshes( aiNode* node, mesh_shader& shader )
         shader.meshes.push_back( std::shared_ptr< qopengl::mesh >( mesh ) );
         if( !mm->mVertices ) { COMMA_THROW( comma::exception, "vertices is null!" ); }
         mesh->update( mm->mVertices, mm->mNumVertices );
+        //std::cout.write( ( const char* )( data ), size * sizeof( mesh_vertex_t ) );
+        //std::cout.write( ( const char* )( data ), size * sizeof( mesh_vertex_t ) );
+        // for( unsigned int i = 0; i < mm->mNumFaces; ++i )
+        // {
+        //     const auto& f = mm->mFaces[i];
+        //     COMMA_ASSERT( f.mNumIndices == 3, "face " << i << ": expected 3 indices; got: " << f.mNumIndices );
+        //     std::cout.write( ( const char* )( f.mIndices ), f.mNumIndices * sizeof( int ) );
+        // }
+        std::cout.flush();
     }
     for( unsigned int j = 0; j < node->mNumChildren; ++j ) { node_make_meshes( node->mChildren[j], shader ); }
 }
