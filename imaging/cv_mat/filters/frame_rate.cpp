@@ -62,10 +62,10 @@ std::pair< H, cv::Mat > frame_rate< H >::operator()( std::pair< H, cv::Mat > m )
     oss << "fps: " << ( 1. / _average_interval ) << "Hz";
     //std::cerr << "==> average_interval: " << _average_interval << " " << oss.str() << std::endl;
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
-        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 155, 25 ), cv::Scalar( 0, 0, 0 ), 1, CV_AA );
+        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 125, 25 ), cv::Scalar( 0, 0, 0 ), 1, CV_AA );
         cv::putText( m.second, oss.str().c_str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, CV_AA );
     #else
-        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 155, 25 ), cv::Scalar( 0, 0, 0 ), cv::FILLED, cv::LINE_AA );
+        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 125, 25 ), cv::Scalar( 0, 0, 0 ), cv::FILLED, cv::LINE_AA );
         cv::putText( m.second, oss.str().c_str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, cv::LINE_AA );
     #endif
     return m;
