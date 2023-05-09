@@ -65,6 +65,7 @@
 #include "filters/draw.h"
 #include "filters/encode.h"
 #include "filters/file.h"
+#include "filters/frame_rate.h"
 #include "filters/gamma.h"
 #include "filters/hard_edge.h"
 #include "filters/load.h"
@@ -1277,11 +1278,11 @@ struct count_impl_
     value_type operator()( value_type m )
     {
         #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
-            cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 80, 25 ), cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, CV_AA );
-            cv::putText( m.second, boost::lexical_cast< std::string >( count++ ), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0, 0, 0 ), 1, CV_AA );
+            cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 80, 25 ), cv::Scalar( 0, 0, 0 ), 1, CV_AA );
+            cv::putText( m.second, boost::lexical_cast< std::string >( count++ ), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, CV_AA );
         #else
-            cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 80, 25 ), cv::Scalar( 0xffff, 0xffff, 0xffff ), cv::FILLED, cv::LINE_AA );
-            cv::putText( m.second, boost::lexical_cast< std::string >( count++ ), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA );
+            cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 80, 25 ), cv::Scalar( 0, 0, 0 ), cv::FILLED, cv::LINE_AA );
+            cv::putText( m.second, boost::lexical_cast< std::string >( count++ ), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, cv::LINE_AA );
         #endif
         return m;
     }
@@ -2253,6 +2254,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
         return std::make_pair( boost::bind< value_type_t >( circle_impl_< H >, _1, drawing::circle( cv::Point( p[0], p[1] ), p[2], cv::Scalar( p[5], p[4], p[3] ), p[6], p[7], p[8] ) ), true );
     }
+    if( e[0] == "frame-rate" ) { return filters::frame_rate< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); } // todo? pass delimiter?
     if( e[0] == "contraharmonic" ) { return filters::contraharmonic< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "pad" ) { return filters::pad::pad< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "hard-edge" ) { return filters::hard_edge< H >::make( e.size() > 1 ? e[1] : "" ); }
@@ -3154,6 +3156,7 @@ static std::string usage_impl_()
     oss << "file read/write operations or generating images:\n";
     oss << "    blank=<rows>,<cols>,<type>: create black image of a given size and type\n";
     oss << filters::file< boost::posix_time::ptime >::usage(4);
+    oss << filters::frame_rate< boost::posix_time::ptime >::usage(4);
     oss << "    load=<filename>: load image from file instead of taking an image on stdin\n";
     oss << "                     the main meaningful use would be in association with 'forked' image processing\n";
     oss << "        supported file types by filename extension:\n";

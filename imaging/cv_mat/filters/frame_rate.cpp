@@ -28,8 +28,8 @@ std::pair< typename frame_rate< H >::functor_t, bool > frame_rate< H >::make( co
     e._spin_up_size = v.size() > 1 && !v[1].empty() ? boost::lexical_cast< unsigned int >( v[1] ) : 1;
     e._use_timestamp = v.size() > 2 && v[2] == "use-timestamp";
     COMMA_ASSERT( e._alpha > 0 && e._alpha <= 1, "expected ema alpha between 0 and 1; got: " << e._alpha );
-    //return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), false );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), false );
+    // todo? return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), true );
 }
 
 template < typename H >
@@ -57,21 +57,18 @@ std::pair< H, cv::Mat > frame_rate< H >::operator()( std::pair< H, cv::Mat > m )
     }
     _previous = t;
     ++_count;
-    std::pair< H, cv::Mat > n;
-    n.first = m.first;
-    m.second.copyTo( n.second );
     std::ostringstream oss;
     oss.precision( 4 );
     oss << "fps: " << ( 1. / _average_interval ) << "Hz";
     //std::cerr << "==> average_interval: " << _average_interval << " " << oss.str() << std::endl;
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
-        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 105, 25 ), cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, CV_AA );
-        cv::putText( m.second, oss.str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0, 0, 0 ), 1, CV_AA );
+        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 155, 25 ), cv::Scalar( 0, 0, 0 ), 1, CV_AA );
+        cv::putText( m.second, oss.str().c_str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, CV_AA );
     #else
-        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 105, 25 ), cv::Scalar( 0xffff, 0xffff, 0xffff ), cv::FILLED, cv::LINE_AA );
-        cv::putText( m.second, oss.str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA );
+        cv::rectangle( m.second, cv::Point( 5, 5 ), cv::Point( 155, 25 ), cv::Scalar( 0, 0, 0 ), cv::FILLED, cv::LINE_AA );
+        cv::putText( m.second, oss.str().c_str(), cv::Point( 10, 20 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( 0xffff, 0xffff, 0xffff ), 1, cv::LINE_AA );
     #endif
-    return n;
+    return m;
 }
 
 template struct frame_rate< boost::posix_time::ptime >;
