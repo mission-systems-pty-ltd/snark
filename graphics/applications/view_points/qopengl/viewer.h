@@ -72,9 +72,28 @@ public:
             void _close();
     };
 
+    struct camera
+    { 
+        struct options : public qt3d::camera_options
+        {
+            struct transition_t
+            {
+                double duration{0.5};
+                unsigned int size{25};
+                bool enabled{true};
+
+                transition_t( double duration = 0.5, unsigned int size = 25, bool enabled = true ): duration( duration ), size( size ), enabled( enabled ) {}
+            };
+
+            transition_t transition;
+
+            options( bool orthographic, double field_of_view, bool z_is_up, double transition_duration, unsigned int transition_size ): qt3d::camera_options( orthographic, field_of_view, z_is_up ), transition( transition_duration, transition_size ) {}
+        };
+    };
+
     viewer( controller_base* handler
           , const color_t& background_color
-          , const qt3d::camera_options& camera_options
+          , const viewer::camera::options& camera_options
           , const QVector3D& scene_center
           , double scene_radius
           , const snark::graphics::view::click_mode& click_mode
@@ -111,6 +130,7 @@ private:
     boost::optional< snark::graphics::qopengl::camera_transform > previous_camera_;
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;
+    viewer::camera::options _camera_options;
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

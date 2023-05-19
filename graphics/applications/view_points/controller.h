@@ -51,7 +51,7 @@ public:
 
     /// @todo split into several constructors; make camera configuration a separate class
     controller( const color_t& background_color
-              , const qt3d::camera_options& camera_options
+              , const viewer_t::camera::options& camera_options
               , bool exit_on_end_of_input
               , const boost::optional< comma::csv::options >& camera_csv
               , const boost::optional< Eigen::Vector3d >& camera_position

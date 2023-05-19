@@ -34,7 +34,7 @@ void controller::init()
 }
 
 controller::controller( const color_t& background_color
-                      , const qt3d::camera_options& camera_options
+                      , const viewer_t::camera::options& camera_options
                       , bool exit_on_end_of_input
                       , const boost::optional< comma::csv::options >& camera_csv
                       , const boost::optional< Eigen::Vector3d >& cameraposition
@@ -56,7 +56,7 @@ controller::controller( const color_t& background_color
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
     COMMA_THROW( comma::exception,"view-points: Qt3D_VERSION==1: not supported");
 #elif Qt3D_VERSION>=2
-    viewer.reset( new viewer_t( this,background_color, camera_options, scene_center, scene_radius, click_mode, grab_options ) );
+    viewer.reset( new viewer_t( this, background_color, camera_options, scene_center, scene_radius, click_mode, grab_options ) );
     viewer->output_camera_config = output_camera_config; // super-quick and dirty
     viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif

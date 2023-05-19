@@ -16,6 +16,7 @@
 #include "view_points/traits.h"
 #include "../qt5.5/qopengl/labels.h"
 #include "view_points/qopengl/model.h"
+#include "view_points/qopengl/viewer.h"
 #endif
 #include <comma/application/command_line_options.h>
 #include <comma/base/types.h>
@@ -26,10 +27,12 @@
 #include <comma/string/string.h>
 #include "../../visiting/eigen.h"
 #include "../qt3d/camera_options.h"
+#include "../traits.h"
 #include "view_points/click_mode.h"
 #include "view_points/console_reader.h"
 #include "view_points/shape_reader.h"
 #include "view_points/main_window.h"
+#include "view_points/traits.h"
 #include "view_points/types.h"
 
 static void bash_completion( unsigned const ac, char const * const * av )
@@ -52,6 +55,8 @@ static void bash_completion( unsigned const ac, char const * const * av )
         " --fov"
         " --camera-config"
         " --camera-position"
+        " --camera-transition-duration"
+        " --camera-transition-size"
         " --orthographic"
         " --background-colour --background-color"
         " --output-camera-config --output-camera"
@@ -221,7 +226,7 @@ static void usage( bool )
         "\n"
         "\ncamera options and controls"
         "\n    keys"
-        "\n        r: restore camera configuration ('r' for 'restore')"
+        "\n        r: restore camera configuration ('r' for 'restore'); see also --camera-transition-xxx below"
         "\n        ctrl-r, shift-ctrl-r: iterate through stored camera configuration"
         "\n        v: push the current camera configuration ('v' for 'view')"
         "\n        ctrl-v: output the current camera configuration to stdout"
@@ -229,10 +234,12 @@ static void usage( bool )
         "\n        alt-v: pop the oldest camera configuration"
         "\n    options"
         "\n        --camera=\"<options>\""
-        "\n              <options>: [fov=<fov>];[<type>]"
-        "\n              <fov>: field of view in degrees, default 45 degrees"
-        "\n              <type>: orthographic | perspective"
-        "\n                  default: perspective"
+        "\n              <options>: [fov=<fov>];[<type>];[transition/duration=<seconds>]"
+        "\n                  fov: field of view in degrees, default 45 degrees"
+        "\n                  type: orthographic | perspective; default=perspective"
+        "\n                  transition/duration=[<seconds>]; default=0.5"
+        "\n                  transition/size=[<n>]; default=25"
+        "\n                  transition/enabled|transition/diabled; default=enabled"
         "\n        --camera-config=<filename>: camera config in json; to see an example, run --output-camera-config"
         qt55_unsupported_marker_start
         "\n        --camera-position=\"<options>\": todo: fix: broken for qt5.5 and higher"
@@ -240,6 +247,10 @@ static void usage( bool )
         "\n              <position>: <x>,<y>,<z>,<roll>,<pitch>,<yaw>"
         "\n              <stream>: position csv stream with options; default fields: x,y,z,roll,pitch,yaw"
         qt55_unsupported_marker_end
+        "\n        --camera-transition-duration=<seconds>;default=0.5; camera transition options for"
+        "\n                                                            predefined camera positions"
+        "\n                                                            (see keys section above)"
+        "\n        --camera-transition-size=<n>;default=25; number of intermediat camera transition points"
         "\n        --fov=<fov>: set camera field of view in degrees"
         "\n        --orthographic: use orthographic projection instead of perspective"
         "\n"
@@ -751,18 +762,19 @@ int main( int argc, char** argv )
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;
         boost::optional< Eigen::Vector3d > camera_orientation;
-        snark::graphics::qt3d::camera_options camera_options( options.exists( "--orthographic" ), options.value< double >( "--fov", 45.0 ), options.exists( "--z-is-up" ) );
+        snark::graphics::view::qopengl::viewer::camera::options camera_options( options.exists( "--orthographic" ), options.value< double >( "--fov", 45.0 ), options.exists( "--z-is-up" ), options.value( "--camera-transition-duration", 0.5 ), options.value( "--camera-transition-size", 25 ) );
         if( options.exists( "--camera" ) )
         {
-            std::string camera = options.value< std::string >( "--camera" );
-            std::vector< std::string > camera_fields = comma::split( camera, ';' );
-            for( const auto& field : camera_fields )
-            {
-                if( field == "orthographic" ) { camera_options.orthographic = true; continue; }
-                if( field == "perspective" ) { camera_options.orthographic = false; continue; }
-                std::vector< std::string > vec = comma::split( field, '=' );
-                if( vec.size() == 2 && vec[0] == "fov" ) { camera_options.field_of_view = boost::lexical_cast< double >( vec[1] ); }
-            }
+            camera_options = comma::name_value::parser( ';', '=' ).get( options.value< std::string >( "--camera" ), camera_options );
+            // std::string camera = options.value< std::string >( "--camera" );
+            // std::vector< std::string > camera_fields = comma::split( camera, ';' );
+            // for( const auto& field : camera_fields )
+            // {
+            //     if( field == "orthographic" ) { camera_options.orthographic = true; continue; }
+            //     if( field == "perspective" ) { camera_options.orthographic = false; continue; }
+            //     std::vector< std::string > vec = comma::split( field, '=' );
+            //     if( vec.size() == 2 && vec[0] == "fov" ) { camera_options.field_of_view = boost::lexical_cast< double >( vec[1] ); }
+            // }
         }
         bool camera_position_from_stdin = false;
         QApplication application( argc, argv );
