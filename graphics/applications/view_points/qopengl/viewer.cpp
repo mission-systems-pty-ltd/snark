@@ -182,9 +182,9 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 }
                 std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
                 _print_keys_help();
-                if( _camera_options.transition.enabled )
+                if( _camera_options.transitions.enabled )
                 {
-                    unsigned int size = _camera_options.transition.size; // for brevity
+                    unsigned int size = _camera_options.transitions.size; // for brevity
                     _camera_transitions.resize( size, _camera ); // quick and dirty for now
                     _camera_transitions.back() = _camera_bookmarks[_camera_bookmarks_index];
                     QVector3D c = _camera.center;
@@ -201,7 +201,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                         _camera_transitions[i].set( c, p, r, false, true ); // todo? smoother, e.g. quadratic, transitions
                         _camera_transitions[i].update_projection();
                     }
-                    _camera_transition_timer.start( _camera_options.transition.duration * 1000 / size ); // _camera_transition_timer.start( 250 / size );
+                    _camera_transition_timer.start( _camera_options.transitions.duration * 1000 / size ); // _camera_transition_timer.start( 250 / size );
                 }
                 else
                 {

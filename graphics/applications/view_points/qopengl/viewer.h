@@ -76,18 +76,18 @@ public:
     { 
         struct options : public qt3d::camera_options
         {
-            struct transition_t
+            struct transitions_t
             {
                 double duration{0.5};
                 unsigned int size{25};
                 bool enabled{true};
 
-                transition_t( double duration = 0.5, unsigned int size = 25, bool enabled = true ): duration( duration ), size( size ), enabled( enabled ) {}
+                transitions_t( double duration = 0.5, unsigned int size = 25, bool enabled = true ): duration( duration ), size( size ), enabled( enabled ) {}
             };
 
-            transition_t transition;
+            transitions_t transitions;
 
-            options( bool orthographic, double field_of_view, bool z_is_up, double transition_duration, unsigned int transition_size ): qt3d::camera_options( orthographic, field_of_view, z_is_up ), transition( transition_duration, transition_size ) {}
+            options( bool orthographic, double field_of_view, bool z_is_up, double transitions_duration, unsigned int transitions_size ): qt3d::camera_options( orthographic, field_of_view, z_is_up ), transitions( transitions_duration, transitions_size ) {}
         };
     };
 

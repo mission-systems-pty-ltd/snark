@@ -12,9 +12,9 @@
 
 namespace comma { namespace visiting {
 
-template <> struct traits< snark::graphics::view::qopengl::viewer::camera::options::transition_t >
+template <> struct traits< snark::graphics::view::qopengl::viewer::camera::options::transitions_t >
 {
-    template < typename Key, class Visitor > static void visit( Key, snark::graphics::view::qopengl::viewer::camera::options::transition_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( Key, snark::graphics::view::qopengl::viewer::camera::options::transitions_t& p, Visitor& v )
     {
         bool enabled{false};
         bool disabled{false};
@@ -25,7 +25,7 @@ template <> struct traits< snark::graphics::view::qopengl::viewer::camera::optio
         p.enabled = enabled ? true : disabled ? false : p.enabled;
     }
 
-    template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::camera::options::transition_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::camera::options::transitions_t& p, Visitor& v )
     {
         v.apply( "duration", p.duration );
         v.apply( "size", p.size );
@@ -40,13 +40,13 @@ template <> struct traits< snark::graphics::view::qopengl::viewer::camera::optio
     template < typename Key, class Visitor > static void visit( const Key& k, snark::graphics::view::qopengl::viewer::camera::options& p, Visitor& v )
     {
         comma::visiting::traits< base_t >::visit( k, static_cast< base_t& >( p ), v );
-        v.apply( "transition", p.transition );
+        v.apply( "transitions", p.transitions );
     }
 
     template < typename Key, class Visitor > static void visit( const Key& k, const snark::graphics::view::qopengl::viewer::camera::options& p, Visitor& v )
     {
         comma::visiting::traits< base_t >::visit( k, static_cast< const base_t& >( p ), v );
-        v.apply( "transition", p.transition );
+        v.apply( "transitions", p.transitions );
     }
 };
 
