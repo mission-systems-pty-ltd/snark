@@ -96,7 +96,7 @@ void controller::_update_view()
 
 void controller::read()
 {
-//     if( viewer == NULL ) { return; }
+    //     if( viewer == NULL ) { return; }
     for( unsigned int i = 0; !viewer->m_offset && i < readers.size(); ++i )
     {
         if( readers[i]->empty() ) { continue; }
@@ -117,7 +117,8 @@ void controller::read()
         m_shutdown = m_shutdown && readers[i]->isShutdown();
         ready_to_look = ready_to_look && ( readers[i]->isShutdown() || ( readers.size() > 1 && readers[i]->is_stdin() ) );
     }
-    bool extents_ready = readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 );
+    bool extents_ready = readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= std::min( readers[0]->size / 10, std::size_t{1000} ) );
+    //bool extents_ready = readers[0]->m_extents && readers[0]->m_num_points > 0 && ( m_shutdown || ready_to_look || readers[0]->m_num_points >= readers[0]->size / 10 );
     if( extents_ready )
     {
         if( !_extents || *_extents != *( readers[0]->m_extents ) ) // quick and dirty; // todo? call _update_view() on camera moves?
@@ -128,9 +129,13 @@ void controller::read()
     }
     if( !_camera_config_filename.empty() ) // quick and dirty; for some fiddly reason, initialising camera from config in controller constructor screws camera in a number of whimsical ways
     {
-        viewer->load_camera_config( _camera_config_filename );
-        _camera_config_filename.clear();
-        update_view_required = true;
+        if( _camera_config_ready_to_load ) // todo: vodoo; redesign camera management
+        {
+            viewer->load_camera_config( _camera_config_filename );
+            _camera_config_filename.clear();
+            update_view_required = true;
+        }
+        _camera_config_ready_to_load = true; // todo: vodoo; redesign camera management
     }
     else if( !_camera_reader && m_cameraposition )
     {

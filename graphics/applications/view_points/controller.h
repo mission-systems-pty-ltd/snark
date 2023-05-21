@@ -84,6 +84,7 @@ private:
     bool m_exit_on_end_of_input;
     std::string _camera_config_filename;  // quick and dirty
     bool _camera_config_from_file{false}; // quick and dirty
+    bool _camera_config_ready_to_load{false}; // todo: quick and dirty; vodoo; redesign camera management
     boost::optional< snark::math::closed_interval< float, 3 > > _extents;
 
     void _update_view();
