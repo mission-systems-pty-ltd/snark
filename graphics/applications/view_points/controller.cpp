@@ -105,10 +105,10 @@ void controller::read()
         std::cerr << "view-points: reader no." << i << std::setprecision( 16 ) << " scene offset: " << viewer->m_offset->x() << ',' << viewer->m_offset->y() << ',' << viewer->m_offset->z() << "; scene radius: " << viewer->scene_radius << std::endl;
     }
     if( !viewer->m_offset ) { return; }
-    bool need_update = false;
+    bool update_view_required = false;
     for( unsigned int i = 0; i < readers.size(); ++i )
     {
-        if( readers[i]->update( *viewer->m_offset ) > 0 ) { need_update = true; };
+        if( readers[i]->update( *viewer->m_offset ) > 0 ) { update_view_required = true; };
     }
     m_shutdown = true;
     bool ready_to_look = true;
@@ -130,7 +130,7 @@ void controller::read()
     {
         viewer->load_camera_config( _camera_config_filename );
         _camera_config_filename.clear();
-        need_update = true;
+        update_view_required = true;
     }
     else if( !_camera_reader && m_cameraposition )
     {
@@ -138,7 +138,7 @@ void controller::read()
         _update_view();
         m_cameraposition.reset();
         m_cameraorientation.reset();
-        need_update = true;
+        update_view_required = true;
     }
     else if( _camera_reader )
     {
@@ -150,7 +150,7 @@ void controller::read()
             m_cameraorientation = orientation;
             viewer->set_camera_position( position, orientation );
             _update_view();
-            need_update = true;
+            update_view_required = true;
         }
     }
     else if( _initial_camera_position_from_scene_extents && extents_ready )
@@ -161,7 +161,7 @@ void controller::read()
             _initial_camera_position_set = true;
         }
     }
-    if( need_update ) { update_view(); }
+    if( update_view_required ) { update_view(); }
     if( m_shutdown && m_exit_on_end_of_input ) { shutdown(); }
 }
 
