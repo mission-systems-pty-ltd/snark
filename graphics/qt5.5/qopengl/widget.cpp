@@ -39,14 +39,15 @@ static const char *fragment_shader_source = R"(
     }
 )";
 
-widget::widget(const color_t& background_color, const qt3d::camera_options& camera_options, QWidget *parent )
+widget::widget( const color_t& background_color, const qt3d::camera_options& camera_options, QWidget *parent )
     : QOpenGLWidget( parent )
     , program_( 0 )
     , _camera( camera_options.orthographic
              , camera_options.field_of_view
              , QVector3D( 0, 0, camera_options.z_is_up ? 1 : -1 ) )
-             , scene_radius( 10 )
-             , background_color( background_color )
+             //, camera_options.center )
+    , scene_radius( 10 )
+    , background_color( background_color )
 {
 }
 
@@ -169,24 +170,16 @@ void widget::mouseMoveEvent( QMouseEvent *event )
 {
     float dx = event->x() - last_pos_.x();
     float dy = event->y() - last_pos_.y();
-
     if( event->buttons() & Qt::LeftButton )
     {
-        _camera.pivot(dx,dy);
+        _camera.pivot( dx, dy );
         update();
     }
     else if( event->buttons() & Qt::RightButton )
     {
         float factor = 1 / 500;
         double distance = _camera.distance();
-        if( distance > 5 )
-        {
-            factor = 1.5 * distance / width();
-        }
-        else
-        {
-            factor = 0.5 * scene_radius / width(); // HACK for the case where the camera center has been moved by zooming in
-        }
+        factor = ( distance > 5 ? ( 1.5 * distance ) : ( 0.5 * scene_radius ) ) / width(); // HACK for the case where the camera center has been moved by zooming in
         _camera.pan( factor * dx, -factor * dy );
         update();
     }
@@ -216,7 +209,7 @@ void widget::wheelEvent( QWheelEvent *event )
     update();
 }
 
-static const int pixel_search_width = 15;
+static const unsigned int pixel_search_width = 15;
 
 // Take a 2d point on the viewport and determine the corresponding 3d point in space.
 // The 2d point has to correspond to a pixel (or be close to one).

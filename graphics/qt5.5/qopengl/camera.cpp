@@ -15,14 +15,14 @@ std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << 
 camera_transform::camera_transform( bool orthographic
                                   , double field_of_view
                                   , const QVector3D& up
-                                  , const QVector3D& c
-                                  , float z )
-    : center(c)
-    , up(up)
-    , orthographic(orthographic)
-    , near_plane(0.01)
-    , far_plane(100)
-    , field_of_view(field_of_view)
+                                  , const QVector3D& c )
+                                  //, float z )
+    : center( c )
+    , up( up )
+    , orthographic( orthographic )
+    , near_plane( 0.01 )
+    , far_plane( 100 )
+    , field_of_view( field_of_view )
 {
     // The camera always points along the z-axis. Pan moves the camera in x,y
     // coordinates and zoom moves in and out on the z-axis.

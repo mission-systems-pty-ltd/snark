@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <vector>
+#include <memory>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <QOpenGLWidget>
@@ -11,15 +13,13 @@
 #include <QOpenGLBuffer>
 #include <QMatrix4x4>
 #include "../../qt3d/camera_options.h"
-#include "shapes.h"
-#include "label_shader.h"
-#include "texture_shader.h"
-#include <vector>
-#include <memory>
 #include "camera.h"
+#include "label_shader.h"
+#include "shapes.h"
 #include "viewer_base.h"
+#include "texture_shader.h"
 
-QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
+QT_FORWARD_DECLARE_CLASS( QOpenGLShaderProgram )
 
 namespace snark { namespace graphics { namespace qopengl {
 

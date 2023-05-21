@@ -15,8 +15,8 @@ struct camera_transform
     camera_transform( bool orthographic
                     , double field_of_view
                     , const QVector3D& up = QVector3D( 0, 0, -1 )
-                    , const QVector3D& center = QVector3D( 0, 0, 0 )
-                    , float z = -1 );
+                    , const QVector3D& center = QVector3D( 0, 0, 0 ) );
+                    //, float z = -1 );
 
     void pan( float dx, float dy );
 
@@ -59,7 +59,7 @@ struct camera_transform
     QMatrix4x4 world;
     QMatrix4x4 camera;
     QMatrix4x4 projection;
-    QVector3D center;
+    QVector3D center{0, 0, 0};
     // call update_projection if you set any of the following
     QVector3D up;   // not plugged in yet; todo
     bool orthographic;

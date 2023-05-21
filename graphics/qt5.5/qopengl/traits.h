@@ -25,7 +25,7 @@ template <> struct traits< snark::graphics::qopengl::camera_transform >
         v.apply( "near_plane", p.near_plane );
         v.apply( "far_plane", p.far_plane );
         v.apply( "field_of_view", p.field_of_view );
-        p.set( center, position, orientation );
+        p.set( center, position, orientation, false, true ); // should it be: translate_center = true?
         p.update_projection();
     }
     template < typename Key, class Visitor >
