@@ -64,17 +64,16 @@ void camera_transform::set( const QVector3D& center
                           , bool from_ned
                           , bool translate_center )
 {
-    set_center( center, translate_center );
+    set_center( center, translate_center ); // todo? should it also take from_ned somehow?
     set_position( position, from_ned );
     set_orientation( orientation, from_ned );
 }
 
 void camera_transform::set_center( const QVector3D& v, bool translate )
 {
-    //std::cerr << "==> set_center: translate: " << translate << std::endl;
-    if( translate ) { world.translate( center ); }
+    //std::cerr << "==> camera_transform::set_center(): before: " << center << " after: " << v << " translate: " << translate << std::endl;
+    if( translate ) { world.translate( v - center ); }
     center = v;
-    if( translate ) { world.translate( -center ); }
 }
 
 bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
