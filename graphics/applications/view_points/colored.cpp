@@ -252,7 +252,7 @@ color_t by_rgb::color( const Eigen::Vector3d& , comma::uint32, double, const col
 
 colored* color_from_string( const std::string& t, const std::string& fields, const color_t& backgroundcolor )
 {
-    std::string s = t.empty() ? std::string( "0:1,cyan:magenta" ) : t;
+    std::string s = t.empty() ? std::string( "yellow" ) : t; // std::string s = t.empty() ? std::string( "0:1,cyan:magenta" ) : t;
     std::vector< std::string > f = comma::split( fields, ',' );
     bool has_id = false;
     for( unsigned int i = 0; !has_id && i < f.size(); ++i ) { has_id = f[i] == "id"; } // quick and dirty

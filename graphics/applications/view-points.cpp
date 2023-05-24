@@ -542,8 +542,8 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
 {
     //snark::graphics::view::color_t
     QColor background_color( QColor( QString( options.value< std::string >( "--background-colour", "#000000" ).c_str() ) ) );
-    std::string color = options.value( "--color,--colour,-c", std::string() );
-    std::string label = options.value( "--label", std::string() );
+    std::string color = options.value< std::string >( "--color,--colour,-c", "yellow" );
+    std::string label = options.value< std::string >( "--label", "" );
     std::string shape = options.value< std::string >( "--shape", "point" );
     bool show = true;
     snark::graphics::view::Reader::reader_parameters param( csv_options
