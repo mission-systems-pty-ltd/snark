@@ -57,7 +57,8 @@ static void usage( bool verbose = false )
     std::cerr << "    --number-of-series,-n=<n>; default=1; how many series each stream has; a convenience option" << std::endl;
     std::cerr << "                               if --fields have 'series' field without series indices" << std::endl;
     std::cerr << "    --pass-through,--pass; todo: output to stdout the first stream on the command line" << std::endl;
-    std::cerr << "    --size,-s,--tail=<n>: plot last <n> records of stream; default 10000" << std::endl;
+    std::cerr << "    --size,-s,--tail=<n>: plot last <n> records of stream; default: file: estimated number of records" << std::endl;
+    std::cerr << "                                                                    stream: 10000 records" << std::endl;
     std::cerr << std::endl;
     std::cerr << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     std::cerr << std::endl;
@@ -324,8 +325,18 @@ int main( int ac, char** av )
         const auto& series_configs = make_configs( options.values< std::string >( "--series" ), snark::graphics::plotting::series::config( options ) );
         snark::graphics::plotting::stream::config_t stream_config( options );
         std::vector< snark::graphics::plotting::stream::config_t > stream_configs;
-        if( stdin_index ) { if( options.exists( "--no-stdin" ) ) { std::cerr << "csv-plot: due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" << std::endl; return 1; } }
-        else { stream_config.csv.filename = "-"; stream_configs.push_back( stream_config ); stream_config.pass_through = false; }
+        if( stdin_index )
+        {
+            if( options.exists( "--no-stdin" ) ) { std::cerr << "csv-plot: due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" << std::endl; return 1; }
+        }
+        else
+        {
+            stream_config.csv.filename = "-";
+            auto config = stream_config;
+            if( config.size == 0 ) { config.size = 10000; }
+            stream_configs.push_back( config );
+            stream_config.pass_through = false;
+        }
         for( unsigned int i = 0; i < unnamed.size(); ++i ) { stream_configs.push_back( snark::graphics::plotting::stream::config_t( unnamed[i], series_configs, stream_config ) ); stream_config.pass_through = false; }
         if( verbose ) { std::cerr << "csv-plot: got " << stream_configs.size() << " input stream config(s)" << std::endl; }
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );

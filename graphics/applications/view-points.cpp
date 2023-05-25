@@ -217,7 +217,8 @@ static void usage( bool )
         "\n                            note 1: just like for the cad models, the images will be pinned to the latest point in the stream"
         "\n                            note 2: specify id in fields to switch between multiple images, see examples below"
         "\n    --size <size>: render last <size> points (or other shapes)"
-        "\n                   default 2000000 for points, for 10000 for other shapes"
+        "\n                   default: regular files: estimated number of records in the file"
+        "\n                            streams: 2000000 for points, for 10000 for other shapes"
         "\n    --groups <csv>: include in group/s named in csv"
         "\n    --title <title>: title for source, defaults to filename"
         "\n                     if set to \"none\" don't show source in selection box"
@@ -384,6 +385,7 @@ static void usage( bool )
         "\n"
         "\n    view points from all the binary files in the directory"
         "\n        cat $(ls *.bin) | view-points --size=200000 --binary \"%d%d%d\""
+        "\n        view-points *.bin --binary \"%d%d%d\""
         "\n"
         "\n    colour points"
         "\n        view-points --colour blue $(ls labeled.*.csv)"
@@ -535,12 +537,31 @@ static std::vector< Options > make_image_options( const std::string& shape )
 
 static bool data_passed_through = false;
 
+static std::size_t estimated_number_of_records( const comma::csv::options& csv ) // todo? move to a more generic place?
+{
+    boost::filesystem::path f( csv.filename );
+    for( ; boost::filesystem::is_symlink( f ); boost::filesystem::read_symlink( f ) );
+    if( !boost::filesystem::is_regular_file( f ) ) { return 0; }
+    if( csv.binary() ) { return boost::filesystem::file_size( f ) / csv.format().size(); }
+    std::ifstream ifs( f.string(), std::ios::binary );
+    COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open '" << f.string() << "'" );
+    std::vector< char > v( 65536 );
+    std::size_t n{0};
+    while( ifs.good() && !ifs.eof() )
+    {
+        ifs.read( &v[0], v.size() );
+        if( ifs.gcount() <= 0 ) { return n; }
+        const char* end = &v[0] + ifs.gcount();
+        for( const char* p = &v[0]; p < end; ++p ) { if( *p == '\n' ) { ++n; } }
+    }
+    return n;
+}
+
 // quick and dirty, todo: a proper structure, as well as a visitor for command line options
 std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::command_line_options& options
                                                             , const comma::csv::options& csv_options
                                                             , const std::string& properties = "" )
 {
-    //snark::graphics::view::color_t
     QColor background_color( QColor( QString( options.value< std::string >( "--background-colour", "#000000" ).c_str() ) ) );
     std::string color = options.value< std::string >( "--color,--colour,-c", "yellow" );
     std::string label = options.value< std::string >( "--label", "" );
@@ -565,6 +586,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         comma::name_value::map m( properties, "filename", ';', '=' );
         shape = m.value( "shape", shape );
         param.size = m.value( "size", param.size );
+        if( param.size == 0 ) { param.size = estimated_number_of_records( param.options ); }
         param.point_size = m.value( "point-size", param.point_size );
         param.point_size = m.value( "weight", param.point_size );
         param.title = m.value( "title", param.title.empty() ? param.options.filename : param.title );

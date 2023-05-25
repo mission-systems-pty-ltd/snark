@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <boost/bind.hpp>
+#include <boost/filesystem.hpp>
 #include <QtCharts/QChart>
 #include <comma/base/exception.h>
 #include <comma/name_value/parser.h>
@@ -25,11 +26,33 @@ static std::string fields_from_aliases_( const std::string& fields )
     for( auto& f: v ) { if( f == "x" || f == "y" || f == "z" ) { f = "series[0]/" + f; } }
     return comma::join( v, ',' );
 }
-    
+
+static std::size_t estimated_number_of_records( const comma::csv::options& csv ) // todo? move to a more generic place?
+{
+    boost::filesystem::path f( csv.filename );
+    for( ; boost::filesystem::is_symlink( f ); boost::filesystem::read_symlink( f ) );
+    if( !boost::filesystem::is_regular_file( f ) ) { return 0; }
+    if( csv.binary() ) { return boost::filesystem::file_size( f ) / csv.format().size(); }
+    std::ifstream ifs( f.string(), std::ios::binary );
+    COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open '" << f.string() << "'" );
+    std::vector< char > v( 65536 );
+    std::size_t n{0};
+    while( ifs.good() && !ifs.eof() )
+    {
+        ifs.read( &v[0], v.size() );
+        if( ifs.gcount() <= 0 ) { return n; }
+        const char* end = &v[0] + ifs.gcount();
+        for( const char* p = &v[0]; p < end; ++p ) { if( *p == '\n' ) { ++n; } }
+    }
+    return n;
+}
+
 stream::config_t::config_t( const comma::command_line_options& options )
     : csv( options, "series[0]/x,series[0]/y" )
     , pass_through( options.exists( "--pass-through,--pass" ) )
-    , size( options.value( "--size,-s,--tail", 10000 ) )
+    , size( options.exists( "--size,-s,--tail" )
+          ? options.value< std::size_t >( "--size,-s,--tail" )
+          : estimated_number_of_records( csv ) )
     , number_of_series( options.value( "--number-of-series,-n", 1 ) )
 {
     csv.fields = fields_from_aliases_( csv.fields );
@@ -57,6 +80,8 @@ stream::config_t::config_t( const std::string& options, const std::map< std::str
     }
     *this = comma::name_value::parser( "filename", ';', '=', false ).get( comma::join( g, ';' ), defaults ); // quick and dirty; todo: unhack visiting
     csv.fields = fields_from_aliases_( csv.fields );
+    if( size == 0 ) { size = estimated_number_of_records( csv ); }
+    if( size == 0 ) { size = 10000; }
     plotting::record sample = plotting::record::sample( csv.fields, number_of_series ); // quick and dirty
     number_of_series = sample.series.size(); // quick and dirty
     series.resize( sample.series.size() );
