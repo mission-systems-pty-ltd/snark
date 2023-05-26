@@ -89,13 +89,42 @@ bool camera_transform::operator==( const camera_transform& rhs ) const // todo? 
         && view_size == rhs.view_size;
 }
 
-static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ); } // quick and dirty; Qt wants angles in degrees
+static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ).normalized(); } // quick and dirty; Qt wants angles in degrees
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
-    world.setToIdentity(); // auto translation = world.column( 3 );
-    world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    COMMA_THROW_IF( from_ned, "from_ned: todo!" );
+    QMatrix4x4 w;
+    w.setToIdentity();
+    w.translate( center );
+    w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    w.translate( -center );
+    for( unsigned int y = 0; y < 3; ++y ) // quick and dirty for now; other things just suck
+    {
+        for( unsigned int x = 0; x < 3; ++x )
+        {
+            world( x, y ) = w( x, y );
+        }
+    }
+    // auto q = from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    // QVector3D axis; float angle;
+    // q.getAxisAndAngle( &axis, &angle );
+    // std::cerr << "==> angle: " << angle << std::endl;
+    // w.rotate( angle, axis );
+    // world.translate( center );
+    // QMatrix4x4 inverted_world = world.inverted();
+    // QVector4D x_axis = inverted_world * QVector4D( 1, 0, 0, 0 );
+    // QVector4D y_axis = inverted_world * QVector4D( 0, 1, 0, 0 );
+    // QVector4D z_axis = inverted_world * QVector4D( 0, 0, 1, 0 );
+    // world.rotate( yaw * 180 / M_PI, z_axis.toVector3D() );
+    // world.rotate( pitch * 180 / M_PI, y_axis.toVector3D() );
+    // world.rotate( roll * 180 / M_PI, x_axis.toVector3D() );
+    // world.translate( -center );
+    
+    //world.setToIdentity(); // auto translation = world.column( 3 );
+    //world.translate( center );
+    //world.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
     // if( from_ned )
     // {
@@ -117,7 +146,7 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     // //world.rotate( from_ned ? _quaternion( roll, pitch, yaw ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
     // world.rotate( from_ned ? _quaternion( rpy.x(), rpy.y(), rpy.z() ) : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
 
-    world.translate( -center ); // world.translate( QVector3D( translation.x(), translation.y(), translation.z() ) ); // world.translate( -center ); //world.setColumn( 3, translation );
+    //world.translate( -center ); // world.translate( QVector3D( translation.x(), translation.y(), translation.z() ) ); // world.translate( -center ); //world.setColumn( 3, translation );
     //std::cerr << std::setprecision( 6 ) << "==> camera: set_orientation(): center: " << center << " r: " << roll << "," << pitch << "," << yaw << " get_orientation: " << get_orientation() << std::endl;
     //if( orthographic ) { update_projection(); } // todo? do we need to do it?
 }
