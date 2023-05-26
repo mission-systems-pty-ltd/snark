@@ -197,19 +197,23 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     dr = QVector3D( shortest( dr.x() ), shortest( dr.y() ), shortest( dr.z() ) ) / ( size - 1 );
                     //std::cerr << std::setprecision( 8 ) << "==> center: from: " << c << " to: " << _camera_transitions.back().center << std::endl;
                     //for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
-                    //_camera_transitions[0] = _camera;
-                    // auto dq = QQuaternion::fromEulerAngles( QVector3D( dr[1], dr[2], dr[0] ) * 180 / M_PI ).normalized();
-                    std::cerr << "==> dr: " << dr << std::endl; // " q: " << QQuaternion::fromEulerAngles( QVector3D( r[1], r[2], r[0] ) * 180 / M_PI ).normalized() << std::endl;
-                    for( unsigned int i = 1; i < size - 1; ++i, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
+                    _camera_transitions[0] = _camera;
+                    //auto dq = QQuaternion::fromEulerAngles( QVector3D( dr[1], dr[2], dr[0] ) * 180 / M_PI ).normalized();
+                    auto dq = QQuaternion::fromEulerAngles( QVector3D( -dr[1], -dr[2], dr[0] ) * 180 / M_PI ).normalized();
+                    QMatrix4x4 dw;
+                    dw.setToIdentity();
+                    dw.rotate( dq );
+                    for( unsigned int i = 1; i < size - 1; ++i ) // quick and dirty; implement using set_camera_position instead
                     {
-                        _camera_transitions[i].set( c, p, r, false, true ); // todo? smoother, e.g. quadratic, transitions
-
-                        // todo!
-                        // _camera_transitions[i] = _camera_transitions[i-1];
-                        // _camera_transitions[i].set_position( p );
-                        // _camera_transitions[i].world.translate( c );
-                        // _camera_transitions[i].world.rotate( dq );
-                        // _camera_transitions[i].world.translate( -c );
+                        //_camera_transitions[i].set( c, p, r, false, true ); // todo? smoother, e.g. quadratic, transitions
+                        // todo: quick and dirty; still something badly is wrong with x and y rotation (z seems ok); fix, clean, move to camera
+                        p += dp;
+                        r += dr;
+                        _camera_transitions[i] = _camera_transitions[i-1];
+                        _camera_transitions[i].set_position( p );
+                        _camera_transitions[i].world.translate( c );
+                        _camera_transitions[i].world *= dw; //_camera_transitions[i].world.rotate( dq );
+                        _camera_transitions[i].world.translate( -c );
 
                         _camera_transitions[i].update_projection();
                     }
