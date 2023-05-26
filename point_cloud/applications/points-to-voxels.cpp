@@ -1,6 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
 
-#include <boost/array.hpp>
+#include <array>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 #include <comma/base/exception.h>
@@ -24,7 +24,7 @@ struct input_point
 
 struct centroid
 {
-    boost::array< comma::int32, 3 > index;
+    std::array< comma::int32, 3 > index;
     Eigen::Vector3d mean;
     comma::uint32 size;
     comma::uint32 block;
@@ -77,7 +77,7 @@ template <> struct traits< centroid >
 } } // namespace comma { namespace visiting {
 
 template < typename T, std::size_t Size >
-std::ostream& operator<<( std::ostream& os, const boost::array< T, Size >& a )
+std::ostream& operator<<( std::ostream& os, const std::array< T, Size >& a )
 {
     for( std::size_t i = 0; i < Size; ++i ) { os << a[i] << " "; }
     return os;
@@ -192,7 +192,7 @@ int main( int argc, char** argv )
 //                 ostream.write( it->second );
 //             }
 
-            auto center = [&]( const boost::array< comma::int32, 3 >& i ) -> Eigen::Vector3d { return origin + Eigen::Vector3d( ( i[0] + 0.5 ) * resolution[0], ( i[1] + 0.5 ) * resolution[1], ( i[2] + 0.5 ) * resolution[2] ); };
+            auto center = [&]( const std::array< comma::int32, 3 >& i ) -> Eigen::Vector3d { return origin + Eigen::Vector3d( ( i[0] + 0.5 ) * resolution[0], ( i[1] + 0.5 ) * resolution[1], ( i[2] + 0.5 ) * resolution[2] ); };
             for( snark::voxel_map< centroid, 3 >::iterator it = voxels.begin(); it != voxels.end(); ++it )
             {
                 if( min_size > 0 && it->second.size < min_size ) { continue; }

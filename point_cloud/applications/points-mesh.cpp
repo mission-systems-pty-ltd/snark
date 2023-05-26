@@ -99,7 +99,7 @@ class grid
                 if( !p || ( block_ && *block_ != p->block ) ) { handle_block_(); if( !p ) { break; } }
                 block_ = p->block;
                 voxel_map_t_::index_type i = {{ p->index.x(), p->index.y() }};
-                std::pair< voxel_map_t_::iterator, bool > r = voxel_map_.base_type::insert( std::make_pair( i, voxel_() ) );
+                std::pair< voxel_map_t_::iterator, bool > r = voxel_map_.as_map::insert( std::make_pair( i, voxel_() ) );
                 if( !r.second )
                 {
                     if( permissive_ ) { continue; }
