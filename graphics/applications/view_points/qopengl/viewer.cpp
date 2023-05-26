@@ -190,7 +190,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D c = _camera.center;
                     QVector3D p = _camera.get_position();
                     QVector3D r = _camera.get_orientation();
-                    QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
+                    QVector3D dc = {0, 0, 0}; // QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
                     QVector3D dr = ( _camera_transitions.back().get_orientation() - r );
                     auto shortest = []( double a ) -> double { return a < -M_PI ? a + 2 * M_PI : a > M_PI ? a - 2 * M_PI : a; };
