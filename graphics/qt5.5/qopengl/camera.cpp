@@ -97,9 +97,9 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     COMMA_THROW_IF( from_ned, "from_ned: todo!" );
     QMatrix4x4 w;
     w.setToIdentity();
-    w.translate( center );
+    //w.translate( center );
     w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
-    w.translate( -center );
+    //w.translate( -center );
     for( unsigned int y = 0; y < 3; ++y ) // quick and dirty for now; other things just suck
     {
         for( unsigned int x = 0; x < 3; ++x )
@@ -107,19 +107,22 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
             world( x, y ) = w( x, y );
         }
     }
+
+    //world = w;
     // auto q = from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
     // QVector3D axis; float angle;
     // q.getAxisAndAngle( &axis, &angle );
     // std::cerr << "==> angle: " << angle << std::endl;
     // w.rotate( angle, axis );
+
     // world.translate( center );
     // QMatrix4x4 inverted_world = world.inverted();
     // QVector4D x_axis = inverted_world * QVector4D( 1, 0, 0, 0 );
     // QVector4D y_axis = inverted_world * QVector4D( 0, 1, 0, 0 );
     // QVector4D z_axis = inverted_world * QVector4D( 0, 0, 1, 0 );
-    // world.rotate( yaw * 180 / M_PI, z_axis.toVector3D() );
-    // world.rotate( pitch * 180 / M_PI, y_axis.toVector3D() );
-    // world.rotate( roll * 180 / M_PI, x_axis.toVector3D() );
+    // world.rotate( yaw * 180 / M_PI, y_axis.toVector3D() );
+    // world.rotate( pitch * 180 / M_PI, x_axis.toVector3D() );
+    // world.rotate( roll * 180 / M_PI, z_axis.toVector3D() );
     // world.translate( -center );
     
     //world.setToIdentity(); // auto translation = world.column( 3 );
