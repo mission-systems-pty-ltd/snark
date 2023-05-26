@@ -563,7 +563,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
                                                             , const std::string& properties = "" )
 {
     QColor background_color( QColor( QString( options.value< std::string >( "--background-colour", "#000000" ).c_str() ) ) );
-    std::string color = options.value< std::string >( "--color,--colour,-c", "yellow" );
+    std::string color = options.value< std::string >( "--color,--colour,-c", "" );
     std::string label = options.value< std::string >( "--label", "" );
     std::string shape = options.value< std::string >( "--shape", "point" );
     bool show = true;
