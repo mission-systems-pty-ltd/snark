@@ -192,18 +192,25 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
                     _camera_transitions[0] = _camera;
+                    QVector3D axis;
+                    float a;
+                    QQuaternion::fromRotationMatrix( ( _camera.world.inverted() * _camera_transitions.back().world ).toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
+                    auto dq = QQuaternion::fromAxisAndAngle( axis, a / ( size - 1 ) );
                     for( unsigned int i = 1; i < size - 1; ++i ) // quick and dirty; implement using set_camera_position instead
                     {
                         p += dp;
                         c += dc;
                         _camera_transitions[i] = _camera_transitions[i-1];
                         _camera_transitions[i].set_position( p );
-                        QVector3D axis;
-                        float a;
-                        QQuaternion::fromRotationMatrix( ( _camera_transitions[i-1].world.inverted() * _camera_transitions.back().world ).toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
-                        float da = a / ( size - i );
+                        // QVector3D axis;
+                        // float a;
+                        // QQuaternion::fromRotationMatrix( ( _camera_transitions[i].world.inverted() * _camera_transitions.back().world ).toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
+                        // std::cerr << "==> axis: " << axis << " da: " << ( a / ( size - i ) ) << std::endl;
+                        // _camera_transitions[i].world.translate( c );
+                        // _camera_transitions[i].world.rotate( QQuaternion::fromAxisAndAngle( axis, a / ( size - i ) ) );
+                        // _camera_transitions[i].world.translate( -c );
                         _camera_transitions[i].world.translate( c );
-                        _camera_transitions[i].world.rotate( QQuaternion::fromAxisAndAngle( axis, da ) );
+                        _camera_transitions[i].world.rotate( dq );
                         _camera_transitions[i].world.translate( -c );
                         _camera_transitions[i].update_projection();
                     }
