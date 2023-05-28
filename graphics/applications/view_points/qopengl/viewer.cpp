@@ -189,26 +189,21 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     _camera_transitions.back() = _camera_bookmarks[_camera_bookmarks_index];
                     QVector3D c = _camera.center;
                     QVector3D p = _camera.get_position();
-                    QVector3D r = _camera.get_orientation();
-                    //QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
+                    QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
-                    QVector3D dr = ( _camera_transitions.back().get_orientation() - r );
-                    auto shortest = []( double a ) -> double { return a < -M_PI ? a + 2 * M_PI : a > M_PI ? a - 2 * M_PI : a; };
-                    dr = QVector3D( shortest( dr.x() ), shortest( dr.y() ), shortest( dr.z() ) ) / ( size - 1 );
-                    //std::cerr << std::setprecision( 8 ) << "==> center: from: " << c << " to: " << _camera_transitions.back().center << std::endl;
-                    //for( unsigned int i = 0; i < size - 1; ++i, c += dc, p += dp, r += dr ) // quick and dirty; implement using set_camera_position instead
                     _camera_transitions[0] = _camera;
-                    //auto dq = QQuaternion::fromEulerAngles( QVector3D( dr[1], dr[2], dr[0] ) * 180 / M_PI ).normalized();
-                    auto dq = QQuaternion::fromEulerAngles( QVector3D( -dr[1], -dr[2], dr[0] ) * 180 / M_PI ).normalized();
+                    auto sw = _camera.world.inverted() * _camera_transitions.back().world;
+                    QVector3D axis;
+                    float a;
+                    QQuaternion::fromRotationMatrix( sw.toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
+                    float da = a / ( size - 1 );
                     QMatrix4x4 dw;
                     dw.setToIdentity();
-                    dw.rotate( dq );
+                    dw.rotate( QQuaternion::fromAxisAndAngle( axis, da ) );
                     for( unsigned int i = 1; i < size - 1; ++i ) // quick and dirty; implement using set_camera_position instead
                     {
-                        //_camera_transitions[i].set( c, p, r, false, true ); // todo? smoother, e.g. quadratic, transitions
-                        // todo: quick and dirty; still something badly is wrong with x and y rotation (z seems ok); fix, clean, move to camera
                         p += dp;
-                        r += dr;
+                        //c += dc;
                         _camera_transitions[i] = _camera_transitions[i-1];
                         _camera_transitions[i].set_position( p );
                         _camera_transitions[i].world.translate( c );
