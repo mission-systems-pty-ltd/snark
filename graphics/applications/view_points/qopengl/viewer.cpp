@@ -180,7 +180,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 {
                     _camera_bookmarks_index = ( _camera_bookmarks_index == 0 ? _camera_bookmarks.size() : _camera_bookmarks_index ) - 1;
                 }
-                std::cerr << "view-points: camera position restored to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)" << std::endl;
+                std::cerr << "view-points: restoring camera position to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)..." << std::endl;
                 _print_keys_help();
                 if( _camera_options.transitions.enabled )
                 {
@@ -192,24 +192,19 @@ void viewer::keyPressEvent( QKeyEvent *event )
                     QVector3D dc = ( _camera_transitions.back().center - c ) / ( size - 1 );
                     QVector3D dp = ( _camera_transitions.back().get_position() - p ) / ( size - 1 );
                     _camera_transitions[0] = _camera;
-                    auto sw = _camera.world.inverted() * _camera_transitions.back().world;
-                    QVector3D axis;
-                    float a;
-                    QQuaternion::fromRotationMatrix( sw.toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
-                    float da = a / ( size - 1 );
-                    QMatrix4x4 dw;
-                    dw.setToIdentity();
-                    dw.rotate( QQuaternion::fromAxisAndAngle( axis, da ) );
                     for( unsigned int i = 1; i < size - 1; ++i ) // quick and dirty; implement using set_camera_position instead
                     {
                         p += dp;
-                        //c += dc;
+                        c += dc;
                         _camera_transitions[i] = _camera_transitions[i-1];
                         _camera_transitions[i].set_position( p );
+                        QVector3D axis;
+                        float a;
+                        QQuaternion::fromRotationMatrix( ( _camera_transitions[i-1].world.inverted() * _camera_transitions.back().world ).toGenericMatrix< 3, 3 >() ).getAxisAndAngle( &axis, &a );
+                        float da = a / ( size - i );
                         _camera_transitions[i].world.translate( c );
-                        _camera_transitions[i].world *= dw; //_camera_transitions[i].world.rotate( dq );
+                        _camera_transitions[i].world.rotate( QQuaternion::fromAxisAndAngle( axis, da ) );
                         _camera_transitions[i].world.translate( -c );
-
                         _camera_transitions[i].update_projection();
                     }
                     _camera_transition_timer.start( _camera_options.transitions.duration * 1000 / size ); // _camera_transition_timer.start( 250 / size );
@@ -237,7 +232,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 if( !_camera_bookmarks.empty() )
                 {
                     _camera_bookmarks.pop_front();
-                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
+                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.empty() ? 0 : _camera_bookmarks.size() - 1; }
                     std::cerr << "view-points: removed first camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
                     _print_keys_help();
                 }
