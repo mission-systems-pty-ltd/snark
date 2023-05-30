@@ -31,11 +31,13 @@ struct camera_transform
 
     void set( const QVector3D& center, const QVector3D& position, const QVector3D& orientation, bool from_ned = false );
 
-    void set_center( const QVector3D& v );
+    void set_center( const QVector3D& v, bool from_ned = false );
 
     void set_orientation( float roll,float pitch,float yaw, bool from_ned = false );
 
     void set_orientation( const QVector3D& v, bool from_ned = false ) { set_orientation( v.x(), v.y(), v.z(), from_ned ); }
+
+    //void set_camera( const QVector3D& position, const QVector3D& orientation, bool from_ned = false );
 
     QVector3D get_orientation( bool to_ned = false ) const;
 

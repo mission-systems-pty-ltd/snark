@@ -55,24 +55,27 @@ void camera_transform::pivot( float dx,float dy )
 QMatrix4x4 camera_transform::transform() const { return projection * camera * world; }
 
 //static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
-static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
-static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
+// static QVector3D _from_ned( const QVector3D& v ) { return -QVector3D( v.y(), -v.z(), -v.x() ); } // quick and dirty: north-east-down -> east-up-south camera -> west-down-north world
+// static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(), -v.y() ); } // quick and dirty: north-east-down <- east-up-south camera <- west-down-north world
+
+static QVector3D _from_ned( const QVector3D& v ) { return QVector3D( -v.y(), v.z(), v.x() ); }
+static QVector3D _to_ned( const QVector3D& v ) { return QVector3D( v.z(), -v.x(), v.y() ); }
 
 void camera_transform::set( const QVector3D& center
                           , const QVector3D& position
                           , const QVector3D& orientation
                           , bool from_ned )
 {
-    set_center( center ); // todo? should it also take from_ned somehow?
+    set_center( center, from_ned ); // todo? should it also take from_ned somehow?
     set_position( position, from_ned );
     set_orientation( orientation, from_ned );
 }
 
-void camera_transform::set_center( const QVector3D& v )
+void camera_transform::set_center( const QVector3D& v, bool from_ned )
 {
     //std::cerr << "==> camera_transform::set_center(): before: " << center << " after: " << v << " translate: " << translate << std::endl;
     //world.translate( center ); // todo! should we translate at all? if so, then change the centre logic everywhere (e.g. in set_orientation)
-    center = v;
+    center = from_ned ? _from_ned( v ) : v;
     //world.translate( -center ); // todo! should we translate at all? if so, then change the centre logic everywhere (e.g. in set_orientation)
 }
 
@@ -90,15 +93,17 @@ bool camera_transform::operator==( const camera_transform& rhs ) const // todo? 
 }
 
 static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ).normalized(); } // quick and dirty; Qt wants angles in degrees
+//static QQuaternion _quaternion( const QVector3D& rpy ) { return _quaternion( rpy.x(), rpy.y(), rpy.z() ); }
 
 void camera_transform::set_orientation( float roll,float pitch,float yaw, bool from_ned )
 {
     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
-    COMMA_THROW_IF( from_ned, "from_ned: todo!" );
+    //COMMA_THROW_IF( from_ned, "from_ned: todo!" );
     QMatrix4x4 w;
     w.setToIdentity();
     w.translate( center ); // should we?
-    w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    //w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
+    w.rotate( from_ned ? _quaternion( roll, pitch, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
     w.translate( -center ); // should we?
     for( unsigned int y = 0; y < 3; ++y ) // quick and dirty for now; other things just suck
     {
@@ -177,6 +182,16 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
     if( orthographic ) { update_projection(); }
 }
+
+// void camera_transform::set_camera( const QVector3D& position, const QVector3D& orientation, bool from_ned )
+// {
+//     static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+//     camera.setToIdentity();
+//     camera.translate( from_ned ? _from_ned( position ) : position );
+//     camera.rotate( from_ned ? _quaternion( orientation ) * ned : _quaternion( orientation ) );
+//     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
+//     if( orthographic ) { update_projection(); }
+// }
 
 QVector3D camera_transform::get_position( bool to_ned ) const { return to_ned ? _to_ned( camera.column(3).toVector3DAffine() ) : camera.column(3).toVector3DAffine(); }
 

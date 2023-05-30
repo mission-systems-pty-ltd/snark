@@ -164,6 +164,7 @@ void controller::read()
         {
             viewer->look_at_center();
             _initial_camera_position_set = true;
+            update_view_required = true;
         }
     }
     if( update_view_required ) { update_view(); }
