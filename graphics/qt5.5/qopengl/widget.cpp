@@ -196,7 +196,7 @@ void widget::mouseDoubleClickEvent( QMouseEvent *event )
     else if( event->button() == Qt::LeftButton )
     {
         boost::optional< QVector3D > point = viewport_to_3d( event->pos() );
-        if( point ) { _camera.set_center( *point, false ); }
+        if( point ) { _camera.set_center( *point ); }
     }
 }
 

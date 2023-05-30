@@ -61,19 +61,19 @@ static QVector3D _to_ned( const QVector3D& v ) { return -QVector3D( -v.z(), v.x(
 void camera_transform::set( const QVector3D& center
                           , const QVector3D& position
                           , const QVector3D& orientation
-                          , bool from_ned
-                          , bool translate_center )
+                          , bool from_ned )
 {
-    set_center( center, translate_center ); // todo? should it also take from_ned somehow?
+    set_center( center ); // todo? should it also take from_ned somehow?
     set_position( position, from_ned );
     set_orientation( orientation, from_ned );
 }
 
-void camera_transform::set_center( const QVector3D& v, bool translate )
+void camera_transform::set_center( const QVector3D& v )
 {
     //std::cerr << "==> camera_transform::set_center(): before: " << center << " after: " << v << " translate: " << translate << std::endl;
-    if( translate ) { world.translate( v - center ); }
+    //world.translate( center ); // todo! should we translate at all? if so, then change the centre logic everywhere (e.g. in set_orientation)
     center = v;
+    //world.translate( -center ); // todo! should we translate at all? if so, then change the centre logic everywhere (e.g. in set_orientation)
 }
 
 bool camera_transform::operator==( const camera_transform& rhs ) const // todo? quick and dirty; use approximated comparison?
@@ -97,15 +97,12 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     COMMA_THROW_IF( from_ned, "from_ned: todo!" );
     QMatrix4x4 w;
     w.setToIdentity();
-    //w.translate( center );
+    w.translate( center ); // should we?
     w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
-    //w.translate( -center );
+    w.translate( -center ); // should we?
     for( unsigned int y = 0; y < 3; ++y ) // quick and dirty for now; other things just suck
     {
-        for( unsigned int x = 0; x < 3; ++x )
-        {
-            world( x, y ) = w( x, y );
-        }
+        for( unsigned int x = 0; x < 3; ++x ) { world( x, y ) = w( x, y ); }
     }
 
     //world = w;

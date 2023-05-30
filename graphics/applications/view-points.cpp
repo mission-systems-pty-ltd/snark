@@ -540,7 +540,7 @@ static bool data_passed_through = false;
 static std::size_t estimated_number_of_records( const comma::csv::options& csv ) // todo? move to a more generic place?
 {
     boost::filesystem::path f( csv.filename );
-    for( ; boost::filesystem::is_symlink( f ); boost::filesystem::read_symlink( f ) );
+    for( ; boost::filesystem::is_symlink( f ); f = boost::filesystem::read_symlink( f ) );
     if( !boost::filesystem::is_regular_file( f ) ) { return 0; }
     if( csv.binary() ) { return boost::filesystem::file_size( f ) / csv.format().size(); }
     std::ifstream ifs( f.string(), std::ios::binary );
