@@ -179,6 +179,7 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 {
     camera.setToIdentity();
     camera.translate( from_ned ? _from_ned( v ) : v );
+    //std::cerr << "==> set_position(): " << v.x() << "," << v.y() << "," << v.z() << std::endl;
     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
     if( orthographic ) { update_projection(); }
 }
@@ -193,7 +194,12 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 //     if( orthographic ) { update_projection(); }
 // }
 
-QVector3D camera_transform::get_position( bool to_ned ) const { return to_ned ? _to_ned( camera.column(3).toVector3DAffine() ) : camera.column(3).toVector3DAffine(); }
+QVector3D camera_transform::get_position( bool to_ned ) const
+{
+    //auto v = camera.column( 3 ).toVector3DAffine();
+    //std::cerr << "==> get_position(): " << v.x() << "," << v.y() << "," << v.z() << std::endl;
+    return to_ned ? _to_ned( camera.column(3).toVector3DAffine() ) : camera.column( 3 ).toVector3DAffine();
+}
 
 double camera_transform::distance() const { return std::abs(get_position().z()); }
 

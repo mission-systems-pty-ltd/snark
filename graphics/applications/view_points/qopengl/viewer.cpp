@@ -355,10 +355,21 @@ void viewer::load_camera_config( const std::string& filename )
                 boost::property_tree::ptree camera_config;
                 boost::property_tree::read_json( iss, camera_config );
                 comma::from_ptree from_ptree( camera_config, true );
-                comma::visiting::apply( from_ptree ).to( _camera );
-                _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
+                graphics::qopengl::camera_transform camera = _camera; // auto camera = _camera;
+                comma::visiting::apply( from_ptree ).to( camera );
+                _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
+                // std::cerr << "=======================================================" << std::endl;
+                // std::cerr << "==> got config: " << std::endl;
+                // std::cerr << s << std::endl;
+                // std::cerr << "==> read config: " << std::endl;
+                // _write_json( _camera, std::cerr, false );
+                // std::ostringstream oss;
+                // _write_json( _camera, oss, false );
+                // std::cerr << "==> they are " << ( oss.str() == s ? "SAME" : "DIFFERENT" ) << std::endl;
+                // std::cerr << "=======================================================" << std::endl;
             }
             if( _camera_bookmarks.empty() ) { COMMA_THROW( comma::exception, "no camera configs found in '" << filename << "'" ); }
+            _camera = _camera_bookmarks[0];
             std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
         }
         catch( ... )
