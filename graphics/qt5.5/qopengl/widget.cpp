@@ -77,7 +77,7 @@ void widget::add_shape( const std::shared_ptr<shape>& shape ) { shapes.push_back
 
 void widget::add_label_shader( const std::shared_ptr<label_shader>& label_shader )
 {
-    label_shader->scaled = _camera.orthographic;
+    label_shader->scaled = _camera.orthographic();
     label_shaders.push_back( label_shader );
 }
 
@@ -157,7 +157,7 @@ void widget::paintGL()
 
 void widget::set_far_plane( float f )
 {
-    _camera.far_plane = f;
+    _camera.far_plane( f );
     _camera.update_projection();
     update();
 }

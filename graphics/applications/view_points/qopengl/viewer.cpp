@@ -371,7 +371,6 @@ void viewer::load_camera_config( const std::string& filename )
                 _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
             }
             if( _camera_bookmarks.empty() ) { COMMA_THROW( comma::exception, "no camera configs found in '" << filename << "'" ); }
-            _camera = _camera_bookmarks[0];
             std::cerr << "view-points: loaded " << _camera_bookmarks.size() << " camera config(s) from " << filename << std::endl;
         }
         catch( ... )
@@ -383,6 +382,7 @@ void viewer::load_camera_config( const std::string& filename )
     }
     _camera_bookmarks_index = 0;
     _camera = _camera_bookmarks.front();
+    //_write_json( _camera, std::cerr, false );
     _print_keys_help();
 }
 

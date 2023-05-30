@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <tuple>
 #include "../../../math/rotation_matrix.h"
 #include "camera.h"
 
@@ -29,12 +30,12 @@ camera_transform::camera_transform( bool orthographic
                                   , const QVector3D& c )
                                   //, float z )
     : center( c )
-    , up( up )
-    , orthographic( orthographic )
-    , near_plane( 0.01 )
-    , far_plane( 100 )
-    , field_of_view( field_of_view )
 {
+    _projection.up = up;
+    _projection.orthographic = orthographic;
+    //_projection.near_plane = near_plane;
+    //_projection.far_plane = far_plane;
+    _projection.field_of_view = field_of_view;
     // The camera always points along the z-axis. Pan moves the camera in x,y
     // coordinates and zoom moves in and out on the z-axis.
     // It starts at -1 because in OpenGL-land the transform is actually applied
@@ -44,12 +45,34 @@ camera_transform::camera_transform( bool orthographic
     world.setToIdentity();
     world.translate( -center );
 }
+
+camera_transform camera_transform::make( const camera_transform::config& config, bool from_ned )
+{
+    camera_transform camera( config.projection.orthographic, config.projection.field_of_view, config.projection.up, config.center );
+    camera._projection = config.projection; // quick and dirty
+    camera.set_world( config.world.translation, config.world.rotation, from_ned );
+    camera.set_position( config.camera.translation, from_ned );
+    // camera.set_camera_rotation( config.camera.rotation, from_ned ); // todo!
+    camera.update_projection();
+    return camera;
+}
+
+camera_transform::config camera_transform::to_config( bool to_ned ) const
+{
+    camera_transform::config c;
+    c.projection = _projection;
+    c.center = center;
+    std::tie( c.world.translation, c.world.rotation ) = get_world( to_ned );
+    c.camera.translation = get_position( to_ned );
+    return c;
+}
+
 void camera_transform::pan( float dx, float dy ) { camera.translate( dx, dy, 0 ); }
 
 void camera_transform::zoom( float dz )
 {
     camera.translate( 0, 0, dz );
-    if( orthographic ) { update_projection(); }
+    if( _projection.orthographic ) { update_projection(); }
 }
 
 void camera_transform::pivot( float dx,float dy )
@@ -88,7 +111,7 @@ void camera_transform::set_world( const QVector3D& position, const QVector3D& or
     world.setToIdentity();
     world.translate( from_ned ? _from_ned( position ) : position );
     set_orientation( orientation, from_ned );
-    if( orthographic ) { update_projection(); } // todo? do we need it here?
+    if( _projection.orthographic ) { update_projection(); } // todo? do we need it here?
 }
 
 std::pair< QVector3D, QVector3D > camera_transform::get_world( bool to_ned ) const
@@ -113,11 +136,11 @@ bool camera_transform::operator==( const camera_transform& rhs ) const // todo? 
         && camera == rhs.camera
         && projection == rhs.projection
         && center == rhs.center // should we?
-        && up == rhs.up
-        && near_plane == rhs.near_plane
-        && far_plane == rhs.far_plane
-        && field_of_view == rhs.field_of_view
-        && view_size == rhs.view_size;
+        && _projection.up == rhs._projection.up
+        && _projection.near_plane == rhs._projection.near_plane
+        && _projection.far_plane == rhs._projection.far_plane
+        && _projection.field_of_view == rhs._projection.field_of_view
+        && _view_size == rhs._view_size;
 }
 
 static QQuaternion _quaternion( float r, float p, float y ) { return QQuaternion::fromEulerAngles( QVector3D( p, y, r ) * 180 / M_PI ).normalized(); } // quick and dirty; Qt wants angles in degrees
@@ -181,7 +204,7 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
 
     //world.translate( -center ); // world.translate( QVector3D( translation.x(), translation.y(), translation.z() ) ); // world.translate( -center ); //world.setColumn( 3, translation );
     //std::cerr << std::setprecision( 6 ) << "==> camera: set_orientation(): center: " << center << " r: " << roll << "," << pitch << "," << yaw << " get_orientation: " << get_orientation() << std::endl;
-    //if( orthographic ) { update_projection(); } // todo? do we need to do it?
+    //if( _projection.orthographic ) { update_projection(); } // todo? do we need to do it?
 }
 
 QVector3D camera_transform::get_orientation( bool to_ned ) const // todo? fix?
@@ -209,7 +232,7 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
     camera.translate( from_ned ? _from_ned( v ) : v );
     //std::cerr << "==> set_position(): " << v.x() << "," << v.y() << "," << v.z() << std::endl;
     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
-    if( orthographic ) { update_projection(); }
+    if( _projection.orthographic ) { update_projection(); }
 }
 
 // void camera_transform::set_camera( const QVector3D& position, const QVector3D& orientation, bool from_ned )
@@ -219,7 +242,7 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
 //     camera.translate( from_ned ? _from_ned( position ) : position );
 //     camera.rotate( from_ned ? _quaternion( orientation ) * ned : _quaternion( orientation ) );
 //     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
-//     if( orthographic ) { update_projection(); }
+//     if( _projection.orthographic ) { update_projection(); }
 // }
 
 QVector3D camera_transform::get_position( bool to_ned ) const
@@ -233,19 +256,19 @@ double camera_transform::distance() const { return std::abs(get_position().z());
 
 void camera_transform::update_projection( const QSize& vs )
 {
-    if(vs!=QSize(0,0)) { view_size=vs; }
-    double aspect_ratio = (double) view_size.width() / view_size.height();
+    if( vs != QSize( 0, 0 ) ) { _view_size = vs; }
+    double aspect_ratio = double( _view_size.width() ) / _view_size.height();
     projection.setToIdentity();
-    if( orthographic )
+    if( _projection.orthographic )
     {
-        double size=0.4*distance();
-        projection.ortho(-size * aspect_ratio, size * aspect_ratio, -size, size,-far_plane,far_plane);
+        double size = 0.4 * distance();
+        projection.ortho( -size * aspect_ratio, size * aspect_ratio, -size, size, -_projection.far_plane, _projection.far_plane );
     }
     else
     {
         // add camera translation (zoom)
-        double fp = far_plane + distance();
-        projection.perspective( field_of_view, aspect_ratio, near_plane, fp );
+        double fp = _projection.far_plane + distance();
+        projection.perspective( _projection.field_of_view, aspect_ratio, _projection.near_plane, fp );
     }
 }
 

@@ -9,39 +9,80 @@
 
 namespace comma { namespace visiting {
 
+template <> struct traits< snark::graphics::qopengl::camera_transform::config::pose >
+{
+    template < typename Key, class Visitor >
+    static void visit( Key, snark::graphics::qopengl::camera_transform::config::pose& p, Visitor& v )
+    {
+        v.apply( "translation", p.translation );
+        v.apply( "rotation", p.rotation );
+    }
+
+    template < typename Key, class Visitor >
+    static void visit( Key, const snark::graphics::qopengl::camera_transform::config::pose& p, Visitor& v )
+    {
+        v.apply( "translation", p.translation );
+        v.apply( "rotation", p.rotation );
+    }
+};
+
+template <> struct traits< snark::graphics::qopengl::camera_transform::config::projection_t >
+{
+    template < typename Key, class Visitor >
+    static void visit( Key, snark::graphics::qopengl::camera_transform::config::projection_t& p, Visitor& v )
+    {
+        v.apply( "up", p.up );
+        v.apply( "orthographic", p.orthographic );
+        v.apply( "near_plane", p.near_plane );
+        v.apply( "far_plane", p.far_plane );
+        v.apply( "field_of_view", p.field_of_view );
+    }
+
+    template < typename Key, class Visitor >
+    static void visit( Key, const snark::graphics::qopengl::camera_transform::config::projection_t& p, Visitor& v )
+    {
+        v.apply( "up", p.up );
+        v.apply( "orthographic", p.orthographic );
+        v.apply( "near_plane", p.near_plane );
+        v.apply( "far_plane", p.far_plane );
+        v.apply( "field_of_view", p.field_of_view );
+    }
+};
+
+template <> struct traits< snark::graphics::qopengl::camera_transform::config >
+{
+    template < typename Key, class Visitor >
+    static void visit( Key, snark::graphics::qopengl::camera_transform::config& p, Visitor& v )
+    {
+        v.apply( "center", p.center );
+        v.apply( "world", p.world );
+        v.apply( "camera", p.camera );
+        v.apply( "projection", p.projection );
+    }
+
+    template < typename Key, class Visitor >
+    static void visit( Key, const snark::graphics::qopengl::camera_transform::config& p, Visitor& v )
+    {
+        v.apply( "center", p.center );
+        v.apply( "world", p.world );
+        v.apply( "camera", p.camera );
+        v.apply( "projection", p.projection );
+    }
+};
+
 template <> struct traits< snark::graphics::qopengl::camera_transform >
 {
     template < typename Key, class Visitor >
-    static void visit( Key, snark::graphics::qopengl::camera_transform& p, Visitor& v )
+    static void visit( Key k, snark::graphics::qopengl::camera_transform& p, Visitor& v )
     {
-        QVector3D position = p.get_position(); // should it be from_ned?
-        v.apply( "position", position );
-        auto world = p.get_world(); // should it be from_ned?
-        v.apply( "translation", world.first ); // super-bad name
-        v.apply( "orientation", world.second );
-        QVector3D center = p.center; // should it be from_ned?
-        v.apply( "center", center );
-        v.apply( "up", p.up );
-        v.apply( "orthographic", p.orthographic );
-        v.apply( "near_plane", p.near_plane );
-        v.apply( "far_plane", p.far_plane );
-        v.apply( "field_of_view", p.field_of_view );
-        p.set( center, position, world.first, world.second, false ); // should it be from_ned?
-        p.update_projection();
+        auto config = p.to_config();
+        traits< snark::graphics::qopengl::camera_transform::config >::visit( k, config, v );
+        p = snark::graphics::qopengl::camera_transform::make( config );
     }
     template < typename Key, class Visitor >
-    static void visit( Key, const snark::graphics::qopengl::camera_transform& p, Visitor& v )
+    static void visit( Key k, const snark::graphics::qopengl::camera_transform& p, Visitor& v )
     {
-        v.apply( "position", p.get_position() ); // should it be to_ned?
-        auto world = p.get_world(); // should it be from_ned?
-        v.apply( "translation", world.first ); // super-bad name
-        v.apply( "orientation", world.second ); // should it be to_ned?
-        v.apply( "center", p.center ); // should it be to_ned?
-        v.apply( "up", p.up );
-        v.apply( "orthographic", p.orthographic );
-        v.apply( "near_plane", p.near_plane );
-        v.apply( "far_plane", p.far_plane );
-        v.apply( "field_of_view", p.field_of_view );
+        traits< snark::graphics::qopengl::camera_transform::config >::visit( k, p.to_config(), v );
     }
 };
 
