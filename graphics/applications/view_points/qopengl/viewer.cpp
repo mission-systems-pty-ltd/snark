@@ -52,6 +52,17 @@ namespace snark { namespace graphics { namespace view { namespace qopengl {
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << "," << v.y() << "," << v.z(); }
 
+std::ostream& operator<<( std::ostream& os, const QVector4D& v ) { return os << v.x() << "," << v.y() << "," << v.z() << "," << v.w(); }
+
+std::ostream& operator<<( std::ostream& os, const QMatrix4x4& v )
+{ 
+    os << v.row(0) << std::endl;
+    os << v.row(1) << std::endl;
+    os << v.row(2) << std::endl;
+    os << v.row(3) << std::endl;
+    return os;
+}
+
 static void _print_keys_help()
 {
     std::cerr << "             'p'            : save screenshot to timestamped file" << std::endl;
@@ -358,15 +369,6 @@ void viewer::load_camera_config( const std::string& filename )
                 graphics::qopengl::camera_transform camera = _camera; // auto camera = _camera;
                 comma::visiting::apply( from_ptree ).to( camera );
                 _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
-                // std::cerr << "=======================================================" << std::endl;
-                // std::cerr << "==> got config: " << std::endl;
-                // std::cerr << s << std::endl;
-                // std::cerr << "==> read config: " << std::endl;
-                // _write_json( _camera, std::cerr, false );
-                // std::ostringstream oss;
-                // _write_json( _camera, oss, false );
-                // std::cerr << "==> they are " << ( oss.str() == s ? "SAME" : "DIFFERENT" ) << std::endl;
-                // std::cerr << "=======================================================" << std::endl;
             }
             if( _camera_bookmarks.empty() ) { COMMA_THROW( comma::exception, "no camera configs found in '" << filename << "'" ); }
             _camera = _camera_bookmarks[0];

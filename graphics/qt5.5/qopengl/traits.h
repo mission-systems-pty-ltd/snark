@@ -16,8 +16,9 @@ template <> struct traits< snark::graphics::qopengl::camera_transform >
     {
         QVector3D position = p.get_position(); // should it be from_ned?
         v.apply( "position", position );
-        QVector3D orientation = p.get_orientation(); // should it be from_ned?
-        v.apply( "orientation", orientation );
+        auto world = p.get_world(); // should it be from_ned?
+        v.apply( "translation", world.first ); // super-bad name
+        v.apply( "orientation", world.second );
         QVector3D center = p.center; // should it be from_ned?
         v.apply( "center", center );
         v.apply( "up", p.up );
@@ -25,14 +26,16 @@ template <> struct traits< snark::graphics::qopengl::camera_transform >
         v.apply( "near_plane", p.near_plane );
         v.apply( "far_plane", p.far_plane );
         v.apply( "field_of_view", p.field_of_view );
-        p.set( center, position, orientation, false ); // should it be from_ned?
+        p.set( center, position, world.first, world.second, false ); // should it be from_ned?
         p.update_projection();
     }
     template < typename Key, class Visitor >
     static void visit( Key, const snark::graphics::qopengl::camera_transform& p, Visitor& v )
     {
         v.apply( "position", p.get_position() ); // should it be to_ned?
-        v.apply( "orientation", p.get_orientation() ); // should it be to_ned?
+        auto world = p.get_world(); // should it be from_ned?
+        v.apply( "translation", world.first ); // super-bad name
+        v.apply( "orientation", world.second ); // should it be to_ned?
         v.apply( "center", p.center ); // should it be to_ned?
         v.apply( "up", p.up );
         v.apply( "orthographic", p.orthographic );

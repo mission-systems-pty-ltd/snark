@@ -12,6 +12,17 @@ namespace snark { namespace graphics { namespace qopengl {
 
 std::ostream& operator<<( std::ostream& os, const QVector3D& v ) { return os << v.x() << "," << v.y() << "," << v.z(); }
 
+std::ostream& operator<<( std::ostream& os, const QVector4D& v ) { return os << v.x() << "," << v.y() << "," << v.z() << "," << v.w(); }
+
+std::ostream& operator<<( std::ostream& os, const QMatrix4x4& v )
+{ 
+    os << v.row(0) << std::endl;
+    os << v.row(1) << std::endl;
+    os << v.row(2) << std::endl;
+    os << v.row(3) << std::endl;
+    return os;
+}
+
 camera_transform::camera_transform( bool orthographic
                                   , double field_of_view
                                   , const QVector3D& up
@@ -63,12 +74,29 @@ static QVector3D _to_ned( const QVector3D& v ) { return QVector3D( v.z(), -v.x()
 
 void camera_transform::set( const QVector3D& center
                           , const QVector3D& position
-                          , const QVector3D& orientation
+                          , const QVector3D& world_position
+                          , const QVector3D& world_orientation
                           , bool from_ned )
 {
     set_center( center, from_ned ); // todo? should it also take from_ned somehow?
     set_position( position, from_ned );
+    set_world( world_position, world_orientation, from_ned );
+}
+
+void camera_transform::set_world( const QVector3D& position, const QVector3D& orientation, bool from_ned ) // todo! quick and dirty; better usage semantics!
+{
+    world.setToIdentity();
+    world.translate( from_ned ? _from_ned( position ) : position );
     set_orientation( orientation, from_ned );
+    if( orthographic ) { update_projection(); } // todo? do we need it here?
+}
+
+std::pair< QVector3D, QVector3D > camera_transform::get_world( bool to_ned ) const
+{
+    std::pair< QVector3D, QVector3D > p;
+    p.first = to_ned ? _to_ned( world.column(3).toVector3DAffine() ) : world.column( 3 ).toVector3DAffine();
+    p.second = get_orientation( to_ned );
+    return p;
 }
 
 void camera_transform::set_center( const QVector3D& v, bool from_ned )
@@ -84,7 +112,7 @@ bool camera_transform::operator==( const camera_transform& rhs ) const // todo? 
     return world == rhs.world
         && camera == rhs.camera
         && projection == rhs.projection
-        && center == rhs.center
+        && center == rhs.center // should we?
         && up == rhs.up
         && near_plane == rhs.near_plane
         && far_plane == rhs.far_plane
@@ -101,10 +129,10 @@ void camera_transform::set_orientation( float roll,float pitch,float yaw, bool f
     //COMMA_THROW_IF( from_ned, "from_ned: todo!" );
     QMatrix4x4 w;
     w.setToIdentity();
-    w.translate( center ); // should we?
+    w.translate( center );
     //w.rotate( from_ned ? _quaternion( -pitch, roll, yaw ) * ned : _quaternion( roll, pitch, yaw ) ); // todo! hyper-quick and dirty; just work out correct "ned" rotation, will you?
     w.rotate( from_ned ? _quaternion( roll, pitch, yaw ) * ned : _quaternion( roll, pitch, yaw ) );
-    w.translate( -center ); // should we?
+    w.translate( -center );
     for( unsigned int y = 0; y < 3; ++y ) // quick and dirty for now; other things just suck
     {
         for( unsigned int x = 0; x < 3; ++x ) { world( x, y ) = w( x, y ); }
