@@ -102,7 +102,7 @@ class camera_transform
     private:
         // call update_projection if you set any of the following
         config::projection_t _projection;
-        QSize _view_size{0, 0};
+        QSize _view_size{640, 480};
 };
 
 } } } // namespace snark { namespace graphics { namespace qopengl {

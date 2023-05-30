@@ -256,6 +256,7 @@ double camera_transform::distance() const { return std::abs(get_position().z());
 
 void camera_transform::update_projection( const QSize& vs )
 {
+    //std::cerr << "==> camera_transform::update_projection: size: " << vs.width() << "," << vs.height() << std::endl;
     if( vs != QSize( 0, 0 ) ) { _view_size = vs; }
     double aspect_ratio = double( _view_size.width() ) / _view_size.height();
     projection.setToIdentity();
