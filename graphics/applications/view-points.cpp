@@ -239,7 +239,7 @@ static void usage( bool )
         "\n                  fov: field of view in degrees, default 45 degrees"
         "\n                  type: orthographic | perspective; default=perspective"
         "\n                  transitions/duration=[<seconds>]; default=0.5"
-        "\n                  transitions/size=[<n>]; default=25"
+        "\n                  transitions/size=[<n>]; default: 25 transitions per second"
         "\n                  transitions/enabled|transition/diabled; default=enabled; enable smooth camera transitions"
         "\n        --camera-config=<filename>: camera config in json; to see an example, run --output-camera-config"
         qt55_unsupported_marker_start
@@ -784,7 +784,7 @@ int main( int argc, char** argv )
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;
         boost::optional< Eigen::Vector3d > camera_orientation;
-        snark::graphics::view::qopengl::viewer::camera::options camera_options( options.exists( "--orthographic" ), options.value< double >( "--fov", 45.0 ), options.exists( "--z-is-up" ), options.value( "--camera-transitions-duration", 0.5 ), options.value( "--camera-transitions-size", 25 ) );
+        snark::graphics::view::qopengl::viewer::camera::options camera_options( options.exists( "--orthographic" ), options.value< double >( "--fov", 45.0 ), options.exists( "--z-is-up" ), options.value( "--camera-transitions-duration", 0.5 ), options.value( "--camera-transitions-size", 0 ) );
         if( options.exists( "--camera" ) ) { camera_options = comma::name_value::parser( ';', '=' ).get( options.value< std::string >( "--camera" ), camera_options ); }
         bool camera_position_from_stdin = false;
         QApplication application( argc, argv );

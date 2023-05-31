@@ -34,7 +34,6 @@ class viewer : public snark::graphics::qopengl::widget
     Q_OBJECT
 
 public:
-    QVector3D scene_center;
     boost::optional< Eigen::Vector3d > m_offset;
     controller_base* handler;
     bool scene_radius_fixed;
@@ -79,7 +78,7 @@ public:
             struct transitions_t
             {
                 double duration{0.5};
-                unsigned int size{25};
+                unsigned int size{0};
                 bool enabled{true};
 
                 transitions_t( double duration = 0.5, unsigned int size = 25, bool enabled = true ): duration( duration ), size( size ), enabled( enabled ) {}
@@ -122,6 +121,7 @@ private slots:
     void _on_camera_transition();
 
 private:
+    QVector3D _scene_center;
     std::deque< snark::graphics::qopengl::camera_transform > _camera_bookmarks;
     unsigned int _camera_bookmarks_index{0};
     std::vector< snark::graphics::qopengl::camera_transform > _camera_transitions; // todo? quick and dirty; camera transition class?

@@ -33,8 +33,8 @@ camera_transform::camera_transform( bool orthographic
 {
     _projection.up = up;
     _projection.orthographic = orthographic;
-    //_projection.near_plane = near_plane;
-    //_projection.far_plane = far_plane;
+    _projection.near_plane = 0.01; // quick and dirty for now
+    _projection.far_plane = 1000; // quick and dirty for now
     _projection.field_of_view = field_of_view;
     // The camera always points along the z-axis. Pan moves the camera in x,y
     // coordinates and zoom moves in and out on the z-axis.
@@ -43,7 +43,7 @@ camera_transform::camera_transform( bool orthographic
     camera.setToIdentity();
     camera.translate( 0, 0, -1 );
     world.setToIdentity();
-    world.translate( -center );
+    //world.translate( -center );
 }
 
 camera_transform camera_transform::make( const camera_transform::config& config, bool from_ned )

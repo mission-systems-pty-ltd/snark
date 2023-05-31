@@ -79,18 +79,18 @@ static void _print_keys_help()
 viewer::viewer( controller_base* handler
               , const color_t& background_color
               , const viewer::camera::options& camera_options
-              , const QVector3D& arg_scene_center
+              , const QVector3D& scene_center
               , double arg_scene_radius
               , const snark::graphics::view::click_mode& click_mode
               , const std::string& grab_options
               , QMainWindow* parent )
     : snark::graphics::qopengl::widget( background_color, camera_options, parent )
-    , scene_center( arg_scene_center )
     , handler( handler )
     , scene_radius_fixed( false )
     , scene_center_fixed( false )
     , stdout_allowed( true )
     , click_mode( click_mode )
+    , _scene_center( scene_center )
     , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options_t() ) )
     , _camera_options( camera_options )
 {
@@ -212,7 +212,9 @@ void viewer::keyPressEvent( QKeyEvent *event )
                 // }
                 if( _camera_options.transitions.enabled )
                 {
-                    unsigned int size = _camera_options.transitions.size; // for brevity
+                    unsigned int size = _camera_options.transitions.size == 0
+                                      ? static_cast< unsigned int >( _camera_options.transitions.duration * 25 )
+                                      : _camera_options.transitions.size;
                     _camera_transitions.resize( size, _camera ); // quick and dirty for now
                     _camera_transitions.back() = _camera_bookmarks[_camera_bookmarks_index];
                     QVector3D p = _camera.get_position();
@@ -292,7 +294,7 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
 {
     float r = 0.5 * ( max - min ).length();
     if( !scene_radius_fixed ) { scene_radius = r; }
-    if( !scene_center_fixed ) { scene_center = 0.5 * ( min + max ); _camera.set_center( scene_center ); }
+    if( !scene_center_fixed ) { _scene_center = 0.5 * ( min + max ); _camera.set_center( _scene_center ); }
     const auto& d = _camera.get_position() - _camera.center;
     //std::cerr<<"viewer::update_view "<<min<<" "<<max<<"; "<<scene_radius<<"; "<<scene_center<<std::endl;
     //update the position of the far plane so that the full scene is displayed
@@ -302,10 +304,12 @@ void viewer::update_view(const QVector3D& min, const QVector3D& max)
 
 void viewer::look_at_center()
 {
-    //std::cerr<<"look_at_center "<<scene_center<<"; "<<scene_radius<<std::endl;
-    _camera.set_center( scene_center );
+    //std::cerr << "==> viewer::look_at_center: center: " << _scene_center << "; scene radius: " << scene_radius << std::endl;
+    //std::cerr << "==> a: world:" << std::endl << _camera.world << std::endl;
+    _camera.set_center( _scene_center );
+    _camera.set_position( QVector3D( _scene_center.x(), _scene_center.y(), -2.6 * scene_radius ) ); // _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) );
     _camera.set_orientation( 3 * M_PI / 4, -M_PI / 4, -M_PI / 4 );
-    _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) );
+    //std::cerr << "==> b: world:" << std::endl << _camera.world << std::endl;
 }
 
 // void viewer::set_camera_position(const Eigen::Vector3d& position, const Eigen::Vector3d& orientation)
