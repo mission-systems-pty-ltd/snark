@@ -30,6 +30,7 @@ class widget : public QOpenGLWidget, protected QOpenGLFunctions, public viewer_b
 public:
     widget( const color_t& background_color, const qt3d::camera_options& camera_options, QWidget *parent = 0 );
     ~widget();
+    void update_projection();
 
     QSize minimumSizeHint() const Q_DECL_OVERRIDE;
     QSize sizeHint() const Q_DECL_OVERRIDE;
@@ -68,8 +69,6 @@ protected:
     void set_far_plane( float f ); // void set_near_plane(float near_plane);
 
 protected:
-    void update_projection();
-
     boost::optional< QVector3D > viewport_to_3d( const QPoint& point_2d );
     boost::optional< QVector3D > pixel_at_point( const QPoint& viewport_point, int search_width );
     boost::optional< QVector3D > pixel_nearest_centre( const std::vector< float >& depth, int search_width );

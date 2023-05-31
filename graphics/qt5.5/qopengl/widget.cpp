@@ -162,7 +162,13 @@ void widget::set_far_plane( float f )
     update();
 }
 
-void widget::resizeGL( int w, int h ) { _camera.update_projection( size() ); }
+void widget::update_projection()
+{ 
+    //std::cerr << "==> widget::update_projection: size(): " << size().width() << "," << size().height() << std::endl;
+    _camera.update_projection( size() );
+}
+
+void widget::resizeGL( int w, int h ) { update_projection(); }
 
 void widget::mousePressEvent( QMouseEvent *event ) { last_pos_ = event->pos(); }
 

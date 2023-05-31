@@ -43,7 +43,7 @@ camera_transform::camera_transform( bool orthographic
     camera.setToIdentity();
     camera.translate( 0, 0, -1 );
     world.setToIdentity();
-    update_projection();
+    //update_projection();
     //world.translate( -center );
 }
 

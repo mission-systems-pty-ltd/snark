@@ -351,6 +351,7 @@ void viewer::load_camera_config( const std::string& filename )
         comma::from_ptree from_ptree( camera_config, true );
         comma::visiting::apply( from_ptree ).to( _camera );
         _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
+        _camera.update_projection( size() );
         std::cerr << "view-points: loaded camera config from " << filename << std::endl;
     }
     catch( ... )
@@ -372,6 +373,7 @@ void viewer::load_camera_config( const std::string& filename )
                 comma::from_ptree from_ptree( camera_config, true );
                 graphics::qopengl::camera_transform camera = _camera; // auto camera = _camera;
                 comma::visiting::apply( from_ptree ).to( camera );
+                camera.update_projection( size() );
                 _camera_bookmarks.push_back( camera ); // todo! quick and dirty; better usage semantics?
             }
             if( _camera_bookmarks.empty() ) { COMMA_THROW( comma::exception, "no camera configs found in '" << filename << "'" ); }

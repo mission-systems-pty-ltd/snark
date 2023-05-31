@@ -118,6 +118,9 @@ MainWindow::MainWindow( const std::string& title
 
     viewer->setFocus();
     setGeometry( window_geometry[0], window_geometry[1], window_geometry[2], window_geometry[3] );
+    viewer->resize( -1, -1 ); //viewer->resize( window_geometry[2], window_geometry[3] );
+    //std::cerr << "==> main window: viewer size: " << viewer->size().width() << "," << viewer->size().height() << std::endl;
+    viewer->update_projection(); // quick and dirty
 }
 
 CheckBox::CheckBox( boost::function< void( bool ) > f ) : m_f( f ) { connect( this, SIGNAL( toggled( bool ) ), this, SLOT( action( bool ) ) ); }
