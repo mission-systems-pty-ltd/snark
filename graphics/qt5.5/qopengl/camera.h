@@ -99,6 +99,8 @@ class camera_transform
 
         void far_plane( double f ) { _projection.far_plane = f; }
 
+        void look_at( const QVector3D &p );
+
     private:
         // call update_projection if you set any of the following
         config::projection_t _projection;

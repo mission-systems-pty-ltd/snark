@@ -43,6 +43,7 @@ camera_transform::camera_transform( bool orthographic
     camera.setToIdentity();
     camera.translate( 0, 0, -1 );
     world.setToIdentity();
+    update_projection();
     //world.translate( -center );
 }
 
@@ -271,6 +272,11 @@ void camera_transform::update_projection( const QSize& vs )
         double fp = _projection.far_plane + distance();
         projection.perspective( _projection.field_of_view, aspect_ratio, _projection.near_plane, fp );
     }
+}
+
+void camera_transform::look_at( const QVector3D &p )
+{
+    camera.lookAt( get_position(), p, _projection.up );
 }
 
 } } } // namespace snark { namespace graphics { namespace qopengl {

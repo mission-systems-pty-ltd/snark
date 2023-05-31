@@ -307,8 +307,8 @@ void viewer::look_at_center()
     //std::cerr << "==> viewer::look_at_center: center: " << _scene_center << "; scene radius: " << scene_radius << std::endl;
     //std::cerr << "==> a: world:" << std::endl << _camera.world << std::endl;
     _camera.set_center( _scene_center );
-    _camera.set_position( QVector3D( _scene_center.x(), _scene_center.y(), -2.6 * scene_radius ) ); // _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) );
     _camera.set_orientation( 3 * M_PI / 4, -M_PI / 4, -M_PI / 4 );
+    _camera.set_position( QVector3D( 0, 0, -2.6 * scene_radius ) ); // _camera.set_position( _scene_center + QVector3D( 0, 0, -2.6 * scene_radius ) );
     //std::cerr << "==> b: world:" << std::endl << _camera.world << std::endl;
 }
 
