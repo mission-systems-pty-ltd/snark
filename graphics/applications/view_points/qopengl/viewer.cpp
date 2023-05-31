@@ -253,8 +253,8 @@ void viewer::keyPressEvent( QKeyEvent *event )
             }
             else if( event->modifiers() == Qt::ControlModifier )
             {
-                if( stdout_allowed ) { _write_json( _camera, std::cout, false ); }
-                else { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream" << std::endl; }
+                if( !stdout_allowed ) { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream; outputting to stderr instead:" << std::endl; }
+                _write_json( _camera, stdout_allowed ? std::cout : std::cerr, false );
             }
             else if( event->modifiers() == Qt::AltModifier )
             {
