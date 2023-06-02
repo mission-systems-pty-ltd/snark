@@ -49,24 +49,27 @@ public:
             struct options_t
             {
                 std::string filename;
-                unsigned int fps;
-                unsigned int cols;
-                unsigned int rows;
-                options_t( const std::string& filename = "", unsigned int fps = 30, unsigned int cols = 0, unsigned int rows = 0 ): filename( filename ), fps( fps ), cols( cols ), rows( rows ) {}
+                unsigned int fps{0};
+                unsigned int cols{0};
+                unsigned int rows{0};
+                bool on_change{false};
+                options_t( const std::string& filename = "", unsigned int fps = 0, unsigned int cols = 0, unsigned int rows = 0, bool on_change = false ): filename( filename ), fps( fps ), cols( cols ), rows( rows ), on_change( on_change ) {}
             };
-            grab( const grab::options_t& options = grab::options_t() ): _options( options ), _period( boost::posix_time::microseconds( 1000000 / options.fps ) ) {}
+            grab( const grab::options_t& options = grab::options_t() ): _options( options ), _period( boost::posix_time::microseconds( options.fps > 0 ? 1000000 / options.fps : 0 ) ) {}
             ~grab() { _close(); }
             const grab::options_t& options() const { return _options; }
             operator bool() const { return bool( _ostream ); }
             void toggle();
-            void once( QOpenGLWidget* w );
+            void once( QOpenGLWidget* w, bool on_change );
             void write( const char* buf, unsigned int size );
         private:
+            friend class viewer; // todo: quick and dirty for now; instead make grab a q_window class
             grab::options_t _options;
             boost::posix_time::time_duration _period;
             boost::posix_time::ptime _last;
             std::string _current_filename;
             std::unique_ptr< comma::io::ostream > _ostream;
+            QTimer _timer;
             void _reopen();
             void _close();
     };
@@ -119,6 +122,7 @@ protected:
 private slots:
     void _on_timeout();
     void _on_camera_transition();
+    void _on_grab();
 
 private:
     QVector3D _scene_center;

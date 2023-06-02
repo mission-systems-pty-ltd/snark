@@ -35,6 +35,8 @@ template <> struct traits< snark::graphics::view::qopengl::viewer::grab::options
         v.apply( "fps", p.fps );
         v.apply( "cols", p.cols );
         v.apply( "rows", p.rows );
+        v.apply( "on-change", p.on_change );
+        p.on_change = p.on_change || p.fps == 0;
     }
 
     template < typename Key, class Visitor > static void visit( Key, const snark::graphics::view::qopengl::viewer::grab::options_t& p, Visitor& v )
@@ -43,6 +45,7 @@ template <> struct traits< snark::graphics::view::qopengl::viewer::grab::options
         v.apply( "fps", p.fps );
         v.apply( "cols", p.cols );
         v.apply( "rows", p.rows );
+        v.apply( "on-change", p.on_change );
     }
 };
 
@@ -97,6 +100,7 @@ viewer::viewer( controller_base* handler
     QTimer* timer = new QTimer( this );
     connect( timer, SIGNAL( timeout() ), this, SLOT( _on_timeout() ) );
     connect( &_camera_transition_timer, SIGNAL( timeout() ), this, SLOT( _on_camera_transition() ) );
+    connect( &_grab._timer, SIGNAL( timeout() ), this, SLOT( _on_grab() ) );
     timer->start( 40 );
 }
 
@@ -123,7 +127,7 @@ void viewer::_on_camera_transition()
 void viewer::paintGL()
 {
     widget::paintGL();
-    _grab.once( this );
+    _grab.once( this, true );
     if( output_camera_config && stdout_allowed ) { write_camera_config( std::cout, true, false ); }
     if( output_camera_position && stdout_allowed ) { write_camera_position_( std::cout, true ); }
     QPainter painter( this );
@@ -421,20 +425,26 @@ void viewer::grab::_reopen()
         _current_filename = _options.filename;
     }
     _ostream.reset( new comma::io::ostream( _current_filename ) );
-    std::cerr << "view-points: started recording screen to " << _current_filename << " at " << _options.fps << "fps" << std::endl;
+    if( !_options.on_change && _options.fps > 0 ) { _timer.start( 1000 / _options.fps ); }
+    std::cerr << "view-points: started recording screen to " << ( _current_filename == "-" ? std::string( "stdout" ) : _current_filename ) << ( _options.on_change ? " on change" : "" );
+    if( _options.fps > 0 ) { std::cerr << " at " << _options.fps << "fps"; }
+    std::cerr << std::endl;
 }
 
 void viewer::grab::_close()
 {
     _last = boost::posix_time::ptime();
+    if( !_options.on_change ) { _timer.stop(); }
     if( _ostream )
     {
-        std::cerr << "view-points: stopped recording screen to " << _current_filename << std::endl;
+        std::cerr << "view-points: stopped recording screen to " << ( _current_filename == "-" ? std::string( "stdout" ) : _current_filename ) << std::endl;
         _ostream.reset();
     }
 }
 
 void viewer::grab::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
+
+void viewer::_on_grab() { _grab.once( this, false ); } // todo? just bind it in grab?
 
 // todo
 // ? encode=png
@@ -442,12 +452,15 @@ void viewer::grab::toggle() { if( _ostream ) { _close(); } else { _reopen(); } }
 // - output to stdout
 // - configurable image size
 // ? no-header
-void viewer::grab::once( QOpenGLWidget* w )
+void viewer::grab::once( QOpenGLWidget* w, bool on_change )
 {
     if( !_ostream ) { return; }
     auto t = boost::posix_time::microsec_clock::universal_time();
-    if( _last.is_not_a_date_time() && t - _last < _period ) { return; }
-    _last = t;
+    if( on_change )
+    {
+        if( !_last.is_not_a_date_time() && t - _last < _period ) { return; }
+        _last = t;
+    }
     const auto& b = w->grabFramebuffer();
     unsigned int width( b.width() ), height( b.height() ), cv_type( 24 ); // uber-quick and dirty
     std::array< char, 8 > a;
