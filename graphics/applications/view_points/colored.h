@@ -66,11 +66,13 @@ class by_scalar : public colored
         by_scalar( double from
                  , double to
                  , const color_t& from_color
-                 , const color_t& to_color );
+                 , const color_t& to_color
+                 , bool alpha_by_scalar );
 
         by_scalar( double from
                  , double to
-                 , const snark::render::colour_map::values& map );
+                 , const snark::render::colour_map::values& map
+                 , bool alpha_by_scalar );
 
         virtual color_t color( const Eigen::Vector3d& point
                              , comma::uint32 id
@@ -84,6 +86,7 @@ class by_scalar : public colored
         boost::optional< snark::render::colour_map::values > map;
         color_t from_color;
         color_t to_color;
+        bool _alpha_by_scalar;
 };
 
 class by_id : public colored
