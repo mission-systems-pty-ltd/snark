@@ -52,7 +52,7 @@ camera_transform camera_transform::make( const camera_transform::config& config,
     camera_transform camera( config.projection.orthographic, config.projection.field_of_view, config.projection.up, config.center );
     camera._projection = config.projection; // quick and dirty
     camera.set_world( config.world.translation, config.world.rotation, from_ned );
-    camera.set_position( config.camera.translation, from_ned );
+    camera.set_position( config.camera.translation, config.camera.rotation, from_ned );
     // camera.set_camera_rotation( config.camera.rotation, from_ned ); // todo!
     camera.update_projection();
     return camera;
@@ -233,7 +233,16 @@ void camera_transform::set_position( const QVector3D& v, bool from_ned )
     camera.translate( from_ned ? _from_ned( v ) : v );
     //std::cerr << "==> set_position(): " << v.x() << "," << v.y() << "," << v.z() << std::endl;
     //std::cerr << "==> camera_transform::set_position: v: " << std::setprecision( 16 ) << v << " from_ned: " << _from_ned( v ) << " get_position: " << get_position(true) << std::endl;
-    if( _projection.orthographic ) { update_projection(); }
+    if( _projection.orthographic ) { update_projection(); } // probably don't need to update projection here
+}
+
+void camera_transform::set_position( const QVector3D& translation, const QVector3D& rotation, bool from_ned )
+{
+    static const QQuaternion ned = QQuaternion::fromEulerAngles( QVector3D( 90, 90, 0 ) ); // quick and dirty; see https://doc.qt.io/qt-5/qquaternion.html#fromEulerAngles: QQuaternion::fromEulerAngles(pitch, yaw, roll); roll around z; pitch around x; yaw around y
+    camera.setToIdentity();
+    camera.translate( from_ned ? _from_ned( translation ) : translation );
+    camera.rotate( from_ned ? _quaternion( rotation.x(), rotation.y(), rotation.z() ) * ned : _quaternion( rotation.x(), rotation.y(), rotation.z() ) );
+    if( _projection.orthographic ) { update_projection(); } // probably don't need to update projection here
 }
 
 // void camera_transform::set_camera( const QVector3D& position, const QVector3D& orientation, bool from_ned )

@@ -333,15 +333,22 @@ void viewer::look_at_center()
 //     camera.set_position(QVector3D(0,0,-p.norm()));    //camera is in 0,0,-z in world coordinate
 // }
 
-void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation ) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
+void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& rotation ) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
 {
     //std::cerr << "==> viewer::set_camera_position: " << std::setprecision(16) << position.transpose() << "; " << orientation.transpose() << std::endl;
     const Eigen::Vector3d& p = position - *m_offset;
-    const QVector3D& c = QVector3D( p.x(), p.y(), p.z() );
-    _camera.set_center( c ); // camera.set_center( c, true );
-    _camera.set_position( QVector3D( 0, 0, 0 ) ); // camera.set_position( c, true );
-    _camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
+    _camera.set_position( QVector3D( p.x(), p.y(), p.z() ), QVector3D( rotation.x(), rotation.y(), rotation.z() ), true );
 }
+
+// void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation ) // todo?! move this method to camera.h/cpp?! orientation obliterates position?
+// {
+//     //std::cerr << "==> viewer::set_camera_position: " << std::setprecision(16) << position.transpose() << "; " << orientation.transpose() << std::endl;
+//     const Eigen::Vector3d& p = position - *m_offset;
+//     const QVector3D& c = QVector3D( p.x(), p.y(), p.z() );
+//     _camera.set_center( c ); // camera.set_center( c, true );
+//     _camera.set_position( QVector3D( 0, 0, 0 ) ); // camera.set_position( c, true );
+//     _camera.set_orientation( orientation.x(), orientation.y(), orientation.z(), true );
+// }
 
 void viewer::load_camera_config( const std::string& filename )
 {
