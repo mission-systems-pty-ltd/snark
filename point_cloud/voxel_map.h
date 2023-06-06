@@ -9,7 +9,7 @@
 #include <boost/unordered_map.hpp>
 #include <Eigen/Core>
 #include <comma/base/types.h>
-#include <comma/containers/multikey_map.h>
+#include <comma/containers/multidimensional/map.h>
 
 namespace comma { namespace impl {
 
@@ -90,11 +90,11 @@ template <> struct vector_traits< Eigen::Vector3d >
 } // namespace impl {
 
 template < typename V, unsigned int D, typename F = double, typename P = Eigen::Matrix< F, D, 1 > >
-class voxel_map : public comma::multikey_map< F, V, D, P, impl::vector_traits< P > >
+class voxel_map : public comma::containers::multidimensional::map< F, V, D, P, impl::vector_traits< P > >
 {
     public:
         /// base class type
-        typedef comma::multikey_map< F, V, D, P, impl::vector_traits< P > > base_type;
+        typedef comma::containers::multidimensional::map< F, V, D, P, impl::vector_traits< P > > base_type;
 
         /// number of dimensions
         enum { dimensions = D };
