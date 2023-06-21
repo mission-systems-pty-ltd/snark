@@ -352,13 +352,19 @@ void viewer::set_camera_position( const Eigen::Vector3d& position, const Eigen::
 
 void viewer::load_camera_config( const std::string& filename )
 {
+    std::ifstream ifs( filename );
+    if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open file: '" << filename << "'" ); }
+    std::stringstream ss;
+    ss << ifs.rdbuf();
+    std::string config_string = ss.str();
     auto camera_bookmarks = _camera_bookmarks;
     auto camera = _camera;
     _camera_bookmarks.clear();
     try
     {
+        std::istringstream iss( config_string );
         boost::property_tree::ptree camera_config;
-        boost::property_tree::read_json( filename, camera_config );
+        boost::property_tree::read_json( iss, camera_config );
         comma::from_ptree from_ptree( camera_config, true );
         comma::visiting::apply( from_ptree ).to( _camera );
         _camera_bookmarks.push_back( _camera ); // todo! quick and dirty; better usage semantics?
@@ -369,12 +375,11 @@ void viewer::load_camera_config( const std::string& filename )
     {
         try
         {
-            std::ifstream ifs( filename );
-            if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open file: '" << filename << "'" ); }
+            std::istringstream iss( config_string );
             while( true )
             {
                 std::string line;
-                std::getline( ifs, line );
+                std::getline( iss, line );
                 if( line.empty() ) { break; }
                 const auto& s = comma::strip( line );
                 if( s.empty() || s[0] == '#' ) { continue; }
