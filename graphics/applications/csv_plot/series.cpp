@@ -22,9 +22,47 @@ static const char* hex_color_( const std::string& c )
     if( c == "grey" ) { return "#888888"; }
     return &c[0];
 }
-    
+
+std::unordered_map< std::string, std::vector< std::string > > default_colourmaps()
+{
+    static std::unordered_map< std::string, std::vector< std::string > > m =
+    {
+        { "black", { "black" } },
+        { "rgb", { "red", "green", "blue" } }, // todo: replace with nice multicolour maps
+        { "cmyk", { "cyan", "magenta", "yellow", "black" } }
+    };
+    return m;
+}
+
+static std::unordered_map< std::string, std::vector< std::string > > _make_colourmap( const std::string& s ) // todo: put it in a proper class (series::colour or alike)
+{
+    static std::unordered_map< std::string, std::vector< std::string > > m = default_colourmaps();
+    if( m.find( s ) == m.end() ) { m[s] = comma::split( s, ',', true ); }
+    return m;
+    // todo?
+    // if( v.size() > 1 ) { m[s] = v; }
+    // std::ifstream ifs( s );
+    // COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open colour map file '" << s << "'" );
+    // while()
+}
+
+static std::string _colormap_at( const std::string& s, unsigned int i )
+{
+    static std::unordered_map< std::string, std::vector< std::string > > colours = _make_colourmap( s );
+    auto it = colours.find( s );
+    return it->second[ i % it->second.size() ];
+}
+
+void config::set_next_colour() // hyper-quick and dirty for now
+{
+    static unsigned int number_of_series{0};
+    color_name = _colormap_at( color_map, number_of_series++ );
+    color = QColor( hex_color_( color_name ) );
+}
+
 config::config( const comma::command_line_options& options )
-    : color_name( options.value< std::string >( "--color,--colour", "black" ) )
+    : color_map( options.value< std::string >( "--colors,--colours", "black" ) )
+    , color_name( options.value< std::string >( "--color,--colour", "black" ) ) //: color_name( options.value< std::string >( "--color,--colour", _colormap_at( options.value< std::string >( "--colors,--colours", "black" ), number_of_series ) ) )
     , color( color_name.empty() ? QColor( 0, 0, 0 ) : QColor( hex_color_( color_name ) ) )
     , scroll( options.exists( "--scroll" ) )
     , shape( options.value< std::string >( "--shape,--type", "line" ) )

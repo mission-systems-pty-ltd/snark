@@ -92,6 +92,12 @@ static void usage( bool verbose = false )
     std::cerr << "    --color=<color>: plot color: black, white, red, green, blue" << std::endl;
     std::cerr << "                                 yellow, cyan, magenta, grey" << std::endl;
     std::cerr << "                                 or #rrggbb, e.g. #ff00ff" << std::endl;
+    std::cerr << "    --colors,--colours=<colors>: cyclic colour map name or comma-separated list of colours" << std::endl;
+    std::cerr << "        if series colour is defined explicitly, it overrides the colour map entry" << std::endl;
+    std::cerr << "        map choices: rgb, cmyk, todo! better colour maps" << std::endl;
+    std::cerr << "        examples" << std::endl;
+    std::cerr << "            --colours=rgb" << std::endl;
+    std::cerr << "            --colours=blue,green,red,cyan,magenta" << std::endl;
     std::cerr << "    --shape=<what>: line (default)" << std::endl;
     std::cerr << "                    todo: more shapes" << std::endl;
     std::cerr << "    --title=[<title>]: series title" << std::endl;
@@ -220,8 +226,7 @@ static void usage( bool verbose = false )
 // - input
 //   - t
 //     - as x axis (QtCharts::QDateTimeAxis?)
-//     ? or simply if x is optional and t not empty
-//       - convert t to seconds and assign to x
+//     ? or simply if x is optional and t not emptys
 //       - optionally offset by the first timestamp
 //   - label
 //     - optional input field

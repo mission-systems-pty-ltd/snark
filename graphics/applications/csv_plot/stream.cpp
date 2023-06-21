@@ -53,12 +53,12 @@ stream::config_t::config_t( const comma::command_line_options& options )
     , size( options.exists( "--size,-s,--tail" )
           ? options.value< std::size_t >( "--size,-s,--tail" )
           : estimated_number_of_records( csv ) )
-    , number_of_series( options.value( "--number-of-series,-n", 1 ) )
+    , number_of_series( options.value( "--number-of-series,-n", 1 ) ) // todo?! what if we have multiple streams? --number-of-series has to be per stream then, isn't it?
 {
     csv.fields = fields_from_aliases_( csv.fields );
     const auto& o = plotting::series::config( options ); // todo! fix optional reuse of x in all series!
     series.resize( number_of_series );
-    for( auto& s: series ) { s = o; }
+    for( auto& s: series ) { s = o; } // quick and dirty
 }
 
 stream::config_t::config_t( const std::string& options, const std::map< std::string, plotting::series::config >& series_configs, const stream::config_t& defaults )
@@ -85,9 +85,10 @@ stream::config_t::config_t( const std::string& options, const std::map< std::str
     plotting::record sample = plotting::record::sample( csv.fields, number_of_series ); // quick and dirty
     number_of_series = sample.series.size(); // quick and dirty
     series.resize( sample.series.size() );
-    auto series_defaults = series[0];
+    plotting::series::config series_defaults = series[0];
     for( unsigned int i = 0; i < series.size(); ++i )
     {
+        series_defaults.set_next_colour(); // uber-quick and dirty
         series[i] = s.find( i ) == s.end() ? series_defaults : comma::name_value::parser( '|', ':', false ).get( s[i], series_defaults );
         auto it = series_configs.find( series[i].name );
         if( it != series_configs.end() ) { series[i] = s.find( i ) == s.end() ? it->second : comma::name_value::parser( '|', ':', false ).get( s[i], it->second ); } // uber-quick and dirty

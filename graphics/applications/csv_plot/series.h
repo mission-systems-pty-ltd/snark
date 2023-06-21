@@ -3,6 +3,8 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+#include <vector>
 #include <QColor>
 #include <QtCharts/QChart>
 #include <QtCharts/QXYSeries>
@@ -10,10 +12,13 @@
 #include "record.h"
 
 namespace snark { namespace graphics { namespace plotting { namespace series {
-    
+
+std::unordered_map< std::string, std::vector< std::string > > default_colourmaps();
+
 struct config
 {
     std::string chart;
+    std::string color_map; // quick and dirty
     std::string color_name;
     QColor color;
     std::string name;
@@ -25,6 +30,7 @@ struct config
     
     config(): scroll( false ), weight( 1 ) {}
     config( const comma::command_line_options& options );
+    void set_next_colour(); // super-quick and dirty
 };
 
 class xy // todo? derive from base class? template on qt series type? time to decide: when introducing time series
