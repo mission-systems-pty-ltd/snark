@@ -94,7 +94,7 @@ static void usage( bool verbose = false )
     std::cerr << "                                 or #rrggbb, e.g. #ff00ff" << std::endl;
     std::cerr << "    --colors,--colours=<colors>: cyclic colour map name or comma-separated list of colours" << std::endl;
     std::cerr << "        if series colour is defined explicitly, it overrides the colour map entry" << std::endl;
-    std::cerr << "        map choices: rgb, cmyk, todo! better colour maps" << std::endl;
+    std::cerr << "        map choices: basic-16, rgb, cmyk, todo! more colour maps" << std::endl;
     std::cerr << "        examples" << std::endl;
     std::cerr << "            --colours=rgb" << std::endl;
     std::cerr << "            --colours=blue,green,red,cyan,magenta" << std::endl;
@@ -204,6 +204,15 @@ static void usage( bool verbose = false )
         std::cerr << "                        '-;binary=3ui' \\" << std::endl;
         std::cerr << "            | csv-plot '-;fields=x,series[0]/y,series[1]/y,series[2]/y;binary=4ui;series[0]=color:blue|title:blue;series[1]=color:green|title:green;series[2]=color:red|title:red;chart=histogram;size=256;block-by-size' \\" << std::endl;
         std::cerr << "                       --chart='histogram;min/y=0;max/y=8000;axes/x/title=pixel value;axes/y/title=number of pixels'" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "   use predefined and user-defined color maps" << std::endl;
+        std::cerr << "       csv-random make --type=f \\" << std::endl;
+        std::cerr << "           | csv-paste 'line-number;size=16' -  \\" << std::endl;
+        std::cerr << "           | csv-shape concatenate --size 16  \\" << std::endl;
+        std::cerr << "           | head -n100 \\" << std::endl;
+        std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1;pass' -n 16 --colors=basic-16 --pass-through \\" << std::endl;
+        std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1' -n 16 --colors=red,blue,cyan,#F123456" << std::endl;
+        std::cerr << "           " << std::endl;
         std::cerr << std::endl;
     }
     else
