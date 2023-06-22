@@ -210,7 +210,7 @@ static void usage( bool verbose = false )
         std::cerr << "           | csv-paste 'line-number;size=16' -  \\" << std::endl;
         std::cerr << "           | csv-shape concatenate --size 16  \\" << std::endl;
         std::cerr << "           | head -n100 \\" << std::endl;
-        std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1;pass' -n 16 --colors=basic-16 --pass-through \\" << std::endl;
+        std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1' -n 16 --colors=basic-16 --pass-through \\" << std::endl;
         std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1' -n 16 --colors=red,blue,cyan,#F123456" << std::endl;
         std::cerr << "           " << std::endl;
         std::cerr << std::endl;
