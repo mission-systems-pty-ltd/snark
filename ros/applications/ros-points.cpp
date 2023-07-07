@@ -453,7 +453,7 @@ public:
         {
             std::string pointcloud_fields = snark::ros::pointcloud::msg_fields_names( input->fields, fields );
             comma::csv::format pointcloud_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields );
-            comma::csv::format output_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields, true );
+            comma::csv::format output_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields, !ignore_time_format );
 
             if( output_fields_option )
             {
