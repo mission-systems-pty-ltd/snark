@@ -154,6 +154,17 @@ struct traits< snark::navigation::advanced_navigation::messages::satellites >
 };
 
 template <>
+struct traits< snark::navigation::advanced_navigation::messages::geodetic_position >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::geodetic_position& p, Visitor& v )
+    {
+        v.apply("latitude", p.latitude());
+        v.apply("longitude", p.longitude());
+        v.apply("height", p.height());
+    }
+};
+
+template <>
 struct traits< snark::navigation::advanced_navigation::messages::acceleration >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::acceleration& p, Visitor& v )
@@ -172,6 +183,18 @@ struct traits< snark::navigation::advanced_navigation::messages::euler_orientati
         v.apply( "roll", p.roll() );
         v.apply( "pitch", p.pitch() );
         v.apply( "heading", p.heading() );
+    }
+};
+
+template <>
+struct traits< snark::navigation::advanced_navigation::messages::quaternion_orientation >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::navigation::advanced_navigation::messages::quaternion_orientation& p, Visitor& v )
+    {
+        v.apply("qs", p.qs());
+        v.apply("qx", p.qx());
+        v.apply("qy", p.qy());
+        v.apply("qz", p.qz());
     }
 };
 

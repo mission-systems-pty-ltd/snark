@@ -209,6 +209,14 @@ struct satellites : public comma::packed::packed_struct< satellites, 13 >
     comma::packed::uint8 sbas_satellites;
 };
 
+struct geodetic_position : public comma::packed::packed_struct< geodetic_position, 24 >
+{
+    enum { id = 32 };
+    comma::packed::little_endian::float64 latitude;
+    comma::packed::little_endian::float64 longitude;
+    comma::packed::little_endian::float64 height;
+};
+
 struct acceleration : public comma::packed::packed_struct< acceleration, 12 >
 {
     enum { id = 37 };
@@ -223,6 +231,15 @@ struct euler_orientation : public comma::packed::packed_struct< euler_orientatio
     comma::packed::little_endian::float32 roll;
     comma::packed::little_endian::float32 pitch;
     comma::packed::little_endian::float32 heading;
+};
+
+struct quaternion_orientation : public comma::packed::packed_struct< quaternion_orientation, 16 >
+{
+    enum { id = 40 };
+    comma::packed::little_endian::float32 qs;
+    comma::packed::little_endian::float32 qx;
+    comma::packed::little_endian::float32 qy;
+    comma::packed::little_endian::float32 qz;
 };
 
 struct angular_velocity : public comma::packed::packed_struct< angular_velocity, 12 >

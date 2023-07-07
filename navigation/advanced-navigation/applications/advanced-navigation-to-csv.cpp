@@ -34,8 +34,10 @@ void usage( bool verbose )
     std::cerr << "\n        unix-time (21)";
     std::cerr << "\n        raw-sensors (28)";
     std::cerr << "\n        satellites (30)";
+    std::cerr << "\n        geodetic-position (32)";
     std::cerr << "\n        acceleration (37)";
     std::cerr << "\n        euler-orientation (39)";
+    std::cerr << "\n        quaternion-orientation (40)";
     std::cerr << "\n        angular-velocity (42)";
     std::cerr << "\n        filter-options (186)";
     std::cerr << "\n        magnetic-calibration (191)";
@@ -43,6 +45,7 @@ void usage( bool verbose )
     std::cerr << "\n    or a combination or subset of packets";
     std::cerr << "\n        navigation:     navigation data from system-state packet (default)";
     std::cerr << "\n        imu:            combine unix-time and raw-sensors packets";
+    std::cerr << "\n        geodetic-pose:  combine several packets as described below";
     std::cerr << "\n        all:            combine several packets as described below";
     std::cerr << "\n";
     std::cerr << "\n        packet-ids:     just display id's of all received packets";
@@ -51,6 +54,9 @@ void usage( bool verbose )
     std::cerr << "\n        euler-orientation-std-dev(26), euler-orientation(39) and";
     std::cerr << "\n        angular-velocity(42)";
     std::cerr << "\n";
+    std::cerr << "\n        geodetic-pose is a combination of ";
+    std::cerr << "\n        unix-time(21), geodetic-position(32), quaternion-orientation(40)";
+    std::cerr << "\n";    
     std::cerr << "\n        all is a combination of system-state(20), velocity-std-dev(25),";
     std::cerr << "\n        euler-orientation-std-dev(26), raw-sensors(28) and satellites(30).";
     std::cerr << "\n";
@@ -138,6 +144,14 @@ struct output_nav
     uint16_t filter_status;
 };
 
+struct output_geodetic_pose
+{
+    output_geodetic_pose() {}
+    messages::unix_time unix_time;
+    messages::geodetic_position geodetic_position;
+    messages::quaternion_orientation quaternion_orientation;
+};
+
 struct output_imu
 {
     output_imu() {}
@@ -208,6 +222,17 @@ struct traits< output_nav >
         v.apply( "orientation", p.orientation );
         v.apply( "system_status", p.system_status );
         v.apply( "filter_status", p.filter_status );
+    }
+};
+
+template <> 
+struct traits< output_geodetic_pose >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const output_geodetic_pose& p, Visitor& v )
+    {
+        v.apply( "", p.unix_time );
+        v.apply( "geodetic_position", p.geodetic_position );
+        v.apply( "orientation", p.quaternion_orientation );
     }
 };
 
@@ -336,6 +361,38 @@ struct app_nav : public app_t< output_nav >
         os.write( o );
         if( flush ) { os.flush(); }
     }
+};
+
+// ------------------------- geodetic_pose ------------------------
+//
+// configure packets to output at the same rate, then packets are received in
+// order of lowest to highest packet id
+struct app_geodetic_pose : public app_t< output_geodetic_pose >
+{
+    output_geodetic_pose output;
+
+    app_geodetic_pose( const comma::command_line_options& options )
+        : app_t( options )
+    {}
+
+    // Unix Time, packet id (21)
+    void handle( const messages::unix_time* msg )
+    {
+        std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
+    }
+
+    // Geodetic Position, packet id (32)
+    void handle( const messages::geodetic_position* msg )
+    {
+        std::memcpy( output.geodetic_position.data(), msg->data(), messages::geodetic_position::size );
+    }
+    // Quaternion Orientation, packet id (40)
+    void handle( const messages::quaternion_orientation* msg )
+    {
+        std::memcpy( output.quaternion_orientation.data(), msg->data(), messages::quaternion_orientation::size );
+        os.write( output );
+        if( flush ) { os.flush(); }
+    } 
 };
 
 // ---------------------------- imu ----------------------------
@@ -541,13 +598,16 @@ int main( int argc, char** argv )
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
         else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
+        else if( packet == "geodetic-pose" ) { factory.reset( new factory_t< app_geodetic_pose >() ); }
         else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
         else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
         else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet <messages::unix_time > >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
+        else if( packet == "geodetic-position" ) { factory.reset( new factory_t< app_packet< messages::geodetic_position > >() ); }
         else if( packet == "acceleration" ) { factory.reset( new factory_t< app_packet< messages::acceleration > >() ); }
         else if( packet == "euler-orientation" ) { factory.reset( new factory_t< app_packet< messages::euler_orientation > >() ); }
+        else if( packet == "quaternion-orientation" ) { factory.reset( new factory_t< app_packet< messages::quaternion_orientation > >() ); }
         else if( packet == "angular-velocity" ) { factory.reset( new factory_t< app_packet< messages::angular_velocity > >() ); }
         else if( packet == "external-time" ) { factory.reset( new factory_t< app_packet <messages::external_time > >() ); }
         else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
