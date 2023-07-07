@@ -51,16 +51,15 @@ void usage( bool verbose = false )
     std::cerr << "\n    subscribed topic";
     std::cerr << "\n";
     std::cerr << "\nfrom options";
-    std::cerr << "\n    --from=<topic>:        topic to read";
-    std::cerr << "\n    --bags=[<bags>]:       load from rosbags rather than subscribe";
-    std::cerr << "\n    --fields=[<names>]:    only output listed fields";
-    std::cerr << "\n    --flush:               call flush on stdout after each write";
+    std::cerr << "\n    --from=<topic>:           topic to read";
+    std::cerr << "\n    --bags=[<bags>]:          load from rosbags rather than subscribe";
+    std::cerr << "\n    --fields=[<names>]:       only output listed fields";
+    std::cerr << "\n    --flush:                  call flush on stdout after each write";
     std::cerr << "\n    --header,--output-header: prepend t,block header to output with t,ui format";
-    std::cerr << "\n    --ignore-time-format:  don't do any interpretation of time format";
-    std::cerr << "\n    --max-datagram-size:   for UDP transport. See ros::TransportHints";
-    std::cerr << "\n    --no-discard:          don't discard points with nan or inf in their values";
-    std::cerr << "\n    --queue-size=[<n>]:    ROS Subscriber queue size, default 1";
-    std::cerr << "\n    --topic=<topic>:       name of the topic to subscribe to";
+    std::cerr << "\n    --ignore-time-format:     don't do any interpretation of time format";
+    std::cerr << "\n    --max-datagram-size:      for UDP transport. See ros::TransportHints";
+    std::cerr << "\n    --no-discard:             don't discard points with nan or inf";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS Subscriber queue size, default 1";
     std::cerr << "\n";
     std::cerr << "\nto options";
     std::cerr << "\n    --to=<topic>:             topic to publish to";
@@ -77,26 +76,25 @@ void usage( bool verbose = false )
     std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
     std::cerr << "\n    --time-format=<fmt>:      time format in ROS pointfield; default: none";
     std::cerr << "\n";
-    std::cerr << "\nfield names";
-    std::cerr << "\n    Field names are generally duplicated in the ROS PointCloud2 message.";
-    std::cerr << "\n    They can be mapped to another name with the --field-name-map option.";
-    std::cerr << "\n";
-    std::cerr << "\ntime formats";
-    std::cerr << "\n    The ROS PointCloud2 message contains a ROS-format timestamp in the message";
-    std::cerr << "\n    header and also contains a time field in each point field if that has been";
-    std::cerr << "\n    included in the fields (usually it is).";
-    std::cerr << "\n";
-    std::cerr << "\n    For the individual point timestamp there are several options:";
-    std::cerr << "\n        none:               straight copy of the incoming timestamp";
-    std::cerr << "\n        offset-seconds:     offset in seconds from header timestamp (float)";
-    std::cerr << "\n        offset-nanoseconds: offset in nanoseconds from header timestamp (uint32)";
-    std::cerr << "\n";
-    std::cerr << "\n    The --time-format option applies to both --to and --from operations.";
-    std::cerr << "\n    For --to it describes how to write that field, and for --from it describes";
-    std::cerr << "\n    how to read it.";
-    std::cerr << "\n";
     if( verbose )
     {
+        std::cerr << "\nfield names";
+        std::cerr << "\n    Field names are generally duplicated in the ROS PointCloud2 message.";
+        std::cerr << "\n    They can be mapped to another name with the --field-name-map option.";
+        std::cerr << "\n";
+        std::cerr << "\ntime formats";
+        std::cerr << "\n    The ROS PointCloud2 message contains a ROS-format timestamp in the message";
+        std::cerr << "\n    header and also contains a time field in each point field if that has been";
+        std::cerr << "\n    included in the fields (usually it is).";
+        std::cerr << "\n";
+        std::cerr << "\n    For the individual point timestamp there are several options:";
+        std::cerr << "\n        none:               straight copy of the incoming timestamp";
+        std::cerr << "\n        offset-seconds:     offset in seconds from header timestamp (float)";
+        std::cerr << "\n        offset-nanoseconds: offset in nanoseconds from header timestamp (uint32)";
+        std::cerr << "\n";
+        std::cerr << "\n    The --time-format option applies to the --to operation. The --from operation";
+        std::cerr << "\n    deduces the interpretation from the data type (float or uint32)";
+        std::cerr << "\n";
         std::cerr << "\nexamples";
         std::cerr << "\n    --- view points from a published topic ---";
         std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --fields x,y,z --binary 3f --header \\";
@@ -131,7 +129,7 @@ void usage( bool verbose = false )
     }
     else
     {
-        std::cerr << "\nrun \"" << comma::verbose.app_name() << " --help --verbose\" for examples of use";
+        std::cerr << "\nrun \"" << comma::verbose.app_name() << " --help --verbose\" for more detail and examples of use";
     }
     std::cerr << "\n" << std::endl;
 }
@@ -373,7 +371,7 @@ public:
                 {
                     // is the time format either offset_seconds (float32) or offset_nanoseconds (uint32)?
                     if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 ||
-                      field_desc.datatype == sensor_msgs::PointField::UINT32 )
+                        field_desc.datatype == sensor_msgs::PointField::UINT32 )
                     {
                         boost::posix_time::time_duration time_offset;
                         if( field_desc.datatype == sensor_msgs::PointField::FLOAT32 )
