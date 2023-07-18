@@ -1,15 +1,7 @@
 set( dir ${SOURCE_CODE_BASE_DIR}/ros/applications )
 
-set( ros_path "/opt/ros/melodic" CACHE STRING "path to ros, something like /opt/ros/melodic" )
-if( NOT EXISTS "${ros_path}")
-    message( "${ros_path} not found; please specify ros path as something like /opt/ros/melodic on your computer or set snark_build_ros to OFF" )
-    set( ros_path "NOT FOUND" CACHE STRING "path to ros, something like /opt/ros/melodic" FORCE )
-endif( NOT EXISTS "${ros_path}")
-
 link_directories( "${ros_path}/lib" )
 include_directories( "${ros_path}/include" )
-
-set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole console_bridge cpp_common )
 
 file( GLOB detail_source ${dir}/detail/*.cpp )
 
