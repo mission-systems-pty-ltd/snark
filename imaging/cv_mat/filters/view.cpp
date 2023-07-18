@@ -17,7 +17,7 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     double default_delay = 0.001; // todo!
     double delay = default_delay;
     std::string n;
-    std::string suffix="ppm";
+    std::string suffix="png"; // std::string suffix="ppm";
     boost::optional< std::pair< int, int > > position;
     boost::optional< std::pair< int, int > > size;
     const std::vector< std::string >& w = comma::split( options, ',' );
