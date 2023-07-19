@@ -54,21 +54,21 @@ template <> struct traits< nav_msgs::MapMetaData > {
 };
 
 // nav_msgs::OccupancyGrid
-        // // std_msgs/Header header
-        // // nav_msgs/MapMetaData info
-        // // int8[] data
-        // template <> struct traits< nav_msgs::OccupancyGrid > {
-        //     template < typename K, typename V > static void visit( const K&, const nav_msgs::OccupancyGrid& p, V& v ) {
-        //         v.apply( "header", p.header );
-        //         v.apply( "info", p.info );
-        //         v.apply( "data", p.data );
-        //     }
-        //     template < typename K, typename V > static void visit( const K&, nav_msgs::OccupancyGrid& p, V& v ) {
-        //         v.apply( "header", p.header );
-        //         v.apply( "info", p.info );
-        //         v.apply( "data", p.data );
-        //     }
-        // };
+// std_msgs/Header header
+// nav_msgs/MapMetaData info
+// int8[] data
+template <> struct traits< nav_msgs::OccupancyGrid > {
+    template < typename K, typename V > static void visit( const K&, const nav_msgs::OccupancyGrid& p, V& v ) {
+        v.apply( "header", p.header );
+        v.apply( "info", p.info );
+        v.apply( "data", p.data );
+    }
+    template < typename K, typename V > static void visit( const K&, nav_msgs::OccupancyGrid& p, V& v ) {
+        v.apply( "header", p.header );
+        v.apply( "info", p.info );
+        v.apply( "data", p.data );
+    }
+};
 
 // nav_msgs::Odometry
 // std_msgs/Header header
