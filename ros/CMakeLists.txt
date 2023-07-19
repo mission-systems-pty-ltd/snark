@@ -23,11 +23,8 @@ endif()
 
 set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole console_bridge cpp_common )
 
-add_subdirectory( applications )
-add_subdirectory( diagnostic_msgs )
-add_subdirectory( geometry_msgs )
-add_subdirectory( nav_msgs )
-add_subdirectory( sensor_msgs )
-add_subdirectory( std_msgs )
+install( DIRECTORY messages DESTINATION ${snark_INSTALL_INCLUDE_DIR}/ros )
 
-install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/traits.h DESTINATION ${snark_INSTALL_INCLUDE_DIR}/ros )
+if( snark_BUILD_APPLICATIONS )
+    add_subdirectory( applications )
+endif( snark_BUILD_APPLICATIONS )
