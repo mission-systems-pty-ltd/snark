@@ -71,9 +71,11 @@ function make_bag_files()
     [[ -d tmp_data ]] || mkdir tmp_data
     (
         cd tmp_data
+        say "...writing random image data to /test_image topic"
         random_images | ros-image --to /test_image &
         local ros_image_pid=$!
-        rosbag record /test_image --duration 30 >/dev/null
+        say "...recording 30 images from /test_image topic"
+        rosbag record /test_image --limit 30 >/dev/null
         kill $ros_image_pid
     )
 }
@@ -118,6 +120,7 @@ for signal in SIGTERM SIGINT; do
 done
 kill $background_pid
 
+echo "" >&2
 make_bag_files
 for signal in SIGTERM SIGPIPE SIGINT; do
     test_from_bags_option $signal
