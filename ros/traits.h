@@ -6,7 +6,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-/// TODO: Every ROS message that has a variable sized field [], has been commented out and ignored.
+/// TODO: Every ROS message that has a variable sized field [], rewuires special consideration to be able to use with traits
 /// These are:
 ///      diagnostic_msgs::DiagnosticArray
 ///      diagnostic_msgs::DiagnosticStatus
