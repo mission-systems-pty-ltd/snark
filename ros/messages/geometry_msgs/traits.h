@@ -1,6 +1,6 @@
 #pragma once
 #include <comma/csv/format.h>
-#include <snark/ros/traits.h>
+#include <snark/ros/messages/traits.h>
 
 #include <geometry_msgs/Accel.h>
 #include <geometry_msgs/AccelStamped.h>
