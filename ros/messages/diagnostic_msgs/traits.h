@@ -1,6 +1,6 @@
 #pragma once
 #include <comma/csv/format.h>
-#include <snark/ros/traits.h>
+#include <snark/ros/messages/traits.h>
 
 #include <diagnostic_msgs/DiagnosticArray.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>

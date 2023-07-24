@@ -1,6 +1,6 @@
 #pragma once
 #include <comma/csv/format.h>
-#include <snark/ros/traits.h>
+#include <snark/ros/messages/traits.h>
 
 #include <std_msgs/Header.h>
 
