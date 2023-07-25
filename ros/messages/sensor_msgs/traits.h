@@ -53,7 +53,9 @@ template <> struct traits< sensor_msgs::BatteryState > {
     template < typename K, typename V > static void visit( const K&, const sensor_msgs::BatteryState& p, V& v ) {
         v.apply("header", p.header);
         v.apply("voltage", p.voltage);
+        #if ROS_VERSION_MINIMUM(1,16,0)
         v.apply("temperature", p.temperature);
+	#endif
         v.apply("current", p.current);
         v.apply("charge", p.charge);
         v.apply("capacity", p.capacity);
@@ -64,14 +66,18 @@ template <> struct traits< sensor_msgs::BatteryState > {
         v.apply("power_supply_technology", p.power_supply_technology);
         v.apply("present", p.present);
         v.apply("cell_voltage", p.cell_voltage);
+        #if ROS_VERSION_MINIMUM(1,16,0)
         v.apply("cell_temperature", p.cell_temperature);
+	#endif
         v.apply("location", p.location);
         v.apply("serial_number", p.serial_number);
     }
     template < typename K, typename V > static void visit( const K&, sensor_msgs::BatteryState& p, V& v ) {
         v.apply("header", p.header);
         v.apply("voltage", p.voltage);
+        #if ROS_VERSION_MINIMUM(1,16,0)
         v.apply("temperature", p.temperature);
+	#endif
         v.apply("current", p.current);
         v.apply("charge", p.charge);
         v.apply("capacity", p.capacity);
@@ -82,7 +88,9 @@ template <> struct traits< sensor_msgs::BatteryState > {
         v.apply("power_supply_technology", p.power_supply_technology);
         v.apply("present", p.present);
         v.apply("cell_voltage", p.cell_voltage);
+        #if ROS_VERSION_MINIMUM(1,16,0)
         v.apply("cell_temperature", p.cell_temperature);
+	#endif
         v.apply("location", p.location);
         v.apply("serial_number", p.serial_number);
     }
