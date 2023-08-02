@@ -73,7 +73,8 @@ static void usage( bool verbose = false )
     std::cerr << "        frame/coordinates/x,frame/coordinates/y,frame/coordinates/z,frame/orientation/roll,frame/orientation/pitch,frame/orientation/yaw: frame" << std::endl;
     std::cerr << "            if frame fields are present, get frame from them, apply to" << std::endl;
     std::cerr << "            coordinates (x,y,z) and output input line with converted" << std::endl;
-    std::cerr << "            coordinates and rotation appended as x,y,z,roll,pitch,yaw" << std::endl;
+    std::cerr << "            coordinates and rotation appended as x,y,z,roll,pitch,yaw (also see --emplace below)" << std::endl;
+    std::cerr << "            --emplace,--in-place: if present, output transform result in place instead of appending" << std::endl;
     std::cerr << "            --from: if present, conversion is from reference frame, default" << std::endl;
     std::cerr << "            --to: if present, conversion is to reference frame" << std::endl;
     std::cerr << "        default: t,x,y,z" << std::endl;
@@ -331,6 +332,7 @@ int main( int ac, char** av )
             csv.full_xpath = true;
             options.assert_mutually_exclusive( "--from,--to" );
             bool from = !options.exists( "--to" );
+            bool emplace = options.exists( "--emplace,--in-place" );
             comma::csv::input_stream< position_and_frame > is( std::cin, csv, position_and_frame( comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) )
                                                              , comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ) ) );
             comma::csv::options output_csv;
@@ -338,6 +340,7 @@ int main( int ac, char** av )
             if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
             comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
             comma::csv::tied< position_and_frame, snark::applications::position > tied( is, os );
+            comma::csv::passed< position_and_frame > passed( is, std::cout, csv.flush );
             while( is.ready() || std::cin.good() )
             {
                 const position_and_frame* p = is.read();
@@ -347,7 +350,8 @@ int main( int ac, char** av )
                 Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
                 Eigen::Matrix3d m = snark::rotation_matrix::rotation( p->position.orientation );
                 if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
-                tied.append( snark::applications::position( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) ) );
+                snark::applications::position r( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+                if( emplace ) { passed.write( position_and_frame{r, p->frame} ); } else { tied.append( r ); }
             }
             return 0;
         }
