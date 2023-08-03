@@ -507,19 +507,21 @@ def parse_arguments():
 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("-c", "--config", dest="config_path", help="specify path to config file", default='../config_files/example.json')
-    parser.add_argument("--verbose", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
+    parser.add_argument("--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
 
     args = parser.parse_args()
     eval( f'logging.getLogger().setLevel(logging.{args.verbose})' )
 
-    return args
+    ireturn args
 
 def main():
     args = parse_arguments()
 
     # todo
-    # - help: add usage examples and/or --readme (assume it README.txt is installed at a well-known place - we will sort it out later)
-    # - installation instruction: dependencies: install in at a well-known place, pan-tilt-control: hardcode path; may
+    # - help: add usage examples and/or --readme; install README.txt at /usr/local/share/snark/actuators/standa/README.txt)
+    # - installation instruction: dependencies: install in at a well-known place, pan-tilt-control: hardcode path; may make it configurable from command line or add to config.json
+    # - config: make more structured: "azimuth": { "min": 0, "max": 123 } etc
+    # - config: remove default altogether unless there are reasonable default settings
 
 
     config = None
