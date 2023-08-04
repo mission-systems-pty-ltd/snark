@@ -485,6 +485,10 @@ def testing_routine(external_lib, config, azimuth_id, elevation_id, user_unit):
         curr_elev.value += config.angular_resolution_rads.value
         pan_direction *= -1
 
+def get_readme_description():
+    with open("/home/rex/src/tinysar/tinysar-characterisation/README.md", 'r') as readme_file:
+        return readme_file.read()
+    
 def parse_arguments():
     """
     Parse command-line arguments.
@@ -492,7 +496,7 @@ def parse_arguments():
     Returns:
         argparse.Namespace: The parsed command-line arguments.
     """
-    parser = argparse.ArgumentParser(description="Control for Standa Pan Tilt Unit")
+    parser = argparse.ArgumentParser(description=get_readme_description())
 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("-c", "--config", dest="config_path", help="specify path to config file", default = None)
@@ -506,10 +510,6 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-
-    # todo
-    # - help: add usage examples and/or --readme; install README.txt at /usr/local/share/snark/actuators/standa/README.txt)
-    # - installation instruction: dependencies: install in at a well-known place, pan-tilt-control: hardcode path; may make it configurable from command line or add to config.json
 
     dict = read_json_file(args.config_path) if args.config_path else {}   
     config = create_config_from_dict(dict)
