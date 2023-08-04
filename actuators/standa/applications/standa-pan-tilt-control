@@ -35,12 +35,11 @@ AZIMUTH_STANDOFF = to_radians(-5)
 
 DEFAULT_OUTPUT_RATE = 100
 
-def import_pyximc(extern_lib_path):
+def import_pyximc(ximc_dir):
     # Dependences
         
     # # For correct usage of the library libximc,
     # # you need to add the file pyximc.py wrapper with the structures of the library to python path.
-    ximc_dir = extern_lib_path if extern_lib_path else "/home/rex/thirdparty/standa/ximc-2.14.14/ximc"
     ximc_package_dir = os.path.join(ximc_dir, "crossplatform", "wrappers", "python") # Formation of the directory name with python dependencies.
     sys.path.append(ximc_package_dir)  # add pyximc.py wrapper to python path
     logging.debug("pan-tilt-control: Path to pyximc.py wrapper set as " + ximc_package_dir)
@@ -486,7 +485,7 @@ def testing_routine(external_lib, config, azimuth_id, elevation_id, user_unit):
         pan_direction *= -1
 
 def get_readme_description():
-    with open("/home/rex/src/tinysar/tinysar-characterisation/README.md", 'r') as readme_file:
+    with open("/usr/local/share/snark/actuators/standa/README.md", 'r') as readme_file:
         return readme_file.read()
     
 def parse_arguments():
@@ -496,14 +495,16 @@ def parse_arguments():
     Returns:
         argparse.Namespace: The parsed command-line arguments.
     """
-    parser = argparse.ArgumentParser(description=get_readme_description())
+    parser = argparse.ArgumentParser(description="standa pan tilt control: read commands on stdin, send to pan tilt, output timestamped positions to stdout; for usage try --readme; todo: better --help")
 
-    parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
-    parser.add_argument("-c", "--config", dest="config_path", help="specify path to config file", default = None)
+    parser.add_argument("-c", "--config", dest="config_path", type=str, default="/usr/local/share/snark/actuators/standa/config.json", help="specify path to config file; default: %(default)s'" )
     parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
-    parser.add_argument("-p", "--library", type=str, help="Specify path to the ximc library downloaded from STANDA") 
+    parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
+    parser.add_argument("--readme", action="store_true", help="print readme on stdout and exit" )
+    parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s'") 
 
     args = parser.parse_args()
+    if args.readme: print( open("/usr/local/share/snark/actuators/standa/README.md", 'r').read() ); exit()
     eval( f'logging.getLogger().setLevel(logging.{args.logging})' )
 
     return args

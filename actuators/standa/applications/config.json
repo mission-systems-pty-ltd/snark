@@ -1,0 +1,7 @@
+{
+    "angular_resolution": 0.000174533,
+    "output_rate": 100,
+    "azimuth": {"min": 1.57, "max": -1.57},
+    "elevation": {"min": -0.17, "max": 1.57}
+}
+  
