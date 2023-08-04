@@ -497,11 +497,11 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser(description="standa pan tilt control: read commands on stdin, send to pan tilt, output timestamped positions to stdout; for usage try --readme; todo: better --help")
 
-    parser.add_argument("-c", "--config", dest="config_path", type=str, default="/usr/local/share/snark/actuators/standa/config.json", help="specify path to config file; default: %(default)s'" )
+    parser.add_argument("-c", "--config", dest="config_path", type=str, default="/usr/local/share/snark/actuators/standa/config.json", help="specify path to config file; default: %(default)s" )
     parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("--readme", action="store_true", help="print readme on stdout and exit" )
-    parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s'") 
+    parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s") 
 
     args = parser.parse_args()
     if args.readme: print( open("/usr/local/share/snark/actuators/standa/README.md", 'r').read() ); exit()
