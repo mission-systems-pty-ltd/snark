@@ -2,7 +2,7 @@
 
 # Copyright (c) 2022 Mission Systems Pty Ltd
 
-__author__ = 'R. Crisp'
+__author__ = 'Rex Crisp'
 
 import argparse
 import ctypes
@@ -11,11 +11,8 @@ import logging
 import math
 import os
 import platform
-import re
-import signal
 import struct
 import sys
-import tempfile
 import threading
 import time
 
@@ -38,15 +35,17 @@ AZIMUTH_STANDOFF = to_radians(-5)
 
 DEFAULT_OUTPUT_RATE = 100
 
-def import_pyximc():
+def import_pyximc(extern_lib_path):
     # Dependences
         
     # # For correct usage of the library libximc,
     # # you need to add the file pyximc.py wrapper with the structures of the library to python path.
-    cur_dir = os.path.abspath(os.path.dirname(__file__)) # Specifies the current directory.
-    ximc_dir = os.path.join(cur_dir, '..', '..', '..', '..','thirdparty', 'standa', 'ximc-2.14.14', 'ximc') # SPECIFY PATH TO DOWNLOADED XIMC DRIVER
+    ximc_dir = extern_lib_path if extern_lib_path else "/home/rex/thirdparty/standa/ximc-2.14.14/ximc"
     ximc_package_dir = os.path.join(ximc_dir, "crossplatform", "wrappers", "python") # Formation of the directory name with python dependencies.
     sys.path.append(ximc_package_dir)  # add pyximc.py wrapper to python path
+    logging.debug("pan-tilt-control: Path to pyximc.py wrapper set as " + ximc_package_dir)
+    logging.debug("pan-tilt-control: Current path includes" )
+    logging.debug('\n'.join(f"\t{path}" for path in sys.path))
 
     # Depending on your architecture, add the path to the required DLLs to the environment variable
     # bindy.dll
@@ -64,7 +63,7 @@ def import_pyximc():
     try:
         import pyximc
     except ImportError as err:
-        logging.error("pan-tilt-control: Can't import pyximc module. The most probable reason is that you changed the relative location of the test_Python.py and pyximc.py files. See developers' documentation for details.")
+        logging.error("pan-tilt-control: Can't import pyximc module. The most probable reason is that you the library path does not point to the pyximc.py files. See developers' documentation for details.")
         exit(1)
     except OSError as err:
         if platform.system() == "Windows":
@@ -87,7 +86,7 @@ def import_pyximc():
     return pyximc
 
 class Config:
-    def __init__(self, azi_max=AZI_RIGHT_LIMIT, azi_min=AZI_LEFT_LIMIT, elev_max=ELEV_RIGHT_LIMIT, elev_min=ELEV_LEFT_LIMIT, angular_resolution=1, output_rate=100):
+    def __init__(self, azi_max=AZI_RIGHT_LIMIT, azi_min=AZI_LEFT_LIMIT, elev_max=ELEV_RIGHT_LIMIT, elev_min=ELEV_LEFT_LIMIT, angular_resolution=10*CONVERSION_FACTOR, output_rate=100):
 
         """
         Configuration class for angular measurements.
@@ -111,7 +110,11 @@ class Config:
 
         self.angular_resolution_rads = ctypes.c_float(angular_resolution)    # resolution of angular measurements
         self.output_rate_Hz = output_rate  # angular measurement output 
-        self.speed = ctypes.c_float(angular_resolution*output_rate)
+        if angular_resolution*output_rate < 16:
+            self.speed = ctypes.c_float(angular_resolution*output_rate)
+        else:
+            logging.warning(f"pan-tilt-control: Required speed ({angular_resolution*output_rate} rad/s) exceeds maximum controller speed ({35000*CONVERSION_FACTOR} rad/s). Defaulting to maximum speed")
+            self.speed = ctypes.c_float(100000*CONVERSION_FACTOR)
 
 def read_json_file(file_path):
     """
@@ -136,7 +139,7 @@ def read_json_file(file_path):
     except json.JSONDecodeError:
         raise ValueError("pan-tilt-control: Invalid JSON format in the config file.")
     
-def create_config_from_json(data):
+def create_config_from_dict(data):
     """
     Create a Config instance from the given JSON data.
 
@@ -147,12 +150,13 @@ def create_config_from_json(data):
         Config: An instance of the Config class with the extracted values.
     """
     # Extract the values from the JSON data or use default values if not provided
-    azi_max = data.get('azimuth_max', AZI_RIGHT_LIMIT)
-    azi_min = data.get('azimuth_min', AZI_LEFT_LIMIT)
-    elev_max = data.get('elevation_max', ELEV_RIGHT_LIMIT)
-    elev_min = data.get('elevation_min', ELEV_LEFT_LIMIT)
-
-    angular_resolution = data.get('angular_resolution', 1)
+    azi = data.get('azimuth', {})
+    azi_max = azi.get('max', AZI_RIGHT_LIMIT)
+    azi_min = azi.get('min', AZI_LEFT_LIMIT)
+    elev = data.get('elevation', {})
+    elev_max = elev.get('max', ELEV_RIGHT_LIMIT)
+    elev_min = elev.get('min', ELEV_LEFT_LIMIT)
+    angular_resolution = data.get('angular_resolution', 10*CONVERSION_FACTOR)
     output_rate = data.get('output_rate', 100)
 
     # Create an instance of the Config class with the extracted values
@@ -254,9 +258,6 @@ def configure_limit_switches(external_lib, device, user_unit, trigger_high):
         device: The ID of the device to configure limit switches for.
         user_unit: The calibration data for user units.
         trigger_high: Whether the limit switch is triggered on high level (default is True).
-
-    Raises:
-        ValueError: If any of the configuration commands fail.
     """
 
     edges_settings = external_lib.edges_settings_calb_t()
@@ -284,9 +285,6 @@ def configure_home_settings(external_lib, device, user_unit, first_move_right=Tr
         user_unit: The calibration data for user units.
         first_move_right: Whether the first move direction is right (default is True).
         home_delta: The home movement delta.
-
-    Raises:
-        ValueError: If any of the configuration commands fail.
     """
 
     home_settings = external_lib.home_settings_calb_t()
@@ -294,6 +292,8 @@ def configure_home_settings(external_lib, device, user_unit, first_move_right=Tr
     assert result == external_lib.Result.Ok, logging.warning(f"pan-tilt-control: Failed to retrieve home settings (Result {result})")
 
     home_settings.HomeFlags |= external_lib.HomeFlags.HOME_STOP_FIRST_LIM  # Home stop on limit switch
+    home_settings.FastHome = 50*math.pi/180
+    home_settings.SlowHome = 25*math.pi/180
 
     if first_move_right:
         home_settings.HomeFlags |= external_lib.HomeFlags.HOME_DIR_FIRST  # First move direction right
@@ -314,9 +314,6 @@ def configure_soft_borders(external_lib, device, user_unit, left_limit, right_li
         user_unit: The calibration data for user units.
         left_limit: The left soft border limit.
         right_limit: The right soft border limit.
-
-    Raises:
-        ValueError: If any of the configuration commands fail.
     """
 
     edges_settings = external_lib.edges_settings_calb_t()
@@ -338,9 +335,6 @@ def home_device(external_lib, azimuth_id, elevation_id, user_unit):
         azimuth_id: The ID of the azimuth device.
         elevation_id: The ID of the elevation device.
         user_unit: The calibration data for user units.
-
-    Raises:
-        ValueError: If any of the home or configuration commands fail.
     """
     # Stop both devices
     external_lib.lib.command_stop(elevation_id)
@@ -369,7 +363,7 @@ def home_device(external_lib, azimuth_id, elevation_id, user_unit):
     configure_soft_borders(external_lib=external_lib, device=azimuth_id, user_unit=user_unit, left_limit=AZI_LEFT_LIMIT, right_limit=AZI_RIGHT_LIMIT)
     configure_soft_borders(external_lib=external_lib, device=elevation_id, user_unit=user_unit, left_limit=ELEV_LEFT_LIMIT, right_limit=ELEV_RIGHT_LIMIT)
     
-def set_move_settings(external_lib, device, user_unit, speed):
+def set_speed_settings(external_lib, device, user_unit, speed):
     """
     Set the movement settings for the specified device.
 
@@ -377,16 +371,13 @@ def set_move_settings(external_lib, device, user_unit, speed):
         device: The ID of the device to set movement settings for.
         user_unit: The calibration data for user units.
         speed: The movement speed to set.
-
-    Raises:
-        ValueError: If any of the movement setting commands fail.
     """
     move_settings = external_lib.move_settings_calb_t()
     result = external_lib.lib.get_move_settings_calb(device, ctypes.byref(move_settings), ctypes.byref(user_unit))
     assert result == external_lib.Result.Ok, logging.warning(f"pan-tilt-control: Failed to retrieve movement settings (Result {result})")
 
+    logging.info(f"pan-tilt-control: Change movement speed from {move_settings.Speed} rad/s to {speed} rad/s")
     move_settings.Speed = speed
-
     result = external_lib.lib.set_move_settings_calb(device, ctypes.byref(move_settings), ctypes.byref(user_unit))
     assert result == external_lib.Result.Ok, logging.warning(f"pan-tilt-control: Failed to set movement settings (Result {result})")
 
@@ -400,9 +391,6 @@ def move_bearing(external_lib, azimuth_id, elevation_id, azimuth_angle, elevatio
         azimuth_angle: The azimuth bearing angle to move to.
         elevation_angle: The elevation bearing angle to move to.
         user_unit: The calibration data for user units.
-
-    Raises:
-        ValueError: If the specified angles are outside of the soft borders.
     """
     assert AZI_LEFT_LIMIT <= azimuth_angle.value <= AZI_RIGHT_LIMIT, logging.warning("pan-tilt-control: Specified azimuth angle outside of soft borders")
     external_lib.lib.command_move_calb(azimuth_id, azimuth_angle, ctypes.byref(user_unit))
@@ -423,9 +411,6 @@ def move_offset(external_lib, azimuth_id, elevation_id, azimuth_offset, elevatio
         azimuth_offset: The azimuth offset to move by.
         elevation_offset: The elevation offset to move by.
         user_unit: The calibration data for user units.
-
-    Raises:
-        ValueError: If there are issues with the movement commands.
     """
     external_lib.lib.command_movr_calb(azimuth_id, azimuth_offset, ctypes.byref(user_unit))
     external_lib.lib.command_movr_calb(elevation_id, elevation_offset, ctypes.byref(user_unit))
@@ -484,15 +469,19 @@ def testing_routine(external_lib, config, azimuth_id, elevation_id, user_unit):
     start_azi = config.azi_min
     end_azi = config.azi_max
 
-    move_bearing(external_lib, azimuth_id, elevation_id,start_azi, start_elev, user_unit)
+    # move quickly to start position
+    set_speed_settings(external_lib, azimuth_id, user_unit, math.pi*10/180)
+    move_bearing(external_lib, azimuth_id, elevation_id, start_azi, start_elev, user_unit)
+    # change speed back to set scanning rate
+    set_speed_settings(external_lib, azimuth_id, user_unit, config.speed)
 
     pan_direction = 1
     curr_azi = end_azi
     curr_elev = start_elev
     while curr_elev.value <= end_elev.value: 
-        move_bearing(azimuth_id, elevation_id, curr_azi, curr_elev, user_unit)
+        move_bearing(external_lib, azimuth_id, elevation_id, curr_azi, curr_elev, user_unit)
         curr_azi = end_azi if pan_direction == -1 else start_azi
-        move_bearing(azimuth_id, elevation_id, curr_azi, curr_elev, user_unit)
+        move_bearing(external_lib, azimuth_id, elevation_id, curr_azi, curr_elev, user_unit)
         curr_elev.value += config.angular_resolution_rads.value
         pan_direction *= -1
 
@@ -506,13 +495,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Control for Standa Pan Tilt Unit")
 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
-    parser.add_argument("-c", "--config", dest="config_path", help="specify path to config file", default='../config_files/example.json')
-    parser.add_argument("--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
+    parser.add_argument("-c", "--config", dest="config_path", help="specify path to config file", default = None)
+    parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
+    parser.add_argument("-p", "--library", type=str, help="Specify path to the ximc library downloaded from STANDA") 
 
     args = parser.parse_args()
-    eval( f'logging.getLogger().setLevel(logging.{args.verbose})' )
+    eval( f'logging.getLogger().setLevel(logging.{args.logging})' )
 
-    ireturn args
+    return args
 
 def main():
     args = parse_arguments()
@@ -520,21 +510,17 @@ def main():
     # todo
     # - help: add usage examples and/or --readme; install README.txt at /usr/local/share/snark/actuators/standa/README.txt)
     # - installation instruction: dependencies: install in at a well-known place, pan-tilt-control: hardcode path; may make it configurable from command line or add to config.json
-    # - config: make more structured: "azimuth": { "min": 0, "max": 123 } etc
-    # - config: remove default altogether unless there are reasonable default settings
 
+    dict = read_json_file(args.config_path) if args.config_path else {}   
+    config = create_config_from_dict(dict)
 
-    config = None
-    if args.config_path:
-        assert os.path.exists(args.config_path), argparse.ArgumentTypeError("Config file does not exist.")
-        json_data = read_json_file(args.config_path)
-        config = create_config_from_json(json_data)
-
-    pyximc = import_pyximc()
+    pyximc = import_pyximc(args.library)
 
     azimuth_id, elevation_id = open_devices(pyximc)
 
     user_unit = calibrate_user_units(pyximc, azimuth_id)
+    set_speed_settings(pyximc, azimuth_id, user_unit, config.speed.value)
+    set_speed_settings(pyximc, elevation_id, user_unit, config.speed.value)
 
     interrupt_flag = threading.Event()
 
@@ -546,18 +532,12 @@ def main():
         test_status(pyximc, elevation_id)
 
         if args.mode == "RUN":
-            if not args.config_path:
-                logging.error('pan-tilt-control: RUN requires config file\n')
-            else:
-                home_device(pyximc, azimuth_id, elevation_id, user_unit)
-                testing_routine(pyximc, config, azimuth_id, elevation_id, user_unit)
+            home_device(pyximc, azimuth_id, elevation_id, user_unit)
+            testing_routine(pyximc, config, azimuth_id, elevation_id, user_unit)
         elif args.mode == "HOME":
             home_device(pyximc, azimuth_id, elevation_id, user_unit)
         elif args.mode == "RUN_NO_HOME":
-            if not args.config_path:
-                logging.error('pan-tilt-control: RUN requires config file\n')
-            else:
-                testing_routine(pyximc, config, azimuth_id, elevation_id, user_unit)
+            testing_routine(pyximc, config, azimuth_id, elevation_id, user_unit)
         elif args.mode == "MOVE":
             while not interrupt_flag.is_set():
                 try:
@@ -592,7 +572,6 @@ def main():
     assert result == pyximc.Result.Ok, logging.warning(f'pan-tilt-control: Device 2: Error during shutdown (Result {result})')
 
     logging.info("pan-tilt-control: Shutdown")
-
 
 if __name__ == "__main__":
     main()
