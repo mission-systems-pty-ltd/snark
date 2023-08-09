@@ -427,10 +427,7 @@ def output_position(external_lib, event, config, azimuth_id, elevation_id, user_
         elevation_id: The ID of the elevation device.
         user_unit: The calibration data for user units.
     """
-    if config:
-        output_rate = config.output_rate_Hz
-    else:
-        output_rate = DEFAULT_OUTPUT_RATE
+    output_rate = config.output_rate_Hz if config else DEFAULT_OUTPUT_RATE
 
     while not event.is_set():
         elev_pos = external_lib.get_position_calb_t()
@@ -441,7 +438,7 @@ def output_position(external_lib, event, config, azimuth_id, elevation_id, user_
         result = external_lib.lib.get_position_calb(azimuth_id, ctypes.byref(azi_pos), ctypes.byref(user_unit))
         assert result == external_lib.Result.Ok, logging.warning(f"pan-tilt-control: Failed to read azimuth (Result {result})")
 
-        binary_data = struct.pack(f'fff', time.time(), azi_pos.Position, elev_pos.Position)
+        binary_data = struct.pack(f'lff', np.int64( time.time() * 1000000 ), azi_pos.Position, elev_pos.Position)
         sys.stdout.buffer.write(binary_data)
         sys.stdout.flush()
 
