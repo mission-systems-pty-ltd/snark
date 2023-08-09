@@ -36,6 +36,7 @@ AZIMUTH_STANDOFF = to_radians(-5)
 DEFAULT_OUTPUT_RATE = 100
 
 def import_pyximc(ximc_dir):
+
     # Dependences
         
     # # For correct usage of the library libximc,
@@ -498,6 +499,7 @@ def parse_arguments():
     parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("--readme", action="store_true", help="print readme on stdout and exit" )
+    parser.add_argument("--ximc-custom-installation", action="store_true", help="ximc was installed by hand rather than with pip3; run --readme for more details" )
     parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s") 
 
     args = parser.parse_args()
@@ -512,7 +514,8 @@ def main():
     dict = read_json_file(args.config_path) if args.config_path else {}   
     config = create_config_from_dict(dict)
 
-    pyximc = import_pyximc(args.library)
+    if args.ximc_custom_installation: pyximc = import_pyximc( args.library )
+    else: import libximc as pyximc
 
     azimuth_id, elevation_id = open_devices(pyximc)
 

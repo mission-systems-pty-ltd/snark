@@ -1,5 +1,13 @@
 # Working with libximc
 
+## With pip3
+
+``` pip3 install libximc ```
+
+## Manual
+
+If pip install does not work:
+
 This script requires the following libraries from Standa
 - libximc.dll
 - bindy.dll
@@ -61,7 +69,7 @@ The program expects a JSON dict as a config file. It will accept a path to a con
 The pan tilt unit can be controlled with the keyboard arrows. An example of the program call for keyboard control, outputting the angular position measurement to stdout as csv is
 
 ```
-io-console | control-from-console pantilt | csv-to-bin 2f --flush | ./standa-pan-tilt-control |csv-from-bin 3f
+io-console | control-from-console pantilt | csv-to-bin 2f --flush | ./standa-pan-tilt-control |csv-from-bin t,2f
 ```
 
 #### Input Stream Control
