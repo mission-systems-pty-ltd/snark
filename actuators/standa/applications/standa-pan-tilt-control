@@ -499,7 +499,7 @@ def parse_arguments():
     parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("--readme", action="store_true", help="print readme on stdout and exit" )
-    parser.add_argument("--speed", '-s', dest="speed", type=float, default=100000*CONVERSION_FACTOR/100, help=f"specify movement speed in rad/s. Maximum speed is {100000*CONVERSION_FACTOR} rad/s (NOT RECOMMENDED!); default: %(default)s")
+    parser.add_argument("--speed", '-s', dest="speed", type=float, default=100000*CONVERSION_FACTOR/100, help=f"specify movement speed in rad/s. Maximum speed is {100000*CONVERSION_FACTOR} rad/s (NOT RECOMMENDED!); default: %(default)s rad/s")
     parser.add_argument("--ximc-custom-installation", action="store_true", help="ximc was installed by hand rather than with pip3; run --readme for more details" )
     parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s") 
 
