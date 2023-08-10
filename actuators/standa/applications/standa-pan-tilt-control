@@ -8,6 +8,7 @@ import argparse
 import ctypes
 import json
 import logging
+import numpy
 import math
 import os
 import platform
@@ -110,10 +111,10 @@ class Config:
 
         self.angular_resolution_rads = ctypes.c_float(angular_resolution)    # resolution of angular measurements
         self.output_rate_Hz = output_rate  # angular measurement output 
-        if angular_resolution*output_rate < 16:
+        if angular_resolution*output_rate < 100000*CONVERSION_FACTOR:
             self.speed = ctypes.c_float(angular_resolution*output_rate)
         else:
-            logging.warning(f"pan-tilt-control: Required speed ({angular_resolution*output_rate} rad/s) exceeds maximum controller speed ({35000*CONVERSION_FACTOR} rad/s). Defaulting to maximum speed")
+            logging.warning(f"pan-tilt-control: Required speed ({angular_resolution*output_rate} rad/s) exceeds maximum controller speed ({100000*CONVERSION_FACTOR} rad/s). Defaulting to maximum speed")
             self.speed = ctypes.c_float(100000*CONVERSION_FACTOR)
 
 def read_json_file(file_path):
@@ -439,7 +440,7 @@ def output_position(external_lib, event, config, azimuth_id, elevation_id, user_
         result = external_lib.lib.get_position_calb(azimuth_id, ctypes.byref(azi_pos), ctypes.byref(user_unit))
         assert result == external_lib.Result.Ok, logging.warning(f"pan-tilt-control: Failed to read azimuth (Result {result})")
 
-        binary_data = struct.pack(f'lff', np.int64( time.time() * 1000000 ), azi_pos.Position, elev_pos.Position)
+        binary_data = struct.pack(f'lff', numpy.int64( time.time() * 1000000 ), azi_pos.Position, elev_pos.Position)
         sys.stdout.buffer.write(binary_data)
         sys.stdout.flush()
 
@@ -466,11 +467,10 @@ def testing_routine(external_lib, config, azimuth_id, elevation_id, user_unit):
     start_azi = config.azi_min
     end_azi = config.azi_max
 
-    # move quickly to start position
-    set_speed_settings(external_lib, azimuth_id, user_unit, math.pi*10/180)
     move_bearing(external_lib, azimuth_id, elevation_id, start_azi, start_elev, user_unit)
     # change speed back to set scanning rate
     set_speed_settings(external_lib, azimuth_id, user_unit, config.speed)
+    set_speed_settings(external_lib, elevation_id, user_unit, config.speed)
 
     pan_direction = 1
     curr_azi = end_azi
@@ -499,6 +499,7 @@ def parse_arguments():
     parser.add_argument("-l", "--logging", type=str, default="WARNING", choices=['WARNING', 'INFO', 'ERROR', 'DEBUG'], help="verbosity level") 
     parser.add_argument("-m", "--mode", dest="mode", choices=["HOME", "RUN", "RUN_NO_HOME", "MOVE"], default="MOVE", help="specify mode of operation")
     parser.add_argument("--readme", action="store_true", help="print readme on stdout and exit" )
+    parser.add_argument("--speed", '-s', dest="speed", type=float, default=100000*CONVERSION_FACTOR/100, help=f"specify movement speed in rad/s. Maximum speed is {100000*CONVERSION_FACTOR} rad/s (NOT RECOMMENDED!); default: %(default)s")
     parser.add_argument("--ximc-custom-installation", action="store_true", help="ximc was installed by hand rather than with pip3; run --readme for more details" )
     parser.add_argument("--ximc-library-path", "--library", type=str, default="/opt/standa/ximc-2.14.14/ximc", help="Specify path to the ximc library downloaded from STANDA; default: %(default)s") 
 
@@ -520,8 +521,10 @@ def main():
     azimuth_id, elevation_id = open_devices(pyximc)
 
     user_unit = calibrate_user_units(pyximc, azimuth_id)
-    set_speed_settings(pyximc, azimuth_id, user_unit, config.speed.value)
-    set_speed_settings(pyximc, elevation_id, user_unit, config.speed.value)
+
+    # sets initial movement speed
+    set_speed_settings(pyximc, azimuth_id, user_unit, args.speed)
+    set_speed_settings(pyximc, elevation_id, user_unit, args.speed)
 
     interrupt_flag = threading.Event()
 
