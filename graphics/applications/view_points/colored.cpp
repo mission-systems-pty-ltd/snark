@@ -151,23 +151,25 @@ color_t by_height::color( const Eigen::Vector3d& point, comma::uint32, double, c
     }
 }
 
-by_scalar::by_scalar( double from, double to, const color_t& from_color, const color_t& to_color, bool alpha_by_scalar )
+by_scalar::by_scalar( double from, double to, const color_t& from_color, const color_t& to_color, bool alpha_by_scalar, bool cyclic )
     : from( from )
     , to( to )
     , diff( to - from )
     , from_color( from_color )
     , to_color( to_color )
     , _alpha_by_scalar( alpha_by_scalar )
+    , _cyclic( cyclic )
 {
     if( alpha_by_scalar ) { this->from_color.rgba[3] = 0; }
 }
 
-by_scalar::by_scalar( double from, double to, const snark::render::colour_map::values& map, bool alpha_by_scalar )
+by_scalar::by_scalar( double from, double to, const snark::render::colour_map::values& map, bool alpha_by_scalar, bool cyclic )
     : from( from )
     , to( to )
     , diff( to - from )
     , map( map )
     , _alpha_by_scalar( alpha_by_scalar )
+    , _cyclic( cyclic )
 {
 }
 
@@ -175,7 +177,7 @@ color_t by_scalar::color( const Eigen::Vector3d& point, comma::uint32, double sc
 {
     (void)point;
     double v = ( scalar - from ) / diff;
-    v = ( v < 0 ? 0 : v > 1 ? 1 : v );
+    v = _cyclic ? v - std::floor( v ) : ( v < 0 ? 0 : v > 1 ? 1 : v );
     if( !map ) { return add( multiply( from_color, 1 - v ), multiply( to_color, v ) ); }
     unsigned int i = v * 255;
     return color_t( ( *map )[i][0], ( *map )[i][1], ( *map )[i][2], _alpha_by_scalar ? i : 255 );
@@ -317,6 +319,7 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
         double to = 0;
         boost::optional< snark::render::colour_map::values > map;
         bool alpha_by_scalar{false};
+        bool cyclic{false};
         std::vector< std::string > v = comma::split( s, ',' );
         switch( v.size() )
         {
@@ -380,14 +383,18 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
                     default:
                         COMMA_THROW( comma::exception, "expected range (e.g. -5:20,red:blue or 3:10), or colour map name, got " << s );
                 }
-                COMMA_ASSERT_BRIEF( v.size() < 3 || v[2] == "alpha", "expected range (e.g. -5:20,red:blue[,alpha] or 3:10), or colour map name, got " << s );
-                alpha_by_scalar = v.size() > 2 && v[2] == "alpha";
+                for( unsigned int i = 2; i < v.size(); ++i )
+                {
+                    if( v[i] == "alpha" ) { alpha_by_scalar = true; }
+                    else if( v[i] == "cyclic" ) { cyclic = true; }
+                    else { COMMA_THROW_BRIEF( comma::exception, "expected range (e.g. -5:20,red:blue[,alpha] or 3:10), or colour map name, got " << s ); }
+                }
                 break;
             }
             default:
                 COMMA_THROW( comma::exception, "expected range (e.g. -5:20,red:blue[,alpha] or 3:10), or colour map name, got " << s );
         }
-        return map ? new by_scalar( from, to, *map, alpha_by_scalar ) : new by_scalar( from, to, from_color, to_color, alpha_by_scalar );
+        return map ? new by_scalar( from, to, *map, alpha_by_scalar, cyclic ) : new by_scalar( from, to, from_color, to_color, alpha_by_scalar, cyclic );
     }
     colored* c;
     try

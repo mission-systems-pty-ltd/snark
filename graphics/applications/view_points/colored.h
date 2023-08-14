@@ -67,12 +67,14 @@ class by_scalar : public colored
                  , double to
                  , const color_t& from_color
                  , const color_t& to_color
-                 , bool alpha_by_scalar );
+                 , bool alpha_by_scalar
+                 , bool cyclic = false );
 
         by_scalar( double from
                  , double to
                  , const snark::render::colour_map::values& map
-                 , bool alpha_by_scalar );
+                 , bool alpha_by_scalar
+                 , bool cyclic = false );
 
         virtual color_t color( const Eigen::Vector3d& point
                              , comma::uint32 id
@@ -87,6 +89,7 @@ class by_scalar : public colored
         color_t from_color;
         color_t to_color;
         bool _alpha_by_scalar;
+        bool _cyclic;
 };
 
 class by_id : public colored
