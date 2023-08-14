@@ -39,7 +39,7 @@ https://www.standa.lt/products/catalog/custom_engineering?item=546&prod=TBA
 ## Usage
 The primary interface with this script is through CLI. The script is run as
 ```bash
-./standa-pan-tilt-control [options]
+standa-pan-tilt-control [options]
 ```
 ## Modes
 The PTU has four possible modes; 'HOME', 'RUN', 'RUN_WIHTOUT_HOMING', and 'MOVE'.
@@ -69,30 +69,30 @@ The program expects a JSON dict as a config file. It will accept a path to a con
 The pan tilt unit can be controlled with the keyboard arrows. An example of the program call for keyboard control, outputting the angular position measurement to stdout as csv is
 
 ```
-io-console | control-from-console pantilt | csv-to-bin 2f --flush | ./standa-pan-tilt-control |csv-from-bin t,2f
+io-console | control-from-console pantilt | csv-to-bin 2f --flush | standa-pan-tilt-control --speed 0.2 |csv-from-bin t,2f
 ```
 
 #### Input Stream Control
 The pan tilt unit can be controlled by an input stream. The program expects binary values in the format AZIMUTH,ELEVATION. The program interprets values as offset movements. For this reason it is not recommended to chain inputs. An example of a program call, outputting angular position measurement as binary is 
 ```
-csv-to-bin 2f --flush | ./standa-pan-tilt-control
+csv-to-bin 2f --flush | standa-pan-tilt-control
 ```
 
 #### Home Device
 The pan tilt unit can be sent to home as follows
 ```
-./stand-pan-tilt-control --mode HOME
+stand-pan-tilt-control --mode HOME --speed 0.2
 ```
 
 #### Configured Scan Routine
 The pan tilt unit can be run according to a set routine specified as a config file. The device can be homed before running the routine, or can begin routine immediately. WARNING!!! If the device is not homed before running command, make sure that the routine will not cause a physical collision. It is recommended to always home the device first.
 
 ```
-./standa-pan-tilt-control --mode RUN --logging ERROR --config <PATH TO CONFIG> | csv-from-bin 3f
+standa-pan-tilt-control --mode RUN --logging ERROR --config <PATH TO CONFIG> | csv-from-bin t,2f
 ```
 
 ```
-./standa-pan-tilt-control --mode RUN_NO_HOME --logging ERROR --config <PATH TO CONFIG> | csv-from-bin 3f
+standa-pan-tilt-control --mode RUN_NO_HOME --logging ERROR --config <PATH TO CONFIG> | csv-from-bin t,2f
 ```
 # Hardware Setup
 The Standa Controller has two outputs; Axis 1 and Axis 2. Axis 1 should be connected to the azimuth motor. Axis 2 should be connected to the elevation motor. The software is written with this assumption, and rewiring without changing the code will result in the controller being incorrectly configured.
