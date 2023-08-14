@@ -49,6 +49,9 @@ class colour_map // quick and dirty
         static values constant( unsigned char r, unsigned char g, unsigned char b );
         static values temperature( unsigned char offset_r, unsigned char offset_g );
         static values jet();
+        static values magma();
+        static values viridis();
+        static values twilight();
         static pixel contrast_to( const values& v );
 
         colour_map() { }

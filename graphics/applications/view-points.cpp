@@ -127,7 +127,7 @@ static void usage( bool )
         "\n                                                               if alpha field present, alpha channel (transparency)"
         "\n                                                               will vary from 0 for <min> scalar value to max for <max>"
         "\n                <min>:<max>,<colourmap>[,alpha]: if scalar field present, stretch by scalar (see section <fields>)"
-        "\n                    <colourmap>: jet, hot, red, green"
+        "\n                    <colourmap>: jet, hot, red, green, magma, viridis, twilight"
         "\n                    if alpha field present, alpha channel (transparency)"
         "\n                    will vary from 0 for <min> scalar value to max for <max> scalar value"
         "\n"

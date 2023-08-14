@@ -330,6 +330,9 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
                         else if( w[0] == "red" ) { map = snark::render::colour_map::constant( 255, 0, 0 ); }
                         else if( w[0] == "hot" ) { map = snark::render::colour_map::temperature( 96, 96 ); }
                         else if( w[0] == "jet" ) { map = snark::render::colour_map::jet(); }
+                        else if( w[0] == "magma" ) { map = snark::render::colour_map::magma(); }
+                        else if( w[0] == "viridis" ) { map = snark::render::colour_map::viridis(); }
+                        else if( w[0] == "twilight" ) { map = snark::render::colour_map::twilight(); }
                         else { COMMA_THROW( comma::exception, "expected colour map, got: " << s ); }
                         break;
                     case 2:
@@ -365,6 +368,9 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
                         else if( w[0] == "red" ) { map = snark::render::colour_map::constant( 255, 0, 0 ); }
                         else if( w[0] == "hot" ) { map = snark::render::colour_map::temperature( 96, 96 ); }
                         else if( w[0] == "jet" ) { map = snark::render::colour_map::jet(); }
+                        else if( w[0] == "magma" ) { map = snark::render::colour_map::magma(); }
+                        else if( w[0] == "viridis" ) { map = snark::render::colour_map::viridis(); }
+                        else if( w[0] == "twilight" ) { map = snark::render::colour_map::twilight(); }
                         else { COMMA_THROW( comma::exception, "expected colour map, got: " << s ); }
                         break;
                     case 2:
