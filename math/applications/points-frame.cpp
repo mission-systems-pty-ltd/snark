@@ -293,6 +293,12 @@ struct position_and_frame
     position_and_frame( const snark::applications::position& position = snark::applications::position(), const snark::applications::position& frame = snark::applications::position() ): position( position ), frame( frame ) {}
 };
 
+struct position_and_frames
+{
+    snark::applications::position position;
+    std::vector< snark::applications::position > frames;
+};
+
 namespace comma { namespace visiting {
 
 template <> struct traits< position_and_frame >
@@ -310,7 +316,107 @@ template <> struct traits< position_and_frame >
     }
 };
 
+template <> struct traits< position_and_frames >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, position_and_frames& p, Visitor& v )
+    {
+        v.apply( "position", p.position );
+        v.apply( "frames", p.frames );
+    }
+
+    template < typename Key, class Visitor > static void visit( const Key&, const position_and_frames& p, Visitor& v )
+    {
+        v.apply( "position", p.position );
+        v.apply( "frames", p.frames );
+    }
+};
+
 } } // namespace comma { namespace visiting {
+
+static std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
+{
+    auto v = comma::split( fields, ',' );
+    unsigned int size = 0;
+    for( auto& f: v ) // quick and dirty: keeping it backward compatible
+    {
+        if( f == "frame" ) { f = "frames[0]"; }
+        else if( f == "frame/x" ) { f = "frames[0]/x"; }
+        else if( f == "frame/y" ) { f = "frames[0]/y"; }
+        else if( f == "frame/z" ) { f = "frames[0]/z"; }
+        else if( f == "frame/roll" ) { f = "frames[0]/roll"; }
+        else if( f == "frame/pitch" ) { f = "frames[0]/pitch"; }
+        else if( f == "frame/yaw" ) { f = "frames[0]/yaw"; }
+    }
+    if( size == 0 ) { return std::make_pair( std::string(), size ); }
+    for( auto& f: v ) { if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; } }
+    return std::make_pair( comma::join( v, ',' ), size );
+}
+
+static int frames_on_stdin_handle( const comma::command_line_options& options )
+{
+    comma::csv::options csv( options );
+    auto v = comma::split( csv.fields, ',' );
+    for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
+    csv.fields = comma::join( v, ',' );
+    csv.full_xpath = true;
+    options.assert_mutually_exclusive( "--from,--to" );
+    bool from = !options.exists( "--to" );
+    bool emplace = options.exists( "--emplace,--in-place" );
+    comma::csv::input_stream< position_and_frame > is( std::cin, csv, position_and_frame( comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) )
+                                                     , comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ) ) );
+    comma::csv::options output_csv;
+    output_csv.flush = csv.flush;
+    if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
+    comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
+    comma::csv::tied< position_and_frame, snark::applications::position > tied( is, os );
+    comma::csv::passed< position_and_frame > passed( is, std::cout, csv.flush );
+    while( is.ready() || std::cin.good() )
+    {
+        const position_and_frame* p = is.read();
+        if( !p ) { break; }
+        Eigen::Translation3d translation( p->frame.coordinates );
+        Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( p->frame.orientation );
+        Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
+        Eigen::Matrix3d m = snark::rotation_matrix::rotation( p->position.orientation );
+        if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
+        snark::applications::position r( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+        if( emplace ) { passed.write( position_and_frame{r, p->frame} ); } else { tied.append( r ); }
+    }
+    return 0;    
+}
+
+static int handle_frame_on_stdin( const comma::command_line_options& options )
+{
+    comma::csv::options csv( options );
+    auto v = comma::split( csv.fields, ',' );
+    for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
+    csv.fields = comma::join( v, ',' );
+    csv.full_xpath = true;
+    options.assert_mutually_exclusive( "--from,--to" );
+    bool from = !options.exists( "--to" );
+    bool emplace = options.exists( "--emplace,--in-place" );
+    comma::csv::input_stream< position_and_frame > is( std::cin, csv, position_and_frame( comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) )
+                                                     , comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ) ) );
+    comma::csv::options output_csv;
+    output_csv.flush = csv.flush;
+    if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
+    comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
+    comma::csv::tied< position_and_frame, snark::applications::position > tied( is, os );
+    comma::csv::passed< position_and_frame > passed( is, std::cout, csv.flush );
+    while( is.ready() || std::cin.good() )
+    {
+        const position_and_frame* p = is.read();
+        if( !p ) { break; }
+        Eigen::Translation3d translation( p->frame.coordinates );
+        Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( p->frame.orientation );
+        Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
+        Eigen::Matrix3d m = snark::rotation_matrix::rotation( p->position.orientation );
+        if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
+        snark::applications::position r( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+        if( emplace ) { passed.write( position_and_frame{r, p->frame} ); } else { tied.append( r ); }
+    }
+    return 0;    
+}
 
 int main( int ac, char** av )
 {
@@ -325,36 +431,7 @@ int main( int ac, char** av )
         for( unsigned int i = 0; i < v.size() && !stdin_has_frame; ++i ) { stdin_has_frame = v[i] == "frame" || v[i] == "frame/x" || v[i] == "frame/y" || v[i] == "frame/z" || v[i] == "frame/roll" || v[i] == "frame/pitch" || v[i] == "frame/yaw"; }
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        if( stdin_has_frame ) // quick and dirty
-        {
-            for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
-            csv.fields = comma::join( v, ',' );
-            csv.full_xpath = true;
-            options.assert_mutually_exclusive( "--from,--to" );
-            bool from = !options.exists( "--to" );
-            bool emplace = options.exists( "--emplace,--in-place" );
-            comma::csv::input_stream< position_and_frame > is( std::cin, csv, position_and_frame( comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) )
-                                                             , comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ) ) );
-            comma::csv::options output_csv;
-            output_csv.flush = csv.flush;
-            if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
-            comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
-            comma::csv::tied< position_and_frame, snark::applications::position > tied( is, os );
-            comma::csv::passed< position_and_frame > passed( is, std::cout, csv.flush );
-            while( is.ready() || std::cin.good() )
-            {
-                const position_and_frame* p = is.read();
-                if( !p ) { break; }
-                Eigen::Translation3d translation( p->frame.coordinates );
-                Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( p->frame.orientation );
-                Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
-                Eigen::Matrix3d m = snark::rotation_matrix::rotation( p->position.orientation );
-                if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
-                snark::applications::position r( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
-                if( emplace ) { passed.write( position_and_frame{r, p->frame} ); } else { tied.append( r ); }
-            }
-            return 0;
-        }
+        if( stdin_has_frame ) { return handle_frame_on_stdin( options ); } // quick and dirty for now
         if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
         bool from = options.exists( "--from" );
