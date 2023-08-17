@@ -333,26 +333,31 @@ template <> struct traits< position_and_frames >
 
 } } // namespace comma { namespace visiting {
 
-static std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
+std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
 {
     auto v = comma::split( fields, ',' );
     unsigned int size = 0;
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
     {
         if( f == "frame" ) { f = "frames[0]"; }
-        else if( f == "frame/x" ) { f = "frames[0]/x"; }
-        else if( f == "frame/y" ) { f = "frames[0]/y"; }
-        else if( f == "frame/z" ) { f = "frames[0]/z"; }
-        else if( f == "frame/roll" ) { f = "frames[0]/roll"; }
-        else if( f == "frame/pitch" ) { f = "frames[0]/pitch"; }
-        else if( f == "frame/yaw" ) { f = "frames[0]/yaw"; }
+        if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
     }
+    // for( auto& f: v ) // quick and dirty: keeping it backward compatible
+    // {
+    //     if( f == "frame" ) { f = "frames[0]"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/x" ) { f = "frames[0]/x"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/y" ) { f = "frames[0]/y"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/z" ) { f = "frames[0]/z"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/roll" ) { f = "frames[0]/roll"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/pitch" ) { f = "frames[0]/pitch"; size = size == 0 ? 1 : size; }
+    //     else if( f == "frame/yaw" ) { f = "frames[0]/yaw"; size = size == 0 ? 1 : size; }
+    // }
     if( size == 0 ) { return std::make_pair( std::string(), size ); }
     for( auto& f: v ) { if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; } }
     return std::make_pair( comma::join( v, ',' ), size );
 }
 
-static int frames_on_stdin_handle( const comma::command_line_options& options )
+int frames_on_stdin_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
