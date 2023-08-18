@@ -56,11 +56,11 @@ frame::frame( const comma::csv::options& options, bool discardOutOfOrder, boost:
 {
     m_is.reset( new comma::csv::input_stream< position_type >( *( *m_istream )(), options ) );
     const position_type* p = m_is->read(); // todo: maybe not very good, move to value()
-    if( p == NULL ) { COMMA_THROW( comma::exception, "failed to read from " << options.filename ); }
+    if( p == NULL ) { COMMA_THROW( comma::exception, "tried to read a new bounding frame value from '" << options.filename << "'; got end of stream/file" ); }
     m_pair.first = *p;
     set_position( p->value );
-    p = m_is->read(); // todo: maybe not very good, move to value()
-    if( p == NULL ) { COMMA_THROW( comma::exception, "failed to read from " << options.filename ); }
+    p = m_is->read(); // todo? move to value()
+    if( p == NULL ) { COMMA_THROW( comma::exception, "tried to read a new bounding frame value from '" << options.filename << "'; got end of stream/file" ); }
     m_pair.second = *p;
 }
 

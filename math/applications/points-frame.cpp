@@ -105,8 +105,14 @@ static void usage( bool verbose = false )
     std::cerr << std::endl;
     std::cerr << "echo 1,2,3 | points-frame --from \"3,2,1\" --fields=x,y,z" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "cat log.csv | points-frame --from nav.csv > log.world.csv" << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "using second stream (e.g. navigation)" << std::endl;
+    std::cerr << "    basics" << std::endl;
+    std::cerr << "        ( echo 20100101T000000,-2,4,3; echo 20100101T000001,3,2,1 ) > frames.csv" << std::endl;
+    std::cerr << "        echo 20100101T000000,1,2,3 | points-frame --fields=t,x,y,z --from 'frames.csv;fields=t,x,y,z'" << std::endl;
+    std::cerr << "    input: some 6DoF data in local frame nav.csv: timestamped nav 6DoF reference frames" << std::endl;
+    std::cerr << "        cat log.csv | points-frame --from nav.csv > log.world.csv" << std::endl;
+    std::cerr << "    live stream" << std::endl;
+    std::cerr << "        socat tcp:some-address:12345 | points-frame --from tcp:nav-address:6789 > log.world.csv" << std::endl;
     std::cerr << "frame is passed on stdin" << std::endl;
     std::cerr << "    translation and rotation" << std::endl;
     std::cerr << "        echo 1,2,3,10,20,30,0,0,0 | points-frame --fields x,y,z,frame" << std::endl;
