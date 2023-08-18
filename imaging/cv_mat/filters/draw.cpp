@@ -173,9 +173,10 @@ std::pair< H, cv::Mat > draw< H >::grid::operator()( std::pair< H, cv::Mat > m )
     m.second.copyTo( n.second );
     cv::Point end = _end.x == 0 ? cv::Point( m.second.cols, m.second.rows ) : _end;
     cv::Point begin = _origin;
+    cv::Size size = _end.x == 0 ? cv::Size( m.second.cols - _origin.x - 1, m.second.rows - _origin.y - 1 ) : _size;
     if( _ends_included ) { end += _step; } else { begin += _step; }
-    for( cv::Point p{begin}, q( _origin.x, _origin.y + _size.height ); p.x < end.x; p.x += _step.x, q.x += _step.x ) { cv::line( n.second, p, q, _color ); } // , thickness, line_type, shift );
-    for( cv::Point p{begin}, q( _origin.x + _size.width, _origin.x ); p.y < end.y; p.y += _step.y, q.y += _step.y ) { cv::line( n.second, p, q, _color ); } // , thickness, line_type, shift );
+    for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( n.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
+    for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( n.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
     return n;
 }
 
