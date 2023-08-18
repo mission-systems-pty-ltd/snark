@@ -6,6 +6,7 @@
 #include <io.h>
 #endif
 
+#include <tuple>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
 #include <comma/application/command_line_options.h>
@@ -339,59 +340,71 @@ template <> struct traits< position_and_frames >
 
 } } // namespace comma { namespace visiting {
 
-std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
+static std::pair< std::string, unsigned int > _frames_on_stdin_fields( const std::string& fields )
 {
     auto v = comma::split( fields, ',' );
     unsigned int size = 0;
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
     {
-        if( f == "frame" ) { f = "frames[0]"; }
-        if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
+        if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; }
+        else if( f == "frame" ) { f = "frames[0]"; }
+        else if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
     }
-    // for( auto& f: v ) // quick and dirty: keeping it backward compatible
-    // {
-    //     if( f == "frame" ) { f = "frames[0]"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/x" ) { f = "frames[0]/x"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/y" ) { f = "frames[0]/y"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/z" ) { f = "frames[0]/z"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/roll" ) { f = "frames[0]/roll"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/pitch" ) { f = "frames[0]/pitch"; size = size == 0 ? 1 : size; }
-    //     else if( f == "frame/yaw" ) { f = "frames[0]/yaw"; size = size == 0 ? 1 : size; }
-    // }
-    if( size == 0 ) { return std::make_pair( std::string(), size ); }
-    for( auto& f: v ) { if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; } }
+    for( auto& f: v ) // super-quick and dirty for now
+    {
+        if( f.substr( 0, 7 ) != "frames[" ) { continue; }
+        auto p = f.find_first_of( ']' );
+        if( p == std::string::npos ) { continue; }
+        unsigned int i = boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) );
+        if( p + 1 == f.size() )
+        {
+            size = i >= size ? i + 1 : size;
+        }
+        else
+        {
+            auto r = f.substr( p + 1 );
+            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { size = i >= size ? i + 1 : size; }
+        }
+    }
     return std::make_pair( comma::join( v, ',' ), size );
 }
 
-int frames_on_stdin_handle( const comma::command_line_options& options )
+int _frames_on_stdin_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
-    csv.fields = comma::join( v, ',' );
-    csv.full_xpath = true;
+    unsigned int size;
+    std::tie( csv.fields, size ) = _frames_on_stdin_fields( csv.fields );
     options.assert_mutually_exclusive( "--from,--to" );
     bool from = !options.exists( "--to" );
     bool emplace = options.exists( "--emplace,--in-place" );
-    comma::csv::input_stream< position_and_frame > is( std::cin, csv, position_and_frame( comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) )
-                                                     , comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ) ) );
+    position_and_frames sample;
+    sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
+    sample.frames = std::vector< snark::applications::position >( size );
+    // todo: comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frames", "0,0,0,0,0,0" ) )
+    comma::csv::input_stream< position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
     if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
     comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
-    comma::csv::tied< position_and_frame, snark::applications::position > tied( is, os );
-    comma::csv::passed< position_and_frame > passed( is, std::cout, csv.flush );
+    comma::csv::tied< position_and_frames, snark::applications::position > tied( is, os );
+    comma::csv::passed< position_and_frames > passed( is, std::cout, csv.flush );
     while( is.ready() || std::cin.good() )
     {
-        const position_and_frame* p = is.read();
+        const position_and_frames* p = is.read();
         if( !p ) { break; }
-        Eigen::Translation3d translation( p->frame.coordinates );
-        Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( p->frame.orientation );
-        Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
-        Eigen::Matrix3d m = snark::rotation_matrix::rotation( p->position.orientation );
-        if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
-        snark::applications::position r( transform * p->position.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
-        if( emplace ) { passed.write( position_and_frame{r, p->frame} ); } else { tied.append( r ); }
+        snark::applications::position r = p->position;
+        for( const auto& frame: p->frames )
+        {
+            Eigen::Translation3d translation( frame.coordinates );
+            Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( frame.orientation );
+            Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
+            Eigen::Matrix3d m = snark::rotation_matrix::rotation( r.orientation );
+            if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
+            r = snark::applications::position( transform * r.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+        }
+        if( emplace ) { passed.write( position_and_frames{r, p->frames} ); } else { tied.append( r ); }
     }
     return 0;    
 }
