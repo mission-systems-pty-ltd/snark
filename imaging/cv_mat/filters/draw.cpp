@@ -8,6 +8,7 @@
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <comma/base/exception.h>
+#include <comma/base/none.h>
 #include <comma/string/string.h>
 #include "../utils.h"
 #include "draw.h"
@@ -39,7 +40,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     const auto& v = comma::split( options, delimiter );
     if( v.size() < 5 ) { COMMA_THROW( comma::exception, "expected <colormap>,<from/x>,<from/y>,<to/x>,<to/x> (at least 5 arguments); got: '" << options << "'" ); }
     colorbar c;
-    boost::optional< cv::ColormapTypes > colormap;
+    boost::optional< cv::ColormapTypes > colormap = comma::silent_none< cv::ColormapTypes >();
     std::pair< cv::Scalar, cv::Scalar > color_range;
     const auto& s = comma::split( v[0], ':' );
     if( s.size() == 1 ) { colormap = colormap_from_string( v[0].empty() ? "jet" : v[0] ); }
@@ -101,8 +102,7 @@ std::string draw< H >::colorbar::usage( unsigned int indent )
     oss << i << "    draw colorbar on image; currently only 3-byte rgb supported\n";
     oss << i << "    options\n";
     oss << i << "        <colormap>: either colormap name, e.g. jet, see color-map filter for options\n";
-    oss << i << "                    or color range: <color>:<color>, e.g. red:green\n";
-    oss << i << "        <colormap>: either colormap name, e.g. jet, see color-map filter for options; default=jet\n";
+    oss << i << "                    or color range: <color>:<color>, e.g. red:green; default=jet\n";
     oss << i << "        <from/x>,<from/y>,<width>,<height>: bounding rectangle in pixels\n";
     oss << i << "        <from>,<to>,<n>: value range and number of values to display\n";
     oss << i << "                         display (as in numpy.linspace); default: from=0 to=255 n=2\n";
