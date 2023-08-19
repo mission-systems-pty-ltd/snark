@@ -358,6 +358,13 @@ struct transform // todo: quick and dirty for now; brush this all up
 
 } } // namespace snark { namespace applications {
 
+static std::pair< unsigned int, std::string::size_type > frame_index( const std::string& f )
+{
+    if( f.substr( 0, 7 ) != "frames[" ) { return std::make_pair( 0, std::string::npos ); }
+    auto p = f.find_first_of( ']' );
+    return std::make_pair( p == std::string::npos ? 0 : boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) ), p );
+}
+
 static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields( const std::string& fields )
 {
     auto v = comma::split( fields, ',' );
@@ -370,10 +377,8 @@ static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields
     }
     for( auto& f: v ) // super-quick and dirty for now
     {
-        if( f.substr( 0, 7 ) != "frames[" ) { continue; }
-        auto p = f.find_first_of( ']' );
+        auto [ i, p ] = frame_index( f );
         if( p == std::string::npos ) { continue; }
-        unsigned int i = boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) );
         if( p + 1 == f.size() )
         {
             indices.insert( i );
@@ -403,7 +408,11 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
     sample.frames = std::vector< snark::applications::position >( *indices.rbegin() + 1 );
     sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
-    // todo: comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frames", "0,0,0,0,0,0" ) )
+    
+    // todo
+    // const auto& f = options.values< std::string >( "--from" );
+    // const auto& t = options.values< std::string >( "--to" );
+
     std::vector< snark::applications::transform > transforms;
     for( const auto& frame: sample.frames ) { transforms.emplace_back( snark::applications::transform( frame, from ) ); }
     for( unsigned int i : indices ) { transforms[i].precomputed = false; }
