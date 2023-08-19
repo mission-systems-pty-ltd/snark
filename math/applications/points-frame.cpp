@@ -298,12 +298,7 @@ void run( const std::vector< boost::shared_ptr< snark::applications::frame > >& 
     }
 }
 
-struct position_and_frame
-{
-    snark::applications::position position;
-    snark::applications::position frame;
-    position_and_frame( const snark::applications::position& position = snark::applications::position(), const snark::applications::position& frame = snark::applications::position() ): position( position ), frame( frame ) {}
-};
+namespace snark { namespace applications {
 
 struct position_and_frames
 {
@@ -311,32 +306,19 @@ struct position_and_frames
     std::vector< snark::applications::position > frames;
 };
 
+} } // namespace snark { namespace applications {
+
 namespace comma { namespace visiting {
 
-template <> struct traits< position_and_frame >
+template <> struct traits< snark::applications::position_and_frames >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, position_and_frame& p, Visitor& v )
-    {
-        v.apply( "position", p.position );
-        v.apply( "frame", p.frame );
-    }
-
-    template < typename Key, class Visitor > static void visit( const Key&, const position_and_frame& p, Visitor& v )
-    {
-        v.apply( "position", p.position );
-        v.apply( "frame", p.frame );
-    }
-};
-
-template <> struct traits< position_and_frames >
-{
-    template < typename Key, class Visitor > static void visit( const Key&, position_and_frames& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::applications::position_and_frames& p, Visitor& v )
     {
         v.apply( "position", p.position );
         v.apply( "frames", p.frames );
     }
 
-    template < typename Key, class Visitor > static void visit( const Key&, const position_and_frames& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::applications::position_and_frames& p, Visitor& v )
     {
         v.apply( "position", p.position );
         v.apply( "frames", p.frames );
@@ -344,6 +326,35 @@ template <> struct traits< position_and_frames >
 };
 
 } } // namespace comma { namespace visiting {
+
+namespace snark { namespace applications {
+
+struct transform // todo: quick and dirty for now; brush this all up
+{
+    Eigen::Translation3d translation;
+    Eigen::Matrix3d rotation;
+    Eigen::Affine3d affine;
+    bool from{false};
+    bool precomputed{false}; // todo
+
+    transform() = default;
+    transform( const snark::applications::position& frame, bool from )
+        : translation( frame.coordinates )
+        , rotation( snark::rotation_matrix::rotation( frame.orientation ) )
+        , affine( from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() ) )
+        , from( from )
+    {
+    }
+
+    snark::applications::position operator*( const snark::applications::position& rhs ) const // todo: simplify
+    {
+        Eigen::Matrix3d m = snark::rotation_matrix::rotation( rhs.orientation );
+        if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
+        return snark::applications::position( affine * rhs.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+    }
+};
+
+} } // namespace snark { namespace applications {
 
 static std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
 {
@@ -386,33 +397,28 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     options.assert_mutually_exclusive( "--from,--to" );
     bool from = !options.exists( "--to" );
     bool emplace = options.exists( "--emplace,--in-place" );
-    position_and_frames sample;
+    snark::applications::position_and_frames sample;
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
     sample.frames = std::vector< snark::applications::position >( size );
     sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
     // todo: comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frames", "0,0,0,0,0,0" ) )
-    comma::csv::input_stream< position_and_frames > is( std::cin, csv, sample );
+    comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
     if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
     comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
-    comma::csv::tied< position_and_frames, snark::applications::position > tied( is, os );
-    comma::csv::passed< position_and_frames > passed( is, std::cout, csv.flush );
+    comma::csv::tied< snark::applications::position_and_frames, snark::applications::position > tied( is, os );
+    comma::csv::passed< snark::applications::position_and_frames > passed( is, std::cout, csv.flush );
     while( is.ready() || std::cin.good() )
     {
-        const position_and_frames* p = is.read();
+        const snark::applications::position_and_frames* p = is.read();
         if( !p ) { break; }
         snark::applications::position r = p->position;
         for( const auto& frame: p->frames )
         {
-            Eigen::Translation3d translation( frame.coordinates );
-            Eigen::Matrix3d rotation = snark::rotation_matrix::rotation( frame.orientation );
-            Eigen::Affine3d transform = from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() );
-            Eigen::Matrix3d m = snark::rotation_matrix::rotation( r.orientation );
-            if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
-            r = snark::applications::position( transform * r.coordinates, snark::rotation_matrix::roll_pitch_yaw( m ) );
+            r = snark::applications::transform( frame, from ) * r; // todo: handle precomputed
         }
-        if( emplace ) { passed.write( position_and_frames{r, p->frames} ); } else { tied.append( r ); }
+        if( emplace ) { passed.write( snark::applications::position_and_frames{r, p->frames} ); } else { tied.append( r ); }
     }
     return true;
 }
