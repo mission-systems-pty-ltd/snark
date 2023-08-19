@@ -6,6 +6,7 @@
 #include <io.h>
 #endif
 
+#include <set>
 #include <tuple>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
@@ -335,14 +336,15 @@ struct transform // todo: quick and dirty for now; brush this all up
     Eigen::Matrix3d rotation;
     Eigen::Affine3d affine;
     bool from{false};
-    bool precomputed{false}; // todo
+    bool precomputed{true}; // todo
 
     transform() = default;
-    transform( const snark::applications::position& frame, bool from )
+    transform( const snark::applications::position& frame, bool from, bool precomputed = true )
         : translation( frame.coordinates )
         , rotation( snark::rotation_matrix::rotation( frame.orientation ) )
         , affine( from ? ( translation * rotation ) : ( rotation.transpose() * translation.inverse() ) )
         , from( from )
+        , precomputed( precomputed )
     {
     }
 
@@ -356,10 +358,10 @@ struct transform // todo: quick and dirty for now; brush this all up
 
 } } // namespace snark { namespace applications {
 
-static std::pair< std::string, unsigned int > frames_on_stdin_fields( const std::string& fields )
+static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields( const std::string& fields )
 {
     auto v = comma::split( fields, ',' );
-    unsigned int size = 0;
+    std::set< unsigned int > indices;
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
     {
         if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; }
@@ -374,16 +376,16 @@ static std::pair< std::string, unsigned int > frames_on_stdin_fields( const std:
         unsigned int i = boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) );
         if( p + 1 == f.size() )
         {
-            size = i >= size ? i + 1 : size;
+            indices.insert( i );
         }
         else
         {
             COMMA_ASSERT_BRIEF( f[p + 1] == '/', "invalid csv fields: '" << fields << "'" );
             auto r = f.substr( p + 2 );
-            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { size = i >= size ? i + 1 : size; }
+            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { indices.insert( i ); }
         }
     }
-    return std::make_pair( comma::join( v, ',' ), size );
+    return std::make_pair( comma::join( v, ',' ), indices );
 }
 
 bool frames_on_stdin_handle( const comma::command_line_options& options )
@@ -391,17 +393,20 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
-    unsigned int size;
-    std::tie( csv.fields, size ) = frames_on_stdin_fields( csv.fields );
-    if( size == 0 ) { return false; }
+    std::set< unsigned int > indices;
+    std::tie( csv.fields, indices ) = frames_on_stdin_fields( csv.fields );
+    if( indices.empty() ) { return false; }
     options.assert_mutually_exclusive( "--from,--to" );
     bool from = !options.exists( "--to" );
     bool emplace = options.exists( "--emplace,--in-place" );
     snark::applications::position_and_frames sample;
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
-    sample.frames = std::vector< snark::applications::position >( size );
+    sample.frames = std::vector< snark::applications::position >( *indices.rbegin() + 1 );
     sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
     // todo: comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frames", "0,0,0,0,0,0" ) )
+    std::vector< snark::applications::transform > transforms;
+    for( const auto& frame: sample.frames ) { transforms.emplace_back( snark::applications::transform( frame, from ) ); }
+    for( unsigned int i : indices ) { transforms[i].precomputed = false; }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
