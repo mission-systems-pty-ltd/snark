@@ -6,6 +6,7 @@
 #include <io.h>
 #endif
 
+#include <map>
 #include <set>
 #include <tuple>
 #include <boost/lexical_cast.hpp>
@@ -393,6 +394,21 @@ static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields
     return std::make_pair( comma::join( v, ',' ), indices );
 }
 
+std::pair< std::map< unsigned int, snark::applications::position >, bool > frames_from_options( const comma::command_line_options& options, const std::string& option )
+{
+    const auto& values = options.values< std::string >( option );
+    std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
+    m.second = false;
+    for( const auto& v: values )
+    {
+        auto [ index, pos ] = frame_index( v );
+        if( pos == std::string::npos || v[pos] != '=' ) { m.second = true; }
+        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 1 ) ); }
+    }
+    if( !m.second && options.exists( option ) ) { m.second = true; }
+    return m;
+}
+
 bool frames_on_stdin_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
@@ -401,20 +417,29 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     std::set< unsigned int > indices;
     std::tie( csv.fields, indices ) = frames_on_stdin_fields( csv.fields );
     if( indices.empty() ) { return false; }
-    options.assert_mutually_exclusive( "--from,--to" );
-    bool from = !options.exists( "--to" );
     bool emplace = options.exists( "--emplace,--in-place" );
     snark::applications::position_and_frames sample;
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
-    sample.frames = std::vector< snark::applications::position >( *indices.rbegin() + 1 );
-    sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
-    
-    // todo
-    // const auto& f = options.values< std::string >( "--from" );
-    // const auto& t = options.values< std::string >( "--to" );
 
-    std::vector< snark::applications::transform > transforms;
-    for( const auto& frame: sample.frames ) { transforms.emplace_back( snark::applications::transform( frame, from ) ); }
+
+    // todo
+    bool from;
+    const auto& froms = frames_from_options( options, "--from" );
+    const auto& tos = frames_from_options( options, "--to" );
+    COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
+    from = froms.second || !tos.second;
+
+
+    
+    sample.frames = std::vector< snark::applications::position >( *indices.rbegin() + 1 );
+    std::vector< snark::applications::transform > transforms( sample.frames.size() );
+    sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
+
+
+
+
+    // todo: add checks of --from, --to consistency, same frame index repeating, etc
+    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], from ); }
     for( unsigned int i : indices ) { transforms[i].precomputed = false; }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
