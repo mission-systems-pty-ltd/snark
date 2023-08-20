@@ -420,27 +420,22 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     bool emplace = options.exists( "--emplace,--in-place" );
     snark::applications::position_and_frames sample;
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
-
-
-    // todo
-    bool from;
     const auto& froms = frames_from_options( options, "--from" );
     const auto& tos = frames_from_options( options, "--to" );
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
-    from = froms.second || !tos.second;
-
-
-    
-    sample.frames = std::vector< snark::applications::position >( *indices.rbegin() + 1 );
-    std::vector< snark::applications::transform > transforms( sample.frames.size() );
-    sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
-
-
-
-
+    bool from = froms.second || !tos.second;
     // todo: add checks of --from, --to consistency, same frame index repeating, etc
-    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], from ); }
+    unsigned int max_index = *indices.rbegin();
+    if( !froms.first.empty() && froms.first.rbegin()->first > max_index ) { max_index = froms.first.rbegin()->first; }
+    if( !tos.first.empty() && tos.first.rbegin()->first > max_index ) { max_index = tos.first.rbegin()->first; }
+    sample.frames = std::vector< snark::applications::position >( max_index + 1 );
+    sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
+    std::vector< snark::applications::transform > transforms( sample.frames.size() );
+    for( auto& t: transforms ) { t.from = from; }
+    for( const auto& i: froms.first ) { transforms[i.first].from = true; sample.frames[i.first] = i.second; }
+    for( const auto& i: tos.first ) { transforms[i.first].from = false; sample.frames[i.first] = i.second; }
     for( unsigned int i : indices ) { transforms[i].precomputed = false; }
+    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], from ); }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
