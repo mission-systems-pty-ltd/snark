@@ -264,7 +264,13 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
     ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
     ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.title.size() * 4;
-    for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step ) { a._labels.push_back( boost::lexical_cast< std::string >( v ) ); }
+    for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
+    { 
+        std::ostringstream oss;
+        oss.precision( 4 );
+        oss << v;
+        a._labels.push_back( oss.str() );
+    }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
 }
 
