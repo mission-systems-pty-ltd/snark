@@ -44,6 +44,7 @@ template < typename H > struct _impl // quick and dirty
         COMMA_ASSERT_BRIEF( c.empty() || c.size() == 3 || c.size() == 4, "expected color; got: '" << color << "'" );
         if( !c.empty() ) { p.color = c.size() == 4 ? cv::Scalar( c[2], c[1], c[0], c[3] ) : cv::Scalar( c[2], c[1], c[0] ); }
         v.apply( "vertical", p.vertical );
+        COMMA_ASSERT_BRIEF( !p.vertical || p.title.empty(), "draw vertical axis title: todo" );
         if( !s.empty() ) { p.geometry.first = cv::Point( s[0], s[1] ); }
         p.geometry.second = p.geometry.first;
         ( p.vertical ? p.geometry.second.y : p.geometry.second.x ) += p.size;
@@ -259,42 +260,43 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     a._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
     COMMA_ASSERT_BRIEF( a._properties.size > 0, "draw=axis: please specify positive size" );
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
-    COMMA_ASSERT_BRIEF( !a._properties.vertical, "draw=axis: vertical: todo" );
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
     a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
     ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
     ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.title.size() * 4;
+    for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step ) { a._labels.push_back( boost::lexical_cast< std::string >( v ) ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
 }
 
 template < typename H >
-std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
+std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m ) // todo: pre-draw in make() and then just apply on top of the image
 {
     std::pair< H, cv::Mat > n;
     n.first = m.first;
     m.second.copyTo( n.second );
     cv::line( n.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
     cv::Point a = _properties.geometry.first;
-    for( unsigned int o = 0; o <= _properties.size; o += _step )
+    float v = _properties.extents.first;
+    for( unsigned int o{0}, i{0}; o <= _properties.size; o += _step, v += _properties.step, ++i )
     {
         cv::Point b{a};
         ( _properties.vertical ? b.x : b.y ) += 3;
         cv::line( n.second, a, b, _properties.color );
+        if( _properties.vertical )
+        {
+            // todo: draw labels
+        }
+        else
+        {
+            cv::Point c{a};
+            ( _properties.vertical ? c.x : c.y ) += 16;
+            ( _properties.vertical ? c.y : c.x ) -= _labels[i].size() * 4;
+            cv::putText( n.second, _labels[i], c, cv::FONT_HERSHEY_SIMPLEX, 0.4, _properties.color * 0.8, 1, CV_AA );
+        }
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.title.empty() )
-    { 
-        cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, CV_AA );
-    }
-    if( _properties.vertical )
-    {
-        // todo:   draw labels
-    }
-    else
-    {
-        // todo:   draw labels
-    }
+    if( !_properties.title.empty() ) { cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, CV_AA ); }
     return n;
 }
 
