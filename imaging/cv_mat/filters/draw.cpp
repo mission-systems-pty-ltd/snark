@@ -3,44 +3,81 @@
 /// @author vsevolod vlaskine
 
 #include <iostream>
+#include <sstream>
+#include <tuple>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <comma/base/exception.h>
 #include <comma/base/none.h>
+#include <comma/name_value/parser.h>
 #include <comma/string/string.h>
-#include "../../../render/traits.h"
+#include <comma/visiting/traits.h>
 #include "../utils.h"
 #include "draw.h"
 
 namespace comma { namespace visiting {
 
-template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties >
+template < typename H > struct _impl // quick and dirty
 {
-    typedef snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties value_t;
+    typedef typename snark::cv_mat::filters::draw< H >::axis::properties value_t;
 
-    template < typename Key, class Visitor > static void visit( const Key&, const value_t& p, Visitor& v )
-    {
-        v.apply( "title", p.title );
-        v.apply( "extents", p.extents );
-        v.apply( "step", p.step );
-        v.apply( "origin", p.origin );
-        v.apply( "size", p.size );
-        v.apply( "color", p.color );
-        v.apply( "vertical", p.vertical );
-    }
-    
     template < typename Key, class Visitor > static void visit( const Key&, value_t& p, Visitor& v )
     {
         v.apply( "title", p.title );
-        v.apply( "extents", p.extents );
+        std::string extents;
+        v.apply( "extents", extents );
+        const auto& e = comma::split_as< float >( extents, ',' );
+        COMMA_ASSERT_BRIEF( e.empty() || e.size() == 2, "expected extents; got: '" << extents << "'" );
+        if( !e.empty() ) { p.extents.first = e[0]; p.extents.second = e[1]; }
         v.apply( "step", p.step );
-        v.apply( "origin", p.origin );
+        std::string origin;
+        v.apply( "origin", origin );
+        const auto& s = comma::split_as< unsigned int >( origin, ',' );
+        COMMA_ASSERT_BRIEF( s.empty() || s.size() == 2, "expected origin; got: '" << origin << "'" );
         v.apply( "size", p.size );
-        v.apply( "color", p.color );
+        std::string color;
+        v.apply( "color", color );
+        const auto& c = comma::split_as< unsigned int >( color, ',' );
+        COMMA_ASSERT_BRIEF( c.empty() || c.size() == 3 || c.size() == 4, "expected color; got: '" << color << "'" );
+        if( !c.empty() ) { p.color = c.size() == 4 ? cv::Scalar( c[2], c[1], c[0], c[3] ) : cv::Scalar( c[2], c[1], c[0] ); }
+        v.apply( "vertical", p.vertical );
+        if( !s.empty() ) { p.geometry.first = cv::Point( s[0], s[1] ); }
+        p.geometry.second = p.geometry.first;
+        ( p.vertical ? p.geometry.second.y : p.geometry.second.x ) += p.size;
+    }
+    
+    template < typename Key, class Visitor > static void visit( const Key&, const value_t& p, Visitor& v )
+    {
+        v.apply( "title", p.title );
+        std::ostringstream extents;
+        extents << p.extents.first << "," << p.extents.second;
+        v.apply( "extents", extents.str() );
+        v.apply( "step", p.step );
+        std::ostringstream origin;
+        extents << p.origin.x() << "," << p.origin.y();
+        v.apply( "origin", origin.str() );
+        v.apply( "size", p.size );
+        std::ostringstream color;
+        color << p.color.r() << "," << p.color.g() << "," << p.color.b() << "," << p.color.a();
+        v.apply( "color", color.str() );
         v.apply( "vertical", p.vertical );
     }
+};
+
+template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties >
+{
+    typedef snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties value_t;
+    template < typename Key, class Visitor > static void visit( const Key& k, const value_t& t, Visitor& v ) { _impl< boost::posix_time::ptime >::visit( k, t, v ); }
+    template < typename Key, class Visitor > static void visit( const Key& k, value_t& t, Visitor& v ) { _impl< boost::posix_time::ptime >::visit( k, t, v ); }
+};
+
+template <> struct traits< typename snark::cv_mat::filters::draw< std::vector< char > >::axis::properties >
+{
+    typedef snark::cv_mat::filters::draw< std::vector< char > >::axis::properties value_t;
+    template < typename Key, class Visitor > static void visit( const Key& k, const value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
+    template < typename Key, class Visitor > static void visit( const Key& k, value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
 };
 
 } } // namespace comma { namespace visiting {
@@ -214,31 +251,15 @@ std::string draw< H >::axis::usage( unsigned int indent )
     return oss.str();
 }
 
-            // cv::Point _origin{0, 0};
-            // std::pair< float, float > _extents{0, 0};
-            // float _step{1};
-            // cv::Size _size{0, 0};
-            // cv::Point _end{0, 0};
-            // cv::Scalar _color{0, 0, 0};
-            // std::string _title;
-            // bool _vertical{false};
-
 template < typename H >
 std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const std::string& options, char delimiter )
 {
-    const auto& v = comma::split( options, delimiter );
-    if( v.size() < 5 ) { COMMA_THROW_BRIEF( comma::exception, "draw=axis: please specify grid origin and step (got: '" << options << "'" ); }
-    boost::array< int, 10 > p = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
-    for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
-    axis g; // quick and dirty
-    // g._origin = {p[0], p[1]};
-    // g._step = {p[2], p[3]};
-    // g._size = {p[4], p[5]};
-    // if( g._size.width > 0 ) { g._end = {g._origin.x + g._size.width, g._origin.y + g._size.height}; }
-    // g._color = cv::Scalar( p[6], p[7], p[8] );
-    // g._ends_included = p[9];
-    // COMMA_ASSERT_BRIEF( g._size.width > 0 || !g._ends_included, "draw=axis: got ends-included flag set; please specify grid width,height" );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, _1 ), false );
+    axis a;
+    a._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
+    COMMA_ASSERT_BRIEF( a._properties.size > 0, "draw=axis: please specify positive size" );
+    COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
+    COMMA_ASSERT_BRIEF( !a._properties.vertical, "draw=axis: vertical: todo" );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
 }
 
 template < typename H >
@@ -247,12 +268,21 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     std::pair< H, cv::Mat > n;
     n.first = m.first;
     m.second.copyTo( n.second );
-    // cv::Point end = _end.x == 0 ? cv::Point( m.second.cols, m.second.rows ) : _end;
-    // cv::Point begin = _origin;
-    // cv::Size size = _end.x == 0 ? cv::Size( m.second.cols - _origin.x - 1, m.second.rows - _origin.y - 1 ) : _size;
-    // if( _ends_included ) { end += _step; } else { begin += _step; }
-    // for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( n.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
-    // for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( n.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
+    cv::line( n.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
+    if( _properties.vertical )
+    {
+        // todo:   draw line
+        // todo:   draw notches
+        // todo:   draw title
+        // todo:   draw labels
+    }
+    else
+    {
+        // todo:   draw line
+        // todo:   draw notches
+        // todo:   draw title
+        // todo:   draw labels
+    }
     return n;
 }
 
