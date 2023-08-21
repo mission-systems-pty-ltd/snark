@@ -86,6 +86,16 @@ template <> struct traits< typename snark::cv_mat::filters::draw< std::vector< c
 
 namespace snark { namespace cv_mat { namespace filters {
 
+namespace impl {
+
+#if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // quick and dirty; pain...
+constexpr auto line_aa = CV_AA;
+#else
+constexpr auto line_aa = cv::LINE_AA;
+#endif
+
+} // namespace impl {
+
 template < typename H >
 std::pair< typename draw< H >::functor_t, bool > draw< H >::make( const std::string& options, char delimiter )
 {
@@ -143,15 +153,9 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     bar.copyTo( c._bar( cv::Rect( 0, c._rectangle.height * 3 / 4, c._rectangle.width, c._rectangle.height / 4 ) ) );
     unsigned int h = c._rectangle.height / 2;
     unsigned int w = c._rectangle.width;
-    #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2
-        cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-        cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, CV_AA );
-    #else
-        cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-        cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, cv::LINE_AA );
-    #endif
+    cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
+    cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
+    cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); transposed.copyTo( c._bar ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
 }
@@ -297,12 +301,12 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
             cv::Point c{a};
             ( _properties.vertical ? c.x : c.y ) += 16;
             ( _properties.vertical ? c.y : c.x ) -= _labels[i].size() * 4;
-            cv::putText( n.second, _labels[i], c, cv::FONT_HERSHEY_SIMPLEX, 0.4, _properties.color * 0.8, 1, CV_AA );
+            cv::putText( n.second, _labels[i], c, cv::FONT_HERSHEY_SIMPLEX, 0.4, _properties.color * 0.8, 1, impl::line_aa );
         }
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.title.empty() ) { cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, CV_AA ); }
+    if( !_properties.title.empty() ) { cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
     return n;
 }
 
