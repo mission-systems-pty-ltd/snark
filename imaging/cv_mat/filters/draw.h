@@ -67,6 +67,7 @@ struct draw
             std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
         private:
             properties _properties;
+            unsigned int _step{0};
     };
 };
 

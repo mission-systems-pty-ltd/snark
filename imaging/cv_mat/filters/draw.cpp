@@ -31,6 +31,7 @@ template < typename H > struct _impl // quick and dirty
         const auto& e = comma::split_as< float >( extents, ',' );
         COMMA_ASSERT_BRIEF( e.empty() || e.size() == 2, "expected extents; got: '" << extents << "'" );
         if( !e.empty() ) { p.extents.first = e[0]; p.extents.second = e[1]; }
+        COMMA_ASSERT_BRIEF( p.extents.first != p.extents.second, "expected non-zero lenght extents; got: '" << extents << "'" );
         v.apply( "step", p.step );
         std::string origin;
         v.apply( "origin", origin );
@@ -259,6 +260,8 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     COMMA_ASSERT_BRIEF( a._properties.size > 0, "draw=axis: please specify positive size" );
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
     COMMA_ASSERT_BRIEF( !a._properties.vertical, "draw=axis: vertical: todo" );
+    a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
+    std::cerr << "==> a._step: " << a._step << std::endl;
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
 }
 
@@ -269,17 +272,23 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     n.first = m.first;
     m.second.copyTo( n.second );
     cv::line( n.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
+    cv::Point p = _properties.geometry.first;
+    for( unsigned int o = 0; o <= _properties.size; o += _step )
+    {
+        cv::Point a{p}, b{p};
+        ( _properties.vertical ? a.x : a.y ) -= 2;
+        ( _properties.vertical ? b.x : b.y ) += 2;
+        cv::line( n.second, a, b, _properties.color );
+        if( _step == 0 ) { break; }
+        ( _properties.vertical ? p.y : p.x ) += _step;
+    }
     if( _properties.vertical )
     {
-        // todo:   draw line
-        // todo:   draw notches
         // todo:   draw title
         // todo:   draw labels
     }
     else
     {
-        // todo:   draw line
-        // todo:   draw notches
         // todo:   draw title
         // todo:   draw labels
     }
