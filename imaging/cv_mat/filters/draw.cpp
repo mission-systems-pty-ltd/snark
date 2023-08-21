@@ -31,7 +31,7 @@ template < typename H > struct _impl // quick and dirty
         const auto& e = comma::split_as< float >( extents, ',' );
         COMMA_ASSERT_BRIEF( e.empty() || e.size() == 2, "expected extents; got: '" << extents << "'" );
         if( !e.empty() ) { p.extents.first = e[0]; p.extents.second = e[1]; }
-        COMMA_ASSERT_BRIEF( p.extents.first != p.extents.second, "expected non-zero lenght extents; got: '" << extents << "'" );
+        COMMA_ASSERT_BRIEF( p.extents.first != p.extents.second, "expected non-zero length extents; got: '" << extents << "'" );
         v.apply( "step", p.step );
         std::string origin;
         v.apply( "origin", origin );
@@ -261,7 +261,9 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
     COMMA_ASSERT_BRIEF( !a._properties.vertical, "draw=axis: vertical: todo" );
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
-    std::cerr << "==> a._step: " << a._step << std::endl;
+    a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
+    ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
+    ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.title.size() * 4;
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
 }
 
@@ -272,24 +274,25 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     n.first = m.first;
     m.second.copyTo( n.second );
     cv::line( n.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
-    cv::Point p = _properties.geometry.first;
+    cv::Point a = _properties.geometry.first;
     for( unsigned int o = 0; o <= _properties.size; o += _step )
     {
-        cv::Point a{p}, b{p};
-        ( _properties.vertical ? a.x : a.y ) -= 2;
-        ( _properties.vertical ? b.x : b.y ) += 2;
+        cv::Point b{a};
+        ( _properties.vertical ? b.x : b.y ) += 3;
         cv::line( n.second, a, b, _properties.color );
         if( _step == 0 ) { break; }
-        ( _properties.vertical ? p.y : p.x ) += _step;
+        ( _properties.vertical ? a.y : a.x ) += _step;
+    }
+    if( !_properties.title.empty() )
+    { 
+        cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, CV_AA );
     }
     if( _properties.vertical )
     {
-        // todo:   draw title
         // todo:   draw labels
     }
     else
     {
-        // todo:   draw title
         // todo:   draw labels
     }
     return n;
