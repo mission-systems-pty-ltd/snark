@@ -10,8 +10,40 @@
 #include <comma/base/exception.h>
 #include <comma/base/none.h>
 #include <comma/string/string.h>
+#include "../../../render/traits.h"
 #include "../utils.h"
 #include "draw.h"
+
+namespace comma { namespace visiting {
+
+template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties >
+{
+    typedef snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties value_t;
+
+    template < typename Key, class Visitor > static void visit( const Key&, const value_t& p, Visitor& v )
+    {
+        v.apply( "title", p.title );
+        v.apply( "extents", p.extents );
+        v.apply( "step", p.step );
+        v.apply( "origin", p.origin );
+        v.apply( "size", p.size );
+        v.apply( "color", p.color );
+        v.apply( "vertical", p.vertical );
+    }
+    
+    template < typename Key, class Visitor > static void visit( const Key&, value_t& p, Visitor& v )
+    {
+        v.apply( "title", p.title );
+        v.apply( "extents", p.extents );
+        v.apply( "step", p.step );
+        v.apply( "origin", p.origin );
+        v.apply( "size", p.size );
+        v.apply( "color", p.color );
+        v.apply( "vertical", p.vertical );
+    }
+};
+
+} } // namespace comma { namespace visiting {
 
 namespace snark { namespace cv_mat { namespace filters {
 
@@ -20,6 +52,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::make( const std::str
 {
     const auto& v = comma::split( options, delimiter );
     auto second = v.begin();
+    if( v[0] == "axis" ) { return axis::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
     if( v[0] == "colorbar" ) { return colorbar::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
     if( v[0] == "grid" ) { return grid::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
     COMMA_THROW( comma::exception, "draw: expected draw primitive name; got: '" << v[0] << "'" );
@@ -115,22 +148,6 @@ std::string draw< H >::colorbar::usage( unsigned int indent )
     return oss.str();
 }
 
-// template < typename H >
-// std::string draw< H >::scale::usage( unsigned int indent )
-// {
-//     std::ostringstream oss;
-//     std::string i( indent, ' ' );
-//     oss << i << "scale=<x>,<y>,<width>,<label>[,<color>[,vertical]]\n";
-//     oss << i << "    draw scale on image; currently only 3-byte rgb supported\n";
-//     oss << i << "    options\n";
-//     oss << i << "        <x>,<y>: position\n";
-//     oss << i << "        <width>: scale size in pixels\n";
-//     oss << i << "        <label>: e.g. 100m\n";
-//     oss << i << "        <color>: default: white\n";
-//     oss << i << "        vertical: bar is vertical; default: horizontal\n";
-//     return oss.str();
-// }
-
 template < typename H >
 std::string draw< H >::grid::usage( unsigned int indent )
 {
@@ -177,6 +194,65 @@ std::pair< H, cv::Mat > draw< H >::grid::operator()( std::pair< H, cv::Mat > m )
     if( _ends_included ) { end += _step; } else { begin += _step; }
     for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( n.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
     for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( n.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
+    return n;
+}
+
+template < typename H >
+std::string draw< H >::axis::usage( unsigned int indent )
+{
+    std::ostringstream oss;
+    std::string i( indent, ' ' );
+    oss << i << "draw=axis,[extents:<begin>,<end>],[step:<step>],[title:<title>],origin:<from/x>,<from/y>,size:<pixels>,[color:<color>],[vertical]\n";
+    oss << i << "    draw axis on image; currently only 3-byte rgb supported\n";
+    oss << i << "    options\n";
+    oss << i << "        todo\n";
+    // oss << i << "        <from/x>,<from/y>: upper left corner of bounding rectangle in pixels\n";
+    // oss << i << "        <width>,<height>: bounding rectangle size in pixels; if not specified, draw grid on the whole image\n";
+    // oss << i << "        <step/x>,<step/y>: horizontal and vertical grid step in pixels\n";
+    // oss << i << "        <color>: <r>,<g>,<b> in range 0-255; default: 0,0,0\n";
+    // oss << i << "        <ends-included>: if 1, first and last steps are included; default: 0, i.e. ends excluded\n";
+    return oss.str();
+}
+
+            // cv::Point _origin{0, 0};
+            // std::pair< float, float > _extents{0, 0};
+            // float _step{1};
+            // cv::Size _size{0, 0};
+            // cv::Point _end{0, 0};
+            // cv::Scalar _color{0, 0, 0};
+            // std::string _title;
+            // bool _vertical{false};
+
+template < typename H >
+std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const std::string& options, char delimiter )
+{
+    const auto& v = comma::split( options, delimiter );
+    if( v.size() < 5 ) { COMMA_THROW_BRIEF( comma::exception, "draw=axis: please specify grid origin and step (got: '" << options << "'" ); }
+    boost::array< int, 10 > p = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
+    for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
+    axis g; // quick and dirty
+    // g._origin = {p[0], p[1]};
+    // g._step = {p[2], p[3]};
+    // g._size = {p[4], p[5]};
+    // if( g._size.width > 0 ) { g._end = {g._origin.x + g._size.width, g._origin.y + g._size.height}; }
+    // g._color = cv::Scalar( p[6], p[7], p[8] );
+    // g._ends_included = p[9];
+    // COMMA_ASSERT_BRIEF( g._size.width > 0 || !g._ends_included, "draw=axis: got ends-included flag set; please specify grid width,height" );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, _1 ), false );
+}
+
+template < typename H >
+std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
+{
+    std::pair< H, cv::Mat > n;
+    n.first = m.first;
+    m.second.copyTo( n.second );
+    // cv::Point end = _end.x == 0 ? cv::Point( m.second.cols, m.second.rows ) : _end;
+    // cv::Point begin = _origin;
+    // cv::Size size = _end.x == 0 ? cv::Size( m.second.cols - _origin.x - 1, m.second.rows - _origin.y - 1 ) : _size;
+    // if( _ends_included ) { end += _step; } else { begin += _step; }
+    // for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( n.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
+    // for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( n.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
     return n;
 }
 

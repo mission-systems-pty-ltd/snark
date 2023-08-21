@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include "../../../render/colour.h"
 
 namespace snark { namespace cv_mat { namespace filters {
 
@@ -49,11 +50,26 @@ struct draw
             bool _ends_included{false};
     };
 
-    // struct scale: public bar
-    // {
-    //     static std::pair< functor_t, bool > make( const std::string& options, char delimiter = ',' );
-    //     static std::string usage( unsigned int indent = 0 );
-    // };
+    class axis
+    {
+        public:
+            struct properties
+            {
+                std::string title;
+                std::pair< float, float > extents{0, 0};
+                float step{1};
+                std::pair< unsigned int, unsigned int > origin{0, 0};
+                unsigned int size{0};
+                snark::render::colour< unsigned char > color{0, 0, 0, 0};
+                bool vertical{false};
+            };
+            static std::pair< functor_t, bool > make( const std::string& options, char delimiter = ',' );
+            static std::string usage( unsigned int indent = 0 );
+            std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
+        private:
+            properties _properties;
+            cv::Scalar _color{0, 0, 0};
+    };
 };
 
 } } }  // namespace snark { namespace cv_mat { namespace filters {
