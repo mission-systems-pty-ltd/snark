@@ -77,11 +77,21 @@ static void usage( bool verbose = false )
     std::cerr << "            if frame fields are present, get frame from them, apply to" << std::endl;
     std::cerr << "            coordinates (x,y,z) and output input line with converted" << std::endl;
     std::cerr << "            coordinates and rotation appended as x,y,z,roll,pitch,yaw (also see --emplace below)" << std::endl;
-    std::cerr << "            --emplace,--in-place: if present, output transform result in place instead of appending" << std::endl;
-    std::cerr << "            --from: if present, conversion is from reference frame, default" << std::endl;
-    std::cerr << "            --to: if present, conversion is to reference frame" << std::endl;
+    std::cerr << "            options" << std::endl;
+    std::cerr << "                --emplace,--in-place: if present, output transform result in place instead of appending" << std::endl;
+    std::cerr << "                --from: if present with no argument, conversion is from reference frame, default" << std::endl;
+    std::cerr << "                --to: if present with no argument, conversion is to reference frame" << std::endl;
     std::cerr << "        frames: same usage as frame, but allows multiple frames which will be applied in order of their indices" << std::endl;
+    std::cerr << "            if frame field is present, it is the same as frames[0] for backward compatibility" << std::endl;
+    std::cerr << "            if --frame option is the same as --from/--to=frames[0]=... for backward compatibility" << std::endl;
     std::cerr << "            e.g: --fields=x,y,z,frame[0],,,frame[2]/x,frame[2]/y,frame[2]/z,,,,frame[1]/yaw" << std::endl;
+    std::cerr << "            e.g: --fields=x,y,z,frame[0],,,frame[2]/x,frame[2]/y,frame[2]/z,,,,frame[1]/yaw" << std::endl;
+    std::cerr << "            options" << std::endl;
+    std::cerr << "                --emplace,--in-place: if present, output transform result in place instead of appending" << std::endl;
+    std::cerr << "                --from: if present with no argument, conversion is from reference frame, default" << std::endl;
+    std::cerr << "                --from=frames[<i>]: default value for frames[<i>] to convert from" << std::endl;
+    std::cerr << "                --to: if present with no argument, conversion is to reference frame" << std::endl;
+    std::cerr << "                --to=frames[<i>]: default value for frames[<i>] to convert to" << std::endl;
     std::cerr << "        default: t,x,y,z" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    IMPORTANT: <frame> is the transformation from reference frame to frame" << std::endl;
@@ -89,48 +99,64 @@ static void usage( bool verbose = false )
     std::cerr << "               If still confused, try simple coordinate transformations," << std::endl;
     std::cerr << "               just like examples below." << std::endl;
     std::cerr << std::endl;
-    std::cerr << comma::csv::options::usage() << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "csv options" << std::endl;
+    std::cerr << comma::csv::options::usage( verbose ) << std::endl;
     std::cerr << "examples (try them):" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 20101010T101010,1,0,0 | points-frame --from \"100,100,0\"" << std::endl;
-    std::cerr << "20101010T101010,101,100,0" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 20101010T101010,1,0,0 | points-frame --from \"100,100,0,0,0,$(math-deg2rad 90)\"" << std::endl;
-    std::cerr << "20101010T101010,100,101,0" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 20101010T101010,1,0,0 | points-frame --from \"0,-3,2,$(math-deg2rad 90),0,0\"" << std::endl;
-    std::cerr << "20101010T101010,1,-3,2" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 20101010T101010,1,0,0 | points-frame --from \"3,2,0,0,$( math-deg2rad 90 ),0\"" << std::endl;
-    std::cerr << "20101010T101010,3,2,-1" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 20101010T101010,1,0,0 | points-frame --from \"-2,1,3,0,0,$(math-deg2rad 90)\"" << std::endl;
-    std::cerr << "20101010T101010,-2,2,3" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "echo 1,2,3 | points-frame --from \"3,2,1\" --fields=x,y,z" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "using second stream (e.g. navigation)" << std::endl;
-    std::cerr << "    basics" << std::endl;
-    std::cerr << "        ( echo 20100101T000000,-2,4,3; echo 20100101T000001,3,2,1 ) > frames.csv" << std::endl;
-    std::cerr << "        echo 20100101T000000,1,2,3 | points-frame --fields=t,x,y,z --from 'frames.csv;fields=t,x,y,z'" << std::endl;
-    std::cerr << "    input: some 6DoF data in local frame nav.csv: timestamped nav 6DoF reference frames" << std::endl;
-    std::cerr << "        cat log.csv | points-frame --from nav.csv > log.world.csv" << std::endl;
-    std::cerr << "    live stream" << std::endl;
-    std::cerr << "        socat tcp:some-address:12345 | points-frame --from tcp:nav-address:6789 > log.world.csv" << std::endl;
-    std::cerr << "frame is passed on stdin" << std::endl;
-    std::cerr << "    translation and rotation" << std::endl;
-    std::cerr << "        echo 1,2,3,10,20,30,0,0,0 | points-frame --fields x,y,z,frame  --from" << std::endl;
-    std::cerr << "        1,2,3,10,20,30,0,0,0,11,22,33,0,-0,0" << std::endl;
-    std::cerr << "    translation only" << std::endl;
-    std::cerr << "        echo 1,2,3,10,20,30 | points-frame --fields x,y,z,frame/x,frame/y,frame/z --from" << std::endl;
-    std::cerr << "        1,2,3,10,20,30,11,22,33,0,-0,0" << std::endl;
-    std::cerr << "    rotation only" << std::endl;
-    std::cerr << "        echo 1,2,3,0,$( math-deg2rad 90 ),0 | points-frame --fields x,y,z,frame/roll,frame/pitch,frame/yaw --from" << std::endl;
-    std::cerr << "        1,2,3,0,1.57079632679,0,3,2,-1,0,1.57079632679,0" << std::endl;
-    std::cerr << "    multiple frames" << std::endl;
-    std::cerr << "        echo 1,2,3,0,$( math-deg2rad 90 ),0,1000 | points-frame --fields x,y,z,frames[0]/roll,frames[0]/pitch,frames[0]/yaw,frames[1]/x --from --emplace" << std::endl;
-    std::cerr << "        1003,2,-1,0,1.57079632679,0,1000" << std::endl;
+    if( verbose )
+    {
+        std::cerr << "    echo 20101010T101010,1,0,0 | points-frame --from \"100,100,0\"" << std::endl;
+        std::cerr << "    20101010T101010,101,100,0" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    echo 20101010T101010,1,0,0 | points-frame --from \"100,100,0,0,0,$(math-deg2rad 90)\"" << std::endl;
+        std::cerr << "    20101010T101010,100,101,0" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    echo 20101010T101010,1,0,0 | points-frame --from \"0,-3,2,$(math-deg2rad 90),0,0\"" << std::endl;
+        std::cerr << "    20101010T101010,1,-3,2" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    echo 20101010T101010,1,0,0 | points-frame --from \"3,2,0,0,$( math-deg2rad 90 ),0\"" << std::endl;
+        std::cerr << "    20101010T101010,3,2,-1" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    echo 20101010T101010,1,0,0 | points-frame --from \"-2,1,3,0,0,$(math-deg2rad 90)\"" << std::endl;
+        std::cerr << "    20101010T101010,-2,2,3" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    echo 1,2,3 | points-frame --from \"3,2,1\" --fields=x,y,z" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    using second stream (e.g. navigation)" << std::endl;
+        std::cerr << "        basics" << std::endl;
+        std::cerr << "            ( echo 20100101T000000,-2,4,3; echo 20100101T000001,3,2,1 ) > frames.csv" << std::endl;
+        std::cerr << "            echo 20100101T000000,1,2,3 | points-frame --fields=t,x,y,z --from 'frames.csv;fields=t,x,y,z'" << std::endl;
+        std::cerr << "        input: some 6DoF data in local frame nav.csv: timestamped nav 6DoF reference frames" << std::endl;
+        std::cerr << "            cat log.csv | points-frame --from nav.csv > log.world.csv" << std::endl;
+        std::cerr << "        live stream" << std::endl;
+        std::cerr << "            socat tcp:some-address:12345 | points-frame --from tcp:nav-address:6789 > log.world.csv" << std::endl;
+        std::cerr << "    frame is passed on stdin" << std::endl;
+        std::cerr << "        translation and rotation" << std::endl;
+        std::cerr << "            echo 1,2,3,10,20,30,0,0,0 | points-frame --fields x,y,z,frame  --from" << std::endl;
+        std::cerr << "            1,2,3,10,20,30,0,0,0,11,22,33,0,-0,0" << std::endl;
+        std::cerr << "        translation only" << std::endl;
+        std::cerr << "            echo 1,2,3,10,20,30 | points-frame --fields x,y,z,frame/x,frame/y,frame/z --from" << std::endl;
+        std::cerr << "            1,2,3,10,20,30,11,22,33,0,-0,0" << std::endl;
+        std::cerr << "        rotation only" << std::endl;
+        std::cerr << "            echo 1,2,3,0,$( math-deg2rad 90 ),0 | points-frame --fields x,y,z,frame/roll,frame/pitch,frame/yaw --from" << std::endl;
+        std::cerr << "            1,2,3,0,1.57079632679,0,3,2,-1,0,1.57079632679,0" << std::endl;
+        std::cerr << "        multiple frames" << std::endl;
+        std::cerr << "            basics" << std::endl;
+        std::cerr << "                echo 1,2,3,0,$( math-deg2rad 90 ),0,1000 \\" << std::endl;
+        std::cerr << "                    | points-frame --fields x,y,z,frames[0]/roll,frames[0]/pitch,frames[0]/yaw,frames[1]/x \\" << std::endl;
+        std::cerr << "                                   --from \\" << std::endl;
+        std::cerr << "                                   --emplace" << std::endl;
+        std::cerr << "                1003,2,-1,0,1.57079632679,0,1000" << std::endl;
+        std::cerr << "            using defaults/fixed frames" << std::endl;
+        std::cerr << "                echo 1,2,3,0,$( math-deg2rad 90 ),0,1000 \\" << std::endl;
+        std::cerr << "                    | points-frame --fields x,y,z,frames[0]/roll,frames[0]/pitch,frames[0]/yaw,frames[2]/x \\" << std::endl;
+        std::cerr << "                                   --from=frames[1]=5,6,7,0,0,0 \\" << std::endl;
+        std::cerr << "                                   --to=frames[2]=1,2,3,0,0,0 \\" << std::endl;
+        std::cerr << "                                   --emplace" << std::endl;
+    }
+    else
+    {
+        std::cerr << "    to see examples run points-frame --help --verbose" << std::endl;
+    }
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -402,10 +428,10 @@ std::pair< std::map< unsigned int, snark::applications::position >, bool > frame
     for( const auto& v: values )
     {
         auto [ index, pos ] = frame_index( v );
-        if( pos == std::string::npos || v[pos] != '=' ) { m.second = true; }
-        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 1 ) ); }
+        if( pos == std::string::npos || v[pos + 1] != '=' ) { m.second = true; }
+        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
     }
-    if( !m.second && options.exists( option ) ) { m.second = true; }
+    if( m.first.empty() && options.exists( option ) ) { m.second = true; }
     return m;
 }
 
