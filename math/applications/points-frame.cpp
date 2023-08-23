@@ -404,7 +404,9 @@ static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields
     }
     for( auto& f: v ) // super-quick and dirty for now
     {
-        auto [ i, p ] = frame_index( f );
+        unsigned int i;
+        std::string::size_type p;
+        std::tie( i, p ) = frame_index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
         if( p == std::string::npos ) { continue; }
         if( p + 1 == f.size() )
         {
@@ -427,7 +429,9 @@ std::pair< std::map< unsigned int, snark::applications::position >, bool > frame
     m.second = false;
     for( const auto& v: values )
     {
-        auto [ index, pos ] = frame_index( v );
+        unsigned int index;
+        std::string::size_type pos;
+        std::tie( index, pos ) = frame_index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
         if( pos == std::string::npos || v[pos + 1] != '=' ) { m.second = true; }
         else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
     }
