@@ -2239,7 +2239,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     }
     if( e[0] == "canvas" ) { return filters::canvas< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "colorbar" ) { return filters::draw< H >::colorbar::make( e.size() > 1 ? e[1] : "" ); }
-    if( e[0] == "draw" ) { return filters::draw< H >::make( e.size() > 1 ? e[1] : "" ); }
+    if( e[0] == "draw" ) { return filters::draw< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
     if( e[0] == "cross" ) // todo: quick and dirty, implement using traits
     {
         boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};

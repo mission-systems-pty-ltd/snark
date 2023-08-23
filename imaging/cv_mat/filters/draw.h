@@ -15,7 +15,8 @@ template < typename H >
 struct draw
 {
     typedef boost::function< std::pair< H, cv::Mat >( std::pair< H, cv::Mat > ) > functor_t;
-    static std::pair< functor_t, bool > make( const std::string& options, char delimiter = ',' );
+    typedef boost::function< boost::posix_time::ptime( const H& ) > timestamp_functor_t;
+    static std::pair< functor_t, bool > make( const std::string& options, timestamp_functor_t get_timestamp, char delimiter = ',' );
     static std::string usage( unsigned int indent = 0 );
 
     class bar
@@ -70,6 +71,19 @@ struct draw
             unsigned int _step{0};
             cv::Point _text_position;
             std::vector< std::string > _labels;
+    };
+
+    class time
+    {
+        public:
+            static std::pair< functor_t, bool > make( const std::string& options, timestamp_functor_t get_timestamp, char delimiter = ',' );
+            static std::string usage( unsigned int indent = 0 );
+            std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
+        private:
+            cv::Point _origin{0, 0};
+            cv::Scalar _color{0, 0, 0};
+            float _font_size{0.5};
+            timestamp_functor_t _timestamp;
     };
 };
 

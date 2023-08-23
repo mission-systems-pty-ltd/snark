@@ -90,20 +90,25 @@ namespace impl {
 
 #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // quick and dirty; pain...
 constexpr auto line_aa = CV_AA;
+constexpr auto filled = 1;
 #else
 constexpr auto line_aa = cv::LINE_AA;
+constexpr auto filled = cv::FILLED;
 #endif
 
 } // namespace impl {
 
 template < typename H >
-std::pair< typename draw< H >::functor_t, bool > draw< H >::make( const std::string& options, char delimiter )
+std::pair< typename draw< H >::functor_t, bool > draw< H >::make( const std::string& options
+                                                                , draw< H >::timestamp_functor_t get_timestamp
+                                                                , char delimiter )
 {
     const auto& v = comma::split( options, delimiter );
     auto second = v.begin();
-    if( v[0] == "axis" ) { return axis::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
-    if( v[0] == "colorbar" ) { return colorbar::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
-    if( v[0] == "grid" ) { return grid::make( comma::join( ++second, v.end(), delimiter ) ); } // todo: quick and dirty; comma: implement split into a given number of strings
+    if( v[0] == "axis" ) { return axis::make( comma::join( ++second, v.end(), delimiter ), delimiter ); } // todo: quick and dirty; comma: implement split into a given number of strings
+    if( v[0] == "colorbar" ) { return colorbar::make( comma::join( ++second, v.end(), delimiter ), delimiter ); } // todo: quick and dirty; comma: implement split into a given number of strings
+    if( v[0] == "grid" ) { return grid::make( comma::join( ++second, v.end(), delimiter ), delimiter ); } // todo: quick and dirty; comma: implement split into a given number of strings
+    if( v[0] == "time" ) { return time::make( comma::join( ++second, v.end(), delimiter ), get_timestamp, delimiter ); } // todo: quick and dirty; comma: implement split into a given number of strings
     COMMA_THROW( comma::exception, "draw: expected draw primitive name; got: '" << v[0] << "'" );
 }
 
@@ -113,8 +118,10 @@ std::string draw< H >::usage( unsigned int indent )
     std::ostringstream oss;
     std::string i( indent, ' ' );
     oss << i << "draw=<what>[,<options>]; draw one of these:\n";
+    oss << axis::usage( 4 + indent );
     oss << colorbar::usage( 4 + indent );
     oss << grid::usage( 4 + indent );
+    oss << time::usage( 4 + indent );
     return oss.str();
 }
 
@@ -308,6 +315,43 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     }
     if( !_properties.title.empty() ) { cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
     return n;
+}
+
+template < typename H >
+std::string draw< H >::time::usage( unsigned int indent )
+{
+    std::ostringstream oss;
+    std::string i( indent, ' ' );
+    oss << i << "draw=time,<x>,<y>,<color>,<fontsize>,rectangle\n";
+    oss << i << "    draw timestamp on image\n";
+    oss << i << "    options\n";
+    oss << i << "        <x>,<y>: timestamp position; default: 10,10\n";
+    oss << i << "        <color>: <r>,<g>,<b>; default: 0,0,0\n";
+    oss << i << "        <fontsize>: font size as float; default: 0.5\n";
+    oss << i << "        rectangle: if present, draw background rectangle\n";
+    return oss.str();
+}
+
+template < typename H >
+std::pair< typename draw< H >::functor_t, bool > draw< H >::time::make( const std::string& options, draw< H >::timestamp_functor_t get_timestamp, char delimiter )
+{
+    const auto& v = comma::split( options, delimiter, true );
+    time t;
+    if( v.size() > 0 && !v[0].empty() ) { t._origin.x = boost::lexical_cast< unsigned int >( v[0] ); }
+    if( v.size() > 1 && !v[1].empty() ) { t._origin.y = boost::lexical_cast< unsigned int >( v[1] ); }
+    if( v.size() > 4 ) { t._color = cv::Scalar( v[2].empty() ? 0 : boost::lexical_cast< unsigned int >( v[2] )
+                                              , v[3].empty() ? 0 : boost::lexical_cast< unsigned int >( v[3] )
+                                              , v[4].empty() ? 0 : boost::lexical_cast< unsigned int >( v[4] ) ); }
+    if( v.size() > 5 && !v[5].empty() ) { t._font_size = boost::lexical_cast< float >( v[5] ); }
+    t._timestamp = get_timestamp;
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( t, _1 ), true );
+}
+
+template < typename H >
+std::pair< H, cv::Mat > draw< H >::time::operator()( std::pair< H, cv::Mat > m )
+{
+    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), _origin, cv::FONT_HERSHEY_SIMPLEX, _font_size, _color, 1, impl::line_aa );
+    return m;
 }
 
 template struct draw< boost::posix_time::ptime >;

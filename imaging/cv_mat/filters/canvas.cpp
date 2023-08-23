@@ -11,7 +11,7 @@
 #include <comma/string/string.h>
 #include "../utils.h"
 #include "canvas.h"
-#include <iostream>
+
 namespace snark { namespace cv_mat { namespace filters {
 
 template < typename H >
