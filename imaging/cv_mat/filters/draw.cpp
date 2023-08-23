@@ -164,18 +164,15 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); transposed.copyTo( c._bar ); }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), true );
 }
 
 template < typename H >
 std::pair< H, cv::Mat > draw< H >::bar::operator()( std::pair< H, cv::Mat > m )
 {
     if( m.second.type() != CV_8UC3 ) { COMMA_THROW( comma::exception, "colorbar: only CV_8UC3 (" << CV_8UC3 << ") currently supported; got image of type: " << type_as_string( m.second.type() ) << " (" << m.second.type() << ")" ); }
-    std::pair< H, cv::Mat > n;
-    n.first = m.first;
-    m.second.copyTo( n.second );
-    _bar.copyTo( n.second( _rectangle ) );
-    return n;
+    _bar.copyTo( m.second( _rectangle ) );
+    return m;
 }
 
 template < typename H >
@@ -229,22 +226,19 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::grid::make( const st
     g._color = cv::Scalar( p[6], p[7], p[8] );
     g._ends_included = p[9];
     COMMA_ASSERT_BRIEF( g._size.width > 0 || !g._ends_included, "draw=grid: got ends-included flag set; please specify grid width,height" );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, _1 ), true );
 }
 
 template < typename H >
 std::pair< H, cv::Mat > draw< H >::grid::operator()( std::pair< H, cv::Mat > m )
 {
-    std::pair< H, cv::Mat > n;
-    n.first = m.first;
-    m.second.copyTo( n.second );
     cv::Point end = _end.x == 0 ? cv::Point( m.second.cols, m.second.rows ) : _end;
     cv::Point begin = _origin;
     cv::Size size = _end.x == 0 ? cv::Size( m.second.cols - _origin.x - 1, m.second.rows - _origin.y - 1 ) : _size;
     if( _ends_included ) { end += _step; } else { begin += _step; }
-    for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( n.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
-    for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( n.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
-    return n;
+    for( int x{begin.x}; x < end.x; x += _step.x ) { cv::line( m.second, cv::Point( x, _origin.y ), cv::Point( x, _origin.y + size.height ), _color ); } // , thickness, line_type, shift );
+    for( int y{begin.y}; y < end.y; y += _step.y ) { cv::line( m.second, cv::Point( _origin.x, y ), cv::Point( _origin.x + size.width, y ), _color ); } // , thickness, line_type, shift );
+    return m;
 }
 
 template < typename H >
@@ -282,23 +276,20 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
         oss << v;
         a._labels.push_back( oss.str() );
     }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), true );
 }
 
 template < typename H >
 std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m ) // todo: pre-draw in make() and then just apply on top of the image
 {
-    std::pair< H, cv::Mat > n;
-    n.first = m.first;
-    m.second.copyTo( n.second );
-    cv::line( n.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
+    cv::line( m.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
     cv::Point a = _properties.geometry.first;
     float v = _properties.extents.first;
     for( unsigned int o{0}, i{0}; o <= _properties.size; o += _step, v += _properties.step, ++i )
     {
         cv::Point b{a};
         ( _properties.vertical ? b.x : b.y ) += 3;
-        cv::line( n.second, a, b, _properties.color );
+        cv::line( m.second, a, b, _properties.color );
         if( _properties.vertical )
         {
             // todo: draw labels
@@ -308,13 +299,13 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
             cv::Point c{a};
             ( _properties.vertical ? c.x : c.y ) += 16;
             ( _properties.vertical ? c.y : c.x ) -= _labels[i].size() * 4;
-            cv::putText( n.second, _labels[i], c, cv::FONT_HERSHEY_SIMPLEX, 0.4, _properties.color * 0.8, 1, impl::line_aa );
+            cv::putText( m.second, _labels[i], c, cv::FONT_HERSHEY_SIMPLEX, 0.4, _properties.color * 0.8, 1, impl::line_aa );
         }
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.title.empty() ) { cv::putText( n.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
-    return n;
+    if( !_properties.title.empty() ) { cv::putText( m.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
+    return m;
 }
 
 template < typename H >
