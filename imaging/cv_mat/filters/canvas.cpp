@@ -11,7 +11,7 @@
 #include <comma/string/string.h>
 #include "../utils.h"
 #include "canvas.h"
-
+#include <iostream>
 namespace snark { namespace cv_mat { namespace filters {
 
 template < typename H >
@@ -23,7 +23,7 @@ std::pair< typename canvas< H >::functor_t, bool > canvas< H >::make( const std:
     cv::Size size{ boost::lexical_cast< int >( v[0] ), boost::lexical_cast< int >( v[1] ) };
     c._origin = cv::Point( v.size() < 3 || v[2].empty() ? 0 : boost::lexical_cast< int >( v[2] )
                          , v.size() < 4 || v[3].empty() ? 0 : boost::lexical_cast< int >( v[3] ) );
-    c._canvas = cv::Mat( size, CV_8UC3, v.size() < 7 ? cv::Scalar( boost::lexical_cast< int >( v[4] ), boost::lexical_cast< int >( v[5] ), boost::lexical_cast< int >( v[6] ) ) : cv::Scalar( 0, 0, 0 ) );
+    c._canvas = cv::Mat( size, CV_8UC3, v.size() >= 7 ? cv::Scalar( boost::lexical_cast< int >( v[4] ), boost::lexical_cast< int >( v[5] ), boost::lexical_cast< int >( v[6] ) ) : cv::Scalar( 0, 0, 0 ) );
     cv::cvtColor( c._canvas, c._grey_canvas, CV_BGR2GRAY );
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
 }
