@@ -44,7 +44,6 @@ template < typename H > struct _impl // quick and dirty
         COMMA_ASSERT_BRIEF( c.empty() || c.size() == 3 || c.size() == 4, "expected color; got: '" << color << "'" );
         if( !c.empty() ) { p.color = c.size() == 4 ? cv::Scalar( c[2], c[1], c[0], c[3] ) : cv::Scalar( c[2], c[1], c[0] ); }
         v.apply( "vertical", p.vertical );
-        COMMA_ASSERT_BRIEF( !p.vertical || p.label.empty(), "draw vertical axis label: todo" );
         if( !s.empty() ) { p.geometry.first = cv::Point( s[0], s[1] ); }
         p.geometry.second = p.geometry.first;
         ( p.vertical ? p.geometry.second.y : p.geometry.second.x ) += p.size;
@@ -327,9 +326,9 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     COMMA_ASSERT_BRIEF( a._properties.size > 0, "draw=axis: please specify positive size" );
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
-    a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
-    ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
-    ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.label.size() * 4;
+    a._label_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
+    ( a._properties.vertical ? a._label_position.x : a._label_position.y ) += 34;
+    ( a._properties.vertical ? a._label_position.y : a._label_position.x ) -= a._properties.label.size() * 4;
     for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
     { 
         std::ostringstream oss;
@@ -337,6 +336,14 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
         oss << v;
         a._labels.push_back( oss.str() );
     }
+    // if( !a._properties.label.empty() )
+    // {
+    //     int baseline{0};
+    //     auto s = cv::getTextSize( s._properties.label, cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 0.5, &baseline );
+    //     a._label = cv::Mat( s.height, s.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
+    //     cv::putText( a._label, _properties.label, cv::Point( 0, s.y - 1 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa );
+    //     if( a._properties.vertical ) { cv::Mat transposed; cv::transpose( c._label, transposed ); transposed.copyTo( c._label ); }
+    // }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), true );
 }
 
@@ -365,7 +372,7 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
+    if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, _label_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
     return m;
 }
 

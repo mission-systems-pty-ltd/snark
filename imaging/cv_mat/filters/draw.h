@@ -69,7 +69,8 @@ struct draw
         private:
             properties _properties;
             unsigned int _step{0};
-            cv::Point _text_position;
+            cv::Point _label_position;
+            cv::Mat _label;
             std::vector< std::string > _labels;
     };
 
