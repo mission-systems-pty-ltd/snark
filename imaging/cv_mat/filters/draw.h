@@ -73,6 +73,31 @@ struct draw
             std::vector< std::string > _labels;
     };
 
+    class status
+    {
+        public:
+            struct properties
+            {
+                cv::Point origin{0, 0};
+                cv::Scalar color{0, 0, 0};
+                cv::Scalar bg_color{180, 180, 180};
+                float font_size{0.5};
+                float alpha{0.5};
+                float spin_up{1};
+                bool system_time{false};
+                bool bottom{false};
+            };
+            static std::pair< functor_t, bool > make( const std::string& options, timestamp_functor_t get_timestamp, char delimiter = ',' );
+            static std::string usage( unsigned int indent = 0 );
+            std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
+        private:
+            properties _properties;
+            timestamp_functor_t _timestamp;
+            double _average_interval{0};
+            boost::posix_time::ptime _previous;
+            comma::uint64 _count{0};
+    };
+
     class time
     {
         public:

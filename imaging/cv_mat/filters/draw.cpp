@@ -21,9 +21,9 @@ namespace comma { namespace visiting {
 
 template < typename H > struct _impl // quick and dirty
 {
-    typedef typename snark::cv_mat::filters::draw< H >::axis::properties value_t;
+    typedef typename snark::cv_mat::filters::draw< H >::axis::properties axis_t;
 
-    template < typename Key, class Visitor > static void visit( const Key&, value_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, axis_t& p, Visitor& v )
     {
         v.apply( "title", p.title );
         std::string extents;
@@ -50,7 +50,7 @@ template < typename H > struct _impl // quick and dirty
         ( p.vertical ? p.geometry.second.y : p.geometry.second.x ) += p.size;
     }
     
-    template < typename Key, class Visitor > static void visit( const Key&, const value_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const axis_t& p, Visitor& v )
     {
         v.apply( "title", p.title );
         std::ostringstream extents;
@@ -66,6 +66,61 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "color", color.str() );
         v.apply( "vertical", p.vertical );
     }
+
+    typedef typename snark::cv_mat::filters::draw< H >::axis::properties status_t;
+
+            // struct properties
+            // {
+            //     cv::Point origin{0, 0};
+            //     cv::Scalar color{0, 0, 0};
+            //     cv::Scalar bgcolor{180, 180, 180};
+            //     float font_size{0.5};
+            //     float alpha{0.5};
+            //     float spin_up{1};
+            //     bool system_time{false};
+            //     bool bottom{false};
+            // };
+
+    template < typename Key, class Visitor > static void visit( const Key&, status_t& p, Visitor& v )
+    {
+        std::string origin;
+        v.apply( "origin", origin );
+        const auto& s = comma::split_as< unsigned int >( origin, ',' );
+        COMMA_ASSERT_BRIEF( s.empty() || s.size() == 2, "expected origin; got: '" << origin << "'" );
+        std::string color;
+        v.apply( "color", color );
+        const auto& c = comma::split_as< unsigned int >( color, ',' );
+        COMMA_ASSERT_BRIEF( c.empty() || c.size() == 3 || c.size() == 4, "expected color; got: '" << color << "'" );
+        if( !c.empty() ) { p.color = c.size() == 4 ? cv::Scalar( c[2], c[1], c[0], c[3] ) : cv::Scalar( c[2], c[1], c[0] ); }
+        std::string bg_color;
+        v.apply( "bg-color", bg_color );
+        const auto& bc = comma::split_as< unsigned int >( bg_color, ',' );
+        COMMA_ASSERT_BRIEF( bc.empty() || bc.size() == 3 || bc.size() == 4, "expected color; got: '" << bg_color << "'" );
+        if( !bg_c.empty() ) { p.bg_color = c.size() == 4 ? cv::Scalar( bg_c[2], bg_c[1], bg_c[0], bg_c[3] ) : cv::Scalar( bg_c[2], bg_c[1], bg_c[0] ); }
+        v.apply( "font-size", p.font_size );
+        v.apply( "alpha", p.alpha );
+        v.apply( "spin-up", p.spin_up );
+        v.apply( "system-time", p.system_time );
+        v.apply( "bottom", p.bottom );
+    }
+    
+    template < typename Key, class Visitor > static void visit( const Key&, const status_t& p, Visitor& v )
+    {
+        std::ostringstream origin;
+        extents << p.origin.x() << "," << p.origin.y();
+        v.apply( "origin", origin.str() );
+        std::ostringstream color;
+        color << p.color.r() << "," << p.color.g() << "," << p.color.b() << "," << p.color.a();
+        v.apply( "color", color.str() );
+        std::ostringstream bg_color;
+        bg_color << p.bg_color.r() << "," << p.bg_color.g() << "," << p.bg_color.b() << "," << p.bg_color.a();
+        v.apply( "bg-color", bg_color.str() );
+        v.apply( "font-size", p.font_size );
+        v.apply( "alpha", p.alpha );
+        v.apply( "spin-up", p.spin_up );
+        v.apply( "system-time", p.system_time );
+        v.apply( "bottom", p.bottom );
+    }
 };
 
 template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_time::ptime >::axis::properties >
@@ -78,6 +133,20 @@ template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_t
 template <> struct traits< typename snark::cv_mat::filters::draw< std::vector< char > >::axis::properties >
 {
     typedef snark::cv_mat::filters::draw< std::vector< char > >::axis::properties value_t;
+    template < typename Key, class Visitor > static void visit( const Key& k, const value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
+    template < typename Key, class Visitor > static void visit( const Key& k, value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
+};
+
+template <> struct traits< typename snark::cv_mat::filters::draw< boost::posix_time::ptime >::status::properties >
+{
+    typedef snark::cv_mat::filters::draw< boost::posix_time::ptime >::status::properties value_t;
+    template < typename Key, class Visitor > static void visit( const Key& k, const value_t& t, Visitor& v ) { _impl< boost::posix_time::ptime >::visit( k, t, v ); }
+    template < typename Key, class Visitor > static void visit( const Key& k, value_t& t, Visitor& v ) { _impl< boost::posix_time::ptime >::visit( k, t, v ); }
+};
+
+template <> struct traits< typename snark::cv_mat::filters::draw< std::vector< char > >::status::properties >
+{
+    typedef snark::cv_mat::filters::draw< std::vector< char > >::status::properties value_t;
     template < typename Key, class Visitor > static void visit( const Key& k, const value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
     template < typename Key, class Visitor > static void visit( const Key& k, value_t& t, Visitor& v ) { _impl< std::vector< char > >::visit( k, t, v ); }
 };
@@ -252,15 +321,16 @@ std::string draw< H >::axis::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "draw=axis,[extents:<begin>,<end>],[step:<step>],[title:<title>],origin:<from/x>,<from/y>,size:<pixels>,[color:<color>],[vertical]\n";
+    oss << i << "draw=axis,<options>\n";
     oss << i << "    draw axis on image; currently only 3-byte rgb supported\n";
-    oss << i << "    options\n";
-    oss << i << "        todo\n";
-    // oss << i << "        <from/x>,<from/y>: upper left corner of bounding rectangle in pixels\n";
-    // oss << i << "        <width>,<height>: bounding rectangle size in pixels; if not specified, draw grid on the whole image\n";
-    // oss << i << "        <step/x>,<step/y>: horizontal and vertical grid step in pixels\n";
-    // oss << i << "        <color>: <r>,<g>,<b> in range 0-255; default: 0,0,0\n";
-    // oss << i << "        <ends-included>: if 1, first and last steps are included; default: 0, i.e. ends excluded\n";
+    oss << i << "    <options>\n";
+    oss << i << "        [title:<axis title>]\n";
+    oss << i << "        extents:<begin>,<end>: extents of values along the axis\n";
+    oss << i << "        step:<value>: value step\n";
+    oss << i << "        origin:<x>,<y>: axis origin in pixels\n";
+    oss << i << "        size:<pixels>: axis size in pixels\n";
+    oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
+    oss << i << "        vertical: axis is vertical; default: horizontal; todo: axis title and values\n";
     return oss.str();
 }
 
@@ -322,13 +392,12 @@ std::string draw< H >::time::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "draw=time,<x>,<y>,<color>,<fontsize>,rectangle\n";
+    oss << i << "draw=time,<x>,<y>,<color>,<fontsize>\n";
     oss << i << "    draw timestamp on image\n";
     oss << i << "    options\n";
     oss << i << "        <x>,<y>: timestamp position; default: 10,10\n";
-    oss << i << "        <color>: <r>,<g>,<b>; default: 0,0,0\n";
+    oss << i << "        <color>: <r>,<g>,<b>[,<a>]; default: 0,0,0\n";
     oss << i << "        <fontsize>: font size as float; default: 0.5\n";
-    oss << i << "        rectangle: if present, draw background rectangle\n";
     return oss.str();
 }
 
@@ -349,6 +418,53 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::time::make( const st
 
 template < typename H >
 std::pair< H, cv::Mat > draw< H >::time::operator()( std::pair< H, cv::Mat > m )
+{
+    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), _origin, cv::FONT_HERSHEY_SIMPLEX, _font_size, _color, 1, impl::line_aa );
+    return m;
+}
+
+template < typename H >
+std::string draw< H >::status::usage( unsigned int indent )
+{
+    std::ostringstream oss;
+    std::string i( indent, ' ' );
+    oss << i << "draw=status,<options>\n";
+    oss << i << "    draw status bar on image: timestamp, count, and fps; currently only 3-byte rgb supported\n";
+    oss << i << "    <options>\n";
+    oss << i << "        origin:<x>,<y>: origin in pixels; default: 20,10\n";
+    oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
+    oss << i << "        bg-color:<r>,<g>,<b>[,<a>]: background color; default: 0,0,0\n";
+    oss << i << "        font-size:<float>: default: 0.5\n";
+    oss << i << "        bottom: if present, draw at the bottom of the image; ignore origin\n";
+    oss << i << "        alpha:<float>: fps ema alpha; default: 0.5\n";
+    oss << i << "        spin-up:<float>: fps spin-up; default: 1\n";
+    oss << i << "        system-time: use system time for ema instead of image timestamp\n";
+    return oss.str();
+}
+
+template < typename H >
+std::pair< typename draw< H >::functor_t, bool > draw< H >::status::make( const std::string& options, draw< H >::timestamp_functor_t get_timestamp, char delimiter )
+{
+    axis a;
+    a._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
+    COMMA_ASSERT_BRIEF( a._properties.size > 0, "draw=axis: please specify positive size" );
+    COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
+    a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
+    a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
+    ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
+    ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.title.size() * 4;
+    for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
+    { 
+        std::ostringstream oss;
+        oss.precision( 4 );
+        oss << v;
+        a._labels.push_back( oss.str() );
+    }
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), false );
+}
+
+template < typename H >
+std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m )
 {
     cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), _origin, cv::FONT_HERSHEY_SIMPLEX, _font_size, _color, 1, impl::line_aa );
     return m;
