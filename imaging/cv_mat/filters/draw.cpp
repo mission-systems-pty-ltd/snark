@@ -75,6 +75,7 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "origin", origin );
         const auto& s = comma::split_as< int >( origin, ',' );
         COMMA_ASSERT_BRIEF( s.empty() || s.size() == 2, "expected origin; got: '" << origin << "'" );
+        if( !s.empty() ) { p.origin = cv::Point( s[0], s[1] ); }
         std::string color;
         v.apply( "color", color );
         const auto& c = comma::split_as< unsigned int >( color, ',' );
@@ -429,7 +430,6 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::status::make( const 
     s._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
     s._timestamp = get_timestamp;
     int baseline{0};
-    std::cerr << "==> draw::status: origin: " << s._properties.origin.x << "," << s._properties.origin.y << std::endl;
     s._text_size = cv::getTextSize( "20230101T000000.000000", cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 1, &baseline );
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( s, _1 ), false );
 }
