@@ -55,7 +55,7 @@ struct draw
         public:
             struct properties
             {
-                std::string title;
+                std::string label;
                 std::pair< float, float > extents{0, 0};
                 float step{1};
                 std::pair< cv::Point, cv::Point > geometry{{0, 0}, {0, 0}};

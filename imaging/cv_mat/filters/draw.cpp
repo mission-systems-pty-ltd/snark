@@ -25,7 +25,7 @@ template < typename H > struct _impl // quick and dirty
 
     template < typename Key, class Visitor > static void visit( const Key&, axis_t& p, Visitor& v )
     {
-        v.apply( "title", p.title );
+        v.apply( "label", p.label );
         std::string extents;
         v.apply( "extents", extents );
         const auto& e = comma::split_as< float >( extents, ',' );
@@ -44,7 +44,7 @@ template < typename H > struct _impl // quick and dirty
         COMMA_ASSERT_BRIEF( c.empty() || c.size() == 3 || c.size() == 4, "expected color; got: '" << color << "'" );
         if( !c.empty() ) { p.color = c.size() == 4 ? cv::Scalar( c[2], c[1], c[0], c[3] ) : cv::Scalar( c[2], c[1], c[0] ); }
         v.apply( "vertical", p.vertical );
-        COMMA_ASSERT_BRIEF( !p.vertical || p.title.empty(), "draw vertical axis title: todo" );
+        COMMA_ASSERT_BRIEF( !p.vertical || p.label.empty(), "draw vertical axis label: todo" );
         if( !s.empty() ) { p.geometry.first = cv::Point( s[0], s[1] ); }
         p.geometry.second = p.geometry.first;
         ( p.vertical ? p.geometry.second.y : p.geometry.second.x ) += p.size;
@@ -52,7 +52,7 @@ template < typename H > struct _impl // quick and dirty
     
     template < typename Key, class Visitor > static void visit( const Key&, const axis_t& p, Visitor& v )
     {
-        v.apply( "title", p.title );
+        v.apply( "label", p.label );
         std::ostringstream extents;
         extents << p.extents.first << "," << p.extents.second;
         v.apply( "extents", extents.str() );
@@ -309,13 +309,13 @@ std::string draw< H >::axis::usage( unsigned int indent )
     oss << i << "draw=axis,<options>\n";
     oss << i << "    draw axis on image; currently only 3-byte rgb supported\n";
     oss << i << "    <options>\n";
-    oss << i << "        [title:<axis title>]\n";
+    oss << i << "        [label:<text>]\n";
     oss << i << "        extents:<begin>,<end>: extents of values along the axis\n";
     oss << i << "        step:<value>: value step\n";
     oss << i << "        origin:<x>,<y>: axis origin in pixels\n";
     oss << i << "        size:<pixels>: axis size in pixels\n";
     oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
-    oss << i << "        vertical: axis is vertical; default: horizontal; todo: axis title and values\n";
+    oss << i << "        vertical: axis is vertical; default: horizontal; todo: axis label and values\n";
     return oss.str();
 }
 
@@ -329,7 +329,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
     a._text_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
     ( a._properties.vertical ? a._text_position.x : a._text_position.y ) += 34;
-    ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.title.size() * 4;
+    ( a._properties.vertical ? a._text_position.y : a._text_position.x ) -= a._properties.label.size() * 4;
     for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
     { 
         std::ostringstream oss;
@@ -365,7 +365,7 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.title.empty() ) { cv::putText( m.second, _properties.title, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
+    if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, _text_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
     return m;
 }
 
