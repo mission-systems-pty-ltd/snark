@@ -78,6 +78,7 @@ struct draw
         public:
             struct properties
             {
+                std::string label;
                 cv::Point origin{20, 20};
                 cv::Scalar color{0, 0, 0};
                 cv::Scalar bg_color{220, 220, 220, 255};

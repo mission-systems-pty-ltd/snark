@@ -71,6 +71,7 @@ template < typename H > struct _impl // quick and dirty
 
     template < typename Key, class Visitor > static void visit( const Key&, status_t& p, Visitor& v )
     {
+        v.apply( "label", p.label );
         std::string origin;
         v.apply( "origin", origin );
         const auto& s = comma::split_as< int >( origin, ',' );
@@ -94,6 +95,7 @@ template < typename H > struct _impl // quick and dirty
     
     template < typename Key, class Visitor > static void visit( const Key&, const status_t& p, Visitor& v )
     {
+        v.apply( "label", p.label );
         std::ostringstream origin;
         origin << p.origin.x() << "," << p.origin.y();
         v.apply( "origin", origin.str() );
@@ -411,6 +413,7 @@ std::string draw< H >::status::usage( unsigned int indent )
     oss << i << "draw=status,<options>\n";
     oss << i << "    draw status bar on image: timestamp, count, and fps; currently only 3-byte rgb supported\n";
     oss << i << "    <options>\n";
+    oss << i << "        [label:<text>]: status text label\n";
     oss << i << "        origin:<x>,<y>: origin in pixels, if negative, offset\n";
     oss << i << "                        is from the bottom of the image; default: 20,20\n";
     oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
@@ -430,7 +433,8 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::status::make( const 
     s._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
     s._timestamp = get_timestamp;
     int baseline{0};
-    s._text_size = cv::getTextSize( "20230101T000000.000000", cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 1, &baseline );
+    s._text_size = cv::getTextSize( s._properties.label.empty() ? std::string( "20230101T000000.000000" ) : s._properties.label, cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 1, &baseline );
+    if( s._properties.label.empty() ) { s._text_size.width = 0; }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( s, _1 ), false );
 }
 
@@ -439,15 +443,17 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
 {
     cv::Point origin{ _properties.origin.x < 0 ? m.second.cols + _properties.origin.x : _properties.origin.x
                     , _properties.origin.y < 0 ? m.second.rows + _properties.origin.y : _properties.origin.y };
+    cv::Point offset{ origin.x + _text_size.width + 30, origin.y }; // quick and dirty; arbitrary
     // todo: count: check image size
     // todo: fps: check image size
     // todo: background transparency
     if( _properties.bg_color[3] > 0 ) { cv::rectangle( m.second, cv::Point( 0, origin.y - _text_size.height - 2 ), cv::Point( m.second.rows - 1, origin.x + 3 ), _properties.bg_color, impl::filled, impl::line_aa ); }
-    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa ); }
+    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), offset, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     {
         std::ostringstream oss;
         oss << "frames: " << ( _count + 1 );
-        cv::putText( m.second, oss.str(), cv::Point{origin.x + 240, origin.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+        cv::putText( m.second, oss.str(), cv::Point{offset.x + 246, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     {
         auto t = _properties.system_time ? boost::posix_time::microsec_clock::universal_time() : _timestamp( m.first );
@@ -462,7 +468,7 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
         std::ostringstream oss;
         oss.precision( 4 );
         oss << "fps: " << ( 1. / _average_interval );
-        cv::putText( m.second, oss.str(), cv::Point{origin.x + 350, origin.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+        cv::putText( m.second, oss.str(), cv::Point{offset.x + 362, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     ++_count;
     return m;
