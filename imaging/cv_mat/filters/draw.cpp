@@ -468,7 +468,7 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
         std::ostringstream oss;
         oss.precision( 4 );
         oss << "fps: " << ( 1. / _average_interval );
-        cv::putText( m.second, oss.str(), cv::Point{offset.x + 362, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+        cv::putText( m.second, oss.str(), cv::Point{offset.x + 402, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     ++_count;
     return m;
