@@ -73,7 +73,7 @@ template < typename H > struct _impl // quick and dirty
     {
         std::string origin;
         v.apply( "origin", origin );
-        const auto& s = comma::split_as< unsigned int >( origin, ',' );
+        const auto& s = comma::split_as< int >( origin, ',' );
         COMMA_ASSERT_BRIEF( s.empty() || s.size() == 2, "expected origin; got: '" << origin << "'" );
         std::string color;
         v.apply( "color", color );
@@ -89,7 +89,6 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "alpha", p.alpha );
         v.apply( "spin-up", p.spin_up );
         v.apply( "system-time", p.system_time );
-        v.apply( "bottom", p.bottom );
     }
     
     template < typename Key, class Visitor > static void visit( const Key&, const status_t& p, Visitor& v )
@@ -107,7 +106,6 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "alpha", p.alpha );
         v.apply( "spin-up", p.spin_up );
         v.apply( "system-time", p.system_time );
-        v.apply( "bottom", p.bottom );
     }
 };
 
@@ -412,11 +410,12 @@ std::string draw< H >::status::usage( unsigned int indent )
     oss << i << "draw=status,<options>\n";
     oss << i << "    draw status bar on image: timestamp, count, and fps; currently only 3-byte rgb supported\n";
     oss << i << "    <options>\n";
-    oss << i << "        origin:<x>,<y>: origin in pixels; default: 20,10\n";
+    oss << i << "        origin:<x>,<y>: origin in pixels, if negative, offset\n";
+    oss << i << "                        is from the bottom of the image; default: 20,20\n";
     oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
-    oss << i << "        bg-color:<r>,<g>,<b>[,<a>]: background color; default: 0,0,0\n";
-    oss << i << "        font-size:<float>: default: 0.5\n";
-    oss << i << "        bottom: if present, draw at the bottom of the image; ignore origin\n";
+    oss << i << "        bg-color:<r>,<g>,<b>[,<a>]: background color; default: 220,220,220\n";
+    oss << i << "                                    for now only <a>=0 for no rectangle is supported\n";
+    oss << i << "        font-size:<float>: default: 0.4\n";
     oss << i << "        alpha:<float>: fps ema alpha; default: 0.5\n";
     oss << i << "        spin-up:<float>: fps spin-up; default: 1\n";
     oss << i << "        system-time: use system time for ema instead of image timestamp\n";
@@ -428,13 +427,44 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::status::make( const 
 {
     status s;
     s._properties = comma::name_value::parser( '|', ':' ).get< properties >( options );
+    s._timestamp = get_timestamp;
+    int baseline{0};
+    std::cerr << "==> draw::status: origin: " << s._properties.origin.x << "," << s._properties.origin.y << std::endl;
+    s._text_size = cv::getTextSize( "20230101T000000.000000", cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 1, &baseline );
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( s, _1 ), false );
 }
 
 template < typename H >
 std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m )
 {
-    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), _properties.origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    cv::Point origin{ _properties.origin.x < 0 ? m.second.cols + _properties.origin.x : _properties.origin.x
+                    , _properties.origin.y < 0 ? m.second.rows + _properties.origin.y : _properties.origin.y };
+    // todo: count: check image size
+    // todo: fps: check image size
+    // todo: background transparency
+    if( _properties.bg_color[3] > 0 ) { cv::rectangle( m.second, cv::Point( 0, origin.y - _text_size.height - 2 ), cv::Point( m.second.rows - 1, origin.x + 3 ), _properties.bg_color, impl::filled, impl::line_aa ); }
+    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    {
+        std::ostringstream oss;
+        oss << "frames: " << ( _count + 1 );
+        cv::putText( m.second, oss.str(), cv::Point{origin.x + 240, origin.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    }
+    {
+        auto t = _properties.system_time ? boost::posix_time::microsec_clock::universal_time() : _timestamp( m.first );
+        COMMA_ASSERT( !t.is_not_a_date_time(), "frame-rate: asked to use timestamp from image, but input image has no timestamp" );
+        if( !_previous.is_not_a_date_time() )
+        {
+            auto d = t - _previous;
+            double interval = d.total_seconds() + double( d.total_microseconds() ) / 1000000;
+            _average_interval += ( interval - _average_interval ) * ( _count <= _properties.spin_up ? 1. / _count : _properties.alpha );
+        }
+        _previous = t;
+        std::ostringstream oss;
+        oss.precision( 4 );
+        oss << "fps: " << ( 1. / _average_interval );
+        cv::putText( m.second, oss.str(), cv::Point{origin.x + 350, origin.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    }
+    ++_count;
     return m;
 }
 
