@@ -222,7 +222,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
-    if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); transposed.copyTo( c._bar ); }
+    if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); ; cv::flip( transposed, c._bar, 0 ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), true );
 }
 
@@ -327,7 +327,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
     a._label_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
-    ( a._properties.vertical ? a._label_position.x : a._label_position.y ) += 34;
+    if( a._properties.vertical ) { a._label_position.x -= 16; } else { a._label_position.y += 34; }
     ( a._properties.vertical ? a._label_position.y : a._label_position.x ) -= a._properties.label.size() * 4;
     for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
     { 
@@ -336,14 +336,15 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
         oss << v;
         a._labels.push_back( oss.str() );
     }
-    // if( !a._properties.label.empty() )
-    // {
-    //     int baseline{0};
-    //     auto s = cv::getTextSize( s._properties.label, cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 0.5, &baseline );
-    //     a._label = cv::Mat( s.height, s.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
-    //     cv::putText( a._label, _properties.label, cv::Point( 0, s.y - 1 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa );
-    //     if( a._properties.vertical ) { cv::Mat transposed; cv::transpose( c._label, transposed ); transposed.copyTo( c._label ); }
-    // }
+    if( !a._properties.label.empty() )
+    {
+        int baseline{0};
+        auto s = cv::getTextSize( a._properties.label, cv::FONT_HERSHEY_SIMPLEX, 0.4, 1, &baseline );
+        a._label = cv::Mat( s.height, s.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
+        cv::putText( a._label, a._properties.label, cv::Point( 0, s.height - 1 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, a._properties.color * 0.8, 1, impl::line_aa );
+        if( a._properties.vertical ) { cv::Mat transposed; cv::transpose( a._label, transposed ); cv::flip( transposed, a._label, 0 ); }
+        a._label_rectangle = cv::Rect( a._label_position, cv::Point( a._label_position.x + a._label.cols, a._label_position.y + a._label.rows ) );
+    }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), true );
 }
 
@@ -372,7 +373,17 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
         if( _step == 0 ) { break; }
         ( _properties.vertical ? a.y : a.x ) += _step;
     }
-    if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, _label_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa ); }
+    if( !_properties.label.empty() )
+    {
+        if( _properties.vertical ) // todo: transparent background
+        {
+            _label.copyTo( m.second( _label_rectangle ) );
+        }
+        else
+        {
+            cv::putText( m.second, _properties.label, _label_position, cv::FONT_HERSHEY_SIMPLEX, 0.5, _properties.color * 0.8, 1, impl::line_aa );
+        }
+    }
     return m;
 }
 

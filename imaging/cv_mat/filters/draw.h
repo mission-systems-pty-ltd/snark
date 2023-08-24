@@ -71,6 +71,7 @@ struct draw
             unsigned int _step{0};
             cv::Point _label_position;
             cv::Mat _label;
+            cv::Rect _label_rectangle;
             std::vector< std::string > _labels;
     };
 
