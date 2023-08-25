@@ -72,6 +72,8 @@ struct draw
             cv::Point _label_position;
             cv::Mat _label;
             cv::Rect _label_rectangle;
+            cv::Mat _labels_image;
+            cv::Rect _labels_rectangle;
             std::vector< std::string > _labels;
     };
 

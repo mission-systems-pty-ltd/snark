@@ -327,7 +327,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     COMMA_ASSERT_BRIEF( a._properties.step != 0, "draw=axis: please specify non-zero step" );
     a._step = a._properties.size * std::abs( a._properties.step / ( a._properties.extents.second - a._properties.extents.first ) );
     a._label_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
-    if( a._properties.vertical ) { a._label_position.x -= 16; } else { a._label_position.y += 34; }
+    if( a._properties.vertical ) { a._label_position.x -= 32; } else { a._label_position.y += 34; }
     ( a._properties.vertical ? a._label_position.y : a._label_position.x ) -= a._properties.label.size() * 4;
     for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
     { 
@@ -339,11 +339,12 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     if( !a._properties.label.empty() )
     {
         int baseline{0};
-        auto s = cv::getTextSize( a._properties.label, cv::FONT_HERSHEY_SIMPLEX, 0.4, 1, &baseline );
-        a._label = cv::Mat( s.height, s.width, CV_8UC3, cv::Scalar( 0, 0, 0 ) );
-        cv::putText( a._label, a._properties.label, cv::Point( 0, s.height - 1 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, a._properties.color * 0.8, 1, impl::line_aa );
+        auto s = cv::getTextSize( a._properties.label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseline );
+        a._label = cv::Mat( s.height + 4, s.width + 2, CV_8UC3, cv::Scalar( 0, 0, 0 ) ); // quick and dirty
+        cv::putText( a._label, a._properties.label, cv::Point( 1, s.height - 1 ), cv::FONT_HERSHEY_SIMPLEX, 0.5, a._properties.color * 0.8, 1, impl::line_aa );
         if( a._properties.vertical ) { cv::Mat transposed; cv::transpose( a._label, transposed ); cv::flip( transposed, a._label, 0 ); }
         a._label_rectangle = cv::Rect( a._label_position, cv::Point( a._label_position.x + a._label.cols, a._label_position.y + a._label.rows ) );
+        // todo: labels image
     }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), true );
 }
@@ -408,9 +409,9 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::time::make( const st
     time t;
     if( v.size() > 0 && !v[0].empty() ) { t._origin.x = boost::lexical_cast< unsigned int >( v[0] ); }
     if( v.size() > 1 && !v[1].empty() ) { t._origin.y = boost::lexical_cast< unsigned int >( v[1] ); }
-    if( v.size() > 4 ) { t._color = cv::Scalar( v[2].empty() ? 0 : boost::lexical_cast< unsigned int >( v[2] )
+    if( v.size() > 4 ) { t._color = cv::Scalar( v[4].empty() ? 0 : boost::lexical_cast< unsigned int >( v[2] )
                                               , v[3].empty() ? 0 : boost::lexical_cast< unsigned int >( v[3] )
-                                              , v[4].empty() ? 0 : boost::lexical_cast< unsigned int >( v[4] ) ); }
+                                              , v[2].empty() ? 0 : boost::lexical_cast< unsigned int >( v[4] ) ); }
     if( v.size() > 5 && !v[5].empty() ) { t._font_size = boost::lexical_cast< float >( v[5] ); }
     t._timestamp = get_timestamp;
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( t, _1 ), true );
