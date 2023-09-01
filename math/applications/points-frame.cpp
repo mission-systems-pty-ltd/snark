@@ -439,7 +439,7 @@ std::pair< std::map< unsigned int, snark::applications::position >, bool > frame
     return m;
 }
 
-bool frames_on_stdin_handle( const comma::command_line_options& options )
+bool frames_as_array_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
@@ -465,7 +465,7 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     for( const auto& i: froms.first ) { transforms[i.first].from = true; sample.frames[i.first] = i.second; }
     for( const auto& i: tos.first ) { transforms[i.first].from = false; sample.frames[i.first] = i.second; }
     for( unsigned int i : indices ) { transforms[i].precomputed = false; }
-    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], from ); }
+    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], transforms[i].from ); }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
@@ -496,12 +496,9 @@ int main( int ac, char** av )
         csv.full_xpath = false;
         if( csv.fields == "" ) { csv.fields="t,x,y,z"; }
         std::vector< std::string > v = comma::split( csv.fields, ',' );
-        bool stdin_has_frame = false;
-        for( unsigned int i = 0; i < v.size() && !stdin_has_frame; ++i ) { stdin_has_frame = v[i] == "frame" || v[i] == "frame/x" || v[i] == "frame/y" || v[i] == "frame/z" || v[i] == "frame/roll" || v[i] == "frame/pitch" || v[i] == "frame/yaw"; }
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        //if( stdin_has_frame ) { return handle_frame_on_stdin( options ); } // quick and dirty for now
-        if( frames_on_stdin_handle( options ) ) { return 0; }
+        if( frames_as_array_handle( options ) ) { return 0; }
         if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
         bool from = options.exists( "--from" );
