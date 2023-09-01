@@ -480,7 +480,7 @@ bool frames_as_array_handle( const comma::command_line_options& options )
         snark::applications::position r = p->position;
         for( unsigned int i = 0; i < p->frames.size(); ++i )
         {
-            r = snark::applications::transform( p->frames[i], transforms[i].from ) * r; // todo: handle precomputed
+            r = ( transforms[i].precomputed ? transforms[i] : snark::applications::transform( p->frames[i], transforms[i].from ) ) * r;
         }
         if( emplace ) { passed.write( snark::applications::position_and_frames{r, p->frames} ); } else { tied.append( r ); }
     }
