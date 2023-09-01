@@ -392,7 +392,7 @@ static std::pair< unsigned int, std::string::size_type > frame_index( const std:
     return std::make_pair( p == std::string::npos ? 0 : boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) ), p );
 }
 
-static std::pair< std::string, std::set< unsigned int > > frames_on_stdin_fields( const std::string& fields )
+static std::pair< std::string, std::set< unsigned int > > frames_as_array( const std::string& fields )
 {
     auto v = comma::split( fields, ',' );
     std::set< unsigned int > indices;
@@ -445,17 +445,17 @@ bool frames_on_stdin_handle( const comma::command_line_options& options )
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
     std::set< unsigned int > indices;
-    std::tie( csv.fields, indices ) = frames_on_stdin_fields( csv.fields );
-    if( indices.empty() ) { return false; }
+    std::tie( csv.fields, indices ) = frames_as_array( csv.fields );
+    const auto& froms = frames_from_options( options, "--from" );
+    const auto& tos = frames_from_options( options, "--to" );
+    if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
+    COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
     bool emplace = options.exists( "--emplace,--in-place" );
     snark::applications::position_and_frames sample;
     sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
-    const auto& froms = frames_from_options( options, "--from" );
-    const auto& tos = frames_from_options( options, "--to" );
-    COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
     bool from = froms.second || !tos.second;
     // todo: add checks of --from, --to consistency, same frame index repeating, etc
-    unsigned int max_index = *indices.rbegin();
+    unsigned int max_index = indices.empty() ? 0 : *indices.rbegin();
     if( !froms.first.empty() && froms.first.rbegin()->first > max_index ) { max_index = froms.first.rbegin()->first; }
     if( !tos.first.empty() && tos.first.rbegin()->first > max_index ) { max_index = tos.first.rbegin()->first; }
     sample.frames = std::vector< snark::applications::position >( max_index + 1 );
