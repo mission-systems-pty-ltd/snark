@@ -464,8 +464,8 @@ bool frames_as_array_handle( const comma::command_line_options& options )
     for( auto& t: transforms ) { t.from = from; }
     for( const auto& i: froms.first ) { transforms[i.first].from = true; sample.frames[i.first] = i.second; }
     for( const auto& i: tos.first ) { transforms[i.first].from = false; sample.frames[i.first] = i.second; }
-    for( unsigned int i : indices ) { transforms[i].precomputed = false; }
     for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], transforms[i].from ); }
+    for( unsigned int i : indices ) { transforms[i].precomputed = false; }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
