@@ -14,6 +14,7 @@
 #include <boost/optional.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
+#include <comma/base/none.h>
 #include <comma/csv/stream.h>
 #include <comma/math/compare.h>
 #include "../../math/rotation_matrix.h"
@@ -362,7 +363,7 @@ static int calculate_distance( bool cumulative, bool propagate = false, bool dif
     if( csv.fields.empty() ) { csv.fields = "x,y,z"; }
     csv.full_xpath = false;
     comma::csv::input_stream< point_with_block > istream( std::cin, csv );
-    boost::optional< point_with_block > last;
+    boost::optional< point_with_block > last = comma::silent_none< point_with_block >();
     double distance = 0;
     double previous_norm = 0;
     if( cumulative && propagate ) { std::cerr << "points-calc: cumulative distance and propagate are mutually exclusive" << std::endl; exit( 1 ); }
@@ -392,7 +393,7 @@ static int calculate_distance( bool cumulative, bool propagate = false, bool dif
 static int calculate_distance_next( bool propagate )
 {
     comma::csv::input_stream< Eigen::Vector3d > istream( std::cin, csv, Eigen::Vector3d::Zero() );
-    boost::optional< Eigen::Vector3d > last;
+    boost::optional< Eigen::Vector3d > last = comma::silent_none< Eigen::Vector3d >();
     double previous_norm = 0;
     while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
     {
