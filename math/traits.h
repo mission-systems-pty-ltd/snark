@@ -4,8 +4,6 @@
 
 #include <boost/array.hpp>
 #include <Eigen/Core>
-#include "position.h"
-#include "roll_pitch_yaw.h"
 
 namespace snark { namespace math {
 
