@@ -4,13 +4,11 @@
 #include <fstream>
 #include <comma/base/exception.h>
 #include <comma/name_value/serialize.h>
-#include "traits.h"
 #include "tree.h"
 
 namespace snark { namespace frames {
 
-template < typename Offset >
-tree& tree::make( std::istream& is, const comma::xpath& path, tree& t )
+tree& tree::make( std::istream& is, const comma::xpath& path, bool offset_as_csv, tree& t )
 {
     boost::property_tree::ptree p;
     comma::property_tree::from_unknown( is, p );
@@ -19,21 +17,21 @@ tree& tree::make( std::istream& is, const comma::xpath& path, tree& t )
     
 
     // todo: traverse tree
-    // todo: traverse tree
-    // todo: parameterize on offset field
-    // todo: populate offset
-
+    // todo: handle file
+    // todo: handle path
+    // todo: populate offset field
+    //       - handle non-csv
+    //       - handle csv
 
 
     return t;
 }
 
-template < typename Offset >
-tree& tree::make( const std::string& filename, const comma::xpath& path, tree& t )
+tree& tree::make( const std::string& filename, const comma::xpath& path, bool offset_as_csv, tree& t )
 {
     std::ifstream ifs( filename );
     COMMA_ASSERT( ifs.is_open(), "failed to open: \"" << filename << "\"" );
-    return make< Offset >( ifs, path, t );
+    return make( ifs, path, offset_as_csv, t );
 }
 
 } } // namespace snark { namespace frames {
