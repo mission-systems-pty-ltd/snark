@@ -21,6 +21,7 @@
 #include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include "../../visiting/eigen.h"
+#include "../frames/tree.h"
 #include "frame.h"
 
 static void usage( bool verbose = false )
