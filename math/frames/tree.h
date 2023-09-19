@@ -10,7 +10,20 @@
 
 namespace snark { namespace frames {
 
-class tree // todo? template on payload?
+// todo
+// - make
+//   - pass field name
+//   - traverse tree
+//   - handle file
+//   - handle path
+//   - populate offset field
+//       - from nested
+//       - from flat
+//       - from csv
+// - methods
+//   - frame relative to another frame
+//   ? list frames (whatever it means)
+class tree
 {
     public:
         struct offset_format { enum values { nested = 0, flat = 1, csv = 2 }; };
