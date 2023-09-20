@@ -499,12 +499,12 @@ static bool frames_from_config_handle( const comma::command_line_options& option
         auto c = comma::split( config, ':', true );
         auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
         comma::name_value::impl::write_json( std::cout, t(), true, true );
-        return 0;
+        return true;
     }
     if( config.empty() ) { return false; }
 
     // todo: from/to usage semantics
-    
+
     COMMA_THROW_BRIEF( comma::exception, "--config: implementation in progress..." );
 }
 
