@@ -20,6 +20,10 @@ namespace snark { namespace frames {
 //       - from nested
 //       - from flat
 //       - from csv
+//   - output offsets
+//       - from nested
+//       - from flat
+//       - from csv
 // - methods
 //   - frame relative to another frame
 //   ? list frames (whatever it means)
@@ -37,6 +41,7 @@ class tree
         std::vector< position > operator()( const comma::xpath& path, const std::string& name = "frame" ) const;
         
     private:
+        offset_format::values _format;
         boost::property_tree::ptree _tree;
         tree() = default;
         static tree& make( std::istream& is, const comma::xpath& path, offset_format::values format, tree& t );

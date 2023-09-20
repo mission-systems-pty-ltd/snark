@@ -36,8 +36,9 @@ tree& tree::make( std::istream& is, const comma::xpath& path, offset_format::val
 {
     boost::property_tree::ptree p;
     comma::property_tree::from_unknown( is, p );
-    auto q = comma::property_tree::get_tree( p, path, true );
+    auto q = path.elements.empty() ? p : comma::property_tree::get_tree( p, path, true ); // todo? should not need path...empty() check
     COMMA_ASSERT( q, "failed to get subtree at '" << path.to_string() << "'" );
+    
     
 
     // todo: traverse tree
@@ -47,7 +48,8 @@ tree& tree::make( std::istream& is, const comma::xpath& path, offset_format::val
     //       - handle non-csv
     //       - handle csv
 
-
+    t._format = format;
+    t._tree = *q;
     return t;
 }
 
