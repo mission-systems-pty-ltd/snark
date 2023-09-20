@@ -14,61 +14,72 @@
 #include "csv_sliders/slider_gui.h"
 #include "csv_sliders/slider.h"
 
+// todo: a hot key/menu item to reset all sliders to default values 
+// todo? --config config.json
+//     - basics for slider definition
+//     - support multiple slider values
+//       - load first set of values as default
+//       - hot keys to toggle between sets of values
+//       ? hot keys to pring current values to stderr as csv or (preferrably) json
+// todo: use the snark main window class
 
 static void usage( bool verbose ){
     std::cerr << 
     "\nA GUI for sliders for rapid manipulation of csv-streams."
     "\n"
     "\nUsage: "
-    "\n    csv-slider [options] [<format>]"
+    "\n    csv-slider [<options>] <format>"
+    "\n    TODO: explain the function of stdin vs no stdin mode..."
     "\n"
     "\nOptions:"
-    "\n    --binary,-b:         Input binary data."
-    "\n    --help|-h:           Display this help message"
-    "\n    --frequency,-f       Frequenchy to push the slider values to stdout, if there is no stdin (default 1Hz)"
-    "\n    --gui-frequency           The frequency of the gui update in ms (default 20ms)"
+    "\n    --frequency,-f                Frequency to push the slider values to stdout, if there is no stdin (default 1Hz)"
+    "\n    --gui-frequency               The frequency of the gui update in ms (default 20ms)"
+    "\n    --on-change[TODO]             output values only if they change"
     "\n"
     "\nWindow configuration"
+    "\n    --window-geometry=[<x>],[<y>],[<width>],[<height>]: position of application window on screen in pixels"
+    "\n                   e.g.csv-sliders --window-geometry=\"200,200,1000,20\" \"some-slider\""
+    "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
+    "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
+    "\n                   for now, find the desired window position by hand and use those window position values"
     "\n"
-    "\n     --screen-x,-x       The x position of the window"
-    "\n     --screen-y,-y       The y position of the window"
-    "\n     --screen-width,-W   The width of the window"
-    "\n     --screen-height,-H  The height of the window"
+    "\n<format>: name-value pairs separated by semicolons"
     "\n"
-    "\n     Example:"
-    "\n     csv-sliders -W 1000 -H 10 -x 100 -y 100  'some-slider'"
+    "\n    binary=[<format>]:            The binary format of the slider output data; if not present, ascii is assumed"
+    "\n                                  e.g: csv-sliders 'age;type=text;binary=s[16]'"
+    "\n    default=[<value>]:            default value of the slider (if not present, min value is used)"
+    "\n    format=[<format>; default=f;  unless binary specified, then default is taken from binary"
+    "\n    max=<value>; default=1;       The slider maximum value"
+    "\n    min=<value>; default=0;       The slider minimum value"
+    "\n    name=<name>:                  The name of the slider"
+    "\n    type=<type>; default=slider: [TODO]               The type of the slider {slider, checkbox, text, bar?} (default slider)"
+    "\n    watch:[TODO]                  Push the value to stdout on change (default is false)"
     "\n"
-    "\nFormat:"
-    "\n"
-    "\n    name:                The name of the slider"
-    "\n    min:                 The slider minimum value"
-    "\n    max:                 The slider maximum value"
-    "\n"
-    "\n    binary:[TODO]        The binary format of the slider output data"
-    "\n                         e.g. csv-sliders 'age;type=text;binary=s[16]'"
-    "\n    type:[TODO]          The type of the slider {slider, checkbox, text} (default slider)"
-    "\n    watch:[TODO]         Push the value to stdout on change (default is false)"
-    "\n    format:              The format of the slider value (e.g. f, d, ui, i, etc.)"
-    "\n    default_value:       The default value of the slider (default is min)"
-    "\n"
-    << std::endl;
-    if(!verbose) { exit(0); }
-    std::cerr << 
-    "\nExample:"
-    "\n    TODO: this shows the requirement for floating point values!"
-    "\n"
-    "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-    "\n                <( csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
-    "\n"
-    "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-    "\n                <( csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
-    "\n"
-    "\n    while : ; do echo 1,2,3; sleep 1; done\\"
-    "\n         | csv-sliders - \"gain;min=0;max=100;default_value=10\"  \"red_reduction;min=0;max=255;default_value=10\""
-    "\n"
-    "\n    [TODO]"
-    "\n    csv-sliders '-;binary=3f' 'gain;min=0;max=1000' 'on;type=checkbox' 'age;type=text;binary=f' 'name;type=text;binary=s[16]'"
-    << std::endl;
+    "\ncsv options" << std::endl;
+    std::cerr << comma::csv::options::usage( verbose );
+    std::cerr << std::endl;
+    std::cerr << "\nExamples" << std::endl;
+    if( verbose )
+    {
+        std::cerr << 
+            "\n"
+            "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
+            "\n                <( csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
+            "\n"
+            "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
+            "\n                <( csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
+            "\n"
+            "\n    while : ; do echo 1,2,3; sleep 1; done\\"
+            "\n         | csv-sliders - \"gain;min=0;max=100;default=10\"  \"red_reduction;min=0;max=255;default=10\""
+            "\n"
+            "\n    [TODO]"
+            "\n    csv-sliders '-;binary=3f' 'gain;min=0;max=1000' 'on;type=checkbox' 'age;type=text;binary=f' 'name;type=text;binary=s[16]'";
+    }
+    else
+    {
+        std::cerr << "\n    run with --help --verbose for more..." << std::endl;
+    }
+    std::cerr << std::endl;
     exit(0);
 }
 
@@ -86,7 +97,7 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "style", p.style );
         v.apply( "watch", p.watch );
         v.apply( "format", p.format );
-        v.apply( "default_value", p.default_value );
+        v.apply( "default", p.default_value );
     }
     template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::config< T >& p, V& v ) {
         v.apply( "name", p.name );
@@ -95,7 +106,7 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "style", p.style );
         v.apply( "watch", p.watch );
         v.apply( "format", p.format );
-        v.apply( "default_value", p.default_value );
+        v.apply( "default", p.default_value );
     }
 };
 
@@ -145,7 +156,7 @@ int main(int ac, char** av) {
         comma::csv::options global_csv( opts );
         int gui_update_period_ms = opts.value< int >( "--gui-frequency", 20 );
         auto unnamed = opts.unnamed( "", "-[^;].*" );
-        if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file" ); } 
+        if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file ('-' as stdin) or slider" ); } 
 
         int argc = 0;
         char** argv = nullptr;
@@ -154,14 +165,15 @@ int main(int ac, char** av) {
         QWidget mainWindow;
         QVBoxLayout mainLayout(&mainWindow);
 
+        auto window_geometry = comma::split_as< int >( opts.value< std::string >( "--window-geometry", ",,," ), ',', -1 );
         mainWindow.move( 
-              opts.exists("--screen-x,-x") ? opts.value<int>("--screen-x,-x") : mainWindow.pos().x()
-            , opts.exists("--screen-y,-y") ? opts.value<int>("--screen-y,-y") : mainWindow.pos().y()
+              (window_geometry[0] == -1) ? mainWindow.pos().x() : window_geometry[0]
+            , (window_geometry[1] == -1) ? mainWindow.pos().y() : window_geometry[1]
         );
-        // If not specified, set it to small and let it grow to the size of the GUI elements
+        // if not specified, set the window size to small & let the layout expand it
         mainWindow.resize(
-              opts.exists("--screen-width,-W") ? opts.value<int>("--screen-width,-W") : 500
-            , opts.exists("--screen-height,-H") ? opts.value<int>("--screen-height,-H") : 10
+              (window_geometry[2] == -1) ? 500 : window_geometry[2]
+            , (window_geometry[3] == -1) ? 10 : window_geometry[3]
         ); 
 
         std::vector<snark::graphics::sliders::FloatSlider*> gui_sliders;
@@ -171,7 +183,7 @@ int main(int ac, char** av) {
         std::string sliders_buffer;
         std::string sliders_binary;
         std::string comma;
-        int i=0;
+        uint i=0;
         if (csv.filename == "-") { 
             i=1; 
             if (unnamed.size() == 1) { COMMA_THROW( comma::exception, "You must specify at least one slider" ); }
@@ -266,7 +278,7 @@ int main(int ac, char** av) {
                     {
                         std::cout << comma::join( istream.ascii().last(), global_csv.delimiter ) << global_csv.delimiter << comma::join( sliders_values, global_csv.delimiter ) << std::endl;
                     }
-                    if( csv.flush ) { std::cout.flush(); }
+                    std::cout.flush();
 
 
                 // Update the GUI
@@ -287,7 +299,7 @@ int main(int ac, char** av) {
         {
             // Handle case with no stdin - i.e. we just publish the slider values. 
             float frequency = opts.value< float >( "--frequency,-f", 1 );
-            while(1){
+            while(true){
                 for( unsigned int i = 0; i < sliders.size(); i++ ) { 
                     if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
                         auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
