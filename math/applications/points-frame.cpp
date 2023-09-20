@@ -489,6 +489,25 @@ bool frames_as_array_handle( const comma::command_line_options& options )
     return true;
 }
 
+static bool frames_from_config_handle( const comma::command_line_options& options )
+{
+    std::string config = options.value< std::string >( "--config", "" );
+    bool config_expand = options.exists( "--config-expand,--expand-config" );
+    if( config_expand )
+    {
+        if( config.empty() ) { config = "-"; }
+        auto c = comma::split( config, ':', true );
+        auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
+        comma::name_value::impl::write_json( std::cout, t(), true, true );
+        return 0;
+    }
+    if( config.empty() ) { return false; }
+
+    // todo: from/to usage semantics
+    
+    COMMA_THROW_BRIEF( comma::exception, "--config: implementation in progress..." );
+}
+
 int main( int ac, char** av )
 {
     try
@@ -500,10 +519,12 @@ int main( int ac, char** av )
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        std::string config = options.value< std::string >( "--config", "-" );
+        if( frames_from_config_handle( options ) ) { return 0; }
+        std::string config = options.value< std::string >( "--config", "" );
         bool config_expand = options.exists( "--config-expand,--expand-config" );
         if( config_expand )
         {
+            if( config.empty() ) { config = "-"; }
             auto c = comma::split( config, ':', true );
             auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
             comma::name_value::impl::write_json( std::cout, t(), true, true );
