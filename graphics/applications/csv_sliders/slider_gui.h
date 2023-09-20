@@ -11,7 +11,7 @@
 #include "slider.h"
 
 #include <cmath>
-namespace snark { namespace sliders {
+namespace snark { namespace graphics { namespace sliders {
 
 class FloatSlider : public QSlider {
     Q_OBJECT
@@ -43,4 +43,4 @@ private:
     std::string name_;
 }; 
 
-}} // namespace snark { namespace sliders {
+}}} // namespace snark { namespace graphics { namespace sliders {

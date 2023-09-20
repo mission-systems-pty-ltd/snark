@@ -9,7 +9,7 @@
 #include <comma/name_value/parser.h>
 #include <comma/visiting/traits.h>
 
-namespace snark { namespace sliders {
+namespace snark { namespace graphics { namespace sliders {
 
 enum class slider_type { none_, float_, double_, uint16_, int32_, uint32_, int64_, uint64_, string_ };
 
@@ -42,18 +42,18 @@ public:
     virtual std::string as_string() const = 0;
     void set_name( const std::string& name ) { this->_name = name; }
     std::string name() const { return _name; }
-    // virtual snark::sliders::slider_type type() =0;
-    virtual const snark::sliders::slider_type type() const =0;// {return slider_type::none_; }
+    // virtual snark::graphics::sliders::slider_type type() =0;
+    virtual const snark::graphics::sliders::slider_type type() const =0;// {return slider_type::none_; }
 protected:
     std::string _name;
     unsigned int _offset{0};
     unsigned int _size{0};
-    snark::sliders::slider_type _type{slider_type::none_};
+    snark::graphics::sliders::slider_type _type{slider_type::none_};
 };
 
-// std::shared_ptr< std::vector<snark::sliders::slider_base> >
-using sliders_ptr = std::vector<std::shared_ptr< snark::sliders::slider_base> >;
-using slider_ptr = std::shared_ptr< snark::sliders::slider_base>;
+// std::shared_ptr< std::vector<snark::graphics::sliders::slider_base> >
+using sliders_ptr = std::vector<std::shared_ptr< snark::graphics::sliders::slider_base> >;
+using slider_ptr = std::shared_ptr< snark::graphics::sliders::slider_base>;
 template < typename T > struct slider_traits { static const char* ptr( const T& value ) { return reinterpret_cast< const char* >( &value ); } 
 static const slider_type type() { return slider_type::none_; }  };
 template <> struct slider_traits< std::string > { static const char* ptr( const std::string& value ) { return &value[0]; } 
@@ -90,11 +90,12 @@ public:
     slider<T>& set_min( const T& value ) { _min = value; return *this; }
     T min() const { return _min; }
     T max() const { return _max; }
-    const snark::sliders::slider_type type( ) const { return slider_traits< T >::type(); }
+    const snark::graphics::sliders::slider_type type( ) const { return slider_traits< T >::type(); }
 private:
     T _value{0};
     T _max{0};
     T _min{0};
 };
 
-} } // namespace snark { namespace sliders {
+}}} // namespace snark { namespace graphics { namespace sliders {
+

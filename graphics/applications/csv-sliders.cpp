@@ -26,7 +26,7 @@ static void usage( bool verbose ){
     "\n    --binary,-b:         Input binary data."
     "\n    --help|-h:           Display this help message"
     "\n    --frequency,-f       Frequenchy to push the slider values to stdout, if there is no stdin (default 1Hz)"
-    "\n    --gui-freq           The frequency of the gui update in ms (default 20ms)"
+    "\n    --gui-frequency           The frequency of the gui update in ms (default 20ms)"
     "\n"
     "\nWindow configuration"
     "\n"
@@ -72,15 +72,14 @@ static void usage( bool verbose ){
     exit(0);
 }
 
-namespace snark { namespace sliders {
+namespace snark { namespace graphics { namespace sliders {
 
-
-} } // namespace snark { namespace sliders {
+}}} // namespace snark { namespace graphics { namespace sliders {
 
 namespace comma { namespace visiting {
 
-template < typename T > struct traits< snark::sliders::config< T > > {
-    template < typename K, typename V > static void visit( const K&, const snark::sliders::config< T >& p, V& v ) {
+template < typename T > struct traits< snark::graphics::sliders::config< T > > {
+    template < typename K, typename V > static void visit( const K&, const snark::graphics::sliders::config< T >& p, V& v ) {
         v.apply( "name", p.name );
         v.apply( "min", p.min );
         v.apply( "max", p.max );
@@ -89,7 +88,7 @@ template < typename T > struct traits< snark::sliders::config< T > > {
         v.apply( "format", p.format );
         v.apply( "default_value", p.default_value );
     }
-    template < typename K, typename V > static void visit( const K&, snark::sliders::config< T >& p, V& v ) {
+    template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::config< T >& p, V& v ) {
         v.apply( "name", p.name );
         v.apply( "min", p.min );
         v.apply( "max", p.max );
@@ -100,11 +99,11 @@ template < typename T > struct traits< snark::sliders::config< T > > {
     }
 };
 
-template <> struct traits< snark::sliders::input > {
-    template < typename K, typename V > static void visit( const K&, const snark::sliders::input& p, V& v ) {
+template <> struct traits< snark::graphics::sliders::input > {
+    template < typename K, typename V > static void visit( const K&, const snark::graphics::sliders::input& p, V& v ) {
         v.apply( "block", p.block );
     }
-    template < typename K, typename V > static void visit( const K&, snark::sliders::input& p, V& v ) {
+    template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::input& p, V& v ) {
         v.apply( "block", p.block );
     }
 };
@@ -112,14 +111,14 @@ template <> struct traits< snark::sliders::input > {
 } } // namespace comma { namespace visiting {
 
 template< typename T >
-void draw_slider(QVBoxLayout& mainLayout, const snark::sliders::config<T>& format_detail, std::vector<snark::sliders::FloatSlider*>& sliders){
+void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config<T>& format_detail, std::vector<snark::graphics::sliders::FloatSlider*>& sliders){
 
     QHBoxLayout* sliderLayout = new QHBoxLayout();
 
     QLabel* nameLabel = new QLabel(QString::fromStdString(format_detail.name));
     sliderLayout->addWidget(nameLabel);
 
-    snark::sliders::FloatSlider* slider = new snark::sliders::FloatSlider(Qt::Horizontal);
+    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider(Qt::Horizontal);
     slider->setMinimum( format_detail.min );
     slider->setMaximum( format_detail.max );
     // slider->setRange(format_detail.min, format_detail.max);
@@ -129,7 +128,7 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::sliders::config<T>& forma
     sliders.push_back(slider); // Store the pointer
     
     QLabel* valueLabel = new QLabel(QString::number(format_detail.default_value));
-    QObject::connect(slider, &snark::sliders::FloatSlider::valueChanged, valueLabel, [valueLabel, slider](int value) {
+    QObject::connect(slider, &snark::graphics::sliders::FloatSlider::valueChanged, valueLabel, [valueLabel, slider](int value) {
         valueLabel->setText(QString::number(slider->convertValue(value)));
     });
     
@@ -144,7 +143,7 @@ int main(int ac, char** av) {
     {
         comma::command_line_options opts( ac, av, usage );
         comma::csv::options global_csv( opts );
-        int gui_update_period_ms = opts.value< int >( "--gui-freq", 20 );
+        int gui_update_period_ms = opts.value< int >( "--gui-frequency", 20 );
         auto unnamed = opts.unnamed( "", "-[^;].*" );
         if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file" ); } 
 
@@ -165,7 +164,7 @@ int main(int ac, char** av) {
             , opts.exists("--screen-height,-H") ? opts.value<int>("--screen-height,-H") : 10
         ); 
 
-        std::vector<snark::sliders::FloatSlider*> gui_sliders;
+        std::vector<snark::graphics::sliders::FloatSlider*> gui_sliders;
 
         comma::name_value::parser csv_parser( "filename", ';', '=', false );
         auto csv = csv_parser.get< comma::csv::options >( unnamed[0] );
@@ -179,7 +178,7 @@ int main(int ac, char** av) {
         }
         std::vector< std::string > sliders_values( unnamed.size() ); // todo: fill from sliders so that sliders_buffer has default values        
         sliders_values={};
-        snark::sliders::sliders_ptr sliders;
+        snark::graphics::sliders::sliders_ptr sliders;
         sliders.reserve(unnamed.size());
         int offset = 0;
         for( ; i < unnamed.size(); i++ ){
@@ -189,9 +188,9 @@ int main(int ac, char** av) {
             COMMA_ASSERT( s.binary() == csv.binary(), "expected all streams " << ( csv.binary() ? "binary" : "ascii" ) << "; got: '" << unnamed[0] << "' and '" << unnamed[i] << "'" );
             if( s.binary() ) { sliders_binary += comma + s.format().string(); comma = ","; }
 
-            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::sliders::config< float > >( unnamed[i] );
+            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i] );
             draw_slider<float>(mainLayout, format_detail, gui_sliders);
-            auto slider = std::make_shared<snark::sliders::slider<float>>(offset, sizeof(float));
+            auto slider = std::make_shared<snark::graphics::sliders::slider<float>>(offset, sizeof(float));
             offset += sizeof(float);
             slider->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
             slider->set_name(format_detail.name);
@@ -202,9 +201,9 @@ int main(int ac, char** av) {
 
     // TODO: deal with types or formats...
     //             if(format_detail.format == "f"){
-    //                 // auto s = new snark::sliders::slider<float>(0,0);
-    //                 auto s = std::make_shared<snark::sliders::slider<float>>(0,0);
-    //                 // auto s = reinterpret_cast<const snark::sliders::slider<float>*>(&slider);
+    //                 // auto s = new snark::graphics::sliders::slider<float>(0,0);
+    //                 auto s = std::make_shared<snark::graphics::sliders::slider<float>>(0,0);
+    //                 // auto s = reinterpret_cast<const snark::graphics::sliders::slider<float>*>(&slider);
     //                 s->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
     //                 s->set_name(format_detail.name);
     //                 std::cerr << "Min is : " << s->min() << " Max is : " << s->max() << std::endl;
@@ -218,7 +217,7 @@ int main(int ac, char** av) {
         {
             fd_set read_fds;
             struct timeval timeout;
-            comma::csv::input_stream< snark::sliders::input > istream( std::cin, csv );
+            comma::csv::input_stream< snark::graphics::sliders::input > istream( std::cin, csv );
             comma::uint32 block = 0;
             bool has_block = csv.has_field( "block" );
 
@@ -237,7 +236,7 @@ int main(int ac, char** av) {
                 if (ret > 0 && FD_ISSET(STDIN_FILENO, &read_fds)) {
 
 
-                    const snark::sliders::input* p = istream.read();
+                    const snark::graphics::sliders::input* p = istream.read();
                     if( !p ) { break; }
                     if( !has_block || p->block != block )
                     {
@@ -290,8 +289,8 @@ int main(int ac, char** av) {
             float frequency = opts.value< float >( "--frequency,-f", 1 );
             while(1){
                 for( unsigned int i = 0; i < sliders.size(); i++ ) { 
-                    if (sliders[i]->type() == snark::sliders::slider_type::float_){
-                        auto s = dynamic_cast<snark::sliders::slider<float>*>(sliders[i].get());
+                    if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
+                        auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
                         s->set(gui_sliders[i]->value());
                     }else {
                         COMMA_THROW( comma::exception, "Slider type not implemented");
