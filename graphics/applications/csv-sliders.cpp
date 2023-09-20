@@ -233,7 +233,6 @@ int main(int ac, char** av) {
             comma::uint32 block = 0;
             bool has_block = csv.has_field( "block" );
 
-
             while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
                 FD_ZERO(&read_fds);
@@ -283,16 +282,22 @@ int main(int ac, char** av) {
 
                 // Update the GUI
                 } else if (ret == 0) {
+                    for( unsigned int i = 0; i < sliders.size(); i++ ) { 
+                        if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
+                            auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
+                            s->set(gui_sliders[i]->value());
+                        }else {
+                            COMMA_THROW( comma::exception, "Slider type not implemented");
+                        }
+                    }
+
                     app.processEvents();
                     sliders_values={};
-                    for( unsigned int i = 0; i < sliders.size(); ++i ) { 
+                    for( unsigned int i = 0; i < sliders.size(); i++ ) { 
                         sliders_values.push_back(sliders[i]->as_string());
                     }
-                    std::cout << comma::join( sliders_values, global_csv.delimiter ) << std::endl;
-
                 } else {
-                    perror("select");
-                    return 1;
+                    COMMA_THROW( comma::exception, "select error");
                 }
             }
         } else
