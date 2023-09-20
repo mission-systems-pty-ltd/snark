@@ -53,6 +53,7 @@ tree& tree::make( std::istream& is, const comma::xpath& path, offset_format::val
 
 tree& tree::make( const std::string& filename, const comma::xpath& path, offset_format::values format, tree& t )
 {
+    if( filename == "-" ) { return make( std::cin, path, format, t ); }
     std::ifstream ifs( filename );
     COMMA_ASSERT( ifs.is_open(), "failed to open: \"" << filename << "\"" );
     return make( ifs, path, format, t );

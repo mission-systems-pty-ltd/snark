@@ -19,6 +19,7 @@
 #include <comma/csv/traits.h>
 #include <comma/math/compare.h>
 #include <comma/name_value/parser.h>
+#include <comma/name_value/serialize.h>
 #include <comma/string/string.h>
 #include "../../visiting/eigen.h"
 #include "../frames/tree.h"
@@ -499,6 +500,15 @@ int main( int ac, char** av )
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
+        std::string config = options.value< std::string >( "--config", "-" );
+        bool config_expand = options.exists( "--config-expand,--expand-config" );
+        if( config_expand )
+        {
+            auto c = comma::split( config, ':', true );
+            auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
+            comma::name_value::impl::write_json( std::cout, t(), true, true );
+            return 0;
+        }
         if( frames_as_array_handle( options ) ) { return 0; }
         if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
