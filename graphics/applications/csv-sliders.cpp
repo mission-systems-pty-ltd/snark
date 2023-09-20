@@ -7,11 +7,13 @@
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
 #include <comma/visiting/traits.h>
-#include "csv_sliders/sliderwindow.h"
-#include "csv_sliders/slider.h"
 #include <QThread>
 #include <thread>
 #include <chrono>
+
+#include "csv_sliders/slider_gui.h"
+#include "csv_sliders/slider.h"
+
 
 static void usage( bool verbose ){
     std::cerr << 
@@ -22,47 +24,50 @@ static void usage( bool verbose ){
     "\n"
     "\nOptions:"
     "\n    --binary,-b:         Input binary data."
-    "\n"
     "\n    --help|-h:           Display this help message"
-    "\n"
     "\n    --frequency,-f       Frequenchy to push the slider values to stdout, if there is no stdin (default 1Hz)"
-    "\n"
     "\n    --gui-freq           The frequency of the gui update in ms (default 20ms)"
+    "\n"
+    "\nWindow configuration"
+    "\n"
+    "\n     --screen-x,-x       The x position of the window"
+    "\n     --screen-y,-y       The y position of the window"
+    "\n     --screen-width,-W   The width of the window"
+    "\n     --screen-height,-H  The height of the window"
+    "\n"
+    "\n     Example:"
+    "\n     csv-sliders -W 1000 -H 10 -x 100 -y 100  'some-slider'"
     "\n"
     "\nFormat:"
     "\n"
     "\n    name:                The name of the slider"
-    "\n"
     "\n    min:                 The slider minimum value"
-    "\n"
     "\n    max:                 The slider maximum value"
     "\n"
     "\n    binary:[TODO]        The binary format of the slider output data"
     "\n                         e.g. csv-sliders 'age;type=text;binary=s[16]'"
-    "\n"
     "\n    type:[TODO]          The type of the slider {slider, checkbox, text} (default slider)"
-    "\n"
     "\n    watch:[TODO]         Push the value to stdout on change (default is false)"
-    "\n"
     "\n    format:              The format of the slider value (e.g. f, d, ui, i, etc.)"
-    "\n"
     "\n    default_value:       The default value of the slider (default is min)"
     "\n"
+    << std::endl;
+    if(!verbose) { exit(0); }
+    std::cerr << 
     "\nExample:"
     "\n    TODO: this shows the requirement for floating point values!"
     "\n"
     "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-    "\n                <( ./bin/csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
+    "\n                <( csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
     "\n"
     "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-    "\n                <( ./bin/csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
+    "\n                <( csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
     "\n"
     "\n    while : ; do echo 1,2,3; sleep 1; done\\"
-    "\n         | ./bin/csv-sliders - \"gain;min=0;max=100;default_value=10\"  \"red_reduction;min=0;max=255;default_value=10\""
+    "\n         | csv-sliders - \"gain;min=0;max=100;default_value=10\"  \"red_reduction;min=0;max=255;default_value=10\""
     "\n"
     "\n    [TODO]"
     "\n    csv-sliders '-;binary=3f' 'gain;min=0;max=1000' 'on;type=checkbox' 'age;type=text;binary=f' 'name;type=text;binary=s[16]'"
-
     << std::endl;
     exit(0);
 }
@@ -71,8 +76,6 @@ namespace snark { namespace sliders {
 
 
 } } // namespace snark { namespace sliders {
-
-
 
 namespace comma { namespace visiting {
 
@@ -108,16 +111,15 @@ template <> struct traits< snark::sliders::input > {
 
 } } // namespace comma { namespace visiting {
 
-
 template< typename T >
-void draw_slider(QVBoxLayout& mainLayout, const snark::sliders::config<T>& format_detail, std::vector<FloatSlider*>& sliders){
+void draw_slider(QVBoxLayout& mainLayout, const snark::sliders::config<T>& format_detail, std::vector<snark::sliders::FloatSlider*>& sliders){
 
     QHBoxLayout* sliderLayout = new QHBoxLayout();
 
     QLabel* nameLabel = new QLabel(QString::fromStdString(format_detail.name));
     sliderLayout->addWidget(nameLabel);
 
-    FloatSlider* slider = new FloatSlider(Qt::Horizontal);
+    snark::sliders::FloatSlider* slider = new snark::sliders::FloatSlider(Qt::Horizontal);
     slider->setMinimum( format_detail.min );
     slider->setMaximum( format_detail.max );
     // slider->setRange(format_detail.min, format_detail.max);
@@ -127,7 +129,7 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::sliders::config<T>& forma
     sliders.push_back(slider); // Store the pointer
     
     QLabel* valueLabel = new QLabel(QString::number(format_detail.default_value));
-    QObject::connect(slider, &FloatSlider::valueChanged, valueLabel, [valueLabel, slider](int value) {
+    QObject::connect(slider, &snark::sliders::FloatSlider::valueChanged, valueLabel, [valueLabel, slider](int value) {
         valueLabel->setText(QString::number(slider->convertValue(value)));
     });
     
@@ -152,7 +154,18 @@ int main(int ac, char** av) {
 
         QWidget mainWindow;
         QVBoxLayout mainLayout(&mainWindow);
-        std::vector<FloatSlider*> gui_sliders;
+
+        mainWindow.move( 
+              opts.exists("--screen-x,-x") ? opts.value<int>("--screen-x,-x") : mainWindow.pos().x()
+            , opts.exists("--screen-y,-y") ? opts.value<int>("--screen-y,-y") : mainWindow.pos().y()
+        );
+        // If not specified, set it to small and let it grow to the size of the GUI elements
+        mainWindow.resize(
+              opts.exists("--screen-width,-W") ? opts.value<int>("--screen-width,-W") : 500
+            , opts.exists("--screen-height,-H") ? opts.value<int>("--screen-height,-H") : 10
+        ); 
+
+        std::vector<snark::sliders::FloatSlider*> gui_sliders;
 
         comma::name_value::parser csv_parser( "filename", ';', '=', false );
         auto csv = csv_parser.get< comma::csv::options >( unnamed[0] );
@@ -187,6 +200,7 @@ int main(int ac, char** av) {
             sliders.push_back( std::move(slider) );
         }
 
+    // TODO: deal with types or formats...
     //             if(format_detail.format == "f"){
     //                 // auto s = new snark::sliders::slider<float>(0,0);
     //                 auto s = std::make_shared<snark::sliders::slider<float>>(0,0);
@@ -197,9 +211,7 @@ int main(int ac, char** av) {
     //                 sliders.push_back( s );
     //             }else{ 
 
-
         sliders_buffer.resize( comma::csv::format( sliders_binary ).size() );
-
         mainWindow.show();
 
         if( csv.filename == "-" )

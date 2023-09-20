@@ -100,6 +100,28 @@ if( build_view_points )
     set_target_properties( view-points PROPERTIES LINK_FLAGS_RELEASE -s )
 endif()
 
+option( snark_build_csv_sliders "build csv-sliders" ON )
+
+if( snark_build_csv_sliders )
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTOUIC ON)
+    set(CMAKE_AUTORCC ON)
+    find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+
+    add_executable(csv-sliders
+            csv-sliders.cpp
+            csv_sliders/slider_gui.h
+            csv_sliders/slider.h
+    )
+
+    target_link_libraries( csv-sliders Qt5::Core Qt5::Widgets )
+    target_link_libraries( csv-sliders snark_render snark_graphics_qopengl ${comma_ALL_LIBRARIES} )
+    install( TARGETS csv-sliders RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
+endif()
+
 option( snark_build_graphics_csv_plot "build csv-plot" ON )
 
 if( snark_build_graphics_csv_plot )
