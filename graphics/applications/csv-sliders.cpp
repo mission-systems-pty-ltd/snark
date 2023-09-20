@@ -21,7 +21,10 @@
 //       - load first set of values as default
 //       - hot keys to toggle between sets of values
 //       ? hot keys to pring current values to stderr as csv or (preferrably) json
-// todo: use the snark main window class
+// todo: --title: set main window title
+// todo: slider properties: vertical (a boolean field): if present, slider is vertical
+// todo: --vertical: if present, all sliders are vertical by default, unless vertical=false specified
+// todo? check for "-" vs slider indices: may not be very robust
 
 static void usage( bool verbose ){
     std::cerr << 
@@ -34,6 +37,7 @@ static void usage( bool verbose ){
     "\nOptions:"
     "\n    --frequency,-f                Frequency to push the slider values to stdout, if there is no stdin (default 1Hz)"
     "\n    --gui-frequency               The frequency of the gui update in ms (default 20ms)"
+    "\n    --vertical: TODO              all sliders are vertical unless explicitly specified in slider properties"
     "\n    --on-change[TODO]             output values only if they change"
     "\n"
     "\nWindow configuration"
@@ -53,6 +57,7 @@ static void usage( bool verbose ){
     "\n    min=<value>; default=0;       The slider minimum value"
     "\n    name=<name>:                  The name of the slider"
     "\n    type=<type>; default=slider: [TODO]               The type of the slider {slider, checkbox, text, bar?} (default slider)"
+    "\n    vertical: TODO                slider is vertical (vertical=false means horizontal)"
     "\n    watch:[TODO]                  Push the value to stdout on change (default is false)"
     "\n"
     "\ncsv options" << std::endl;
@@ -98,6 +103,7 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "watch", p.watch );
         v.apply( "format", p.format );
         v.apply( "default", p.default_value );
+        v.apply( "vertical", p.vertical );
     }
     template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::config< T >& p, V& v ) {
         v.apply( "name", p.name );
@@ -107,6 +113,7 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "watch", p.watch );
         v.apply( "format", p.format );
         v.apply( "default", p.default_value );
+        v.apply( "vertical", p.vertical );
     }
 };
 
@@ -193,6 +200,8 @@ int main(int ac, char** av) {
         snark::graphics::sliders::sliders_ptr sliders;
         sliders.reserve(unnamed.size());
         int offset = 0;
+        snark::graphics::sliders::config< float > sample_config;
+        sample_config.vertical = opts.exists( "--vertical" ); // todo: plug in
         for( ; i < unnamed.size(); i++ ){
 
             // Set up the buffer & check for binary or ascii
@@ -200,7 +209,7 @@ int main(int ac, char** av) {
             COMMA_ASSERT( s.binary() == csv.binary(), "expected all streams " << ( csv.binary() ? "binary" : "ascii" ) << "; got: '" << unnamed[0] << "' and '" << unnamed[i] << "'" );
             if( s.binary() ) { sliders_binary += comma + s.format().string(); comma = ","; }
 
-            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i] );
+            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i], sample_config );
             draw_slider<float>(mainLayout, format_detail, gui_sliders);
             auto slider = std::make_shared<snark::graphics::sliders::slider<float>>(offset, sizeof(float));
             offset += sizeof(float);
@@ -208,7 +217,7 @@ int main(int ac, char** av) {
             slider->set_name(format_detail.name);
             sliders_values.push_back( slider->as_string() );
             // sliders.at(i) = std::move(slider);
-            sliders.push_back( std::move(slider) );
+            sliders.push_back( std::move(slider) ); // todo? emplace_back() should do the same thing as push_back( std::move( slider ) )
         }
 
     // TODO: deal with types or formats...

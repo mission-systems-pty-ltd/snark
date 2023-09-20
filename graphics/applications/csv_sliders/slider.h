@@ -23,6 +23,7 @@ struct config
     std::string format; 
     bool watch{false};
     std::string style;
+    bool vertical{false}; // todo: plug in
 };
 
 struct input
