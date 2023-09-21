@@ -42,7 +42,7 @@ public:
     virtual void write( char* buffer ) const = 0;
     virtual std::string as_string() const = 0;
     void set_name( const std::string& name ) { this->_name = name; }
-    std::string name() const { return _name; }
+    const std::string& name() const { return _name; }
     // virtual snark::graphics::sliders::slider_type type() =0;
     virtual const snark::graphics::sliders::slider_type type() const =0;// {return slider_type::none_; }
 protected:
