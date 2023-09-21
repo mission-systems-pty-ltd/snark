@@ -21,6 +21,7 @@
 //       - load first set of values as default
 //       - hot keys to toggle between sets of values
 //       ? hot keys to pring current values to stderr as csv or (preferrably) json
+// todo: align slider layout: make slider name field of size to fit the longest slider name
 // todo: --title: set main window title
 // todo: slider properties: vertical (a boolean field): if present, slider is vertical
 // todo: --vertical: if present, all sliders are vertical by default, unless vertical=false specified
@@ -49,14 +50,14 @@ static void usage( bool verbose ){
     "\n"
     "\n<format>: name-value pairs separated by semicolons"
     "\n"
-    "\n    binary=[<format>]:            The binary format of the slider output data; if not present, ascii is assumed"
+    "\n    binary=[<format>]:            slider value binary output format; if not present, ascii is assumed"
     "\n                                  e.g: csv-sliders 'age;type=text;binary=s[16]'"
     "\n    default=[<value>]:            default value of the slider (if not present, min value is used)"
     "\n    format=[<format>; default=f;  unless binary specified, then default is taken from binary"
-    "\n    max=<value>; default=1;       The slider maximum value"
-    "\n    min=<value>; default=0;       The slider minimum value"
-    "\n    name=<name>:                  The name of the slider"
-    "\n    type=<type>; default=slider: [TODO]               The type of the slider {slider, checkbox, text, bar?} (default slider)"
+    "\n    max=<value>; default=1;       slider maximum value"
+    "\n    min=<value>; default=0;       slider minimum value"
+    "\n    name=<name>:                  slider name"
+    "\n    type=<type>; default=slider: [TODO] slider type {slider, checkbox, text, bar?} (default slider)"
     "\n    vertical: TODO                slider is vertical (vertical=false means horizontal)"
     "\n    watch:[TODO]                  Push the value to stdout on change (default is false)"
     "\n"
@@ -67,15 +68,26 @@ static void usage( bool verbose ){
     if( verbose )
     {
         std::cerr << 
-            "\n"
-            "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-            "\n                <( csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
-            "\n"
-            "\n    view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
-            "\n                <( csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
-            "\n"
-            "\n    while : ; do echo 1,2,3; sleep 1; done\\"
-            "\n         | csv-sliders - \"gain;min=0;max=100;default=10\"  \"red_reduction;min=0;max=255;default=10\""
+            "\n    basics that may be relevant to your actual use cases"
+            "\n        draw points"
+            "\n            view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
+            "\n                        <( csv-sliders -f 100 \"x;min=0;max=1000\" \"y;min=0;max=1000\" \"z;min=0;max=1000\" )\";size=1000\""
+            "\n            view-points <( echo 0,0,0; echo 1000,1000,1000 )\";size=2\" \\"
+            "\n                        <( csv-sliders -f 100 \"x;min=0;max=1000;binary=f\" \"y;min=0;max=1000;binary=f\" \"z;min=0;max=1000;binary=f\" --flush )\";size=1000;binary=3f\""
+            "\n        adjust colours"
+            "\n            while : ; do echo 1,2,3; sleep 1; done\\"
+            "\n                | csv-sliders - \"gain;min=0;max=100;default=10\"  \"red_reduction;min=0;max=255;default=10\""
+            "\n        resize and colour point cloud (rgb rounding will go away once slider type is implemented)"
+            "\n            csv-sliders -f 10 'radius;min=0;max=50;default=25' \\"
+            "\n                              'r;min=0;max=255;default=128' \\"
+            "\n                              'g;min=0;max=255;default=128' \\"
+            "\n                              'b;min=0;max=255;default=128' \\"
+            "\n                | csv-eval --fields ,r,g,b 'r,g,b=round(r),round(g),round(b)' --flush \\"
+            "\n                | { i=0; while IFS=, read radius r g b; do \\"
+            "\n                             points-make sphere --radius=$radius --binary=3f \\"
+            "\n                                 | csv-paste value=\"$i,$r,$g,$b;binary=ui,3ub\" '-;binary=3f'; (( ++i )); done \\"
+            "\n                  } \\"
+            "\n                | view-points '-;fields=block,r,g,b,x,y,z;binary=ui,3ub,3f'"
             "\n"
             "\n    [TODO]"
             "\n    csv-sliders '-;binary=3f' 'gain;min=0;max=1000' 'on;type=checkbox' 'age;type=text;binary=f' 'name;type=text;binary=s[16]'";
