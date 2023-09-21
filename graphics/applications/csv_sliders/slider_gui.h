@@ -42,7 +42,7 @@ public:
 
 private:
     int m_precision;
-    doubel _precision_factor;
+    double _precision_factor;
     std::string name_;
 }; 
 
