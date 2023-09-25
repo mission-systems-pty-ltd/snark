@@ -321,7 +321,6 @@ int main(int ac, char** av) {
                             // for( unsigned int = 0; i < sliders.size(); ++i ) { v[i] = boost::lexical_cast< std::string >( sliders[i].as_string() ); }
                         }
                         block = p->block;
-                        
                     }
                     if( csv.binary() )
                     {
@@ -332,8 +331,7 @@ int main(int ac, char** av) {
                     {
                         std::cout << comma::join( istream.ascii().last(), global_csv.delimiter ) << global_csv.delimiter << comma::join( sliders_values, global_csv.delimiter ) << std::endl;
                     }
-                    std::cout.flush();
-
+                    if( global_csv.flush ) { std::cout.flush(); }
 
                 // Update the GUI
                 } else if (ret == 0) {
@@ -365,24 +363,21 @@ int main(int ac, char** av) {
                         auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
                         s->set(gui_sliders[i]->value());
                     }else {
-                        COMMA_THROW( comma::exception, "Slider type not implemented");
+                        COMMA_THROW( comma::exception, "slider type for slider " << i << " not implemented");
                     }
                 }
-                
                 if( csv.binary() )
                 {
-                    for( unsigned int i = 0; i < sliders.size(); i++ ) { 
-                        sliders[i]->write( &sliders_buffer[0] ); 
-                    }
+                    for( unsigned int i = 0; i < sliders.size(); i++ ) { sliders[i]->write( &sliders_buffer[0] ); }
                     std::cout.write( &sliders_buffer[0], sliders_buffer.size() );
                 }
-                else{
-                    sliders_values={};
-                    for (const auto& slider : gui_sliders) { sliders_values.push_back(std::to_string(slider->value())); }
-                    std::cout << comma::join( sliders_values, global_csv.delimiter ) << std::endl;
+                else
+                {
+                    std::string delimiter;
+                    for( const auto& slider : gui_sliders ) { std::cout << delimiter << slider->value(); delimiter = global_csv.delimiter; }
+                    std::cout << std::endl;
                 }
                 if( global_csv.flush ) { std::cout.flush(); }
-
                 auto now = std::chrono::system_clock::now();
                 auto loop_period = std::chrono::milliseconds(int(1000/frequency));
                 while( std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now) < loop_period ){
@@ -392,7 +387,6 @@ int main(int ac, char** av) {
             };
             return 0;
         }
-
         exit(0);
     }
     catch( std::exception& ex ) { std::cerr << "csv-slider: caught: " << ex.what() << std::endl; }
