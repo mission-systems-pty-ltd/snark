@@ -82,6 +82,7 @@ static void usage( bool verbose ){
     "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
     "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
     "\n                   for now, find the desired window position by hand and use those window position values"
+    "\n    --window-title=<title>; default=csv-sliders; window title"
     "\n"
     "\n<format>: name-value pairs separated by semicolons"
     "\n"
@@ -220,6 +221,7 @@ int main(int ac, char** av) {
         QVBoxLayout mainLayout(&mainWindow);
 
         auto window_geometry = comma::split_as< int >( opts.value< std::string >( "--window-geometry", ",,," ), ',', -1 );
+        mainWindow.setWindowTitle( &opts.value< std::string >( "--window-title", "csv-sliders" )[0] );
         mainWindow.move( 
               (window_geometry[0] == -1) ? mainWindow.pos().x() : window_geometry[0]
             , (window_geometry[1] == -1) ? mainWindow.pos().y() : window_geometry[1]
