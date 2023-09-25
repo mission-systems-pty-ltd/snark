@@ -1,3 +1,8 @@
+// Copyright (c) 2023 Mission Systems
+// All rights reserved
+
+/// @author Aspen Eyers
+
 #include <iostream>
 #include <QApplication>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -14,17 +19,47 @@
 #include "csv_sliders/slider_gui.h"
 #include "csv_sliders/slider.h"
 
-// todo: a hot key/menu item to reset all sliders to default values 
-// todo? --config config.json
+
+// todo
+//     ! make name fields of equal width
+//     ! value field
+//       ! make them of equal width
+//       - turn them into text fields so that the user could type desired value by hand
+//     ! --title: set main window title
+//     - on input
+//       - on input value move slider
+//     - vertical sliders
+//       - slider properties: vertical (a boolean field): if present, slider is vertical
+//       --vertical: if present, all sliders are vertical by default, unless vertical=false specified
+//     - slider types
+//       - checkbox
+//       - integer slider
+//       - bar: "value" bar instead of slider
+//       - dial: spin with a given extents
+//       - text: just display value as text
+//     - slider properties
+//       - watch: rename to on-change: output on change
+//       - step: float/integer sliders: values with a given step
+//     - --config: current values etc
+//       - save config.json with multiple sets of values
+//       - load config.json
+//       - save config.json
+//       - a hot key/menu item to:
+//         - reset all sliders to default values 
+//         - print current values as json (so that uer can copy them to config.json)
+//         - push current values
+//         - pop current values
+//         - switch between sets of pushed (or previous loaded from config) values
 //     - basics for slider definition
 //     - support multiple slider values
 //       - load first set of values as default
 //       - hot keys to toggle between sets of values
 //       ? hot keys to pring current values to stderr as csv or (preferrably) json
-// todo: --title: set main window title
-// todo: slider properties: vertical (a boolean field): if present, slider is vertical
-// todo: --vertical: if present, all sliders are vertical by default, unless vertical=false specified
-// todo? check for "-" vs slider indices: may not be very robust
+//     ? check for "-" vs slider indices: may not be very robust
+//     - layouts
+//       ? qt config files
+//       ? grid layout
+//       ? stylesheet
 
 static void usage( bool verbose ){
     std::cerr << 
