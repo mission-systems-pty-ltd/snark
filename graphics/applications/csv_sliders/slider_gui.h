@@ -16,7 +16,7 @@ namespace snark { namespace graphics { namespace sliders {
 class FloatSlider : public QSlider {
     Q_OBJECT
 public:
-    FloatSlider(Qt::Orientation orientation, QWidget* parent = nullptr, int precision = 2)
+    FloatSlider(Qt::Orientation orientation, QWidget* parent = nullptr, unsigned int precision = 2)
         : QSlider(orientation, parent)
         , m_precision(precision)
         , _precision_factor( std::pow( 10.0, m_precision ) ) {}

@@ -25,7 +25,7 @@
 //     ! value field
 //       ! make them of equal width
 //       - turn them into text fields so that the user could type desired value by hand
-//     ! --title: set main window title
+//     ! on errors and exceptions: print the values on which error happened
 //     - on input
 //       - on input value move slider
 //     - vertical sliders
@@ -239,12 +239,9 @@ int main(int ac, char** av) {
         std::string sliders_buffer;
         std::string sliders_binary;
         std::string comma;
-        uint i=0;
-        if (csv.filename == "-") { 
-            i=1; 
-            if (unnamed.size() == 1) { COMMA_THROW( comma::exception, "You must specify at least one slider" ); }
-        }
-        std::vector< std::string > sliders_values( unnamed.size() ); // todo: fill from sliders so that sliders_buffer has default values        
+        COMMA_ASSERT_BRIEF( csv.filename != "-" || unnamed.size() > 1, "please specify at least one slider" );
+        unsigned int i = csv.filename == "-" ? 1 : 0;
+        std::vector< std::string > sliders_values( unnamed.size() ); // todo: fill from sliders so that sliders_buffer has default values
         sliders_values={};
         snark::graphics::sliders::sliders_ptr sliders;
         sliders.reserve(unnamed.size());
@@ -345,7 +342,7 @@ int main(int ac, char** av) {
                             auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
                             s->set(gui_sliders[i]->value());
                         }else {
-                            COMMA_THROW( comma::exception, "Slider type not implemented");
+                            COMMA_THROW( comma::exception, "slider type for slider " << i << " not implemented");
                         }
                     }
 
