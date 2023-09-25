@@ -18,19 +18,19 @@
 
 #include "csv_sliders/slider_gui.h"
 #include "csv_sliders/slider.h"
-
+#include <QFontDatabase>
+#include <QLineEdit>
+#include <QDoubleSpinBox>
 
 // todo
-//     ! make name fields of equal width
-//     ! value field
-//       ! make them of equal width
-//       - turn them into text fields so that the user could type desired value by hand
-//     ! --title: set main window title
 //     - on input
 //       - on input value move slider
 //     - vertical sliders
 //       - slider properties: vertical (a boolean field): if present, slider is vertical
 //       --vertical: if present, all sliders are vertical by default, unless vertical=false specified
+//            -> if vertical: modify to QHBoxLayout mainLayout
+//            -> if vertical: modify to QVBoxLayout* sliderLayout
+//            -> if vertical: modify to FloatSlider(Qt::Vertical);
 //     - slider types
 //       - checkbox
 //       - integer slider
@@ -39,7 +39,6 @@
 //       - text: just display value as text
 //     - slider properties
 //       - watch: rename to on-change: output on change
-//       - step: float/integer sliders: values with a given step
 //     - --config: current values etc
 //       - save config.json with multiple sets of values
 //       - load config.json
@@ -82,6 +81,7 @@ static void usage( bool verbose ){
     "\n        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window"
     "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
     "\n                   for now, find the desired window position by hand and use those window position values"
+    "\n    --title                         set main window title"
     "\n"
     "\n<format>: name-value pairs separated by semicolons"
     "\n"
@@ -89,9 +89,10 @@ static void usage( bool verbose ){
     "\n                                  e.g: csv-sliders 'age;type=text;binary=s[16]'"
     "\n    default=[<value>]:            default value of the slider (if not present, min value is used)"
     "\n    format=[<format>; default=f;  unless binary specified, then default is taken from binary"
-    "\n    max=<value>; default=1;       slider maximum value"
-    "\n    min=<value>; default=0;       slider minimum value"
+    "\n    max=[<value>]; default=1;     slider maximum value"
+    "\n    min=[<value>]; default=0;     slider minimum value"
     "\n    name=<name>:                  slider name"
+    "\n    step=[<value>]:               slider step increment/decrement size (default 0.1)"
     "\n    type=<type>; default=slider: [TODO] slider type {slider, checkbox, text, bar?} (default slider)"
     "\n    vertical: TODO                slider is vertical (vertical=false means horizontal)"
     "\n    watch:[TODO]                  Push the value to stdout on change (default is false)"
@@ -143,24 +144,26 @@ namespace comma { namespace visiting {
 
 template < typename T > struct traits< snark::graphics::sliders::config< T > > {
     template < typename K, typename V > static void visit( const K&, const snark::graphics::sliders::config< T >& p, V& v ) {
-        v.apply( "name", p.name );
-        v.apply( "min", p.min );
-        v.apply( "max", p.max );
-        v.apply( "style", p.style );
-        v.apply( "watch", p.watch );
-        v.apply( "format", p.format );
         v.apply( "default", p.default_value );
+        v.apply( "format", p.format );
+        v.apply( "max", p.max );
+        v.apply( "min", p.min );
+        v.apply( "name", p.name );
+        v.apply( "step", p.step );
+        v.apply( "style", p.style );
         v.apply( "vertical", p.vertical );
+        v.apply( "watch", p.watch );
     }
     template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::config< T >& p, V& v ) {
-        v.apply( "name", p.name );
-        v.apply( "min", p.min );
-        v.apply( "max", p.max );
-        v.apply( "style", p.style );
-        v.apply( "watch", p.watch );
-        v.apply( "format", p.format );
         v.apply( "default", p.default_value );
+        v.apply( "format", p.format );
+        v.apply( "max", p.max );
+        v.apply( "min", p.min );
+        v.apply( "name", p.name );
+        v.apply( "step", p.step );
+        v.apply( "style", p.style );
         v.apply( "vertical", p.vertical );
+        v.apply( "watch", p.watch );
     }
 };
 
@@ -175,30 +178,46 @@ template <> struct traits< snark::graphics::sliders::input > {
 
 } } // namespace comma { namespace visiting {
 
+
 template< typename T >
-void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config<T>& format_detail, std::vector<snark::graphics::sliders::FloatSlider*>& sliders){
+void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config<T>& format_detail, std::vector<snark::graphics::sliders::FloatSlider*>& sliders, int max_name_length = 0){
+
+    QFont font;
+    font.setFamily("Courier New");  // You can also try "Monospace", etc.
+    font.setPointSize(12);
 
     QHBoxLayout* sliderLayout = new QHBoxLayout();
-
-    QLabel* nameLabel = new QLabel(QString::fromStdString(format_detail.name));
+    QString name = QString::fromStdString(format_detail.name);
+    name = name.leftJustified(max_name_length, ' ');
+    QLabel* nameLabel = new QLabel(name);
+    nameLabel->setFont(font);
     sliderLayout->addWidget(nameLabel);
 
     snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider(Qt::Horizontal);
     slider->setMinimum( format_detail.min );
     slider->setMaximum( format_detail.max );
-    // slider->setRange(format_detail.min, format_detail.max);
-
     slider->setValue(format_detail.default_value);
 
     sliders.push_back(slider); // Store the pointer
     
-    QLabel* valueLabel = new QLabel(QString::number(format_detail.default_value));
-    QObject::connect(slider, &snark::graphics::sliders::FloatSlider::valueChanged, valueLabel, [valueLabel, slider](int value) {
-        valueLabel->setText(QString::number(slider->convertValue(value)));
+    QDoubleSpinBox* valueSpinBox = new QDoubleSpinBox();
+    valueSpinBox->setFont(font);
+    valueSpinBox->setMinimum(format_detail.min);
+    valueSpinBox->setMaximum(format_detail.max);
+    valueSpinBox->setFixedWidth(100);
+    valueSpinBox->setSingleStep(format_detail.step);  // Set the step size as you like
+    valueSpinBox->setValue(format_detail.default_value);
+
+    QObject::connect(slider, &snark::graphics::sliders::FloatSlider::valueChanged, [valueSpinBox, slider]() {
+        valueSpinBox->setValue(slider->value());
     });
     
+    QObject::connect(valueSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [valueSpinBox, slider](double value) {
+        slider->setValue(static_cast<float>(value));
+    });
+
     sliderLayout->addWidget(slider);
-    sliderLayout->addWidget(valueLabel);
+    sliderLayout->addWidget(valueSpinBox);
 
     mainLayout.addLayout(sliderLayout);
 }
@@ -229,6 +248,8 @@ int main(int ac, char** av) {
               (window_geometry[2] == -1) ? 500 : window_geometry[2]
             , (window_geometry[3] == -1) ? 10 : window_geometry[3]
         ); 
+        // set window title 
+        mainWindow.setWindowTitle( opts.value< std::string >( "--title", "csv-sliders" ).c_str() );
 
         std::vector<snark::graphics::sliders::FloatSlider*> gui_sliders;
 
@@ -249,6 +270,14 @@ int main(int ac, char** av) {
         int offset = 0;
         snark::graphics::sliders::config< float > sample_config;
         sample_config.vertical = opts.exists( "--vertical" ); // todo: plug in
+
+        // determine the length of the name of each slider so that we can make them all the same length
+        uint max_name_length = 0;
+        for( uint j = i; j < unnamed.size(); j++ ){
+            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[j], sample_config );
+            if (format_detail.name.length() > max_name_length) { max_name_length = format_detail.name.length(); }
+        }
+
         for( ; i < unnamed.size(); i++ ){
 
             // Set up the buffer & check for binary or ascii
@@ -257,7 +286,7 @@ int main(int ac, char** av) {
             if( s.binary() ) { sliders_binary += comma + s.format().string(); comma = ","; }
 
             auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i], sample_config );
-            draw_slider<float>(mainLayout, format_detail, gui_sliders);
+            draw_slider<float>(mainLayout, format_detail, gui_sliders, max_name_length);
             auto slider = std::make_shared<snark::graphics::sliders::slider<float>>(offset, sizeof(float));
             offset += sizeof(float);
             slider->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);

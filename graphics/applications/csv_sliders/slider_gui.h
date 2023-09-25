@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QLabel>
+#include <QValidator>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "slider.h"
 
@@ -45,5 +46,30 @@ private:
     double _precision_factor;
     std::string name_;
 }; 
+
+class FloatValidator : public QValidator
+{
+public:
+    FloatValidator(float min, float max, int decimals, QObject *parent = nullptr)
+        : QValidator(parent), _min(min), _max(max), _decimals(decimals) {}
+
+    QValidator::State validate(QString &s, int &pos) const override {
+        Q_UNUSED(pos)
+        if (s.isEmpty() || s == "-" || s == "+") {
+            return QValidator::Intermediate;
+        }
+        bool ok;
+        float value = s.toFloat(&ok);
+        if (ok && value >= _min && value <= _max) {
+            return QValidator::Acceptable;
+        } else {
+            return QValidator::Invalid;
+        }
+    }
+
+private:
+    float _min, _max;
+    int _decimals;
+};
 
 }}} // namespace snark { namespace graphics { namespace sliders {
