@@ -34,11 +34,11 @@
 //     - slider types
 //       - checkbox
 //       - integer slider
-//       - bar: "value" bar instead of slider
+//       ! bar: "value" bar instead of slider; (read insread of write) color property
 //       - dial: spin with a given extents
 //       - text: just display value as text
 //     - slider properties
-//       - watch: rename to on-change: output on change
+//       ! watch: rename to on-change: output on change
 //     - --config: current values etc
 //       - save config.json with multiple sets of values
 //       - load config.json
