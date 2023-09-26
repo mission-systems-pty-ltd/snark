@@ -198,11 +198,10 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config
     QHBoxLayout* nestedLayout = new QHBoxLayout();
 
     // Range label
-    QString range = QString("%1,%2").arg(format_detail.min).arg(format_detail.max);
+    QString range = QString("%1:%2").arg(format_detail.min).arg(format_detail.max);
     QLabel* rangeLabel = new QLabel(range);
     rangeLabel->setFont(font);
     rangeLabel->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
-    rangeLabel->setStyleSheet("font-size: 8px");
     nestedLayout->addWidget(rangeLabel, 1);
 
     // Slider
