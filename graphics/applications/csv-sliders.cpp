@@ -23,7 +23,6 @@
 #include <QDoubleSpinBox>
 
 // todo
-//     ! show slider min and max values
 //     - on input
 //       - on input value move slider
 //     - vertical sliders
@@ -179,7 +178,6 @@ template <> struct traits< snark::graphics::sliders::input > {
 
 } } // namespace comma { namespace visiting {
 
-
 template< typename T >
 void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config<T>& format_detail, std::vector<snark::graphics::sliders::FloatSlider*>& sliders, int max_name_length = 0){
 
@@ -188,19 +186,37 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config
     font.setPointSize(12);
 
     QHBoxLayout* sliderLayout = new QHBoxLayout();
+
+    // Name label
     QString name = QString::fromStdString(format_detail.name);
     name = name.leftJustified(max_name_length, ' ');
     QLabel* nameLabel = new QLabel(name);
     nameLabel->setFont(font);
     sliderLayout->addWidget(nameLabel);
 
-    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider(Qt::Horizontal);
-    slider->setMinimum( format_detail.min );
-    slider->setMaximum( format_detail.max );
-    slider->setValue(format_detail.default_value);
+    // Nested layout for range + slider
+    QHBoxLayout* nestedLayout = new QHBoxLayout();
 
+    // Range label
+    QString range = QString("%1,%2").arg(format_detail.min).arg(format_detail.max);
+    QLabel* rangeLabel = new QLabel(range);
+    rangeLabel->setFont(font);
+    rangeLabel->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    rangeLabel->setStyleSheet("font-size: 8px");
+    nestedLayout->addWidget(rangeLabel, 1);
+
+    // Slider
+    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider(Qt::Horizontal);
+    slider->setMinimum(format_detail.min);
+    slider->setMaximum(format_detail.max);
+    slider->setValue(format_detail.default_value);
     sliders.push_back(slider); // Store the pointer
-    
+    nestedLayout->addWidget(slider, 2);
+
+    // Add nested layout to the main slider layout
+    sliderLayout->addLayout(nestedLayout);
+
+    // Value display
     QDoubleSpinBox* valueSpinBox = new QDoubleSpinBox();
     valueSpinBox->setFont(font);
     valueSpinBox->setMinimum(format_detail.min);
@@ -208,16 +224,12 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config
     valueSpinBox->setFixedWidth(100);
     valueSpinBox->setSingleStep(format_detail.step);  // Set the step size as you like
     valueSpinBox->setValue(format_detail.default_value);
-
     QObject::connect(slider, &snark::graphics::sliders::FloatSlider::valueChanged, [valueSpinBox, slider]() {
         valueSpinBox->setValue(slider->value());
     });
-    
     QObject::connect(valueSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [valueSpinBox, slider](double value) {
         slider->setValue(static_cast<float>(value));
     });
-
-    sliderLayout->addWidget(slider);
     sliderLayout->addWidget(valueSpinBox);
 
     mainLayout.addLayout(sliderLayout);
