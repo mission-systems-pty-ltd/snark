@@ -1,5 +1,5 @@
 instruction=
 expected="two test-cubes"
 input=
-files="<( points-make test-cube -n 10000 --width 0.5 --thickness 0.01 | points-frame --fields x,y,z --from -1,0,0 ) <( points-make cube -n 10000 --width 0.5 --thickness 0.01 | points-frame --fields x,y,z --from 1,0,0 )"
+files="<( points-make test-cube -n 10000 --width 0.5 --thickness 0.01 | points-frame --fields x,y,z --from -1,0,0 ) <( points-make test-cube -n 10000 --width 0.5 --thickness 0.01 | points-frame --fields x,y,z --from 1,0,0 )"
 args="--no-stdin"

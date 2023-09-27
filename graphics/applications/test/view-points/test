@@ -5,6 +5,7 @@ source $( type -p comma-application-util )
 comma_path_value_to_var
 
 cmd="view-points $files $args"
+echo "running command: $cmd" >&2
 
 if [[ $input ]]; then
 cat >&2 <<EOF
