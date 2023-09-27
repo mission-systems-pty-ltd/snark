@@ -1,4 +1,4 @@
 instruction=
-expected="a test-cube transitioning from magenta to cyan"
+expected="a test-cube transitioning from yellow to red"
 input="points-make test-cube -n 20000 --width 0.1 --thickness 0.01"
 args="--fields=x,y,z --colour=-0.1:0.1"

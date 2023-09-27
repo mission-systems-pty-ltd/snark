@@ -1,4 +1,4 @@
 instruction=
-expected="a test-cube transitioning from magenta to cyan"
+expected="a yellow test-cube"
 input="points-make test-cube -n 20000 --width 0.5 --thickness 0.01 | csv-eval --fields=,,z 'z=(z+0.5)/1.02'"
 args="--fields=x,y,z"
