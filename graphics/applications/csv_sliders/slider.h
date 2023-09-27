@@ -20,6 +20,7 @@ struct config
     T max{1};
     T min{0};
     T default_value{0};
+    bool on_change{false};
     T step{0.1};
     std::string format; 
     std::string style;

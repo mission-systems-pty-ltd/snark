@@ -37,6 +37,8 @@
 //       ! bar: "value" bar instead of slider; (read insread of write) color property
 //       - dial: spin with a given extents
 //       - text: just display value as text
+//     - slider properties
+//       - per-slider 'on-change'
 //     - --config: current values etc
 //       - save config.json with multiple sets of values
 //       - load config.json
@@ -93,7 +95,7 @@ static void usage( bool verbose ){
     "\n    step=[<value>]:               slider step increment/decrement size (default 0.1)"
     "\n    type=<type>; default=slider: [TODO] slider type {slider, checkbox, text, bar?} (default slider)"
     "\n    vertical: TODO                slider is vertical (vertical=false means horizontal)"
-    "\n    watch:[TODO]                  Push the value to stdout on change (default is false)"
+    "\n    on-change: TODO               output values only if they change"
     "\n"
     "\ncsv options" << std::endl;
     std::cerr << comma::csv::options::usage( verbose );
@@ -147,10 +149,10 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "max", p.max );
         v.apply( "min", p.min );
         v.apply( "name", p.name );
+        v.apply( "on-change", p.on_change );
         v.apply( "step", p.step );
         v.apply( "style", p.style );
         v.apply( "vertical", p.vertical );
-        v.apply( "watch", p.watch );
     }
     template < typename K, typename V > static void visit( const K&, snark::graphics::sliders::config< T >& p, V& v ) {
         v.apply( "default", p.default_value );
@@ -158,10 +160,10 @@ template < typename T > struct traits< snark::graphics::sliders::config< T > > {
         v.apply( "max", p.max );
         v.apply( "min", p.min );
         v.apply( "name", p.name );
+        v.apply( "on-change", p.on_change );
         v.apply( "step", p.step );
         v.apply( "style", p.style );
         v.apply( "vertical", p.vertical );
-        v.apply( "watch", p.watch );
     }
 };
 
