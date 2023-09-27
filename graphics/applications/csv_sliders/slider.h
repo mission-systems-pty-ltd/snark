@@ -22,7 +22,6 @@ struct config
     T default_value{0};
     T step{0.1};
     std::string format; 
-    bool watch{false};
     std::string style;
     bool vertical{false}; // todo: plug in
 };

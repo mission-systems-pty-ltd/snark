@@ -37,8 +37,6 @@
 //       ! bar: "value" bar instead of slider; (read insread of write) color property
 //       - dial: spin with a given extents
 //       - text: just display value as text
-//     - slider properties
-//       ! watch: rename to on-change: output on change
 //     - --config: current values etc
 //       - save config.json with multiple sets of values
 //       - load config.json
@@ -395,6 +393,10 @@ int main(int ac, char** av) {
         {
             // Handle case with no stdin - i.e. we just publish the slider values. 
             float frequency = opts.value< float >( "--frequency,-f", 1 );
+            bool update_on_change = false;
+            if( opts.exists( "--on-change" ) ) { update_on_change = true; }
+
+            bool sliders_values_changed = false;
             while(true){
                 for( unsigned int i = 0; i < sliders.size(); i++ ) { 
                     if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
@@ -411,9 +413,20 @@ int main(int ac, char** av) {
                 }
                 else
                 {
-                    std::string delimiter;
-                    for( const auto& slider : gui_sliders ) { std::cout << delimiter << slider->value(); delimiter = global_csv.delimiter; }
-                    std::cout << std::endl;
+                    // Sliders have a flag set on change, but it is not cleared unless the user clears it.
+                    for( const auto& slider : gui_sliders ) { if( slider->valueUpdated() ) { sliders_values_changed = true; } }
+
+                    if ( !update_on_change  || ( update_on_change && sliders_values_changed ) ){
+
+                        std::string delimiter;
+                        for( const auto& slider : gui_sliders ) { 
+                            std::cout << delimiter << slider->value(); delimiter = global_csv.delimiter; 
+                            slider->unsetUpdated();
+                        }
+                        std::cout << std::endl;
+                        sliders_values_changed = false;
+                    }
+
                 }
                 if( global_csv.flush ) { std::cout.flush(); }
                 auto now = std::chrono::system_clock::now();

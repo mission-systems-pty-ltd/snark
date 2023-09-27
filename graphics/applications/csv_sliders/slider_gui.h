@@ -24,7 +24,14 @@ public:
 
     float value() const { return (float)QSlider::value() / _precision_factor; }
 
-    void setValue(float value) { QSlider::setValue(std::round(value * _precision_factor)); }
+    void setValue(float value) { 
+        QSlider::setValue(std::round(value * _precision_factor)); 
+        value_updated_ = true;
+    }
+
+    void unsetUpdated() { value_updated_ = false; }
+
+    bool valueUpdated() const { return value_updated_; }
 
     void setMinimum(float value) { QSlider::setMinimum(std::round(value * _precision_factor)); }
 
@@ -43,6 +50,7 @@ public:
 
 private:
     int m_precision;
+    bool value_updated_{false};
     double _precision_factor;
     std::string name_;
 }; 
