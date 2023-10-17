@@ -107,12 +107,14 @@ output_data_block_t::output_data_block_t( double azimuth_encoder_angle
     z = cartesian[2];
 }
 
+const double g0 = 9.80665;    // m/s^2, as per ISO 80000
+
 output_imu_t::output_imu_t( const imu_block_t& imu_block )
     : start_time( convert_timestamp( imu_block.start_read_time() ))
     , acceleration( convert_timestamp( imu_block.acceleration_read_time() )
-                  , Eigen::Vector3d( imu_block.acceleration_x()
-                                   , imu_block.acceleration_y()
-                                   , imu_block.acceleration_z() ))
+                  , Eigen::Vector3d( imu_block.acceleration_x() * g0
+                                   , imu_block.acceleration_y() * g0
+                                   , imu_block.acceleration_z() * g0 ))
     , angular_acceleration( convert_timestamp( imu_block.gyro_read_time() )
                           , Eigen::Vector3d( imu_block.angular_acceleration_x() * M_PI / 180
                                            , imu_block.angular_acceleration_y() * M_PI / 180
