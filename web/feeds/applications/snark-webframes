@@ -64,6 +64,7 @@ notes:
     3) 'command' is a bash pipeline that reads data from e.g. a port on a robot and outputs a frame, e.g. text, value, or image
     4) if 'address' and 'port' are given in robot config or publish config,
        the 'command' is assumed to expect data from the given tcp address and port (default address: 'localhost' )
+    5) if 'address' is given and 'head=n' is also specified, return the first n packets only
     5) Currently snark-webframes accept request only query parameters (using GET) to submit form.
     6) 'timeout' is the number of seconds after which the bash pipeline will time out (default: {timeout} seconds)
 """.format( content_type=HTTP_PLAIN_TEXT, timeout=DEFAULT_TIMEOUT ) + \
@@ -204,9 +205,10 @@ class sensors:
             sensor_robot_config = extract( xpath, robot_config )
             sensor_publish_config = extract( xpath, publish_config )
             address = get( 'address', sensor_publish_config, sensor_robot_config )
+            head = '--head %s' % ( sensor_web_config['head'] ) if 'head' in sensor_web_config else ""
             port = get( 'port', sensor_publish_config, sensor_robot_config )
             if port: address = "tcp:%s:%s" % ( address or 'localhost', port )
-            pipeline = "io-cat -u %s | %s" % ( address, frame_command ) if address else frame_command
+            pipeline = "io-cat -u %s %s | %s" % ( address, head, frame_command ) if address else frame_command
             timeout = sensor_web_config['timeout'] if 'timeout' in sensor_web_config else args.timeout
             timeout_command = "timeout -k 10 -s TERM %f bash -c \"%s\"" % ( float(timeout), pipeline )
             content_type = sensor_web_config['content-type'] if 'content-type' in sensor_web_config else HTTP_PLAIN_TEXT
