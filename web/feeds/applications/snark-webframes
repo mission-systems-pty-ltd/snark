@@ -42,6 +42,8 @@ import signal
 import shlex
 import threading
 import urllib.parse as urlparse
+import numpy as np
+import comma
 
 script_name = sys.argv[0].split('/')[-1]
 DEFAULT_HOST = ''
@@ -172,6 +174,24 @@ def get( key, *dictionaries ):
     for d in dictionaries:
         if d and key in d: return d[key]
 
+def get_size_arg( *dictionaries ):
+    """Return size argument for io-cat
+
+    This will be '--size=N', where N is
+    - the 'size' field, if given; or
+    - the size of the 'binary' format, if given
+
+    Otherwise, returns an empty string."""
+    size = get( 'size', *dictionaries )
+    if size is not None:
+        return "--size=%d" % size
+    binary = get( 'binary', *dictionaries )
+    if binary is None:
+        return ""
+    size = sum([np.dtype(t).itemsize for t in comma.csv.format.to_numpy(binary)])
+    return "--size=%d" % size
+
+
 class sensors:
     def _find_sensor_names( self, dictionary, xpath='' ):
         if type(dictionary) == list:
@@ -207,8 +227,9 @@ class sensors:
             address = get( 'address', sensor_publish_config, sensor_robot_config )
             head = '--head %s' % ( sensor_web_config['head'] ) if 'head' in sensor_web_config else ""
             port = get( 'port', sensor_publish_config, sensor_robot_config )
+            size = get_size_arg( sensor_publish_config, sensor_robot_config )
             if port: address = "tcp:%s:%s" % ( address or 'localhost', port )
-            pipeline = "io-cat -u %s %s | %s" % ( address, head, frame_command ) if address else frame_command
+            pipeline = "io-cat -u %s %s %s | %s" % ( address, head, size, frame_command ) if address else frame_command
             timeout = sensor_web_config['timeout'] if 'timeout' in sensor_web_config else args.timeout
             timeout_command = "timeout -k 10 -s TERM %f bash -c \"%s\"" % ( float(timeout), pipeline )
             content_type = sensor_web_config['content-type'] if 'content-type' in sensor_web_config else HTTP_PLAIN_TEXT
