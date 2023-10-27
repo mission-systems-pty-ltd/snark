@@ -13,6 +13,7 @@
 #error ROS_VERSION_PATCH not defined. If ROS1, source setup.bash, if ros2, then add add_compile_definitions( ROS_VERSION_MAJOR=XX ),add_compile_definitions( ROS_VERSION_MINOR=XX ),add_compile_definitions( ROS_VERSION_PATCH=XX ) to your CMakeLists.txt. Where; ardent={2,1,0}, bouncy={2,2,0}, crystal={2,3,0} etc. 
 #endif
 
+// Copied from ROS1 common.h header files so we can use version comparisions between the two versions.
 #define ROS_VERSION_COMBINED(major, minor, patch) (((major) << 20) | ((minor) << 10) | (patch))
 #define ROS_VERSION ROS_VERSION_COMBINED(ROS_VERSION_MAJOR, ROS_VERSION_MINOR, ROS_VERSION_PATCH)
 

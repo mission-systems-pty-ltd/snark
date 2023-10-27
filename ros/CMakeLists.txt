@@ -37,14 +37,6 @@ find_package(rosbag2_cpp REQUIRED)
 set( ros2_core_include_dirs ${rclcpp_INCLUDE_DIRS}  ${rmw_INCLUDE_DIRS}  ${rosidl_generator_cpp_INCLUDE_DIRS}  ${rosidl_typesupport_interface_INCLUDE_DIRS}  ${rcl_interfaces_INCLUDE_DIRS} )
 set( ros2_extra_include_dirs ${rosbag2_cpp_INCLUDE_DIRS} )
 set( ros2_core_libs ${rclcpp_LIBRARIES} ${rmw_LIBRARIES} ${rosbag2_cpp_LIBRARIES} ${rosidl_generator_cpp_LIBRARIES} ${rosidl_typesupport_interface_LIBRARIES} ${rcl_interfaces_LIBRARIES} )
-set( ros2_core_libs
-    ${rmw_LIBRARIES}
-    ${rosbag2_cpp_LIBRARIES}
-    ${rosidl_generator_cpp_LIBRARIES}
-    ${rosidl_typesupport_interface_LIBRARIES}
-    ${rclcpp_LIBRARIES}
-    ${rcl_interfaces_LIBRARIES} 
-)
 
 # ROS2 appears to include shared libraries a million times over and over... It slows down the linker so much its painful 
 # sorting the list and removing duplicates seems to help a lot - I'm just worried that it's fragile :/
@@ -57,20 +49,7 @@ function(sort_and_remove_duplicates input_list_name output_list_name)
     set(${output_list_name} ${input_list} PARENT_SCOPE)
 endfunction()
 
-
-set( core_ros2_libs
-    ${rclcpp_LIBRARIES} 
-    ${rcl_interfaces_LIBRARIES} 
-    ${rmw_LIBRARIES} 
-    ${rosidl_generator_cpp_LIBRARIES} 
-    ${rosidl_typesupport_interface_LIBRARIES} 
-    ${type_description_interfaces_LIBRARIES} 
-)
-
 sort_and_remove_duplicates( ros2_core_libs ros2_core_libs_sorted )
-
-# TODO: ros2_extra_libs
-message("ROS 2 version: $ENV{ROS_DISTRO}")
 
 # ROS2 does not define ROS_VERSION, so we define it here to make the macros in the c++ code 
 # make more sense & to allow us to have some form of backwards compatibility.

@@ -35,6 +35,8 @@ target_include_directories(ros2-points PRIVATE
 )
 # Sorting creatly reduces linker time
 set( all_ros2_libs ${ros2_core_libs} ${rosbag2_cpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${std_msgs_LIBRARIES} )
+# ROS2 appears to include shared libraries a million times over and over... It slows down the linker so much its painful 
+# sorting the list and removing duplicates seems to help a lot - I'm just worried that it's fragile :/
 sort_and_remove_duplicates(all_ros2_libs all_ros2_libs_sorted)
 
 target_link_libraries( ros2-points ${all_ros2_libs_sorted} ${snark_ALL_EXTERNAL_LIBRARIES} )

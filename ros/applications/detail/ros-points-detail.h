@@ -15,13 +15,121 @@
 #include "../../rclcpp/time.h"
 #include "../../version.h"
 
+void usage( bool verbose = false )
+{
+    std::cerr << "\nconvert ROS PointCloud2 to csv and vice-versa";
+    std::cerr << "\n";
+    std::cerr << "\nusage: " << comma::verbose.app_name() << " --from=<topic> [<options>]";
+    std::cerr << "\n       " << comma::verbose.app_name() << " --to=<topic> [<options>]";
+    std::cerr << "\n";
+    std::cerr << "\ngeneral options";
+    std::cerr << "\n    --help,-h:       show help; --help --verbose: show more help";
+    std::cerr << "\n    --verbose,-v:    show detailed messages";
+    std::cerr << "\n    --header-fields: write csv field names of header to stdout and exit";
+    std::cerr << "\n    --header-format: write csv format of header to stdout and exit";
+    std::cerr << "\n    --node-name:     node name for this process, when not specified uses";
+    std::cerr << "\n                     ros::init_options::AnonymousName flag";
+    std::cerr << "\n    --output-fields: print field names and exit";
+    std::cerr << "\n    --output-format: print format and exit";
+    std::cerr << "\n";
+    std::cerr << "\n    field names and format are extracted from the first message of the";
+    std::cerr << "\n    subscribed topic";
+    std::cerr << "\n";
+    std::cerr << "\nfrom options";
+    std::cerr << "\n    --from=<topic>:           topic to read";
+    std::cerr << "\n    --bags=[<bags>]:          load from rosbags rather than subscribe";
+    std::cerr << "\n    --fields=[<names>]:       only output listed fields";
+    std::cerr << "\n    --flush:                  call flush on stdout after each write";
+    std::cerr << "\n    --header,--output-header: prepend t,block header to output with t,ui format";
+    std::cerr << "\n    --ignore-time-format:     don't do any interpretation of time format";
+    std::cerr << "\n    --max-datagram-size:      for UDP transport. See ros::TransportHints";
+    std::cerr << "\n    --no-discard:             don't discard points with nan or inf";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS Subscriber queue size, default 1";
+    std::cerr << "\n";
+    std::cerr << "\nto options";
+    std::cerr << "\n    --to=<topic>:             topic to publish to";
+    std::cerr << "\n    --all:                    send all records as one ros message";
+    std::cerr << "\n    --fields,-f=<fields>:     fields names; default=x,y,z";
+    std::cerr << "\n    --field-name-map=[<map>]: rename fields; format: old:new,...";
+    std::cerr << "\n    --frame=[<frame>]:        ros message frame as string";
+    std::cerr << "\n    --hang-on,--stay:         wait before exiting so that subscribers can";
+    std::cerr << "\n                              receive the last message";
+    std::cerr << "\n    --latch:                  last message will be saved for future subscribers";
+    std::cerr << "\n    --output,-o=[<bag>]:      write to bag rather than publish";
+    std::cerr << "\n    --output-fields=[<fields>]: fields to output; default: all input fields";
+    std::cerr << "\n    --pass-through,--pass:    pass input data to stdout";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
+    std::cerr << "\n    --time-format=<fmt>:      time format in ROS pointfield; default: none";
+    std::cerr << "\n";
+    if( verbose )
+    {
+        std::cerr << "\nfield names";
+        std::cerr << "\n    Field names are generally duplicated in the ROS PointCloud2 message.";
+        std::cerr << "\n    They can be mapped to another name with the --field-name-map option.";
+        std::cerr << "\n";
+        std::cerr << "\ntime formats";
+        std::cerr << "\n    The ROS PointCloud2 message contains a ROS-format timestamp in the message";
+        std::cerr << "\n    header and also contains a time field in each point field if that has been";
+        std::cerr << "\n    included in the fields (usually it is).";
+        std::cerr << "\n";
+        std::cerr << "\n    For the individual point timestamp there are several options:";
+        std::cerr << "\n        none:               straight copy of the incoming timestamp";
+        std::cerr << "\n        offset-seconds:     offset in seconds from header timestamp (float)";
+        std::cerr << "\n        offset-nanoseconds: offset in nanoseconds from header timestamp (uint32)";
+        std::cerr << "\n";
+        std::cerr << "\n    The --time-format option applies to the --to operation. The --from operation";
+        std::cerr << "\n    deduces the interpretation from the data type (float or uint32)";
+        std::cerr << "\n";
+        std::cerr << "\nexamples";
+        std::cerr << "\n    --- view points from a published topic ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --fields x,y,z --binary 3f --header \\";
+        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- view points from a set of bags ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --bags \"*.bag\" --fields x,y,z --binary 3f \\";
+        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- publish on /points topic ---";
+        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -f t,block,x,y,z -b t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- write /points topic to a bag file ---";
+        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -o my.bag -f t,block,x,y,z -b t,ui,3f";
+        std::cerr << "\n";
+        std::cerr << "\n    --- change a field name ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,channel,x,y,z --format t,ui,3d \\";
+        std::cerr << "\n               --field-name-map channel:ring";
+        std::cerr << "\n";
+        std::cerr << "\n    --- read or write timestamps as offsets ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,x,y,z --format t,3d \\";
+        std::cerr << "\n               --time-format offset-seconds";
+        std::cerr << "\n";
+        std::cerr << "\n    -- see underlying data in bag file written with offset-seconds ---";
+        std::cerr << "\n    " << comma::verbose.app_name() << " --bags <file> --from /points --fields t,x,y,z --format f,3d \\";
+        std::cerr << "\n               --ignore-time-format";
+        std::cerr << "\n";
+        std::cerr << "\n    --- create random test data ---";
+        std::cerr << "\n    csv-random make --type 3d | csv-paste line-number - \\";
+        std::cerr << "\n        | csv-blocks group --fields scalar --span 1000 | csv-time-stamp \\";
+        std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3d,ui";
+    }
+    else
+    {
+        std::cerr << "\nrun \"" << comma::verbose.app_name() << " --help --verbose\" for more detail and examples of use";
+    }
+    std::cerr << "\n" << std::endl;
+}
+
+// TODO: Use this file in ros-points too.
+#if ROS_VERSION_MINIMUM(2,0,0)
+    namespace snark_ros_sensor_msgs = sensor_msgs::msg;
+#else 
+    namespace snark_ros_sensor_msgs = sensor_msgs;
+#endif
 
 static bool status = 0; // quick and dirty
 
-
-
 /// utility functions for ros sensor_msgs::msg::PointCloud2
-namespace snark { namespace ros2 { namespace pointcloud {
+namespace snark { namespace ros { namespace pointcloud {
 
 const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
 {
@@ -30,14 +138,14 @@ const std::vector< comma::csv::format::types_enum >& get_rmap_data_type()
     if( rmap_data_type.size() == 0 )
     {
         rmap_data_type.resize( 9 );
-        rmap_data_type.at( sensor_msgs::msg::PointField::INT8 ) = comma::csv::format::char_t;
-        rmap_data_type.at( sensor_msgs::msg::PointField::UINT8 ) = comma::csv::format::uint8;
-        rmap_data_type.at( sensor_msgs::msg::PointField::INT16 ) = comma::csv::format::int16;
-        rmap_data_type.at( sensor_msgs::msg::PointField::UINT16 ) = comma::csv::format::uint16;
-        rmap_data_type.at( sensor_msgs::msg::PointField::INT32 ) = comma::csv::format::int32;
-        rmap_data_type.at( sensor_msgs::msg::PointField::UINT32 ) = comma::csv::format::uint32;
-        rmap_data_type.at( sensor_msgs::msg::PointField::FLOAT32 ) = comma::csv::format::float_t;
-        rmap_data_type.at( sensor_msgs::msg::PointField::FLOAT64 ) = comma::csv::format::double_t;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::INT8 ) = comma::csv::format::char_t;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::UINT8 ) = comma::csv::format::uint8;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::INT16 ) = comma::csv::format::int16;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::UINT16 ) = comma::csv::format::uint16;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::INT32 ) = comma::csv::format::int32;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::UINT32 ) = comma::csv::format::uint32;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::FLOAT32 ) = comma::csv::format::float_t;
+        rmap_data_type.at( snark_ros_sensor_msgs::PointField::FLOAT64 ) = comma::csv::format::double_t;
     }
     return rmap_data_type;
 }
@@ -288,7 +396,7 @@ private:
     bool ignore_time_format;
 };
 
-} } } //  namespace pointcloud { namespace snark { namespace ros2 {
+} } } //  namespace pointcloud { namespace snark { namespace ros {
 
 struct header
 {
@@ -332,9 +440,9 @@ public:
     {
         try
         {
-            std::string pointcloud_fields = snark::ros2::pointcloud::msg_fields_names( input->fields, fields );
-            comma::csv::format pointcloud_format = snark::ros2::pointcloud::msg_fields_format( input->fields, fields );
-            comma::csv::format output_format = snark::ros2::pointcloud::msg_fields_format( input->fields, fields, !ignore_time_format );
+            std::string pointcloud_fields = snark::ros::pointcloud::msg_fields_names( input->fields, fields );
+            comma::csv::format pointcloud_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields );
+            comma::csv::format output_format = snark::ros::pointcloud::msg_fields_format( input->fields, fields, !ignore_time_format );
 
             if( output_fields_option )
             {
@@ -360,7 +468,7 @@ public:
             unsigned int record_size = input->point_step;
             ::header header( input->header.stamp, block_++ );
 
-            std::unique_ptr< snark::ros2::pointcloud::bin_base > bin;
+            std::unique_ptr< snark::ros::pointcloud::bin_base > bin;
             // if we haven't selected a subset fields or re-arranged the fields;
             // and there are no time fields which might need intepretation:
             // we can do a straight copy from ros data to output
@@ -368,11 +476,11 @@ public:
             bool has_time_field = comma::csv::fields_exist( pointcloud_fields, "t" ) || comma::csv::fields_exist( pointcloud_fields, "time" );
             if( csv.fields.empty() && !has_time_field )
             {
-                bin.reset( new snark::ros2::pointcloud::bin_cat( record_size ));
+                bin.reset( new snark::ros::pointcloud::bin_cat( record_size ));
             }
             else
             {
-                bin.reset( new snark::ros2::pointcloud::bin_shuffle( csv.fields.empty() ? pointcloud_fields : csv.fields
+                bin.reset( new snark::ros::pointcloud::bin_shuffle( csv.fields.empty() ? pointcloud_fields : csv.fields
                                                                   , input->fields, input->header.stamp, ignore_time_format ));
             }
 
@@ -495,7 +603,7 @@ template <> struct traits< record >
 
 } } // namespace comma { namespace visiting {
 
-namespace snark { namespace ros2 {
+namespace snark { namespace ros {
 
 enum class time_format_enum { none, offset_seconds, offset_nanoseconds };
 
@@ -536,7 +644,7 @@ public:
         comma::verbose << "outputting " << output_fields_str << std::endl;
         frame_id = options.value< std::string >( "--frame", "" );
         std::string field_name_mappings = options.value< std::string >( "--field-name-map", "" );
-        time_format = snark::ros2::string_to_time_format( options.value< std::string >( "--time-format", "none" ));
+        time_format = snark::ros::string_to_time_format( options.value< std::string >( "--time-format", "none" ));
 
         comma::csv::format expanded_format( format.expanded_string() );
         std::vector< std::string > fields = comma::split( csv.fields, ',' );
@@ -703,7 +811,7 @@ private:
     time_format_enum time_format;
 };
 
-} } // namespace snark { namespace ros2 {
+} } // namespace snark { namespace ros {
 
 class to_points
 {
@@ -745,7 +853,7 @@ public:
 private:
     std::vector< record > records;
     comma::csv::format format;
-    snark::ros2::to_point_cloud point_cloud;
+    snark::ros::to_point_cloud point_cloud;
     std::size_t data_size;
     bool ascii;
 };

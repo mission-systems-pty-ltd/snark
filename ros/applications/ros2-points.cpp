@@ -8,7 +8,7 @@
 #include <rosbag2_cpp/writer.hpp>
 #include <rclcpp/serialization.hpp>
 #include "../rclcpp/time.h"
-#include "detail/pointcloud.h"
+#include "detail/ros-points-detail.h"
 
 void bash_completion( unsigned int const ac, char const * const * av )
 {
@@ -22,109 +22,6 @@ void bash_completion( unsigned int const ac, char const * const * av )
     exit( 0 );
 }
 
-void usage( bool verbose = false )
-{
-    std::cerr << "\nconvert ROS PointCloud2 to csv and vice-versa";
-    std::cerr << "\n";
-    std::cerr << "\nusage: " << comma::verbose.app_name() << " --from=<topic> [<options>]";
-    std::cerr << "\n       " << comma::verbose.app_name() << " --to=<topic> [<options>]";
-    std::cerr << "\n";
-    std::cerr << "\ngeneral options";
-    std::cerr << "\n    --help,-h:       show help; --help --verbose: show more help";
-    std::cerr << "\n    --verbose,-v:    show detailed messages";
-    std::cerr << "\n    --header-fields: write csv field names of header to stdout and exit";
-    std::cerr << "\n    --header-format: write csv format of header to stdout and exit";
-    std::cerr << "\n    --node-name:     node name for this process, when not specified uses";
-    std::cerr << "\n                     ros::init_options::AnonymousName flag";
-    std::cerr << "\n    --output-fields: print field names and exit";
-    std::cerr << "\n    --output-format: print format and exit";
-    std::cerr << "\n";
-    std::cerr << "\n    field names and format are extracted from the first message of the";
-    std::cerr << "\n    subscribed topic";
-    std::cerr << "\n";
-    std::cerr << "\nfrom options";
-    std::cerr << "\n    --from=<topic>:           topic to read";
-    std::cerr << "\n    --bags=[<bags>]:          load from rosbags rather than subscribe";
-    std::cerr << "\n    --fields=[<names>]:       only output listed fields";
-    std::cerr << "\n    --flush:                  call flush on stdout after each write";
-    std::cerr << "\n    --header,--output-header: prepend t,block header to output with t,ui format";
-    std::cerr << "\n    --ignore-time-format:     don't do any interpretation of time format";
-    std::cerr << "\n    --max-datagram-size:      for UDP transport. See ros::TransportHints";
-    std::cerr << "\n    --no-discard:             don't discard points with nan or inf";
-    std::cerr << "\n    --queue-size=[<n>]:       ROS Subscriber queue size, default 1";
-    std::cerr << "\n";
-    std::cerr << "\nto options";
-    std::cerr << "\n    --to=<topic>:             topic to publish to";
-    std::cerr << "\n    --all:                    send all records as one ros message";
-    std::cerr << "\n    --fields,-f=<fields>:     fields names; default=x,y,z";
-    std::cerr << "\n    --field-name-map=[<map>]: rename fields; format: old:new,...";
-    std::cerr << "\n    --frame=[<frame>]:        ros message frame as string";
-    std::cerr << "\n    --hang-on,--stay:         wait before exiting so that subscribers can";
-    std::cerr << "\n                              receive the last message";
-    std::cerr << "\n    --latch:                  last message will be saved for future subscribers";
-    std::cerr << "\n    --output,-o=[<bag>]:      write to bag rather than publish";
-    std::cerr << "\n    --output-fields=[<fields>]: fields to output; default: all input fields";
-    std::cerr << "\n    --pass-through,--pass:    pass input data to stdout";
-    std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
-    std::cerr << "\n    --time-format=<fmt>:      time format in ROS pointfield; default: none";
-    std::cerr << "\n";
-    if( verbose )
-    {
-        std::cerr << "\nfield names";
-        std::cerr << "\n    Field names are generally duplicated in the ROS PointCloud2 message.";
-        std::cerr << "\n    They can be mapped to another name with the --field-name-map option.";
-        std::cerr << "\n";
-        std::cerr << "\ntime formats";
-        std::cerr << "\n    The ROS PointCloud2 message contains a ROS-format timestamp in the message";
-        std::cerr << "\n    header and also contains a time field in each point field if that has been";
-        std::cerr << "\n    included in the fields (usually it is).";
-        std::cerr << "\n";
-        std::cerr << "\n    For the individual point timestamp there are several options:";
-        std::cerr << "\n        none:               straight copy of the incoming timestamp";
-        std::cerr << "\n        offset-seconds:     offset in seconds from header timestamp (float)";
-        std::cerr << "\n        offset-nanoseconds: offset in nanoseconds from header timestamp (uint32)";
-        std::cerr << "\n";
-        std::cerr << "\n    The --time-format option applies to the --to operation. The --from operation";
-        std::cerr << "\n    deduces the interpretation from the data type (float or uint32)";
-        std::cerr << "\n";
-        std::cerr << "\nexamples";
-        std::cerr << "\n    --- view points from a published topic ---";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --fields x,y,z --binary 3f --header \\";
-        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
-        std::cerr << "\n";
-        std::cerr << "\n    --- view points from a set of bags ---";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --from <topic> --bags \"*.bag\" --fields x,y,z --binary 3f \\";
-        std::cerr << "\n        | view-points --fields t,block,x,y,z --binary t,ui,3f";
-        std::cerr << "\n";
-        std::cerr << "\n    --- publish on /points topic ---";
-        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -f t,block,x,y,z -b t,ui,3f";
-        std::cerr << "\n";
-        std::cerr << "\n    --- write /points topic to a bag file ---";
-        std::cerr << "\n    cat data.bin | " << comma::verbose.app_name() << " --to /points -o my.bag -f t,block,x,y,z -b t,ui,3f";
-        std::cerr << "\n";
-        std::cerr << "\n    --- change a field name ---";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,channel,x,y,z --format t,ui,3d \\";
-        std::cerr << "\n               --field-name-map channel:ring";
-        std::cerr << "\n";
-        std::cerr << "\n    --- read or write timestamps as offsets ---";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --to /points --fields t,x,y,z --format t,3d \\";
-        std::cerr << "\n               --time-format offset-seconds";
-        std::cerr << "\n";
-        std::cerr << "\n    -- see underlying data in bag file written with offset-seconds ---";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --bags <file> --from /points --fields t,x,y,z --format f,3d \\";
-        std::cerr << "\n               --ignore-time-format";
-        std::cerr << "\n";
-        std::cerr << "\n    --- create random test data ---";
-        std::cerr << "\n    csv-random make --type 3d | csv-paste line-number - \\";
-        std::cerr << "\n        | csv-blocks group --fields scalar --span 1000 | csv-time-stamp \\";
-        std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3d,ui";
-    }
-    else
-    {
-        std::cerr << "\nrun \"" << comma::verbose.app_name() << " --help --verbose\" for more detail and examples of use";
-    }
-    std::cerr << "\n" << std::endl;
-}
 
 // =========================
 // --from topic
