@@ -27,8 +27,7 @@ struct pose_flat // quick and dirty
 
 namespace comma { namespace visiting {
 
-template <>
-struct traits< snark::frames::impl::pose_flat >
+template <> struct traits< snark::frames::impl::pose_flat >
 {
     template < typename Key, class Visitor >
     static void visit( const Key&, snark::frames::impl::pose_flat& p, Visitor& v )

@@ -169,12 +169,12 @@ uint64_t discarded_counter=0;
 boost::posix_time::time_duration discarded_time_diff_max;
 
 std::vector< boost::shared_ptr< snark::applications::frame > > parse_frames( const std::vector< std::string >& values
-                                                    , const comma::csv::options& options
-                                                    , bool discard_out_of_order
-                                                    , bool outputframe
-                                                    , std::vector< bool > to
-                                                    , bool interpolate
-                                                    , bool rotation_present )
+                                                                           , const comma::csv::options& options
+                                                                           , bool discard_out_of_order
+                                                                           , bool outputframe
+                                                                           , std::vector< bool > to
+                                                                           , bool interpolate
+                                                                           , bool rotation_present )
 {
     std::vector< boost::shared_ptr< snark::applications::frame > > frames;
     for( std::size_t i = 0; i < values.size(); ++i )
@@ -189,14 +189,9 @@ std::vector< boost::shared_ptr< snark::applications::frame > > parse_frames( con
             {
                 switch( t.size() )
                 {
-                    case 3:
-                        position = snark::applications::position( comma::csv::ascii< Eigen::Vector3d >().get( t ) );
-                        break;
-                    case 6:
-                        position = comma::csv::ascii< snark::applications::position >().get( t );
-                        break;
-                    default:
-                        break;
+                    case 3: position = snark::applications::position( comma::csv::ascii< Eigen::Vector3d >().get( t ) ); break;
+                    case 6: position = comma::csv::ascii< snark::applications::position >().get( t ); break;
+                    default: break;
                 }
             }
             catch( ... ) {}
@@ -249,10 +244,8 @@ void run( const std::vector< boost::shared_ptr< snark::applications::frame > >& 
         }
     }
     // ---------------------------------------------------
-
     std::string output_buf;
     if( csv.binary() ) { output_buf.resize( csv.format().size() ); }
-
     while( !is_shutdown )
     {
         const snark::applications::frame::point_type* p = istream.read();
