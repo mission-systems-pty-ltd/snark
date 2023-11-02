@@ -56,6 +56,7 @@
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include "../cv_mat/serialization.h"
+#include "snark/render/colour_map.h"
 
 void usage()
 {
@@ -67,7 +68,7 @@ void usage()
     std::cerr << "options" << std::endl;
     std::cerr << "    --binary,-b=<format>: binary input format" << std::endl;
     std::cerr << "    --clockwise: if polar, clockwise rotation; default: counter-clockwise" << std::endl;
-    std::cerr << "    --colour-map,--colourmap,--colour=<which>: currently 'hot', 'jet', 'green', 'red', or <r>,<g>,<b>; default green (0,255,0); use --output=\"type=3ub\" to activate colour map" << std::endl;
+    std::cerr << "    --colour-map,--colourmap,--colour=<which>: currently 'hot', 'jet', 'green', 'red', 'magma', 'viridis', 'twilight', or <r>,<g>,<b>; default green (0,255,0); use --output=\"type=3ub\" to activate colour map" << std::endl;
     std::cerr << "    --delimiter,-d: csv delimiter; default ','" << std::endl;
     std::cerr << "    --degrees: if angle field present, angle as degrees; default radians" << std::endl;
     std::cerr << "    --dirty,--do-not-clean: do not clean the current image from the rows from previous blocks" << std::endl;
@@ -184,85 +185,6 @@ class scaled // quick and dirty
         std::pair< double, double > from_;
         std::pair< double, double > to_;
         double factor_;
-};
-
-struct color_map // quick and dirty
-{
-    typedef boost::array< unsigned char, 3 > pixel;
-    
-    typedef boost::array< pixel, 256 > values;
-    
-    enum { red = 2, green = 1, blue = 0 };
-    
-    static values constant( unsigned char r, unsigned char g, unsigned char b )
-    {
-        values v;
-        //for( unsigned int i = 0; i < 255; ++i ) { v[i][red] = ( i * r ) / 256; v[i][green] = ( i * g ) / 256; v[i][blue] = ( i * b ) / 256; }
-        for( unsigned int i = 0; i < 256; ++i )
-        { 
-            v[i][red] = ( i * r ) / 255; v[i][green] = ( i * g ) / 255; v[i][blue] = ( i * b ) / 255;
-        }
-        return v;
-    }
-    
-    static values temperature( unsigned char offset_r, unsigned char offset_g )
-    {
-        values v;
-        for( unsigned int i = 0; i < offset_r; ++i )
-        {
-            v[i][red] = ( i * 255 ) / offset_r;
-            v[i][green] = 0;
-            v[i][blue] = 0;
-        }
-        for( unsigned int i = offset_r; i < ( offset_r + offset_g ); ++i )
-        {
-            v[i][red] = 255;
-            v[i][green] = ( ( i - offset_r ) * 255 ) / offset_g;
-            v[i][blue] = 0;
-        }
-        for( unsigned int i = offset_r + offset_g; i < 256; ++i )
-        {
-            v[i][red] = 255;
-            v[i][green] = 255;
-            v[i][blue] = ( ( i - offset_r - offset_g ) * 255 ) / ( 256 - offset_r - offset_g );
-        }
-        return v;
-    }
-    
-    static values jet()
-    {
-        values v;
-        jet_impl_( v, red, 32 + 64 );
-        jet_impl_( v, green, 32 );
-        jet_impl_( v, blue, -32 );
-        for( unsigned int i = 0; i < 64; ++i ) { v[i][red] = 0; }
-        for( unsigned int i = 256 - 64; i < 256; ++i ) { v[i][blue] = 0; }
-        return v;
-    }
-    
-    static pixel contrast_to( const values& v )
-    {
-        pixel p;
-        for( unsigned int i = 0; i < 3; ++i )
-        {
-            unsigned int average = 0;
-            for( unsigned int k = 0; k < 256; ++k ) { average += v[k][i]; }
-            average /= 256;
-            p[i] = 255 - average;
-        }
-        return p;
-    }
-    
-    private:
-        static void jet_impl_( values& v, unsigned int channel, int offset )
-        {
-            for( unsigned int i = 0; i < 256; ++i ) { v[i][channel] = 0; }
-            comma::math::cyclic< unsigned int > c( 0, 256 );
-            c += offset;
-            for( unsigned int i = 1; i < 64; ++i, ++c ) { v[ c() ][channel] = i * 4; }
-            for( unsigned int i = 0; i < 65; ++i, ++c ) { v[ c() ][channel] = 255; }
-            for( unsigned int i = 1; i < 64; ++i, ++c ) { v[ c() ][channel] = 255 - i * 4; }
-        }
 };
 
 static bool verbose;
@@ -394,15 +316,18 @@ class channel
             , angle_step_( ( M_PI * 2 ) / block_size )
             , options_( options )
         {
-            if( options.colourmap == "green" ) { colourmap_ = color_map::constant( 0, 255, 0 ); }
-            else if( options.colourmap == "red" ) { colourmap_ = color_map::constant( 255, 0, 0 ); }
-            else if( options.colourmap == "hot" ) { colourmap_ = color_map::temperature( 96, 96 ); }
-            else if( options.colourmap == "jet" ) { colourmap_ = color_map::jet(); }
+            if( options.colourmap == "green" ) { colourmap_ = snark::render::colour_map::constant( 0, 255, 0 ); }
+            else if( options.colourmap == "red" ) { colourmap_ = snark::render::colour_map::constant( 255, 0, 0 ); }
+            else if( options.colourmap == "hot" ) { colourmap_ = snark::render::colour_map::temperature( 96, 96 ); }
+            else if( options.colourmap == "jet" ) { colourmap_ = snark::render::colour_map::jet(); }
+            else if( options.colourmap == "magma" ) { colourmap_ = snark::render::colour_map::magma(); }
+            else if( options.colourmap == "viridis" ) { colourmap_ = snark::render::colour_map::viridis(); }
+            else if( options.colourmap == "twilight" ) { colourmap_ = snark::render::colour_map::twilight(); }
             else
             { 
                 std::vector< std::string > v = comma::split( options.colourmap, ',' );
                 if( v.size() != 3 ) { COMMA_THROW( comma::exception, "image-accumulate: expected colourmap, got '" << options.colourmap << "'" ); }
-                colourmap_ = color_map::constant( boost::lexical_cast< unsigned int >( v[0] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ) );
+                colourmap_ = snark::render::colour_map::constant( boost::lexical_cast< unsigned int >( v[0] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ) );
             }
             if( options.dial_colour == "white" ) { dial_colour_ = cv::Scalar( 255, 255, 255 ); }
             else if( options.dial_colour == "white" ) { dial_colour_ = cv::Scalar( 255, 255, 255 ); }
@@ -416,6 +341,14 @@ class channel
                 std::vector< std::string > v = comma::split( options.dial_colour, ',' );
                 if( v.size() != 3 ) { COMMA_THROW( comma::exception, "image-accumulate: expected colour, got '" << options.dial_colour << "'" ); }
                 dial_colour_ = cv::Scalar( boost::lexical_cast< unsigned int >( v[2] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[0] ) );
+            }
+
+            // shuffle the channels
+            auto colourmap_temp = colourmap_;
+            for( unsigned int i = 0; i < 256; ++i ) { 
+                colourmap_[i][0] = colourmap_temp[i][2]; 
+                colourmap_[i][1] = colourmap_temp[i][1]; 
+                colourmap_[i][2] = colourmap_temp[i][0]; 
             }
         }
 
@@ -469,7 +402,7 @@ class channel
     private:
         unsigned int index_;
         scaled< unsigned char > scaled_;
-        color_map::values colourmap_;
+        snark::render::colour_map::values colourmap_;
         cv::Scalar dial_colour_;
         boost::posix_time::ptime timestamp_;
         boost::optional< unsigned int > block_;
