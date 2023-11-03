@@ -37,6 +37,7 @@
 #include <comma/csv/stream.h>
 #include "../../../../imaging/cv_mat/pipeline.h"
 #include "../../../../imaging/cv_mat/bursty_pipeline.h"
+#include <opencv2/imgproc/types_c.h>
 #include <pylon/PylonIncludes.h>
 #include <pylon/gige/BaslerGigECamera.h>
 #include <pylon/usb/BaslerUsbCamera.h>
