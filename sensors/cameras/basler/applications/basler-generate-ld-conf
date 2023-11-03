@@ -1,13 +1,24 @@
 #!/bin/bash
 dir=$1
+basler_version=$2
 echo "basler-generate-ld-conf: generating $( pwd )/basler.conf..." >&2
 echo "basler-generate-ld-conf: PYLON_ROOT=$1" >&2
-if [[ "$( uname -a | grep i686 )" != "" ]] ; then
-    lib=lib
-    genicam_lib=Linux32_i86
+if (( basler_version <= 5 )); then
+    if [[ "$( uname -a | grep i686 )" != "" ]] ; then
+        lib=lib
+        genicam_lib=Linux32_i86
+    else
+        lib=lib64
+        genicam_lib=Linux64_x64
+    fi
 else
-    lib=lib64
-    genicam_lib=Linux64_x64
+    if [[ "$( uname -a | grep i686 )" != "" ]] ; then
+        lib=lib
+        genicam_lib=Linux32_i86
+    else
+        lib=lib
+        genicam_lib=Linux64_x64
+    fi
 fi
 echo "$dir/$lib" > basler.conf
 echo "$dir/$lib/pylon/tl" >> basler.conf

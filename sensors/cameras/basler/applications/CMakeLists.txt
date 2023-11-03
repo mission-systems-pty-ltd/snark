@@ -5,7 +5,7 @@ set( BINARY_DIR "${CMAKE_BINARY_DIR}/sensors/cameras/basler/applications" )
 add_custom_target( basler.conf ) # quick and dirty
 add_custom_command( TARGET basler.conf
                     POST_BUILD
-                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/basler-generate-ld-conf ARGS "${BASLER_PYLON_DIR}" )
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/basler-generate-ld-conf ARGS "${BASLER_PYLON_DIR}" "${BASLER_PYLON_MAJOR_VERSION}" )
 install( FILES ${BINARY_DIR}/basler.conf DESTINATION /etc/ld.so.conf.d )
 install( CODE "message( \"sensors/cameras/basler: running ldconfig\" )" )
 install( CODE "execute_process( COMMAND ldconfig )" )
