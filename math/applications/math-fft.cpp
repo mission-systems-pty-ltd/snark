@@ -151,19 +151,21 @@ T* allocate_fftw_array(std::size_t samples)
 //         fftw_free( output ); // seems that fftw_destroy_plan() releases it
 //     }
     
-//     void calculate() { fftw_execute( plan); }
+//     void execute() { fftw_execute( plan); }
     
 //     std::size_t output_size() const { return h.size() / 2; }
 // };
 
-struct fft
+class fft
 {
+private:
     std::vector<double> h;
     fftw_complex* c_input;
     double* input;
     fftw_complex* output;
     fftw_plan plan;
 
+public:
     fft(std::size_t samples) : 
         h( samples ), 
         c_input(allocate_fftw_array<fftw_complex>(samples)) ,
@@ -182,120 +184,120 @@ struct fft
         fftw_free( output ); // seems that fftw_destroy_plan() releases it
     }
     
-    void calculate() { fftw_execute( plan); }
+    void execute() { fftw_execute( plan); }
     
     std::size_t output_size() const { return real_input ? h.size()/2 : h.size(); }
+
+    static void calculate(const double* data, std::size_t size, std::vector<double>& output)
+    {
+        std::size_t samples = real_input ? size : (size/2);
+        fft fft( samples );
+        if(filter_input)
+        {
+            // for(std::size_t i=0;i<size;i++) { fft.input[i][0] = fft.h[i] * data[i]; fft.input[i][1] = fft.h[i] * data[i]; }
+            if (real_input) 
+            {
+                for(std::size_t i=0;i<samples;i++) { fft.input[i] = fft.h[i] * data[i]; }
+            }
+            else 
+            {
+                for(std::size_t i=0;i<samples;i++) { fft.c_input[i][0] = fft.h[i] * data[i]; fft.c_input[i][1] = fft.h[i] * data[i]; }
+            }
+        }
+        else 
+        { 
+            if (real_input) 
+            {
+                memcpy(fft.input, data, samples * sizeof(double) ); 
+            }
+            else 
+            {
+                memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); 
+            }
+            // memcpy(fft.input, data, size * sizeof(double) ); 
+        }
+        
+        fft.execute();
+        
+        if(magnitude)
+        {
+            if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0;j<fft.output_size();j++)
+            {
+                double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+                if(logarithmic_output) { a = std::log10(a); }
+                if(dB_output) { a = 20*std::log10(a); }
+                output[j]=a;
+            }
+        }
+        else if(phase)
+        {
+            if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0;j<fft.output_size();j++)
+            {
+                double a= std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+                output[j]=a;
+            }
+        }
+        else if(real)
+        {
+            if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0;j<fft.output_size();j++)
+            {
+                double a= fft.output[j][0];
+                output[j]=a;
+            }
+        }
+        else if(imaginary)
+        {
+            if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0;j<fft.output_size();j++)
+            {
+                double a= fft.output[j][1];
+                output[j]=a;
+            }
+        }
+        else if(complex_polar)
+        {
+            std::size_t k=0;
+            std::size_t step=2;
+            std::size_t off=1;
+            if(split)
+            {
+                step=1;
+                off=output.size()/2;
+            }
+            if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
+            {
+                double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+                double b = std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+                if(logarithmic_output) { a = std::log10(a); }
+                if(dB_output) { a = 20*std::log10(a); }
+
+                output[k]=a;
+                output[k+off]=b;
+            }
+        }
+        else
+        {
+            std::size_t k=0;
+            std::size_t step=2;
+            std::size_t off=1;
+            if(split)
+            {
+                step=1;
+                off=output.size()/2;
+            }
+            if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+            for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
+            {
+                output[k]=fft.output[j][0];
+                output[k+off]=fft.output[j][1];
+            }
+        }
+    }
 };
-
-void calculate(const double* data, std::size_t size, std::vector<double>& output)
-{
-    std::size_t samples = real_input ? size : (size/2);
-    fft fft( samples );
-    if(filter_input)
-    {
-        // for(std::size_t i=0;i<size;i++) { fft.input[i][0] = fft.h[i] * data[i]; fft.input[i][1] = fft.h[i] * data[i]; }
-        if (real_input) 
-        {
-            for(std::size_t i=0;i<samples;i++) { fft.input[i] = fft.h[i] * data[i]; }
-        }
-        else 
-        {
-            for(std::size_t i=0;i<samples;i++) { fft.c_input[i][0] = fft.h[i] * data[i]; fft.c_input[i][1] = fft.h[i] * data[i]; }
-        }
-    }
-    else 
-    { 
-        if (real_input) 
-        {
-            memcpy(fft.input, data, samples * sizeof(double) ); 
-        }
-        else 
-        {
-            memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); 
-        }
-        // memcpy(fft.input, data, size * sizeof(double) ); 
-    }
-    
-    fft.calculate();
-    
-    if(magnitude)
-    {
-        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0;j<fft.output_size();j++)
-        {
-            double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
-            if(logarithmic_output) { a = std::log10(a); }
-            if(dB_output) { a = 20*std::log10(a); }
-            output[j]=a;
-        }
-    }
-    else if(phase)
-    {
-        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0;j<fft.output_size();j++)
-        {
-            double a= std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
-            output[j]=a;
-        }
-    }
-    else if(real)
-    {
-        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0;j<fft.output_size();j++)
-        {
-            double a= fft.output[j][0];
-            output[j]=a;
-        }
-    }
-    else if(imaginary)
-    {
-        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0;j<fft.output_size();j++)
-        {
-            double a= fft.output[j][1];
-            output[j]=a;
-        }
-    }
-    else if(complex_polar)
-    {
-        std::size_t k=0;
-        std::size_t step=2;
-        std::size_t off=1;
-        if(split)
-        {
-            step=1;
-            off=output.size()/2;
-        }
-        if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
-        {
-            double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
-            double b = std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
-            if(logarithmic_output) { a = std::log10(a); }
-            if(dB_output) { a = 20*std::log10(a); }
-
-            output[k]=a;
-            output[k+off]=b;
-        }
-    }
-    else
-    {
-        std::size_t k=0;
-        std::size_t step=2;
-        std::size_t off=1;
-        if(split)
-        {
-            step=1;
-            off=output.size()/2;
-        }
-        if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
-        for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
-        {
-            output[k]=fft.output[j][0];
-            output[k+off]=fft.output[j][1];
-        }
-    }
-}
 
 struct app
 {
@@ -316,7 +318,7 @@ struct app
             for(std::size_t bin_offset=0;bin_offset<input_size;bin_offset+=(bin_overlap ? bin_size*(1-*bin_overlap) : bin_size))
             {
                 output.reset();
-                calculate(&input->data[bin_offset], std::min(bin_size,input_size-bin_offset), output.data);
+                fft::calculate(&input->data[bin_offset], std::min(bin_size,input_size-bin_offset), output.data);
                 if( tied ) { shuffle_tied.append( output ); } else { os.write(output); }
             }
         }
