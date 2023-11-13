@@ -287,7 +287,8 @@ OPTION( snark_build_sensors "build sensors" ON )
 OPTION( snark_build_terrain "build terrain" ON )
 OPTION( snark_build_web "build web" OFF )
 option( snark_build_ros "build ros" OFF )
-
+# todo! proper options for 'ros1' and ros2
+CMAKE_DEPENDENT_OPTION( snark_build_ros2 "build ros2" OFF "snark_build_ros" OFF )
 
 CMAKE_DEPENDENT_OPTION( ADD_PYTHON_PACKAGES_TO_RPM "add snark python packages to RPM" OFF "snark_build_python" ON )
 
