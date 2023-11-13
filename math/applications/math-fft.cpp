@@ -14,11 +14,16 @@
 #include <comma/string/string.h>
 #include "detail/shuffle-tied.h"
 
-static std::size_t input_size=0;
-static bool filter_input=true;
-static bool logarithmic_output=true;
+static std::size_t input_samples{0}, input_size{0};
+static bool filter_input=false;
+static bool real_input=true;
+static bool logarithmic_output=false;
+static bool dB_output=false;
+static bool complex_polar=false;
 static bool magnitude=false;
+static bool phase=false;
 static bool real=false;
+static bool imaginary=false;
 static bool split=false;
 static std::size_t bin_size=0;
 static boost::optional<double> bin_overlap;
@@ -30,25 +35,33 @@ static void usage( bool detail )
     std::cerr << std::endl;
     std::cerr<< "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
-    std::cerr<< "    input fields: data; an array of double, size is specified with --size"  << std::endl;
-    std::cerr<< "    output: array of pair (real, complex) of double; use --output-size to get size of array of doubles with the specified options"  << std::endl;
+    std::cerr<< "    input fields: data; an array of double or interleaved complex double, length of sequence is specified with --size"  << std::endl;
+    std::cerr<< "    output: array of pair (real, imaginary) of double; use --output-size to get size of array of doubles with the specified options"  << std::endl;
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
     std::cerr << "    --help,-h: show help" << std::endl;
     std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    --bin-size=[<size>]: cut data into several bins of this size and perform fft on each bin, when not speificed calculates fft on the whole data" << std::endl;
     std::cerr << "    --bin-overlap=[<overlap>]: if specified, each bin will contain this portion of the last bin's data, range: 0 (no overlap) to 1"<<std::endl;
-    std::cerr << "    --logarithmic,--log: scale output to logarithm of 10 for magnitude or real part (phase is not affected)" << std::endl;
-    std::cerr << "    --no-filter: when not specified, filters input using a cut window to get limited output" << std::endl;
-    std::cerr << "    --size=<size>: size of input vector" << std::endl;
+    std::cerr << "    --bin-size=[<size>]: cut data into several bins of this size and perform fft on each bin, when not speificed calculates fft on the whole data" << std::endl;
+    std::cerr << "    --complex-input,--complex: when not specified, expect real-valued input, ala rfft" << std::endl;
+    std::cerr << "    --decibels,--dB,--db: scale output to 20*log10 for magnitude (phase is not affected)" << std::endl;
+    std::cerr << "    --filter: when specified, filters input using a cut window to get limited output" << std::endl;
+    std::cerr << "    --logarithmic,--log: scale output to logarithm of 10 for magnitude (phase is not affected)" << std::endl;
+    std::cerr << "    --samples,--size=<samples>: number of samples; for complex input each sample is represented by comma-separated" << std::endl;
+    std::cerr << "                                real and imaginary parts; for real input each sample is just the real part" << std::endl;
     std::cerr << std::endl;
     std::cerr << "  output options:" << std::endl;
+    std::cerr << "    --imaginary: output imaginary part only" << std::endl;
+    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
     std::cerr << "    --magnitude: output magnitude only" << std::endl;
     std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
+    std::cerr << "    --phase: output phase only" << std::endl;
+    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
+    std::cerr << "    --polar: output in complex polar form; (magnitude, phase)" << std::endl;
     std::cerr << "    --real: output real part only" << std::endl;
     std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
-    std::cerr << "    --split: output array of real followed by array of complex part; when not specified real and complex parts are interleaved" << std::endl;
+    std::cerr << "    --split: output array of real/magnitude followed by array of imaginary/phase part; when not specified real/magnitude and imaginary/phase parts are interleaved" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    --shuffle,--shuffle-fields,--shuffled-fields=[<csv_fields>]: comma separated list of input fields to be written to stdout; if not specified prepend all input fields to the output" << std::endl;
     std::cerr << "    --untied,--discard-input: only write output (doesn't write input to stdout)" << std::endl;
@@ -62,10 +75,11 @@ static void usage( bool detail )
     std::cerr << comma::csv::options::usage( detail ) << std::endl;
     std::cerr << std::endl;
     std::cerr << "examples (try first few)" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8 --untied" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,6,7 | math-fft --size=8 --untied --split" << std::endl;
-    std::cerr << "    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --size=16000" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied --split" << std::endl;
+    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex" << std::endl;
+    std::cerr << "    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000" << std::endl;
     std::cerr << std::endl;
     exit(0);
 }
@@ -87,7 +101,7 @@ struct output_t
     output_t()
     {
         std::size_t len=bin_size;
-        if(magnitude || real) { len/=2; }
+        if(magnitude || phase || real || imaginary) { len/=2; }
         data.resize(len);
     }
     
@@ -110,24 +124,55 @@ template <> struct traits< output_t >
 } } // namespace comma { namespace visiting {
 
 template<typename T>
-T* allocate_fftw_array(std::size_t size)
+T* allocate_fftw_array(std::size_t samples)
 {
-    return reinterpret_cast<T*>(fftw_malloc(sizeof(T)*size));
+    return reinterpret_cast<T*>(fftw_malloc(sizeof(T)*samples));
 }
 
-// a quick and dirty helper class
+// // a quick and dirty helper class
+// struct fft
+// {
+//     std::vector<double> h;
+//     double* input;
+//     fftw_complex* output;
+//     fftw_plan plan;
+
+//     fft(std::size_t size) : h( size ), input(allocate_fftw_array<double>(size)) ,
+//         output(allocate_fftw_array<fftw_complex>(size / 2 + 1 )) ,
+//         plan( fftw_plan_dft_r2c_1d( size, input, output, 0 ) )
+//     {
+//         for( std::size_t i = 0; i < size; ++i ) { h[i] = 0.54 - 0.46 * std::cos( M_PI * 2 * i / size ); }
+//     }
+    
+//     ~fft()
+//     {
+//         fftw_destroy_plan(plan);
+//         fftw_free( input ); // seems that fftw_destroy_plan() releases it
+//         fftw_free( output ); // seems that fftw_destroy_plan() releases it
+//     }
+    
+//     void calculate() { fftw_execute( plan); }
+    
+//     std::size_t output_size() const { return h.size() / 2; }
+// };
+
 struct fft
 {
     std::vector<double> h;
+    fftw_complex* c_input;
     double* input;
     fftw_complex* output;
     fftw_plan plan;
 
-    fft(std::size_t size) : h( size ), input(allocate_fftw_array<double>(size)) ,
-        output(allocate_fftw_array<fftw_complex>(size / 2 + 1 )) ,
-        plan( fftw_plan_dft_r2c_1d( size, input, output, 0 ) )
+    fft(std::size_t samples) : 
+        h( samples ), 
+        c_input(allocate_fftw_array<fftw_complex>(samples)) ,
+        input(allocate_fftw_array<double>(samples)) ,
+        output( allocate_fftw_array<fftw_complex>( real_input ? (samples / 2 + 1) : samples ) ) ,
+        plan( real_input ? fftw_plan_dft_r2c_1d( samples, input, output, 0 ) : fftw_plan_dft_1d( samples, c_input, output, FFTW_FORWARD, FFTW_MEASURE ) )
     {
-        for( std::size_t i = 0; i < size; ++i ) { h[i] = 0.54 - 0.46 * std::cos( M_PI * 2 * i / size ); }
+        for( std::size_t i = 0; i < samples; ++i ) { h[i] = 0.54 - 0.46 * std::cos( M_PI * 2 * i / samples ); }
+
     }
     
     ~fft()
@@ -139,17 +184,37 @@ struct fft
     
     void calculate() { fftw_execute( plan); }
     
-    std::size_t output_size() const { return h.size() / 2; }
+    std::size_t output_size() const { return real_input ? h.size()/2 : h.size(); }
 };
 
 void calculate(const double* data, std::size_t size, std::vector<double>& output)
 {
-    fft fft(size);
+    std::size_t samples = real_input ? size : (size/2);
+    fft fft( samples );
     if(filter_input)
     {
-        for(std::size_t i=0;i<size;i++) { fft.input[i] = fft.h[i] * data[i]; }
+        // for(std::size_t i=0;i<size;i++) { fft.input[i][0] = fft.h[i] * data[i]; fft.input[i][1] = fft.h[i] * data[i]; }
+        if (real_input) 
+        {
+            for(std::size_t i=0;i<samples;i++) { fft.input[i] = fft.h[i] * data[i]; }
+        }
+        else 
+        {
+            for(std::size_t i=0;i<samples;i++) { fft.c_input[i][0] = fft.h[i] * data[i]; fft.c_input[i][1] = fft.h[i] * data[i]; }
+        }
     }
-    else { memcpy(fft.input, data, size * sizeof(double)); }
+    else 
+    { 
+        if (real_input) 
+        {
+            memcpy(fft.input, data, samples * sizeof(double) ); 
+        }
+        else 
+        {
+            memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); 
+        }
+        // memcpy(fft.input, data, size * sizeof(double) ); 
+    }
     
     fft.calculate();
     
@@ -158,8 +223,18 @@ void calculate(const double* data, std::size_t size, std::vector<double>& output
         if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
         for(std::size_t j=0;j<fft.output_size();j++)
         {
-            double a= std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
-            if(logarithmic_output) { a = (a == 0) ? 0 : (std::log10(a)); }
+            double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+            if(logarithmic_output) { a = std::log10(a); }
+            if(dB_output) { a = 20*std::log10(a); }
+            output[j]=a;
+        }
+    }
+    else if(phase)
+    {
+        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+        for(std::size_t j=0;j<fft.output_size();j++)
+        {
+            double a= std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
             output[j]=a;
         }
     }
@@ -169,8 +244,38 @@ void calculate(const double* data, std::size_t size, std::vector<double>& output
         for(std::size_t j=0;j<fft.output_size();j++)
         {
             double a= fft.output[j][0];
-            if(logarithmic_output) { a = (a == 0) ? 0 : (std::log10(a)); }
             output[j]=a;
+        }
+    }
+    else if(imaginary)
+    {
+        if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+        for(std::size_t j=0;j<fft.output_size();j++)
+        {
+            double a= fft.output[j][1];
+            output[j]=a;
+        }
+    }
+    else if(complex_polar)
+    {
+        std::size_t k=0;
+        std::size_t step=2;
+        std::size_t off=1;
+        if(split)
+        {
+            step=1;
+            off=output.size()/2;
+        }
+        if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+        for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
+        {
+            double a = std::abs( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+            double b = std::arg( std::complex<double>( fft.output[j][0], fft.output[j][1] ) );
+            if(logarithmic_output) { a = std::log10(a); }
+            if(dB_output) { a = 20*std::log10(a); }
+
+            output[k]=a;
+            output[k+off]=b;
         }
     }
     else
@@ -183,12 +288,10 @@ void calculate(const double* data, std::size_t size, std::vector<double>& output
             step=1;
             off=output.size()/2;
         }
-        if(2*fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
+        if(2*fft.output_size()>output.size() ) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
         for(std::size_t j=0; j<fft.output_size(); j++, k+=step)
         {
-            double a= fft.output[j][0];
-            if(logarithmic_output) { a = (a == 0) ? 0 : (std::log10(a)); }
-            output[k]=a;
+            output[k]=fft.output[j][0];
             output[k+off]=fft.output[j][1];
         }
     }
@@ -237,11 +340,17 @@ int main( int argc, char** argv )
     {
         comma::csv::options csv(options,"data");
         csv.full_xpath = false;
-        filter_input = !options.exists( "--no-filter" );
+        filter_input = options.exists( "--filter" );
+        real_input = !options.exists( "--complex-input,--complex" );
         logarithmic_output = options.exists( "--logarithmic,--log" );
-        input_size = options.value< std::size_t >( "--size" );
+        dB_output = options.exists( "--decibels,--dB,--db" );
+        input_samples = options.value< std::size_t >( "--size,--samples" );
+        input_size = real_input ? input_samples : ( input_samples * 2 );
+        complex_polar = options.exists( "--polar" );
         magnitude = options.exists( "--magnitude" );
+        phase = options.exists( "--phase" );
         real = options.exists( "--real" );
+        imaginary = options.exists( "--imaginary" );
         split = options.exists( "--split" );
         bin_size = options.value<std::size_t>( "--bin-size", input_size );
         range_check< std::size_t >( bin_size, 0, input_size, "bin_size" );
@@ -250,8 +359,13 @@ int main( int argc, char** argv )
         boost::optional< std::string > shuffle_fields = options.optional< std::string >( "--shuffle,--shuffle-fields,--shuffled-fields" );
         tied = !options.exists( "--untied,--discard-input" );
         options.assert_mutually_exclusive( "--shuffle,--shuffle-fields,--shuffled-fields", "--untied,--discard-input" );
-        std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--output-size,--output-format,--output-fields,--no-filter,--logarithmic,--log,--magnitude,--real,--split,--untied,--discard-input"
-                                                            , "--binary,-b,--fields,-f,--delimiter,-d,--size,--bin-size,--bin-overlap,--shuffle,--shuffle-fields,--shuffled-fields" );
+        options.assert_mutually_exclusive( "--polar", "--magnitude,--real,--phase,--imaginary" );
+        options.assert_mutually_exclusive( "--magnitude,--real", "--phase,--imaginary" );
+        options.assert_mutually_exclusive( "--magnitude,--phase", "--real,--imaginary" );
+        options.assert_mutually_exclusive( "--logarithmic,--log,--dB,--decibels,--db", "--real,--imaginary,--phase" );
+        options.assert_mutually_exclusive( "--logarithmic,--log", "--dB,--decibels,--db" );
+        std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--output-size,--output-format,--output-fields,--filter,--complex-input,--complex,--logarithmic,--log,--dB,--decibels,--db,--polar,--magnitude,--phase,--real,--imaginary,--split,--untied,--discard-input"
+                                                            , "--binary,-b,--fields,-f,--delimiter,-d,--size,--samples,--bin-size,--bin-overlap,--shuffle,--shuffle-fields,--shuffled-fields" );
         if( unnamed.size() > 0 ) { comma::say() << "invalid option(s): " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
         app app;
         if(options.exists("--output-size")) { std::cout<< app.get_output_size() << std::endl; return 0; }
