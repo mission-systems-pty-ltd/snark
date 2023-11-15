@@ -70,7 +70,7 @@ static void usage( bool verbose ){
     "\n    TODO: explain the function of stdin vs no stdin mode..."
     "\n"
     "\nOptions:"
-    "\n    --frequency,-f                Frequency to push the slider values to stdout, if there is no stdin (default 1Hz)"
+    "\n    --frequency                   Frequency to push the slider values to stdout, if there is no stdin (default 1Hz)"
     "\n    --gui-frequency               The frequency of the gui update in ms (default 20ms)"
     "\n    --vertical: TODO              all sliders are vertical unless explicitly specified in slider properties"
     "\n    --on-change[TODO]             output values only if they change"
@@ -394,7 +394,7 @@ int main(int ac, char** av) {
         } else
         {
             // Handle case with no stdin - i.e. we just publish the slider values. 
-            float frequency = opts.value< float >( "--frequency,-f", 1 );
+            float frequency = opts.value< float >( "--frequency", 1 );
             bool update_on_change = false;
             if( opts.exists( "--on-change" ) ) { update_on_change = true; }
 
