@@ -240,7 +240,7 @@ int main(int ac, char** av) {
         comma::command_line_options opts( ac, av, usage );
         comma::csv::options global_csv( opts );
         int gui_update_period_ms = opts.value< int >( "--gui-frequency", 20 );
-        auto unnamed = opts.unnamed( "", "-[^;].*" );
+        auto unnamed = opts.unnamed( "--on-change,--verbose,-v,--flush,--vertical", "-[^;].*" );
         if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file ('-' as stdin) or slider" ); } 
 
         int argc = 0;
