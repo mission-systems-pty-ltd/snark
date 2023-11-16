@@ -1,31 +1,36 @@
 set( dir ${SOURCE_CODE_BASE_DIR}/ros/applications )
 
-## Setup for ROS1
-if(EXISTS "/opt/ros/groovy")
-    set(ros_path "/opt/ros/groovy" CACHE STRING "Path to ROS Groovy" FORCE)
-elseif(EXISTS "/opt/ros/hydro")
-    set(ros_path "/opt/ros/hydro" CACHE STRING "Path to ROS Hydro" FORCE)
-elseif(EXISTS "/opt/ros/indigo")
-    set(ros_path "/opt/ros/indigo" CACHE STRING "Path to ROS Indigo" FORCE)
-elseif(EXISTS "/opt/ros/jade")
-    set(ros_path "/opt/ros/jade" CACHE STRING "Path to ROS Jade" FORCE)
-elseif(EXISTS "/opt/ros/kinetic")
-    set(ros_path "/opt/ros/kinetic" CACHE STRING "Path to ROS Kinetic" FORCE)
-elseif(EXISTS "/opt/ros/lunar")
-    set(ros_path "/opt/ros/lunar" CACHE STRING "Path to ROS Lunar" FORCE)
-elseif(EXISTS "/opt/ros/melodic")
-    set(ros_path "/opt/ros/melodic" CACHE STRING "Path to ROS Melodic" FORCE)
-elseif(EXISTS "/opt/ros/noetic")
-    set(ros_path "/opt/ros/noetic" CACHE STRING "Path to ROS Noetic" FORCE)
-else()
-    message( "ros not found; please specify ros path as something like /opt/ros/melodic on your computer or set snark_build_ros to OFF" )
-    set( ros_path "NOT FOUND" CACHE STRING "path to ros, something like /opt/ros/melodic" FORCE )
+if ( NOT snark_build_ros_version_1 AND NOT snark_build_ros_version_2 )
+    message( FATAL_ERROR "snark_build_ros_version_1 and snark_build_ros_version_2 are both OFF; please select at least one of them" )
 endif()
 
-set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole console_bridge cpp_common )
+if( snark_build_ros_version_1 )
+    ## Setup for ROS1
+    if(EXISTS "/opt/ros/groovy")
+        set(ros_path "/opt/ros/groovy" CACHE STRING "Path to ROS Groovy" FORCE)
+    elseif(EXISTS "/opt/ros/hydro")
+        set(ros_path "/opt/ros/hydro" CACHE STRING "Path to ROS Hydro" FORCE)
+    elseif(EXISTS "/opt/ros/indigo")
+        set(ros_path "/opt/ros/indigo" CACHE STRING "Path to ROS Indigo" FORCE)
+    elseif(EXISTS "/opt/ros/jade")
+        set(ros_path "/opt/ros/jade" CACHE STRING "Path to ROS Jade" FORCE)
+    elseif(EXISTS "/opt/ros/kinetic")
+        set(ros_path "/opt/ros/kinetic" CACHE STRING "Path to ROS Kinetic" FORCE)
+    elseif(EXISTS "/opt/ros/lunar")
+        set(ros_path "/opt/ros/lunar" CACHE STRING "Path to ROS Lunar" FORCE)
+    elseif(EXISTS "/opt/ros/melodic")
+        set(ros_path "/opt/ros/melodic" CACHE STRING "Path to ROS Melodic" FORCE)
+    elseif(EXISTS "/opt/ros/noetic")
+        set(ros_path "/opt/ros/noetic" CACHE STRING "Path to ROS Noetic" FORCE)
+    else()
+        message( "ros not found; please specify ros path as something like /opt/ros/melodic on your computer or set snark_build_ros to OFF" )
+        set( ros_path "NOT FOUND" CACHE STRING "path to ros, something like /opt/ros/melodic" FORCE )
+    endif()
 
+    set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole console_bridge cpp_common )
+endif( snark_build_ros_version_1 )
 
-if( snark_build_ros2 )
+if( snark_build_ros_version_2 )
     cmake_minimum_required(VERSION 3.10) # 3.10 is required for rclcpp packages.
     find_package(rclcpp REQUIRED)
     find_package(rmw REQUIRED)
@@ -37,19 +42,6 @@ if( snark_build_ros2 )
     set( ros2_core_include_dirs ${rclcpp_INCLUDE_DIRS}  ${rmw_INCLUDE_DIRS}  ${rosidl_generator_cpp_INCLUDE_DIRS}  ${rosidl_typesupport_interface_INCLUDE_DIRS}  ${rcl_interfaces_INCLUDE_DIRS} )
     set( ros2_extra_include_dirs ${rosbag2_cpp_INCLUDE_DIRS} )
     set( ros2_core_libs ${rclcpp_LIBRARIES} ${rmw_LIBRARIES} ${rosbag2_cpp_LIBRARIES} ${rosidl_generator_cpp_LIBRARIES} ${rosidl_typesupport_interface_LIBRARIES} ${rcl_interfaces_LIBRARIES} )
-
-    # ROS2 appears to include shared libraries a million times over and over... It slows down the linker so much its painful 
-    # sorting the list and removing duplicates seems to help a lot - I'm just worried that it's fragile :/
-    function(sort_and_remove_duplicates input_list_name output_list_name)
-        # Dereference the variable name to get its content
-        set(input_list "${${input_list_name}}")
-        list(REMOVE_DUPLICATES input_list)
-        list(SORT input_list)
-        # Set the result to the output variable
-        set(${output_list_name} ${input_list} PARENT_SCOPE)
-    endfunction()
-
-    sort_and_remove_duplicates( ros2_core_libs ros2_core_libs_sorted )
 
     # ROS2 does not define ROS_VERSION, so we define it here to make the macros in the c++ code 
     # make more sense & to allow us to have some form of backwards compatibility.
@@ -90,7 +82,7 @@ if( snark_build_ros2 )
         add_definitions( -DROS_VERSION_MINOR=9 )
         add_definitions( -DROS_VERSION_PATCH=0 )
     endif()
-endif( snark_build_ros2 )
+endif( snark_build_ros_version_2 )
 
 install( DIRECTORY messages DESTINATION ${snark_INSTALL_INCLUDE_DIR}/ros )
 

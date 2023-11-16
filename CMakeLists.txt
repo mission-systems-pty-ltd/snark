@@ -287,11 +287,11 @@ OPTION( snark_build_sensors "build sensors" ON )
 OPTION( snark_build_terrain "build terrain" ON )
 OPTION( snark_build_web "build web" OFF )
 option( snark_build_ros "build ros" OFF )
-# todo! proper options for 'ros1' and ros2
-CMAKE_DEPENDENT_OPTION( snark_build_ros2 "build ros2" OFF "snark_build_ros" OFF )
 
 CMAKE_DEPENDENT_OPTION( ADD_PYTHON_PACKAGES_TO_RPM "add snark python packages to RPM" OFF "snark_build_python" ON )
 
+CMAKE_DEPENDENT_OPTION( snark_build_ros_version_1 "enable ros1 components" ON "snark_build_ros" OFF )
+CMAKE_DEPENDENT_OPTION( snark_build_ros_version_2 "enable ros2 components" OFF "snark_build_ros" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_asd "build asd components" OFF "snark_build_sensors" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_basler "build basler components" OFF "snark_build_sensors" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_cepton "build cepton components" OFF "snark_build_sensors" OFF )
@@ -558,7 +558,7 @@ IF( snark_build_web )
     add_subdirectory( web )
 ENDIF( snark_build_web )
 
-if(snark_build_ros)
+if( snark_build_ros OR snark_build_ros2)
     add_subdirectory(ros)
 endif()
 
