@@ -228,13 +228,10 @@ int main( int argc, char** argv )
             rosbag2_storage::StorageOptions storage_options;
             storage_options.uri = output_option;
             storage_options.storage_id = "sqlite3";
-            writer.open(storage_options);//,converter_options);
-
             rosbag2_storage::TopicMetadata tm;
             tm.name = "pointcloud_topic";
             tm.type = "sensor_msgs/msg/PointCloud2";
             tm.serialization_format = "cdr";
-            writer.create_topic(tm);
 
             std::shared_ptr<rclcpp::SerializedMessage> serialized_msg = std::make_shared<rclcpp::SerializedMessage>();
 
@@ -247,6 +244,9 @@ int main( int argc, char** argv )
             }
             else
             {
+                writer.open(storage_options);//,converter_options);
+                writer.create_topic(tm);
+
                 publish_fn = std::make_unique<std::function<void(sensor_msgs::msg::PointCloud2)>>(
                     [&topic, &writer, &node](sensor_msgs::msg::PointCloud2 msg) { 
                     // TODO: Use serialization, doesn't work at the moment with: 'unable to dynamically resize serialized message'
