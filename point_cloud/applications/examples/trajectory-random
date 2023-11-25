@@ -1,0 +1,52 @@
+#!/bin/bash
+source $( type -p comma-application-util )
+
+function prologue() { echo "generate smooth constant-velocity trajectory with random rotations"; }
+
+function epilogue()
+{
+    cat <<eof
+examples
+    view "playback"
+        trajectory-random --speed=0.1 \\
+            | csv-repeat --pace --period=0.025 \\
+            | view-points <( echo -10000,-10000,-10000; echo 10000,10000,10000 )';color=black' \\
+                          <( echo 0,0,0 )';color=yellow;weight=10' \\
+                          '-;shape=axes'
+eof
+    exit
+}
+
+function options-description()
+{
+    cat <<eof
+--binary; output as binary 6d
+--extents=[<extents>]; <extents>: <from/x>,<from/y>,<from/z>,<to/x>,<to/y>,<to/z>
+--flush; flush stdout after each record
+--origin=<origin>; default=0,0,0
+--seed=<n>; default=0; random seed
+--speed=<meters_per_second>; linear speed
+eof
+}
+
+comma-application-init $@ < <( options-description ) || die "failed"
+
+(( ! options_binary )) || { binary_option="--binary=3d"; binary_option_6d="--binary=6d"; binary_option_12d="--binary=12d"; }
+(( ! options_flush )) || flush_option="--flush"
+[[ -z "$options_extents" ]] || IFS=, read from_x from_y from_z to_x to_y to_z <<< "$options_extents"
+IFS=, read origin_x origin_y origin_z <<< "$options_origin"
+
+csv-random make --distribution=uniform,0,1 --seed="$options_seed" --type=3d $binary_option $flush_option \
+    | points-calc trajectory-discretise --step=0.01 $binary_option $flush_option \
+    | csv-shuffle --fields ,,,x,y,z -e $binary_option_6d  $flush_option \
+    | csv-eval --fields x,y,z 'x/=5000;y/=200;z/=100' $binary_option $flush_option \
+    | if (( options_binary )); then csv-paste value="$options_speed,0,0;binary=3d" "-;binary=3d" $flush_option; else csv-paste value="$options_speed,0,0" - ; fi \
+    | points-calc frame-integrate $binary_option_6d  $flush_option \
+    | csv-shuffle --fields ,,,,,,x,y,z,roll,pitch,yaw -e $binary_option_12d  $flush_option \
+    | csv-eval --fields x,y,z "x+=$origin_x;y+=$origin_y;z+=$origin_z" $binary_option_6d $flush_option \
+    | if [[ -z "$options_extents" ]]; then
+          cat
+      else
+          sign="(logical_and(logical_and(greater(x,$from_x),less(x,$to_x)),logical_and(greater(y,$from_y),less(y,$to_y)),logical_and(greater(z,$from_z),less(z,$to_z))))*2-1"
+          csv-eval --fields x,y,z,roll,pitch,yaw "roll*=$sign;pitch*=$sign;yaw*=$sign" $binary_option $flush_option
+      fi
