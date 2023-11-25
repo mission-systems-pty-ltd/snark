@@ -13,6 +13,10 @@ examples
             | view-points <( echo -10000,-10000,-10000; echo 10000,10000,10000 )';color=black' \\
                           <( echo 0,0,0 )';color=yellow;weight=10' \\
                           '-;shape=axes'
+        trajectory-random --speed=0.1 \\
+                          --extents=-100,-100,-100,100,100,10 \\
+            | view-points '-;size=10000000;fields=x,y,z,,,,,id' \\
+                          <( echo -100,-100,-100,100,100,100 )';shape=extents;color=grey' --orthographic
 eof
     exit
 }
@@ -47,6 +51,9 @@ csv-random make --distribution=uniform,0,1 --seed="$options_seed" --type=3d $bin
     | if [[ -z "$options_extents" ]]; then
           cat
       else
-          sign="(logical_and(logical_and(greater(x,$from_x),less(x,$to_x)),logical_and(greater(y,$from_y),less(y,$to_y)),logical_and(greater(z,$from_z),less(z,$to_z))))*2-1"
-          csv-eval --fields x,y,z,roll,pitch,yaw "roll*=$sign;pitch*=$sign;yaw*=$sign" $binary_option $flush_option
+          in_bounds="(logical_and(logical_and(greater(x,$from_x),less(x,$to_x)),logical_and(greater(y,$from_y),less(y,$to_y)),logical_and(greater(z,$from_z),less(z,$to_z))))"
+          sign="$in_bounds*2-1" # rubbish
+          #csv-eval --fields x,y,z,roll,pitch,yaw "roll*=$sign;pitch*=$sign;yaw*=$sign" $binary_option $flush_option
+          #csv-eval --init 'id=0' --fields x,y,z,roll,pitch,yaw "yaw*=$sign;id+=!$in_bounds" $binary_option $flush_option
+          csv-eval --init 'id=0' --fields x,y,z,roll,pitch,yaw "in_bounds=$in_bounds;x*=in_bounds;y*=in_bounds;z*=in_bounds;id+=logical_not(in_bounds)" $binary_option $flush_option # todo! fix!
       fi
