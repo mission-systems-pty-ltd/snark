@@ -32,6 +32,30 @@ static const char *texture_fragment_source = R"(
 )";
 */
 
+// static const char *shader_source = R"(
+//     #version 130
+//     in vec3 vertex;
+//     in vec2 offset;
+//     in vec2 texture_size;
+//     out vec2 textCoord;
+//     uniform mat4 projection_matrix;
+//     uniform vec2 screen_size;
+//     uniform bool scaled;
+//     void main()
+//     {
+//         vec4 target=projection_matrix* vec4(vertex,1);
+//         if(scaled)
+//         {
+//             gl_Position = target + vec4(offset.x*texture_size.x/screen_size.x,offset.y*texture_size.y/screen_size.y,0,0);
+//         }
+//         else
+//         {
+//             gl_Position = vec4(target.x/target.z,target.y/target.z,0,1) + vec4(offset.x*texture_size.x/screen_size.x,offset.y*texture_size.y/screen_size.y,0,0);
+//         }
+//         textCoord = offset;
+//     }
+// )";
+
 static const char *shader_source = R"(
     #version 130
     in vec3 vertex;
@@ -43,15 +67,9 @@ static const char *shader_source = R"(
     uniform bool scaled;
     void main()
     {
-        vec4 target=projection_matrix* vec4(vertex,1);
-        if(scaled)
-        {
-            gl_Position = target + vec4(offset.x*texture_size.x/screen_size.x,offset.y*texture_size.y/screen_size.y,0,0);
-        }
-        else
-        {
-            gl_Position = vec4(target.x/target.z,target.y/target.z,0,1) + vec4(offset.x*texture_size.x/screen_size.x,offset.y*texture_size.y/screen_size.y,0,0);
-        }
+        vec4 t = projection_matrix * vec4( vertex, 1 );
+        vec4 s = vec4( offset.x * texture_size.x / screen_size.x, offset.y * texture_size.y / screen_size.y, 0, 0 );
+        gl_Position = s + ( scaled ? t : vec4( t.x / t.z, t.y / t.z, 0, 1 ) );
         textCoord = offset;
     }
 )";
