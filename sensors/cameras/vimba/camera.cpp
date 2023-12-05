@@ -3,7 +3,7 @@
 // Copyright (c) 2022 Mission Systems Pty Ltd
 
 #include <sstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/name_value/map.h>
 
@@ -45,22 +45,22 @@ camera::name_values camera::info() const
     name_values name_value_pairs;
 
     add_name_value< std::string >( "id"
-                                 , boost::bind( &AVT::VmbAPI::Camera::GetID, boost::cref( *camera_ ), _1 )
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetID, boost::cref( *camera_ ), boost::placeholders::_1 )
                                  , name_value_pairs );
     add_name_value< std::string >( "name"
-                                 , boost::bind( &AVT::VmbAPI::Camera::GetName, boost::cref( *camera_ ), _1 )
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetName, boost::cref( *camera_ ), boost::placeholders::_1 )
                                  , name_value_pairs );
     add_name_value< std::string >( "model"
-                                 , boost::bind( &AVT::VmbAPI::Camera::GetModel, boost::cref( *camera_ ), _1 )
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetModel, boost::cref( *camera_ ), boost::placeholders::_1 )
                                  , name_value_pairs );
     add_name_value< std::string >( "serial_number"
-                                 , boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 )
+                                 , boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), boost::placeholders::_1 )
                                  , name_value_pairs );
     add_name_value< VmbInterfaceType >( "interface_type"
-                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceType, boost::cref( *camera_ ), _1 )
+                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceType, boost::cref( *camera_ ), boost::placeholders::_1 )
                                       , name_value_pairs );
     add_name_value< std::string >( "interface_id"
-                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID, boost::cref( *camera_ ), _1 )
+                                      , boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID, boost::cref( *camera_ ), boost::placeholders::_1 )
                                       , name_value_pairs );
 
     return name_value_pairs;

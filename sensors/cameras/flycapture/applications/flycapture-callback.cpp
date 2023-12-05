@@ -27,7 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
 #include <tbb/pipeline.h>
@@ -227,8 +227,8 @@ int main( int argc, char** argv )
         }       
         callback.reset( new snark::camera::flycapture::callback( camera, on_frame_ ) );
         tbb::task_scheduler_init init;
-        tbb::filter_t< void, Pair > read( tbb::filter::serial_in_order, boost::bind( read_, _1 ) );
-        tbb::filter_t< Pair, void > write( tbb::filter::serial_in_order, boost::bind( write_, boost::ref( *serialization), _1 ) );
+        tbb::filter_t< void, Pair > read( tbb::filter::serial_in_order, boost::bind( read_, boost::placeholders::_1 ) );
+        tbb::filter_t< Pair, void > write( tbb::filter::serial_in_order, boost::bind( write_, boost::ref( *serialization), boost::placeholders::_1 ) );
         tbb::filter_t< void, Pair > imageFilters = read;
 
         if( !filters.empty() )
@@ -241,7 +241,7 @@ int main( int argc, char** argv )
                 {
                     mode = tbb::filter::parallel;
                 }
-                tbb::filter_t< Pair, Pair > filter( mode, boost::bind( cvMatFilters[i].filter_function, _1 ) );
+                tbb::filter_t< Pair, Pair > filter( mode, boost::bind( cvMatFilters[i].filter_function, boost::placeholders::_1 ) );
                 imageFilters = imageFilters & filter;
             }
         }

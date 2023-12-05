@@ -103,7 +103,7 @@ void stdio_query::async_receive(const boost::asio::mutable_buffer& buffer, boost
     received_length_ = 0;
     
     input_.async_read_some(boost::asio::buffer(buffer),
-                          boost::bind(&stdio_query::handle_receive, _1, _2, &error_code_, &received_length_));
+                          boost::bind(&stdio_query::handle_receive, boost::placeholders::_1, boost::placeholders::_2, &error_code_, &received_length_));
 }
 
 
@@ -118,10 +118,10 @@ std::size_t stdio_query::receive(const boost::asio::mutable_buffer& buffer,
     std::size_t length = 0;
     
     input_.async_read_some(boost::asio::buffer(buffer),
-                          boost::bind(&stdio_query::handle_receive, _1, _2, &ec, &length));
+                          boost::bind(&stdio_query::handle_receive, boost::placeholders::_1, boost::placeholders::_2, &ec, &length));
     // boost::asio::async_read( input_, boost::asio::buffer(buffer),
     //                         boost::asio::transfer_at_least(1),
-    //                         boost::bind(&stdio_query::handle_receive, _1, _2, &ec, &length));
+    //                         boost::bind(&stdio_query::handle_receive, boost::placeholders::_1, boost::placeholders::_2, &ec, &length));
     
     // Block until the asynchronous operation has completed.
     do io_service_.run_one(); while (ec == boost::asio::error::would_block);

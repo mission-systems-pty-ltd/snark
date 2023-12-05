@@ -1298,7 +1298,7 @@ static bool run_chunk_pipeline( Pylon::CBaslerGigECamera& camera
                                         , boost::ref( camera )
                                         , boost::ref( grabber ))
                            , max_queue_size, max_queue_capacity ));
-    tbb::filter_t< chunk_pair_t, void > writer( tbb::filter::serial_in_order, boost::bind( &write, _1 ));
+    tbb::filter_t< chunk_pair_t, void > writer( tbb::filter::serial_in_order, boost::bind( &write, boost::placeholders::_1 ));
     snark::tbb::bursty_pipeline< chunk_pair_t > pipeline;
     camera.AcquisitionStart();
     comma::verbose << "running in chunk mode..." << std::endl;

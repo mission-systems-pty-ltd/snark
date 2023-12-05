@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
@@ -59,7 +59,7 @@ bursty_reader< T >::bursty_reader( boost::function0< T > produce, unsigned int s
     : size_( size )
     , running_( true )
     , produce_( produce )
-    , filter_( tbb::filter_mode::serial_in_order, boost::bind( &bursty_reader< T >::read_, this, _1 ) )
+    , filter_( tbb::filter_mode::serial_in_order, boost::bind( &bursty_reader< T >::read_, this, boost::placeholders::_1 ) )
 {
     if( capacity > 0 ) { queue_.set_capacity( capacity ); }
     thread_.reset( new boost::thread( boost::bind( &bursty_reader< T >::produce_loop_, this ) ) );
@@ -92,7 +92,7 @@ inline T bursty_reader< T >::read_( ::tbb::flow_control& flow )
     {
         while( true )
         {
-            T t;
+            T t = T();
             queue_.pop( t );
             if( !bursty_reader_traits< T >::valid( t ) ) { flow.stop(); return T(); }
             if( size_ == 0 || queue_.size() < size_ ) { return t; }

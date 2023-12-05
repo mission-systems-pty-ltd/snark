@@ -31,7 +31,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <opencv2/core/core.hpp>
 #include <IpxCameraApi.h>

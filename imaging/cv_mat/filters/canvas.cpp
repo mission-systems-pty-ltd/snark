@@ -2,7 +2,7 @@
 
 /// @author vsevolod vlaskine
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -25,7 +25,7 @@ std::pair< typename canvas< H >::functor_t, bool > canvas< H >::make( const std:
                          , v.size() < 4 || v[3].empty() ? 0 : boost::lexical_cast< int >( v[3] ) );
     c._canvas = cv::Mat( size, CV_8UC3, v.size() >= 7 ? cv::Scalar( boost::lexical_cast< int >( v[4] ), boost::lexical_cast< int >( v[5] ), boost::lexical_cast< int >( v[6] ) ) : cv::Scalar( 0, 0, 0 ) );
     cv::cvtColor( c._canvas, c._grey_canvas, CV_BGR2GRAY );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, boost::placeholders::_1 ), false );
 }
 
 template < typename H >

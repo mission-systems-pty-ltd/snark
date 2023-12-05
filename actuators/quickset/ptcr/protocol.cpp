@@ -34,7 +34,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/serial_port.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/optional.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <comma/base/exception.h>

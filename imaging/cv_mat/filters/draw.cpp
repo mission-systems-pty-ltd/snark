@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <tuple>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -223,7 +223,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); ; cv::flip( transposed, c._bar, 0 ); }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, boost::placeholders::_1 ), true );
 }
 
 template < typename H >
@@ -285,7 +285,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::grid::make( const st
     g._color = cv::Scalar( p[6], p[7], p[8] );
     g._ends_included = p[9];
     COMMA_ASSERT_BRIEF( g._size.width > 0 || !g._ends_included, "draw=grid: got ends-included flag set; please specify grid width,height" );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( g, boost::placeholders::_1 ), true );
 }
 
 template < typename H >
@@ -346,7 +346,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
         a._label_rectangle = cv::Rect( a._label_position, cv::Point( a._label_position.x + a._label.cols, a._label_position.y + a._label.rows ) );
         // todo: labels image
     }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( a, boost::placeholders::_1 ), true );
 }
 
 template < typename H >
@@ -414,7 +414,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::time::make( const st
                                               , v[2].empty() ? 0 : boost::lexical_cast< unsigned int >( v[4] ) ); }
     if( v.size() > 5 && !v[5].empty() ) { t._font_size = boost::lexical_cast< float >( v[5] ); }
     t._timestamp = get_timestamp;
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( t, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( t, boost::placeholders::_1 ), true );
 }
 
 template < typename H >
@@ -454,7 +454,7 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::status::make( const 
     int baseline{0};
     s._text_size = cv::getTextSize( s._properties.label.empty() ? std::string( "20230101T000000.000000" ) : s._properties.label, cv::FONT_HERSHEY_SIMPLEX, s._properties.font_size, 1, &baseline );
     if( s._properties.label.empty() ) { s._text_size.width = 0; }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( s, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( s, boost::placeholders::_1 ), false );
 }
 
 template < typename H >

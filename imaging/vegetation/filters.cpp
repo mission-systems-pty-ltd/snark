@@ -31,7 +31,7 @@
 #include <queue>
 #include <sstream>
 #include <boost/array.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/unordered_map.hpp>
@@ -137,14 +137,14 @@ static typename impl::filters< H >::value_type exponential_combination_impl_( co
 template < typename H >
 boost::function< typename cv_mat::impl::filters< H >::value_type( typename cv_mat::impl::filters< H >::value_type ) > impl::filters< H >::make_functor( const std::vector< std::string >& e )
 {
-    if( e[0] == "ndvi" ) { return boost::bind< value_type >( ndvi_impl_< H >, _1 ); }
+    if( e[0] == "ndvi" ) { return boost::bind< value_type >( ndvi_impl_< H >, boost::placeholders::_1 ); }
     if( e[0]=="exponential-combination" )
     {
         const std::vector< std::string >& s = comma::split( e[1], ',' );
         if( s[0].empty() ) { COMMA_THROW( comma::exception, "exponential-combination: expected powers got: \"" << e[1] << "\"" ); }
         std::vector< double > power( s.size() );
         for( unsigned int j = 0; j < s.size(); ++j ) { power[j] = boost::lexical_cast< double >( s[j] ); }
-        return boost::bind< value_type >( exponential_combination_impl_< H >, _1, power );
+        return boost::bind< value_type >( exponential_combination_impl_< H >, boost::placeholders::_1, power );
     }
     return NULL;
 }

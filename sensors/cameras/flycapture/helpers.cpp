@@ -33,7 +33,7 @@
 #include <boost/thread.hpp>
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/base/exception.h>
 #include <comma/csv/stream.h>
 #include "flycapture.h"

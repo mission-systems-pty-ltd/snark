@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
 #include <exiv2/exiv2.hpp>
@@ -28,8 +28,8 @@ std::pair< typename frame_rate< H >::functor_t, bool > frame_rate< H >::make( co
     e._spin_up_size = v.size() > 1 && !v[1].empty() ? boost::lexical_cast< unsigned int >( v[1] ) : 1;
     e._use_timestamp = v.size() > 2 && v[2] == "use-timestamp";
     COMMA_ASSERT( e._alpha > 0 && e._alpha <= 1, "expected ema alpha between 0 and 1; got: " << e._alpha );
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), false );
-    // todo? return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), true );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, boost::placeholders::_1 ), false );
+    // todo? return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, boost::placeholders::_1 ), true );
 }
 
 template < typename H >

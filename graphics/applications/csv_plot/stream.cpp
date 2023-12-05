@@ -2,7 +2,7 @@
 
 #include <map>
 #include <vector>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/filesystem.hpp>
 #include <QtCharts/QChart>
 #include <comma/base/exception.h>

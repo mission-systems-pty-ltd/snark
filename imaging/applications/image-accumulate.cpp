@@ -36,7 +36,7 @@
 #include <limits>
 #include <map>
 #include <boost/array.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/function.hpp>
 #include <boost/optional.hpp>

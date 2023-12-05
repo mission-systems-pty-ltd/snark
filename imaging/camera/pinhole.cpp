@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <opencv2/core/version.hpp>
 #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2
 #include <opencv2/calib3d/calib3d.hpp>

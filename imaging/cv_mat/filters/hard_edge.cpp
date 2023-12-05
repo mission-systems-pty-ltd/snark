@@ -5,7 +5,7 @@
 #include <memory>
 #include <sstream>
 #include <vector>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <tbb/parallel_for.h>
@@ -57,7 +57,7 @@ std::pair< H, cv::Mat > hard_edge< H >::handle( std::pair< H, cv::Mat > m, float
 template < typename H >
 std::pair< typename hard_edge< H >::functor_t, bool > hard_edge< H >::make( const std::string& options )
 {
-    return std::make_pair( boost::bind( &hard_edge< H >::handle, _1, options.empty() ? 0. : boost::lexical_cast< float >( options ) ), true );
+    return std::make_pair( boost::bind( &hard_edge< H >::handle, boost::placeholders::_1, options.empty() ? 0. : boost::lexical_cast< float >( options ) ), true );
 }
 
 template < typename H >

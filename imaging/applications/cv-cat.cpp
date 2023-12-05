@@ -317,7 +317,7 @@ int main( int argc, char** argv )
         typedef snark::imaging::applications::pipeline_with_header pipeline_with_header;
         typedef snark::cv_mat::filters_with_header filters_with_header;
         const unsigned int default_delay = vm.count( "file" ) == 0 ? 1 : 200; // HACK to make view work on single files
-        const auto& filters = filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, _1, input.header_binary() ), default_delay );
+        const auto& filters = filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, boost::placeholders::_1, input.header_binary() ), default_delay );
         if( vm.count( "file" ) )
         {
             if( !vm.count( "video" ) )

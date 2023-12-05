@@ -29,7 +29,7 @@
 
 
 #include <gtest/gtest.h>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <Eigen/Core>
 #include "../covariance.h"
 #include "../gaussian_process.h"
@@ -47,7 +47,7 @@ static void test_gaussian_process( const Eigen::MatrixXd& inputDomains
     snark::squared_exponential_covariance covariance( 1.0, 3.0, 0.1 );
     snark::gaussian_process gp( inputDomains
                                      , inputTargets
-                                     , boost::bind( &snark::squared_exponential_covariance::covariance, boost::ref( covariance ), _1, _2 )
+                                     , boost::bind( &snark::squared_exponential_covariance::covariance, boost::ref( covariance ), boost::placeholders::_1, boost::placeholders::_2 )
                                      , covariance.self_covariance() );
     Eigen::VectorXd outputMeans;
     Eigen::VectorXd outputVariances;

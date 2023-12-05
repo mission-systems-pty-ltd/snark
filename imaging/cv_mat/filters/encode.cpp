@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <exiv2/exiv2.hpp>
@@ -39,7 +39,7 @@ std::pair< typename encode< H >::functor_t, bool > encode< H >::make( const std:
     e._format = "." + e._type;
     if( v.size() > 1 && !v[1].empty() ) { e._quality = boost::lexical_cast< int >( v[1] ); }
     for( unsigned int i = 2; i < v.size(); ++i ) { if( v[i] == "timestamp" ) { e._embed_timestamp = true; } }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, _1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( e, boost::placeholders::_1 ), false );
 }
 
 template < typename H >

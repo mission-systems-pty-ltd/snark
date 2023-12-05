@@ -2,7 +2,7 @@
 // Copyright (c) 2016 The University of Sydney
 // Copyright (c) 2022 Mission Systems Pty Ltd
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/application/verbose.h>
@@ -381,7 +381,7 @@ int main( int argc, char** argv )
 
         while( acquiring )
         {
-            camera.start_acquisition( boost::bind( &output_frame, _1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
+            camera.start_acquisition( boost::bind( &output_frame, boost::placeholders::_1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
             comma::signal_flag is_shutdown;
             long frames_delivered = 0;
             do {

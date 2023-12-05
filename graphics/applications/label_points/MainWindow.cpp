@@ -31,7 +31,7 @@
 #include <limits>
 #include <map>
 #ifndef Q_MOC_RUN
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
 #endif
@@ -63,12 +63,12 @@ MainWindow::MainWindow( const std::string& title, Viewer* viewer )
     Actions::Action* saveAsAction = new Actions::Action( "SaveAs...", boost::bind( &MainWindow::saveAs, this ) );
     Actions::Action* reloadAction = new Actions::Action( "Reload", boost::bind( &Viewer::reload, viewer ) );
 
-    Actions::ToggleAction* navigateSceneAction = new Actions::ToggleAction( QIcon::fromTheme("edit-select", Icons::pointer() ) , "navigate scene", boost::bind( &Tools::Navigate::toggle, boost::ref( viewer->navigate ), _1 ), "Ctrl+Q" );
-    Actions::ToggleAction* selectPointsAction = new Actions::ToggleAction( QIcon::fromTheme("zoom-select", Icons::select()), "select points", boost::bind( &Tools::SelectClip::toggle, boost::ref( viewer->selectClip ), _1 ), "Ctrl+W" );
-    Actions::ToggleAction* selectPartitionAction = new Actions::ToggleAction( QIcon::fromTheme("tools-wizard", Icons::fuzzy()), "select partition", boost::bind( &Tools::SelectPartition::toggle, boost::ref( viewer->selectPartition ), _1 ), "Ctrl+E" );
-    Actions::ToggleAction* selectIdAction = new Actions::ToggleAction( QIcon::fromTheme("tools-wizard", Icons::fuzzy()), "select id", boost::bind( &Tools::SelectPartition::toggle, boost::ref( viewer->selectId ), _1 ), "Ctrl+R" );
-    Actions::ToggleAction* pipetteAction = new Actions::ToggleAction( QIcon::fromTheme("color-picker", Icons::pipette()), "pick id", boost::bind( &Tools::PickId::toggle, boost::ref( viewer->pickId ), _1 ), "Ctrl+T" );
-    Actions::ToggleAction* bucketAction = new Actions::ToggleAction( QIcon::fromTheme("fill-color", Icons::bucket()), "set id", boost::bind( &Tools::Fill::toggle, boost::ref( viewer->fill ), _1 ), "Ctrl+Y" );
+    Actions::ToggleAction* navigateSceneAction = new Actions::ToggleAction( QIcon::fromTheme("edit-select", Icons::pointer() ) , "navigate scene", boost::bind( &Tools::Navigate::toggle, boost::ref( viewer->navigate ), boost::placeholders::_1 ), "Ctrl+Q" );
+    Actions::ToggleAction* selectPointsAction = new Actions::ToggleAction( QIcon::fromTheme("zoom-select", Icons::select()), "select points", boost::bind( &Tools::SelectClip::toggle, boost::ref( viewer->selectClip ), boost::placeholders::_1 ), "Ctrl+W" );
+    Actions::ToggleAction* selectPartitionAction = new Actions::ToggleAction( QIcon::fromTheme("tools-wizard", Icons::fuzzy()), "select partition", boost::bind( &Tools::SelectPartition::toggle, boost::ref( viewer->selectPartition ), boost::placeholders::_1 ), "Ctrl+E" );
+    Actions::ToggleAction* selectIdAction = new Actions::ToggleAction( QIcon::fromTheme("tools-wizard", Icons::fuzzy()), "select id", boost::bind( &Tools::SelectPartition::toggle, boost::ref( viewer->selectId ), boost::placeholders::_1 ), "Ctrl+R" );
+    Actions::ToggleAction* pipetteAction = new Actions::ToggleAction( QIcon::fromTheme("color-picker", Icons::pipette()), "pick id", boost::bind( &Tools::PickId::toggle, boost::ref( viewer->pickId ), boost::placeholders::_1 ), "Ctrl+T" );
+    Actions::ToggleAction* bucketAction = new Actions::ToggleAction( QIcon::fromTheme("fill-color", Icons::bucket()), "set id", boost::bind( &Tools::Fill::toggle, boost::ref( viewer->fill ), boost::placeholders::_1 ), "Ctrl+Y" );
 
     selectPointsAction->setToolTip( "select points, click and drag<br>"
                                     "hold Ctrl to add to current selection<br>"
@@ -139,7 +139,7 @@ MainWindow::MainWindow( const std::string& title, Viewer* viewer )
     resize( 640, 480 );
 
     m_viewMenu = menuBar()->addMenu( "View" );
-    Actions::ToggleAction* action = new Actions::ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, _1 ) );
+    Actions::ToggleAction* action = new Actions::ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, boost::placeholders::_1 ) );
     action->setChecked( m_fileFrameVisible );
     m_viewMenu->addAction( action );
     connect( viewer, SIGNAL( initialized() ), this, SLOT( viewerInitialized() ) );
@@ -256,11 +256,11 @@ void MainWindow::updateFileFrame()
         }
         if( !sameFields ) { filename += ": \"" + m_viewer.datasets()[i]->options().fields + "\""; }
         m_fileLayout->addWidget( new QLabel( filename.c_str() ), i + 1, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &Viewer::show, boost::ref( m_viewer ), i, _1 ) );
+        CheckBox* viewBox = new CheckBox( boost::bind( &Viewer::show, boost::ref( m_viewer ), i, boost::placeholders::_1 ) );
         viewBox->setCheckState( Qt::Checked );
         viewBox->setToolTip( ( std::string( "check to make " ) + filename + " visible" ).c_str() );
         m_fileLayout->addWidget( viewBox, i + 1, 1, Qt::AlignRight | Qt::AlignTop );
-        CheckBox* writeBox = new CheckBox( boost::bind( &Viewer::setWritable, boost::ref( m_viewer ), i, _1 ) );
+        CheckBox* writeBox = new CheckBox( boost::bind( &Viewer::setWritable, boost::ref( m_viewer ), i, boost::placeholders::_1 ) );
         writeBox->setToolTip( ( std::string( "check to make " ) + filename + " writable" ).c_str() );
         if( i == 0 ) { writeBox->setCheckState( Qt::Checked ); }
         m_fileLayout->addWidget( writeBox, i + 1, 2, Qt::AlignRight | Qt::AlignTop );
@@ -273,10 +273,10 @@ void MainWindow::updateFileFrame()
     for( FileGroupMap::const_iterator it = m_fileGroups.begin(); it != m_fileGroups.end(); ++it, ++i )
     {
         m_fileLayout->addWidget( new QLabel( ( "\"" + it->first + "\"" ).c_str() ), i, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, _1 ) );
+        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
         viewBox->setToolTip( ( std::string( "check to make files with fields \"" ) + it->first + "\" visible" ).c_str() );
         m_fileLayout->addWidget( viewBox, i, 1, Qt::AlignRight | Qt::AlignTop );
-        CheckBox* writeBox = new CheckBox( boost::bind( &MainWindow::setWritableFileGroup, this, it->first, _1 ) );
+        CheckBox* writeBox = new CheckBox( boost::bind( &MainWindow::setWritableFileGroup, this, it->first, boost::placeholders::_1 ) );
         writeBox->setToolTip( ( std::string( "check to make files with fields \"" ) + it->first + "\" writable" ).c_str() );
         m_fileLayout->addWidget( writeBox, i, 2, Qt::AlignRight | Qt::AlignTop );
         m_fileLayout->setRowStretch( i, i + 1 == m_viewer.datasets().size() + fields.size() ? 1 : 0 );

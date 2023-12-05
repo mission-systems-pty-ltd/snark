@@ -21,7 +21,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/base/exception.h>
 
 using namespace std;

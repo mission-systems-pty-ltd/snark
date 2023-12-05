@@ -10,7 +10,7 @@
 #include <comma/math/compare.h>
 #include <comma/string/split.h>
 #include <tbb/parallel_for.h>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>

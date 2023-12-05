@@ -1,6 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/base/last_error.h>
 #include "pipeline.h"
 
@@ -77,7 +77,7 @@ void pipeline< H >::setup_pipeline_()
 {
     if( m_filters.empty() )
     {
-        m_filter = typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( &pipeline< H >::write_, this, _1 ) );
+        m_filter = typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( &pipeline< H >::write_, this, boost::placeholders::_1 ) );
     }
     else
     {
@@ -87,10 +87,10 @@ void pipeline< H >::setup_pipeline_()
         {
             tbb::filter_mode mode = m_filters[i].parallel ? tbb::filter_mode::parallel : tbb::filter_mode::serial_in_order;
             if( !m_filters[i].filter_function ) { has_null = true; break; }
-            typename tbb::filter< pair, pair >::type filter( mode, boost::bind( m_filters[i].filter_function, _1 ) );
+            typename tbb::filter< pair, pair >::type filter( mode, boost::bind( m_filters[i].filter_function, boost::placeholders::_1 ) );
             all_filters = i == 0 ? filter : ( all_filters & filter );
         }
-        m_filter = all_filters & typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, _1 ) );
+        m_filter = all_filters & typename tbb::filter< pair, void >::type( tbb::filter_mode::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, boost::placeholders::_1 ) );
     }
 }
 
