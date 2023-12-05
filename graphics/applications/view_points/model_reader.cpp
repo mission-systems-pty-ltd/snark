@@ -90,7 +90,7 @@ bool model_reader::read_once()
         default_point.point = Eigen::Vector3d( 0, 0, 0 );
         default_point.orientation = Eigen::Vector3d( 0, 0, 0 );
         m_stream.reset( new comma::csv::input_stream< PointWithId >( *m_istream(), options, default_point ) );
-        if( m_pass_through ) { m_passed.reset( new comma::csv::passed< PointWithId >( *m_stream, *m_pass_through )); }
+        if( m_pass_through ) { m_passed.reset( new comma::csv::passed< PointWithId >( *m_stream, *m_pass_through, flush )); }
         else { m_passed.reset(); }
     }
     const PointWithId* p = m_stream->read();

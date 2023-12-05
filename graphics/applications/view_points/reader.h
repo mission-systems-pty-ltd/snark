@@ -35,12 +35,13 @@ struct reader_parameters
     std::string groups;
     std::size_t size;
     unsigned int point_size;
-    bool pass_through;
+    bool pass_through{false};
     bool fill; // quick and dirty
     std::string labels; //currently used for axis labels e.g. "x:y:z"
     double length;  //currently used for axis length
     bool has_color; //currently used for shape=axis, when false use three different color for xyz axises
     unsigned int font_size; // quick and dirty, used for text labels
+    bool flush{false}; // quick and dirty: if pass_through, optionally flush
 
     reader_parameters( const comma::csv::options& options
                      , const std::string& title
@@ -52,7 +53,8 @@ struct reader_parameters
                      , const std::string& labels
                      , double length
                      , bool has_color
-                     , unsigned int font_size )
+                     , unsigned int font_size
+                     , bool flush )
         : options( options )
         , title( title )
         , groups( groups )
@@ -64,6 +66,7 @@ struct reader_parameters
         , length( length )
         , has_color( has_color )
         , font_size( font_size )
+        , flush( flush )
     {}
 };
 

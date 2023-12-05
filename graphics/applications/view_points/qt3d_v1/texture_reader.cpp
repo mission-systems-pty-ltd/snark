@@ -85,7 +85,7 @@ bool texture_reader::read_once()
     {
         if( !m_istream() ) { return true; }
         m_stream.reset( new comma::csv::input_stream< PointWithId >( *m_istream(), options ) );
-        if( m_pass_through ) { m_passed.reset( new comma::csv::passed< PointWithId >( *m_stream, *m_pass_through )); }
+        if( m_pass_through ) { m_passed.reset( new comma::csv::passed< PointWithId >( *m_stream, *m_pass_through, flush )); }
         else { m_passed.reset(); }
     }
     const PointWithId* p = m_stream->read();

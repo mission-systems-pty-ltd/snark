@@ -51,8 +51,7 @@ void Reader::read()
     for( ; !m_shutdown && read_once(); ++m_num_points );
     std::cerr << "view-points: end of \"" << title << "\" (" << options.filename << "); read " << m_num_points << " record(s)" << std::endl;
     m_shutdown = true;
-    // This probably shouldn't be here, but shutdown() is never called, so it can't be there.
-    if( m_pass_through ) { close( STDOUT_FILENO ); }
+    if( m_pass_through ) { std::cout.flush(); close( STDOUT_FILENO ); } // this probably shouldn't be here, but shutdown() is never called, so it can't be there.
 }
 
 bool Reader::update_point( const Eigen::Vector3d& offset )

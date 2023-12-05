@@ -189,7 +189,7 @@ inline bool shape_reader< S, How >::read_once()
                 return true;
             }
             m_stream.reset( new comma::csv::input_stream< ShapeWithId< S > >( *m_istream(), options, sample_ ) );
-            if( m_pass_through ) { m_passed.reset( new comma::csv::passed< ShapeWithId< S > >( *m_stream, *m_pass_through )); }
+            if( m_pass_through ) { m_passed.reset( new comma::csv::passed< ShapeWithId< S > >( *m_stream, *m_pass_through, flush )); }
             else { m_passed.reset(); }
         }
         const ShapeWithId< S >* p = m_stream->read();

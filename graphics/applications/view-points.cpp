@@ -584,7 +584,8 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
                                                           , options.value( "--labels", std::string() )
                                                           , options.value( "--length", 1. )
                                                           , options.exists( "--colour,--color,-c" )
-                                                          , options.value< unsigned int>( "--font-size", 16 ) );
+                                                          , options.value< unsigned int>( "--font-size", 16 )
+                                                          , options.exists( "--flush" ) );
     if( !properties.empty() )
     {
         comma::name_value::parser name_value( "filename", ';', '=', false );
@@ -602,12 +603,14 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         else if( m.exists( "color" ) ) { color = m.value( "color", color ); param.has_color=true; }
         label = m.value( "label", label );
         show = !m.exists( "hide" );
-        param.pass_through = param.pass_through || ( m.exists( "pass-through" ) || m.exists( "pass" ));
+        param.pass_through = param.pass_through || ( m.exists( "pass-through" ) || m.exists( "pass" ) );
+        param.flush = param.flush || m.exists( "flush" );
         param.fill = param.fill || m.exists( "fill" );
         param.labels = m.value( "labels", param.labels );
         param.length = m.value( "length", param.length );
         if( param.options.has_field( "id,scalar" ) ) { param.has_color = true; }
         param.font_size=m.value( "font-size", param.font_size );
+        COMMA_ASSERT( param.pass_through || !param.flush, "no streams are passed through, but flush requested" );
     }
     if( param.pass_through )
     {
