@@ -29,6 +29,7 @@
 
 
 #include <cmath>
+#include <cstring>
 #include <comma/base/exception.h>
 #include "../../../../timing/ntp.h"
 #include "packets.h"
@@ -37,9 +38,9 @@ namespace snark {  namespace sick { namespace ibeo {
     
 boost::array< unsigned char, 4 > header::sentinel_value = { { 0xAF, 0xFE, 0xC0, 0xC2 } };
 
-header::header() { ::memcpy( &sentinel, &sentinel_value, sizeof( comma::uint32 ) ); }
+header::header() { std::memcpy( ( char* )( &sentinel ), ( const char* )( &sentinel_value[0] ), sizeof( comma::uint32 ) ); }
     
-bool header::valid() const { return ::memcmp( sentinel.data(), &sentinel_value[0], sizeof( comma::uint32 ) ) == 0; }
+bool header::valid() const { return std::memcmp( ( char* )( sentinel.data() ), ( char* )( &sentinel_value[0] ), sizeof( comma::uint32 ) ) == 0; }
 
 double scan::angle_as_radians( short angle ) const { return ( M_PI * ( 2 * angle ) ) / scan_header.steps(); }
 
