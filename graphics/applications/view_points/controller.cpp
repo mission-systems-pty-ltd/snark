@@ -8,6 +8,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/thread_time.hpp>
+#include <comma/base/exception.h>
 #include <comma/csv/stream.h>
 #include <comma/name_value/ptree.h>
 #include <comma/visiting/apply.h>
@@ -52,6 +53,7 @@ controller::controller( const color_t& background_color
     , _camera_config_filename( camera_config_filename )
     , _camera_config_from_file( !camera_config_filename.empty() )
 {
+    COMMA_ASSERT_BRIEF( _camera_config_filename.empty() || boost::filesystem::exists(_camera_config_filename ), "file not found: '" << _camera_config_filename << "'" );
 #if Qt3D_VERSION==1
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
     COMMA_THROW( comma::exception,"view-points: Qt3D_VERSION==1: not supported");
