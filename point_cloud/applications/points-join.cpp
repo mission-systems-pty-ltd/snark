@@ -24,6 +24,7 @@
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
 #include <comma/base/last_error.h>
+#include <comma/base/none.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <comma/math/compare.h>
@@ -640,7 +641,7 @@ template < typename V > struct join_impl_
                 {
                     if( size > 1 ) { nearest_map->clear(); }
                     bool enough = false;
-                    boost::optional< nearest_t > nearest = boost::none;
+                    boost::optional< nearest_t > nearest = comma::silent_none< nearest_t >();
                     for( i[0] = index[0] - 1; !enough && i[0] <= index[0] + 1; ++i[0] )
                     {
                         for( i[1] = index[1] - 1; !enough && i[1] <= index[1] + 1; ++i[1] )
