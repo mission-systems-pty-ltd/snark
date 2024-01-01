@@ -173,8 +173,8 @@ void run( S* stream )
         if( outputRaw ) // real quick and dirty
         {
             static boost::array< char, 16 + timeSize + velodyne::hdl64::packet::size + 4 > buf;
-            static const boost::array< char, 2 > start = {{ -78, 85 }}; // see QLib::Bytestreams::GetDefaultStartDelimiter()
-            static const boost::array< char, 2 > end = {{ 117, -97 }}; // see QLib::Bytestreams::GetDefaultStartDelimiter()
+            static const boost::array< signed char, 2 > start = {{ -78, 85 }}; // see QLib::Bytestreams::GetDefaultStartDelimiter()
+            static const boost::array< signed char, 2 > end = {{ 117, -97 }}; // see QLib::Bytestreams::GetDefaultStartDelimiter()
             ::memcpy( &buf[0], &start[0], 2 );
             ::memcpy( &buf[0] + buf.size() - 2, &end[0], 2 );
             ::memcpy( &buf[0] + 16, &seconds, 8 );

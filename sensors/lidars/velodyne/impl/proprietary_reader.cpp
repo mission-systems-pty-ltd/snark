@@ -63,8 +63,8 @@ proprietary_reader::~proprietary_reader() { close(); }
 
 const char* proprietary_reader::read() // quick and dirty
 {
-    static const boost::array< char, 2 > start = {{ -78, 85 }}; // see QLib::Bytestreams::GetDefaultstartDelimiter()
-    static const boost::array< char, 2 > end = {{ 117, -97 }}; // see QLib::Bytestreams::GetDefaultstartDelimiter()
+    static const boost::array< signed char, 2 > start = {{ -78, 85 }}; // see QLib::Bytestreams::GetDefaultstartDelimiter()
+    static const boost::array< signed char, 2 > end = {{ 117, -97 }}; // see QLib::Bytestreams::GetDefaultstartDelimiter()
     while(    m_offset >= m_end
            || ::memcmp( &m_buffer[ m_offset ], &start[0], 2 ) != 0
            || ::memcmp( &m_buffer[ m_offset + packetSize - 2 ], &end[0], 2 ) != 0 )
