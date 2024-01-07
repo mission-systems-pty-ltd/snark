@@ -30,36 +30,35 @@
 
 /// @author Vsevolod Vlaskine
 
-#include <iostream>
 #include "action.h"
-
 
 namespace snark { namespace graphics { namespace view {
 
-Action::Action( const std::string& name, boost::function< void() > f )
-    : QAction( name.c_str(), NULL )
+Action::Action( const std::string& name, boost::function< void() > f, const std::string& key )
+    : QAction( &name[0], NULL )
     , m_action( f )
 {
+    if( key != "" ) { setShortcut( QKeySequence( tr( &key[0] ) ) ); }
     connect( this, SIGNAL( triggered() ), this, SLOT( action() ) );
 }
 
 void Action::action() { m_action(); }
 
 ToggleAction::ToggleAction( const std::string& name, boost::function< void( bool ) > f, const std::string& key )
-    : QAction( tr( name.c_str() ), NULL )
+    : QAction( tr( &name[0] ), NULL )
     , m_functor( f )
 {
     setCheckable( true );
-    if( key != "" ) { setShortcut( QKeySequence( tr( key.c_str() ) ) ); }
+    if( key != "" ) { setShortcut( QKeySequence( tr( &key[0] ) ) ); }
     connect( this, SIGNAL( toggled( bool ) ), this, SLOT( action( bool ) ) );
 }
 
 ToggleAction::ToggleAction( const QIcon& icon, const std::string& name, boost::function< void( bool ) > f, const std::string& key )
-    : QAction( icon, tr( name.c_str() ), NULL )
+    : QAction( icon, tr( &name[0] ), NULL )
     , m_functor( f )
 {
     setCheckable( true );
-    if( key != "" ) { setShortcut( QKeySequence( tr( key.c_str() ) ) ); }
+    if( key != "" ) { setShortcut( QKeySequence( tr( &key[0] ) ) ); }
     connect( this, SIGNAL( toggled( bool ) ), this, SLOT( action( bool ) ) );
 }
 

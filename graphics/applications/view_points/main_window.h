@@ -32,11 +32,12 @@ class MainWindow : public QMainWindow
                   , bool minimalistic );
         void toggle_file_frame( bool shown );
 
-private slots:
-    void update_view();
+    private slots:
+        void update_view();
+
     private:
-        QMenu* m_viewMenu;
-        std::shared_ptr<snark::graphics::view::controller> controller;
+        QMenu* _view_menu;
+        std::shared_ptr< snark::graphics::view::controller > controller;
         QFrame* m_fileFrame;
         QGridLayout* m_fileLayout;
         bool m_fileFrameVisible;
@@ -50,6 +51,7 @@ private slots:
         void showFileGroup( std::string const& name, bool shown );
         void load_camera_config();
         void save_camera_config();
+        void _print_window_geometry() const;
 };
 
 class CheckBox : public QCheckBox // quick and dirty

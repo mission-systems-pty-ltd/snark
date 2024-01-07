@@ -2,6 +2,7 @@
 
 /// @author Vsevolod Vlaskine
 
+#include <iostream>
 #include "qglobal.h"
 #if QT_VERSION >= 0x050000
 #include <QtWidgets>
@@ -29,10 +30,11 @@ MainWindow::MainWindow( const std::string& title
     , m_fileFrameVisible( !minimalistic && controller->readers.size() > 1 )
 {
     new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) );
-    QMenu* fileMenu = menuBar()->addMenu( "File" );
-    menuBar()->addMenu( fileMenu );
-    fileMenu->addAction( new Action( "Load Camera Config...", boost::bind( &MainWindow::load_camera_config, this ) ) );
-    fileMenu->addAction( new Action( "Save Camera Config...", boost::bind( &MainWindow::save_camera_config, this ) ) );
+    QMenu* file_menu = menuBar()->addMenu( "File" );
+    menuBar()->addMenu( file_menu );
+    file_menu->addAction( new Action( "Load Camera Config...", boost::bind( &MainWindow::load_camera_config, this ) ) );
+    file_menu->addAction( new Action( "Save Camera Config...", boost::bind( &MainWindow::save_camera_config, this ) ) );
+    file_menu->addAction( new Action( "Pring Window Geometry", boost::bind( &MainWindow::_print_window_geometry, this ), "Ctrl+G" ) );
 
     m_fileFrame = new QFrame;
     m_fileFrame->setFrameStyle( QFrame::Plain | QFrame::NoFrame );
@@ -95,10 +97,10 @@ MainWindow::MainWindow( const std::string& title
     outer_frame->setLayout( outer_layout );
 
     setCentralWidget( outer_frame ); // setCentralWidget( frame );
-    m_viewMenu = menuBar()->addMenu( "View" );
-    ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggle_file_frame, this, boost::placeholders::_1 ) );
-    action->setChecked( m_fileFrameVisible );
-    m_viewMenu->addAction( action );
+    _view_menu = menuBar()->addMenu( "View" );
+    ToggleAction* toggle_action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggle_file_frame, this, boost::placeholders::_1 ) );
+    toggle_action->setChecked( m_fileFrameVisible );
+    _view_menu->addAction( toggle_action );
 
     updateFileFrame();
     toggle_file_frame( m_fileFrameVisible );
@@ -106,14 +108,14 @@ MainWindow::MainWindow( const std::string& title
 
     #if Qt3D_VERSION>=2
     auto modeMenu = menuBar()->addMenu( "Modes" );
-    action = new ToggleAction( "Block Mode", boost::bind( &snark::graphics::view::viewer_t::toggle_block_mode, viewer, boost::placeholders::_1 ) );
-    action->setShortcut( QKeySequence( "Ctrl+B" ) );
-    action->setChecked( viewer->click_mode.double_right_click.mode() == click_mode::double_right_click_t::modes::block );
-    modeMenu->addAction( action );
-    action = new ToggleAction( "Label Mode", boost::bind( &snark::graphics::view::viewer_t::toggle_label_mode, viewer, boost::placeholders::_1 ) );
-    action->setShortcut( QKeySequence( "Ctrl+L" ) );
-    action->setChecked( viewer->click_mode.double_right_click.mode() == click_mode::double_right_click_t::modes::label );
-    modeMenu->addAction( action );
+    toggle_action = new ToggleAction( "Block Mode", boost::bind( &snark::graphics::view::viewer_t::toggle_block_mode, viewer, boost::placeholders::_1 ) );
+    toggle_action->setShortcut( QKeySequence( "Ctrl+B" ) );
+    toggle_action->setChecked( viewer->click_mode.double_right_click.mode() == click_mode::double_right_click_t::modes::block );
+    modeMenu->addAction( toggle_action );
+    toggle_action = new ToggleAction( "Label Mode", boost::bind( &snark::graphics::view::viewer_t::toggle_label_mode, viewer, boost::placeholders::_1 ) );
+    toggle_action->setShortcut( QKeySequence( "Ctrl+L" ) );
+    toggle_action->setChecked( viewer->click_mode.double_right_click.mode() == click_mode::double_right_click_t::modes::label );
+    modeMenu->addAction( toggle_action );
     #endif
 
     viewer->setFocus();
@@ -247,6 +249,12 @@ void MainWindow::toggle_file_frame( bool visible )
 }
 
 void MainWindow::closeEvent( QCloseEvent * ) { controller->shutdown(); }
+
+void MainWindow::_print_window_geometry() const
+{
+    auto g = geometry();
+    std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
+}
 
 void MainWindow::load_camera_config()
 {

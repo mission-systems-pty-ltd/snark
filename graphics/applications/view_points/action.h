@@ -27,12 +27,11 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 /// @author Vsevolod Vlaskine
 
-#ifndef SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_ACTION_H_
-#define SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_ACTION_H_
+#pragma once
 
+#include <string>
 #ifndef Q_MOC_RUN
 #include <boost/function.hpp>
 #endif
@@ -47,7 +46,9 @@ class Action : public QAction // quick and dirty
     Q_OBJECT
 
     public:
-        Action( const std::string& name, boost::function< void() > f );
+        Action( const std::string& name
+              , boost::function< void() > f
+              , const std::string& key = "" );
 
     public slots:
         void action();
@@ -78,5 +79,3 @@ class ToggleAction : public QAction
 };
 
 } } } // namespace snark { namespace graphics { namespace view {
-
-#endif // SNARK_GRAPHICS_APPLICATIONS_VIEWPOINTS_ACTION_H_
