@@ -2,6 +2,7 @@
 
 /// @author Vsevolod Vlaskine
 
+#include <fstream>
 #include <iostream>
 #include "qglobal.h"
 #if QT_VERSION >= 0x050000
@@ -13,12 +14,9 @@
 #include <QFrame>
 #include <QLabel>
 #include <QLayout>
-#include <QShortcut>
 #include <comma/base/exception.h>
 #include "action.h"
 #include "main_window.h"
-
-#include <fstream>
 
 namespace snark { namespace graphics { namespace view {
 
@@ -28,13 +26,13 @@ MainWindow::MainWindow( const std::string& title
                       , bool minimalistic )
     : controller( c )
     , m_fileFrameVisible( !minimalistic && controller->readers.size() > 1 )
+    , _escape( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) ) )
 {
-    new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) );
     QMenu* file_menu = menuBar()->addMenu( "File" );
     menuBar()->addMenu( file_menu );
     file_menu->addAction( new Action( "Load Camera Config...", boost::bind( &MainWindow::load_camera_config, this ) ) );
     file_menu->addAction( new Action( "Save Camera Config...", boost::bind( &MainWindow::save_camera_config, this ) ) );
-    file_menu->addAction( new Action( "Pring Window Geometry", boost::bind( &MainWindow::_print_window_geometry, this ), "Ctrl+G" ) );
+    file_menu->addAction( new Action( "Print Window Geometry", boost::bind( &MainWindow::_print_window_geometry, this ), "Ctrl+G" ) );
 
     m_fileFrame = new QFrame;
     m_fileFrame->setFrameStyle( QFrame::Plain | QFrame::NoFrame );

@@ -378,8 +378,8 @@ int main( int ac, char** av )
             if( !main_window.pass_through_stream_name().empty() ) { std::cerr << "csv-plot: stream '" << main_window.pass_through_stream_name() << "' will be passed through" << std::endl; }
         }
         main_window.start();
-        if( verbose ) { std::cerr << "csv-plot: started" << std::endl; }
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
+        comma::saymore() << "started" << std::endl;
         return a.exec();
     }
     catch( std::exception& ex ) { std::cerr << "csv-plot: " << ex.what() << std::endl; }

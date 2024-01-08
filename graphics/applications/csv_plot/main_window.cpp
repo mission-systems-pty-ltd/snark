@@ -1,4 +1,5 @@
 #include <map>
+#include <functional>
 #include <QGridLayout>
 #include <QTabWidget>
 #include <comma/csv/options.h>
@@ -6,6 +7,20 @@
 #include <comma/name_value/map.h>
 #include <comma/string/string.h>
 #include "main_window.h"
+
+namespace snark { namespace graphics {
+
+qaction::qaction( const std::string& name, std::function< void() > f, const std::string& key )
+    : QAction( &name[0], NULL )
+    , _action( f )
+{
+    if( key != "" ) { setShortcut( QKeySequence( tr( &key[0] ) ) ); }
+    connect( this, SIGNAL( triggered() ), this, SLOT( action() ) );
+}
+
+void qaction::action() { _action(); }
+
+} } // namespace snark { namespace graphics {
 
 namespace snark { namespace graphics { namespace plotting {
 
@@ -60,6 +75,7 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
                         , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                         , const std::string& layout
                         , float timeout )
+    : _escape( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) ) )
 {
     for( const auto& c: stream_configs )
     {
@@ -83,11 +99,24 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
         for( auto& t: s->series ) { charts_[ t.config().chart ]->push_back( &t ); } // quick and dirty; todo? move to stream::make()? (then change series vector in stream to ptr_vector)
     }
     setCentralWidget( make_widget_( layout, charts_ ) );
+    //addAction( new snark::graphics::qaction( "Pring Window Geometry", std::bind( &MainWindow::_print_window_geometry, this ), "Ctrl+G" ) );
+    addAction( new snark::graphics::qaction( "print window geometry"
+                                           , [&]()
+                                             {
+                                                auto g = this->geometry();
+                                                std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
+                                             }
+                                           , "Ctrl+G" ) );
     QObject::connect( &timer_, &QTimer::timeout, this, &main_window::update );
     timer_.setInterval( ( unsigned int )( timeout * 1000 ) );
 }
 
 main_window::~main_window() { shutdown(); }
+
+void main_window::closeEvent( QCloseEvent* event )
+{
+    timer_.stop();
+}
 
 void main_window::start()
 {

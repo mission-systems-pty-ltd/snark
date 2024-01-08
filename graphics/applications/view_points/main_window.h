@@ -6,6 +6,7 @@
 
 #include <QCheckBox>
 #include <QMainWindow>
+#include <QShortcut>
 #include "controller.h"
 
 QT_BEGIN_NAMESPACE
@@ -44,6 +45,7 @@ class MainWindow : public QMainWindow
         typedef std::map< std::string, std::vector< CheckBox* > > FileGroupMap;
         FileGroupMap m_userGroups; // quick and dirty
         FileGroupMap m_fieldsGroups; // quick and dirty
+        QShortcut* _escape{nullptr};
 
         void closeEvent( QCloseEvent* event );
         void updateFileFrame();
