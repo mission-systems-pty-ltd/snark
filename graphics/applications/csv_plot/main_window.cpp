@@ -64,6 +64,7 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
     : _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
     , _print_window_geometry( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) )
 {
+    //application.addShortcut( new QShortcut( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) );
     for( const auto& c: stream_configs )
     {
         for( const auto& s: c.series ) // quick and dirty
@@ -105,8 +106,8 @@ main_window::~main_window()
 
 void main_window::closeEvent( QCloseEvent* event )
 {
-    timer_.stop(); // todo: call shutdown instead
-    // todo: stop threads!
+    timer_.stop();
+    ::exit( 0 ); // todo! super-quick and dirty, call shutdown instead once stopping threads implemented
 }
 
 void main_window::print_window_geometry() const
