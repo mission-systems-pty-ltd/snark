@@ -1,8 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
 
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <QApplication>
 #if Qt3D_VERSION==1
 #include "view_points/qt3d_v1/viewer.h"
