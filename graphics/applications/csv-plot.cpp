@@ -362,7 +362,11 @@ int main( int ac, char** av )
         snark::graphics::plotting::main_window main_window( stream_configs, chart_configs, layout, timeout );
         auto window_size = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--window-size", "800,600" ) );
         std::string window_position = options.value< std::string >( "--window-position,--window", "" );
-        if( !window_position.empty() ) // quick and dirty
+        if( window_position.empty() )
+        {
+            main_window.move( 0, 0 );
+        }
+        else
         {
             const auto& p = comma::split_as< unsigned int >( window_position, ',' );
             if( p.size() != 2 && p.size() != 4 ) { comma::say() << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
