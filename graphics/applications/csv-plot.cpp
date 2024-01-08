@@ -124,7 +124,7 @@ static void usage( bool verbose = false )
     std::cerr << "                tabs: charts are arranged in single window as tabs" << std::endl;
     std::cerr << "                windows: todo: each chart is in its own window" << std::endl;
     std::cerr << "    --timeout=<seconds>; how often to update, overrides --fps" << std::endl;
-    std::cerr << "    --window-position,--window=[<x>,<y>[,<width>,<height>]]: position of application window on screen in pixels" << std::endl;
+    std::cerr << "    --window-geometry,--window-position,--window=[<x>,<y>[,<width>,<height>]]: position of application window on screen in pixels" << std::endl;
     std::cerr << "        ATTENTION: due to X11 intricacies on Linux, window position is not what you think and your window" << std::endl;
     std::cerr << "                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry" << std::endl;
     std::cerr << "                   for now, find the desired window position by hand and use those window position values" << std::endl;
@@ -361,7 +361,7 @@ int main( int ac, char** av )
         QApplication application( ac, av );
         snark::graphics::plotting::main_window main_window( stream_configs, chart_configs, layout, timeout );
         auto window_size = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--window-size", "800,600" ) );
-        std::string window_position = options.value< std::string >( "--window-position,--window", "" );
+        std::string window_position = options.value< std::string >( "--window-geometry,--window-position,--window", "" );
         if( window_position.empty() )
         {
             main_window.move( 0, 0 );
@@ -369,7 +369,7 @@ int main( int ac, char** av )
         else
         {
             const auto& p = comma::split_as< unsigned int >( window_position, ',' );
-            if( p.size() != 2 && p.size() != 4 ) { comma::say() << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
+            if( p.size() != 2 && p.size() != 4 ) { comma::say() << "expected --window-geometry=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
             main_window.move( p[0], p[1] );
             if( p.size() == 4 ) { window_size = { p[2], p[3] }; }
         }
