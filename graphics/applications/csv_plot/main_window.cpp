@@ -2,6 +2,7 @@
 #include <functional>
 #include <QGridLayout>
 #include <QTabWidget>
+#include <comma/base/exception.h>
 #include <comma/csv/options.h>
 #include <comma/csv/traits.h>
 #include <comma/name_value/map.h>
@@ -20,8 +21,8 @@ static QWidget* make_widget_( const std::string& l, main_window::charts_t& chart
         auto rows = m.optional< unsigned int >( "rows" );
         if( !cols && !rows ) { cols = 1; }
         if( !cols ) { cols = charts.size() / *rows + 1; }
-        if( !rows ) { rows = charts.size() / *cols + 1; }
-        if( *cols * *rows < charts.size() ) { COMMA_THROW( comma::exception, "csv-plot: expected grid of size at least " << charts.size() << "; got: grid " << *cols << "x" << *rows ); }
+        if( !rows ) { rows = charts.size() / *cols; if( *rows == 0 ) { rows = 1; } }
+        COMMA_ASSERT_BRIEF( *cols * *rows >= charts.size(), "csv-plot: expected grid of size at least " << charts.size() << "; got: grid " << *cols << "x" << *rows );
         QGridLayout* grid = new QGridLayout;
         grid->setContentsMargins( 0, 0, 0, 0 );
         unsigned int row = 0;
@@ -34,6 +35,12 @@ static QWidget* make_widget_( const std::string& l, main_window::charts_t& chart
             grid->addWidget( v, row, col, 1, 1 );
             if( ++col == cols ) { col = 0; ++row; }
         }
+        auto row_stretch = comma::split_as< float >( m.value< std::string >( "row-stretch", "" ), ',' );
+        COMMA_ASSERT_BRIEF( row_stretch.empty() || row_stretch.size() == *rows, "expected row-stretch of " << *rows << "; got: " << row_stretch.size() );
+        for( unsigned int i = 0; i < row_stretch.size(); ++i ) { grid->setRowStretch( i, row_stretch[i] ); }
+        auto col_stretch = comma::split_as< float >( m.value< std::string >( "col-stretch", "" ), ',' );
+        COMMA_ASSERT_BRIEF( col_stretch.empty() || col_stretch.size() == *cols, "expected col-stretch of " << *cols << "; got: " << col_stretch.size() );
+        for( unsigned int i = 0; i < col_stretch.size(); ++i ) { grid->setColumnStretch( i, col_stretch[i] ); }
         auto w = new QWidget;
         w->setLayout( grid );
         w->setContentsMargins( 0, 0, 0, 0 );

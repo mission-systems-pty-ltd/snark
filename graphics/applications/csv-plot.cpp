@@ -118,7 +118,13 @@ static void usage( bool verbose = false )
     std::cerr << "            grid[;<shape>]: charts are arranged in single window as grid" << std::endl;
     std::cerr << "                <shape>: default: 1" << std::endl;
     std::cerr << "                    cols=<cols>: grid with <cols> columns (rows calculated from number of charts)" << std::endl;
+    std::cerr << "                    cols-stretch=<factors>; if present, factors are integer and number of factors is same as" << std::endl;
+    std::cerr << "                                            number of grid columns; e.g. if col-stretch=30,50,20" << std::endl;
+    std::cerr << "                                            then columns will take width of 30, 50, and 20 per cent" << std::endl;
+    std::cerr << "                                            respectively (factors don't need to represent percentage" << std::endl;
+    std::cerr << "                                            values; col-stretch=3,5,2 will have the same effect)" << std::endl;
     std::cerr << "                    rows=<rows>: grid with <rows> rows (columns calculated from number of charts)" << std::endl;
+    std::cerr << "                    rows-stretch=<factors>; same as cols-stretch, but for rows" << std::endl;
     std::cerr << "                    default: cols=1" << std::endl;
     std::cerr << "                stacked: todo: each chart is in its own window" << std::endl;
     std::cerr << "                tabs: charts are arranged in single window as tabs" << std::endl;
