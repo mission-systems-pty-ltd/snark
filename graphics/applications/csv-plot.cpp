@@ -140,6 +140,9 @@ static void usage( bool verbose = false )
     std::cerr << "    arrow keys: pan" << std::endl;
     std::cerr << "    middle-click and drag: pan" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "hot keys" << std::endl;
+    std::cerr << "    ctrl-g: print window geometry as <left>,<top>,<width>,<height> to stderr" << std::endl;
+    std::cerr << std::endl;
     if( verbose )
     {
         std::cerr << "examples" << std::endl;
