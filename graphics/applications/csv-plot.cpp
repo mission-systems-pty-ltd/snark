@@ -341,7 +341,7 @@ int main( int ac, char** av )
         std::vector< snark::graphics::plotting::stream::config_t > stream_configs;
         if( stdin_index )
         {
-            if( options.exists( "--no-stdin" ) ) { std::cerr << "csv-plot: due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" << std::endl; return 1; }
+            if( options.exists( "--no-stdin" ) ) { comma::say() << "due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" << std::endl; return 1; }
         }
         else
         {
@@ -352,7 +352,7 @@ int main( int ac, char** av )
             stream_config.pass_through = false;
         }
         for( unsigned int i = 0; i < unnamed.size(); ++i ) { stream_configs.push_back( snark::graphics::plotting::stream::config_t( unnamed[i], series_configs, stream_config ) ); stream_config.pass_through = false; }
-        if( verbose ) { std::cerr << "csv-plot: got " << stream_configs.size() << " input stream config(s)" << std::endl; }
+        comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
         std::string layout = options.value< std::string >( "--layout", "grid" );
         QApplication a( ac, av );
@@ -362,20 +362,20 @@ int main( int ac, char** av )
         if( !window_position.empty() ) // quick and dirty
         {
             const auto& p = comma::split_as< unsigned int >( window_position, ',' );
-            if( p.size() != 2 && p.size() != 4 ) { std::cerr << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
+            if( p.size() != 2 && p.size() != 4 ) { comma::say() << "expected --window-position=<x>,<y>[,<width>,<height>]; got: \"" << window_position << "\"" << std::endl; return 1; }
             main_window.move( p[0], p[1] );
             if( p.size() == 4 ) { window_size = { p[2], p[3] }; }
         }
         main_window.resize( window_size.first, window_size.second );
         if( verbose )
         {
-            std::cerr << "csv-plot: created " << main_window.charts().size() << " chart(s)" << std::endl;
-            std::cerr << "csv-plot: created " << main_window.streams().size() << " input stream(s)" << std::endl;
+            comma::saymore() << "created " << main_window.charts().size() << " chart(s)" << std::endl;
+            comma::saymore() << "created " << main_window.streams().size() << " input stream(s)" << std::endl;
             for( unsigned int i = 0; i < main_window.streams().size(); ++i )
             {
-                for( unsigned int j = 0; j < main_window.streams()[i].series.size(); ++j ) { std::cerr << "csv-plot: stream " << i << ": series " << j << " will be shown on chart named: '" << main_window.streams()[i].series[j].config().chart << "'" << std::endl; }
+                for( unsigned int j = 0; j < main_window.streams()[i].series.size(); ++j ) { comma::say() << "stream " << i << ": series " << j << " will be shown on chart named: '" << main_window.streams()[i].series[j].config().chart << "'" << std::endl; }
             }
-            if( !main_window.pass_through_stream_name().empty() ) { std::cerr << "csv-plot: stream '" << main_window.pass_through_stream_name() << "' will be passed through" << std::endl; }
+            if( !main_window.pass_through_stream_name().empty() ) { comma::say() << "stream '" << main_window.pass_through_stream_name() << "' will be passed through" << std::endl; }
         }
         main_window.start();
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
