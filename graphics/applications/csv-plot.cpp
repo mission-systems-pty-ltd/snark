@@ -355,7 +355,7 @@ int main( int ac, char** av )
         comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
         std::string layout = options.value< std::string >( "--layout", "grid" );
-        QApplication a( ac, av );
+        QApplication application( ac, av );
         snark::graphics::plotting::main_window main_window( stream_configs, chart_configs, layout, timeout );
         auto window_size = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--window-size", "800,600" ) );
         std::string window_position = options.value< std::string >( "--window-position,--window", "" );
@@ -380,7 +380,7 @@ int main( int ac, char** av )
         main_window.start();
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         comma::saymore() << "started" << std::endl;
-        return a.exec();
+        return application.exec();
     }
     catch( std::exception& ex ) { std::cerr << "csv-plot: " << ex.what() << std::endl; }
     catch( ... ) { std::cerr << "csv-plot: unknown exception" << std::endl; }

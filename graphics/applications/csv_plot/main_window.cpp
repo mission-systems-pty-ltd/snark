@@ -8,20 +8,6 @@
 #include <comma/string/string.h>
 #include "main_window.h"
 
-namespace snark { namespace graphics {
-
-qaction::qaction( const std::string& name, std::function< void() > f, const std::string& key )
-    : QAction( &name[0], NULL )
-    , _action( f )
-{
-    if( key != "" ) { setShortcut( QKeySequence( tr( &key[0] ) ) ); }
-    connect( this, SIGNAL( triggered() ), this, SLOT( action() ) );
-}
-
-void qaction::action() { _action(); }
-
-} } // namespace snark { namespace graphics {
-
 namespace snark { namespace graphics { namespace plotting {
 
 static QWidget* make_widget_( const std::string& l, main_window::charts_t& charts )
@@ -75,7 +61,8 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
                         , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                         , const std::string& layout
                         , float timeout )
-    : _escape( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) ) )
+    : _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
+    , _print_window_geometry( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) )
 {
     for( const auto& c: stream_configs )
     {
@@ -100,22 +87,32 @@ main_window::main_window( const std::vector< snark::graphics::plotting::stream::
     }
     setCentralWidget( make_widget_( layout, charts_ ) );
     //addAction( new snark::graphics::qaction( "Pring Window Geometry", std::bind( &MainWindow::_print_window_geometry, this ), "Ctrl+G" ) );
-    addAction( new snark::graphics::qaction( "print window geometry"
-                                           , [&]()
-                                             {
-                                                auto g = this->geometry();
-                                                std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
-                                             }
-                                           , "Ctrl+G" ) );
+    // addAction( new snark::graphics::qaction( "print window geometry"
+    //                                        , [&]()
+    //                                          {
+    //                                             auto g = this->geometry();
+    //                                             std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
+    //                                          }
+    //                                        , "Ctrl+G" ) );
     QObject::connect( &timer_, &QTimer::timeout, this, &main_window::update );
     timer_.setInterval( ( unsigned int )( timeout * 1000 ) );
 }
 
-main_window::~main_window() { shutdown(); }
+main_window::~main_window()
+{
+    shutdown();
+}
 
 void main_window::closeEvent( QCloseEvent* event )
 {
-    timer_.stop();
+    timer_.stop(); // todo: call shutdown instead
+    // todo: stop threads!
+}
+
+void main_window::print_window_geometry() const
+{
+    auto g = geometry();
+    std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
 }
 
 void main_window::start()
@@ -127,6 +124,7 @@ void main_window::start()
 void main_window::shutdown()
 {
     timer_.stop();
+    // todo! stop threads properly (they block on read() if no more input)
     for( unsigned int i = 0; i < streams_.size(); ++i ) { streams_[i].shutdown(); }
 }
 

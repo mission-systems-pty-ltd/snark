@@ -8,30 +8,11 @@
 #include <QMainWindow>
 #include <QShortcut>
 #include <QTimer>
-#include <qaction.h>
 #include "charts.h"
 #include "chart_view.h"
 #include "stream.h"
 
 QT_USE_NAMESPACE
-
-namespace snark { namespace graphics {
-
-class qaction : public QAction // todo! quick and dirty, move to library, reuse in csv-plot, csv-sliders, and view-points
-{
-    Q_OBJECT
-
-    public:
-        qaction( const std::string& name, std::function< void() > f, const std::string& key = "" );
-
-    public slots:
-        void action();
-
-    private:
-        std::function< void() > _action;
-};
-
-} } // namespace snark { namespace graphics {
 
 namespace snark { namespace graphics { namespace plotting {
 
@@ -53,6 +34,7 @@ class main_window: public QMainWindow
 
     public slots:
         void update();
+        void print_window_geometry() const;
         
     private:
         QTimer timer_;
@@ -60,7 +42,9 @@ class main_window: public QMainWindow
         boost::ptr_vector< plotting::stream > streams_;
         charts_t charts_;
         std::string pass_through_stream_name_;
-        QShortcut* _escape{nullptr};
+        QShortcut _escape;
+        QShortcut _print_window_geometry;
+
         void closeEvent( QCloseEvent* event );
 };
 
