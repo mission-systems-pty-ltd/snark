@@ -380,6 +380,8 @@ static void usage( bool )
         "\n                    arrow up: move to the next label value"
         "\n                    arrow down: move to the previous label value"
         qtold_unsupported_marker_end
+        "\n    window geometry"
+        "\n        ctrl-g: print window geometry as <left>,<top>,<width>,<height> to stderr"
         "\n"
         "\nexamples"
         "\n"
