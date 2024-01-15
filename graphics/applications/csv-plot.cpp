@@ -36,6 +36,8 @@ static void usage( bool verbose = false )
     std::cerr << "    --verbose,-v: more output" << std::endl;
     std::cerr << std::endl;
     std::cerr << "stream options" << std::endl;
+    std::cerr << "    --blocking; blocking read on this stream; important for streams running from subshells" << std::endl;
+    std::cerr << "                see io-cat -h -v for explanation" << std::endl;
     std::cerr << "    --input-fields; print possible input fields to stdout and exit" << std::endl;
     std::cerr << "    --input-fields-example; print input fields example to stdout and exit" << std::endl;
     std::cerr << "    --fields: t,series,block,size,number-of-series,block-by-size where series is an array; also see --number-of-series" << std::endl;
@@ -341,18 +343,16 @@ int main( int ac, char** av )
         bool verbose = options.exists( "--verbose,-v" );
         if( options.exists( "--input-fields" ) ) { std::cout << "t,series,block" << std::endl; return 0; } // quick and dirty
         if( options.exists( "--input-fields-example" ) ) { std::cout << comma::join( comma::csv::names< snark::graphics::plotting::record >( true, snark::graphics::plotting::record::sample( "series", 2 ) ), ',' ) << std::endl; return 0; }
-        const std::vector< std::string >& unnamed = options.unnamed( "--no-stdin,--verbose,-v,--flush,--full-screen,--maximize,--pass-through,--pass,--scroll", "--.*,-[a-z].*" );
+        const std::vector< std::string >& unnamed = options.unnamed( "--blocking,--no-stdin,--verbose,-v,--flush,--full-screen,--maximize,--pass-through,--pass,--scroll", "--.*,-[a-z].*" );
         boost::optional< unsigned int > stdin_index = boost::make_optional< unsigned int >( false, 0 );
         for( unsigned int i = 0; i < unnamed.size(); ++i ) { if( unnamed[i] == "-" || unnamed[i].substr( 0, 2 ) == "-;" ) { stdin_index = i; break; } }
         const auto& chart_configs = make_configs( options.values< std::string >( "--chart" ), snark::graphics::plotting::chart::config_t( options ) );
         const auto& series_configs = make_configs( options.values< std::string >( "--series" ), snark::graphics::plotting::series::config( options ) );
         snark::graphics::plotting::stream::config_t stream_config( options );
         std::vector< snark::graphics::plotting::stream::config_t > stream_configs;
-        if( stdin_index )
-        {
-            if( options.exists( "--no-stdin" ) ) { comma::say() << "due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" << std::endl; return 1; }
-        }
-        else
+        bool use_stdin = !options.exists( "--no-stdin" );
+        COMMA_ASSERT_BRIEF( use_stdin || !stdin_index, "due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" );
+        if( use_stdin )
         {
             stream_config.csv.filename = "-";
             auto config = stream_config;
@@ -360,7 +360,7 @@ int main( int ac, char** av )
             stream_configs.push_back( config );
             stream_config.pass_through = false;
         }
-        for( unsigned int i = 0; i < unnamed.size(); ++i ) { stream_configs.push_back( snark::graphics::plotting::stream::config_t( unnamed[i], series_configs, stream_config ) ); stream_config.pass_through = false; }
+        for( const auto& u: unnamed ) { stream_configs.push_back( snark::graphics::plotting::stream::config_t( u, series_configs, stream_config ) ); stream_config.pass_through = false; }
         comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
         std::string layout = options.value< std::string >( "--layout", "grid" );
@@ -386,7 +386,7 @@ int main( int ac, char** av )
             comma::saymore() << "created " << main_window.streams().size() << " input stream(s)" << std::endl;
             for( unsigned int i = 0; i < main_window.streams().size(); ++i )
             {
-                for( unsigned int j = 0; j < main_window.streams()[i].series.size(); ++j ) { comma::say() << "stream " << i << ": series " << j << " will be shown on chart named: '" << main_window.streams()[i].series[j].config().chart << "'" << std::endl; }
+                for( unsigned int j = 0; j < main_window.streams()[i].series.size(); ++j ) { comma::say() << "stream " << i << ": series " << j << " will be shown on " << ( main_window.streams()[i].series[j].config().chart.empty() ? std::string( "unnamed chart" ) : ( "chart named: '" + main_window.streams()[i].series[j].config().chart + "'" ) ) << std::endl; }
             }
             if( !main_window.pass_through_stream_name().empty() ) { comma::say() << "stream '" << main_window.pass_through_stream_name() << "' will be passed through" << std::endl; }
         }

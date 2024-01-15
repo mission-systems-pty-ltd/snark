@@ -38,6 +38,7 @@ class stream // todo: if stream other than xy stream required, create stream bas
             comma::uint32 size;
             comma::uint32 number_of_series; // todo: a shorter name?
             bool block_by_size{false};
+            bool blocking{false};
             config_t() : pass_through( false ), series( 1 ), size( 10000 ), number_of_series( 1 ), block_by_size(false) {}
             config_t( const comma::command_line_options& options );
             config_t( const std::string& options, const std::map< std::string, plotting::series::config >& series_configs, const config_t& defaults = config_t() );

@@ -29,6 +29,7 @@ static std::string fields_from_aliases_( const std::string& fields )
 
 static std::size_t estimated_number_of_records( const comma::csv::options& csv ) // todo? move to a more generic place?
 {
+    if( csv.filename.empty() ) { return 0; } // quick and dirty
     boost::filesystem::path f( csv.filename );
     for( ; boost::filesystem::is_symlink( f ); f = boost::filesystem::read_symlink( f ) );
     if( !boost::filesystem::is_regular_file( f ) ) { return 0; }
@@ -54,6 +55,7 @@ stream::config_t::config_t( const comma::command_line_options& options )
           ? options.value< std::size_t >( "--size,-s,--tail" )
           : estimated_number_of_records( csv ) )
     , number_of_series( options.value( "--number-of-series,-n", 1 ) ) // todo?! what if we have multiple streams? --number-of-series has to be per stream then, isn't it?
+    , blocking( options.exists( "--blocking" ) )
 {
     csv.fields = fields_from_aliases_( csv.fields );
     const auto& o = plotting::series::config( options ); // todo! fix optional reuse of x in all series!
@@ -65,7 +67,7 @@ stream::config_t::config_t( const std::string& options, const std::map< std::str
 {
     std::vector< std::string > g;
     std::map< unsigned int, std::string > s;
-    const auto& v = comma::split( options, ';' );
+    const auto& v = comma::split( options, ';', true );
     for( const auto& o: v ) // quick and dirty
     {
         try
@@ -100,7 +102,7 @@ stream::stream( const std::vector< plotting::series::xy >& s, const config_t& co
     , config( config )
     , is_shutdown_( false )
     , is_stdin_( config.csv.filename == "-" )
-    , is_( config.csv.filename, config.csv.binary() ? comma::io::mode::binary : comma::io::mode::ascii, comma::io::mode::non_blocking )
+    , is_( config.csv.filename, config.csv.binary() ? comma::io::mode::binary : comma::io::mode::ascii, config.blocking ? comma::io::mode::blocking : comma::io::mode::non_blocking )
     , istream_( *is_, config.csv, plotting::record::sample( config.csv.fields, config.number_of_series ) )
     , count_( 0 )
     , has_x_( config.csv.fields.empty() || config.csv.has_field( "x" ) || config.csv.has_field( "series[0]/x" ) || config.csv.has_field( "series[0]" ) ) // todo: quick and dirty, improve
@@ -133,7 +135,7 @@ void stream::shutdown()
 
 void stream::read_()
 {
-    while( !is_shutdown_ && ( istream_.ready() || ( is_->good() && !is_->eof() ) ) )
+    while( !is_shutdown_ && ( istream_.ready() || !is_() || ( is_->good() && !is_->eof() ) ) )
     {
         const record* p = istream_.read();
         if( !p ) { break; }
