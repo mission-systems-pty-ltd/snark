@@ -352,7 +352,7 @@ int main( int ac, char** av )
         std::vector< snark::graphics::plotting::stream::config_t > stream_configs;
         bool use_stdin = !options.exists( "--no-stdin" );
         COMMA_ASSERT_BRIEF( use_stdin || !stdin_index, "due to --no-stdin, expected no stdin options; got: \"" << unnamed[ *stdin_index ] << "\"" );
-        if( use_stdin )
+        if( use_stdin && !stdin_index )
         {
             stream_config.csv.filename = "-";
             auto config = stream_config;
@@ -360,6 +360,7 @@ int main( int ac, char** av )
             stream_configs.push_back( config );
             stream_config.pass_through = false;
         }
+        comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         for( const auto& u: unnamed ) { stream_configs.push_back( snark::graphics::plotting::stream::config_t( u, series_configs, stream_config ) ); stream_config.pass_through = false; }
         comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
