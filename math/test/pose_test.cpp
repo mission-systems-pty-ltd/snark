@@ -27,7 +27,19 @@ static void expect_true( const pose& p, const pose& v, const pose& expected )
     EXPECT_NEAR( r.yaw(), expected.yaw(), 10e-6 );
 }
 
-TEST( math_pose, velocity )
+TEST( math_pose, tangent_velocity )
+{
+    expect_true( {}, roll_pitch_yaw(), {0, 0, 0} );
+    expect_true( {}, roll_pitch_yaw(1, 2, 3), {0, 0, 0} );
+    expect_true( {0, 0, 0, 0.1, 0.2, 0.3}, roll_pitch_yaw(1, 2, 3), {0, 0, 0} );
+    expect_true( {1, 2, 3, 0.1, 0.2, 0.3}, roll_pitch_yaw(), {0, 0, 0} );
+    expect_true( {10, 0, 0, 0, 0, 0}, roll_pitch_yaw(), {0, 0, 0} );
+    expect_true( {10, 0, 0, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, 0, 0} );
+    expect_true( {0, 10, 0, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, 0, 1} );
+    expect_true( {0, 0, 10, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, -1, 0} );
+}
+
+TEST( math_pose, velocity_from_reference_frame )
 {
     expect_true( pose(), pose(), pose() );
     expect_true( pose( 1, 2, 3, 0.1, 0.2, 0.3 ), pose(), pose() );
