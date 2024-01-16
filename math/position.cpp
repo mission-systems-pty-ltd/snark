@@ -39,4 +39,6 @@ position& position::to( const position& frame ) // todo! for many applications, 
     return *this;
 }
 
+position::operator pose() const { return pose{coordinates, orientation}; }
+
 } // namespace snark

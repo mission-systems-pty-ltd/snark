@@ -6,11 +6,15 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "roll_pitch_yaw.h"
+#include "pose.h"
 
 namespace snark {
 
-struct position // todo!!! consolidate with frames::transform; also: watch performance
+// todo! consolidate snark::position and snark::pose types
+// this terrible type duplication was due too
+// very unfortunate lack of communication
+// when frame transforms were implemented
+struct position
 {
     Eigen::Vector3d coordinates;
     roll_pitch_yaw orientation;
@@ -24,6 +28,8 @@ struct position // todo!!! consolidate with frames::transform; also: watch perfo
     position& from( const position& frame );
 
     position& to( const position& frame );
+
+    operator pose() const;
 };
 
 } // namespace snark

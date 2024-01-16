@@ -2,6 +2,7 @@
 // All rights reserved.
 
 #include "pose.h"
+#include "position.h"
 #include "rotation_matrix.h"
 
 namespace snark {
@@ -36,6 +37,13 @@ pose& pose::to( const pose& frame ) // todo! use affine; also, for many applicat
     translation = frame.inverse_affine() * translation;
     rotation = snark::rotation_matrix::roll_pitch_yaw( lhs * rhs );
     return *this;
+}
+
+pose pose::velocity_from( const pose& frame_velocity ) const
+{
+    Eigen::AngleAxisd a( snark::rotation_matrix::rotation( frame_velocity.rotation ) );
+    const Eigen::Vector3d& tangent_velocity = a.axis().cross( translation ) * a.angle(); // Eigen::AngleAxis seems to guarantee that axis is normalized
+    return pose{ frame_velocity.translation + tangent_velocity, frame_velocity.rotation };
 }
 
 pose::operator position() const { return position{ translation, rotation }; }

@@ -7,9 +7,10 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "roll_pitch_yaw.h"
-#include "position.h"
 
 namespace snark { 
+
+struct position;
 
 // todo! consolidate snark::position and snark::pose types
 // this terrible type duplication was due too
@@ -31,6 +32,8 @@ struct pose
     pose& from( const pose& frame );
 
     pose& to( const pose& frame );
+
+    pose velocity_from( const pose& frame_velocity ) const;
 
     operator position() const;
 };
