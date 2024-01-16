@@ -35,6 +35,12 @@ struct pose
 
     pose velocity_from( const pose& frame_velocity ) const;
 
+    bool operator==( const pose& rhs ) const { return translation == rhs.translation && rotation == rhs.rotation; }
+
+    bool operator!=( const pose& rhs ) const { return !operator==( rhs ); }
+
+    bool near( const pose& rhs, const pose& epsilon = pose{{0.001, 0.001, 0.001}, {0.001, 0.001, 0.001}} ) const; // todo
+
     operator position() const;
 };
 
