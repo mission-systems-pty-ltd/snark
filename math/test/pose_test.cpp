@@ -29,14 +29,18 @@ static void expect_true( const pose& p, const pose& v, const pose& expected )
 
 TEST( math_pose, tangent_velocity )
 {
-    expect_true( {}, roll_pitch_yaw(), {0, 0, 0} );
-    expect_true( {}, roll_pitch_yaw(1, 2, 3), {0, 0, 0} );
-    expect_true( {0, 0, 0, 0.1, 0.2, 0.3}, roll_pitch_yaw(1, 2, 3), {0, 0, 0} );
-    expect_true( {1, 2, 3, 0.1, 0.2, 0.3}, roll_pitch_yaw(), {0, 0, 0} );
-    expect_true( {10, 0, 0, 0, 0, 0}, roll_pitch_yaw(), {0, 0, 0} );
-    expect_true( {10, 0, 0, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, 0, 0} );
-    expect_true( {0, 10, 0, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, 0, 1} );
-    expect_true( {0, 0, 10, 0, 0, 0}, roll_pitch_yaw(0.1, 0, 0), {0, -1, 0} );
+    expect_true( {},                       roll_pitch_yaw(),          {0, 0, 0} );
+    expect_true( {},                       roll_pitch_yaw(1, 2, 3),   {0, 0, 0} );
+    expect_true( {0, 0, 0, 0.1, 0.2, 0.3}, roll_pitch_yaw(1, 2, 3),   {0, 0, 0} );
+    expect_true( {1, 2, 3, 0.1, 0.2, 0.3}, roll_pitch_yaw(),          {0, 0, 0} );
+    expect_true( {10, 0, 0, 0, 0, 0},      roll_pitch_yaw(0.1, 0, 0), {0, 0, 0} );
+    expect_true( {0, 10, 0, 0, 0, 0},      roll_pitch_yaw(0.1, 0, 0), {0, 0, 1} );
+    expect_true( {0, 0, 10, 0, 0, 0},      roll_pitch_yaw(0.1, 0, 0), {0, -1, 0} );
+    expect_true( {10, 10, 0, 0, 0, 0},     roll_pitch_yaw(0.1, 0, 0), {0, 0, 1} );
+    expect_true( {10, 0, 10, 0, 0, 0},     roll_pitch_yaw(0.1, 0, 0), {0, -1, 0} );
+    expect_true( {100, 10, 20, 0, 0, 0},   roll_pitch_yaw(0.1, 0, 0), {0, -2, 1} );
+    expect_true( {10, 20, 0, 0, 0, 0},     roll_pitch_yaw(0, 0, 0.1), {-2, 1, 0} );
+    expect_true( {10, 100, 20, 0, 0, 0},   roll_pitch_yaw(0, 0.1, 0), {2, 0, -1} );
 }
 
 TEST( math_pose, velocity_from_reference_frame )
