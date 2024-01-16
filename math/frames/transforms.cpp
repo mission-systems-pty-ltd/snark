@@ -6,40 +6,6 @@
 
 namespace snark { namespace frames {
 
-::Eigen::Affine3d transform::affine() const
-{
-    ::Eigen::Translation3d t;
-    t.vector() = translation;
-    return ::Eigen::Affine3d( t * snark::rotation_matrix::rotation( rotation ) );
-}
-
-::Eigen::Affine3d transform::inverse_affine() const
-{
-    ::Eigen::Translation3d t;
-    t.vector() = translation;
-    return ::Eigen::Affine3d( snark::rotation_matrix::rotation( rotation ).transpose() * t.inverse() );
-}
-
-transform& transform::from( const transform& frame ) // todo! use affine; also, for many applications, this is very suboptimal; should be: calculate frame once, use many times
-{
-    Eigen::Matrix3d lhs = snark::rotation_matrix::rotation( frame.rotation );
-    Eigen::Matrix3d rhs = snark::rotation_matrix::rotation( rotation );
-    translation = frame.affine() * translation;
-    rotation = snark::rotation_matrix::roll_pitch_yaw( lhs * rhs );
-    return *this;
-}
-
-transform& transform::to( const transform& frame ) // todo! use affine; also, for many applications, this is very suboptimal; should be: calculate frame once, use many times
-{
-    Eigen::Matrix3d lhs = snark::rotation_matrix::rotation( frame.rotation ).transpose();
-    Eigen::Matrix3d rhs = snark::rotation_matrix::rotation( rotation );
-    translation = frame.inverse_affine() * translation;
-    rotation = snark::rotation_matrix::roll_pitch_yaw( lhs * rhs );
-    return *this;
-}
-
-transform::operator position() const { return position{ translation, rotation }; }
-
 Eigen::Matrix4d tr_transform::to_matrix() const
 {
     return homogeneous_transform(rotation.toRotationMatrix(),translation);

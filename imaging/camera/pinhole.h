@@ -140,9 +140,9 @@ struct config
 
     snark::pose pose;
 
-    config() {}
+    config() = default;
 
-    config( const pinhole::config_t& p, const snark::pose& t ): pinhole( p ), pose( t ) {}
+    config( const pinhole::config_t& p, const snark::pose& t = snark::pose() ): pinhole( p ), pose( t ) {}
 };
 
 } } // namespace snark { namespace camera {

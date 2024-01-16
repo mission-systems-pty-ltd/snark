@@ -3,9 +3,7 @@
 
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include "../position.h"
+#include "../pose.h"
 
 namespace snark { namespace frames {
 
@@ -22,25 +20,7 @@ struct dh_transform
     dh_transform(double d_, double theta_, double r_, double alpha_) : d(d_), theta(theta_), r(r_), alpha(alpha_) {}
 };
 
-struct transform
-{
-    Eigen::Vector3d translation;
-    snark::roll_pitch_yaw rotation;
-
-    transform() : translation( Eigen::Vector3d::Zero() ), rotation( 0, 0, 0 ) {}
-
-    transform( const Eigen::Vector3d& translation, const snark::roll_pitch_yaw& rotation ): translation( translation ), rotation( rotation ) {}
-
-    ::Eigen::Affine3d affine() const;
-
-    ::Eigen::Affine3d inverse_affine() const;
-
-    transform& from( const transform& frame );
-
-    transform& to( const transform& frame );
-
-    operator position() const;
-};
+typedef snark::pose transform;
 
 struct tr_transform
 {
