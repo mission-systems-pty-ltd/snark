@@ -6,26 +6,22 @@
 
 namespace snark {
 
+static void expect_true( const pose& p, const pose& v, const pose& expected )
+{
+    const auto& r = p.velocity_from( v );
+    EXPECT_NEAR( r.x(), expected.x(), 0.001 );
+    EXPECT_NEAR( r.y(), expected.y(), 0.001 );
+    EXPECT_NEAR( r.z(), expected.z(), 0.001 );
+    EXPECT_NEAR( r.roll(), expected.roll(), 0.001 );
+    EXPECT_NEAR( r.pitch(), expected.pitch(), 0.001 );
+    EXPECT_NEAR( r.yaw(), expected.yaw(), 0.001 );
+}
+
 TEST( math_pose, velocity )
 {
-    EXPECT_EQ( pose().velocity_from( pose() ), pose() );
-    // Eigen::Vector3d a( 0, 1, 2 );
-    // Eigen::Vector3d b( 3, 4, 5 );
-
-    // closed_interval< double, 3 > i( a, b );
-
-    // EXPECT_TRUE( i.contains( a ) );
-    // EXPECT_TRUE( i.contains( b ) );
-    // EXPECT_TRUE( i.contains( 0.5*(a+b) ) );
-    // EXPECT_FALSE( i.contains( -a ) );
-
-    // i = i.hull( Eigen::Vector3d ( -1, 2, 3 ) );
-    // EXPECT_EQ( i.min(), Eigen::Vector3d( -1, 1, 2 ) );
-    // EXPECT_EQ( i.max(), Eigen::Vector3d( 3, 4, 5 ) );
-
-    // i = i.hull( Eigen::Vector3d ( 0, 10, 3 ) );
-    // EXPECT_EQ( i.min(), Eigen::Vector3d( -1, 1, 2 ) );
-    // EXPECT_EQ( i.max(), Eigen::Vector3d( 3, 10, 5 ) );
+    expect_true( pose(), pose(), pose() );
+    expect_true( pose( 1, 2, 3, 0.1, 0.2, 0.3 ), pose(), pose() );
+    expect_true( pose( 1, 2, 3, 0.1, 0.2, 0.3 ), pose( 11, 22, 33 ), pose( 11, 22, 33, 0, 0, 0 ) );
 }
 
 } // namespace snark {
