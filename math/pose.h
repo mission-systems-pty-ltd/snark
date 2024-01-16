@@ -36,6 +36,8 @@ struct pose
 
     pose& to( const pose& frame );
 
+    ::Eigen::Vector3d tangent_velocity( const roll_pitch_yaw& frame_rotation_velocity ) const;
+
     pose velocity_from( const pose& frame_velocity ) const;
 
     double& x() { return translation.x(); }

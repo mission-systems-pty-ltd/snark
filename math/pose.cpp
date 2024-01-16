@@ -39,11 +39,16 @@ pose& pose::to( const pose& frame ) // todo! use affine; also, for many applicat
     return *this;
 }
 
+::Eigen::Vector3d pose::tangent_velocity( const roll_pitch_yaw& frame_rotation_velocity ) const
+{
+    Eigen::AngleAxisd a( snark::rotation_matrix::rotation( frame_rotation_velocity ) );
+    return Eigen::Vector3d( a.axis().cross( translation ) * a.angle() ); // Eigen::AngleAxis seems to guarantee that axis is normalized
+}
+
 pose pose::velocity_from( const pose& frame_velocity ) const
 {
-    Eigen::AngleAxisd a( snark::rotation_matrix::rotation( frame_velocity.rotation ) );
-    const Eigen::Vector3d& tangent_velocity = a.axis().cross( translation ) * a.angle(); // Eigen::AngleAxis seems to guarantee that axis is normalized
-    return pose{ frame_velocity.translation + tangent_velocity, frame_velocity.rotation };
+    // todo? does this->rotation affect resulting velocity? no, right?
+    return pose{ frame_velocity.translation + tangent_velocity( frame_velocity.rotation ), frame_velocity.rotation };
 }
 
 pose::operator position() const { return position{ translation, rotation }; }
