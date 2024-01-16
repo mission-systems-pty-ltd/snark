@@ -21,7 +21,11 @@ TEST( math_pose, velocity )
 {
     expect_true( pose(), pose(), pose() );
     expect_true( pose( 1, 2, 3, 0.1, 0.2, 0.3 ), pose(), pose() );
+    expect_true( pose(), pose( 11, 22, 33 ), pose( 11, 22, 33, 0, 0, 0 ) );
     expect_true( pose( 1, 2, 3, 0.1, 0.2, 0.3 ), pose( 11, 22, 33 ), pose( 11, 22, 33, 0, 0, 0 ) );
+    // todo: confirm tangent direction is correct
+    expect_true( pose( 0, 10, 0 ), pose( 0, 0, 0, 0.1, 0, 0 ), pose( 0, 0, 1, 0.1, 0, 0 ) );
+    // todo: confirm chained frame velocities produce correct velocity
 }
 
 } // namespace snark {
