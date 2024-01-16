@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "../roll_pitch_yaw.h"
+#include "../position.h"
 
 namespace snark { namespace frames {
 
@@ -34,6 +34,12 @@ struct transform
     ::Eigen::Affine3d affine() const;
 
     ::Eigen::Affine3d inverse_affine() const;
+
+    transform& from( const transform& frame );
+
+    transform& to( const transform& frame );
+
+    operator position() const;
 };
 
 struct tr_transform

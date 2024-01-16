@@ -5,6 +5,7 @@
 #include <comma/visiting/apply.h>
 #include <comma/visiting/visit.h>
 #include "../math/interval.h"
+#include "../math/pose.h"
 #include "../math/position.h"
 #include "../math/range_bearing_elevation.h"
 #include "../math/frame_transforms.h"
@@ -121,15 +122,15 @@ template <> struct traits< snark::frame_transforms::tr_transform >
     }
 };
 
-template <> struct traits< snark::frame_transforms::transform >
+template <> struct traits< snark::pose >
 {
-    template< typename K, typename V > static void visit( const K& k, snark::frame_transforms::transform& t, V& v )
+    template< typename K, typename V > static void visit( const K& k, snark::pose& t, V& v )
     {
         v.apply( "translation", t.translation );
         v.apply( "rotation", t.rotation );
     }
 
-    template< typename K, typename V > static void visit( const K& k, const snark::frame_transforms::transform& t, V& v )
+    template< typename K, typename V > static void visit( const K& k, const snark::pose& t, V& v )
     {
         v.apply( "translation", t.translation );
         v.apply( "rotation", t.rotation );

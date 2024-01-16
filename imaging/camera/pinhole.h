@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 #include <opencv2/core/core.hpp>
 #include <comma/sync/lazy.h>
-#include "../../math/frame_transforms.h"
+#include "../../math/pose.h"
 
 namespace snark { namespace camera {
 
