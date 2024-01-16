@@ -52,7 +52,6 @@ TEST( math_pose, velocity_from_reference_frame )
     expect_true( pose( 10, 0, 0 ), pose( 0, 0, 0, 0.1, 0, 0 ), pose( 0, 0, 0, 0.1, 0, 0 ) );
     expect_true( pose( 0, 10, 0 ), pose( 0, 0, 0, 0.1, 0, 0 ), pose( 0, 0, 1, 0.1, 0, 0 ) );
     expect_true( pose( 0, 0, 10 ), pose( 0, 0, 0, 0.1, 0, 0 ), pose( 0, -1, 0, 0.1, 0, 0 ) );
-    // todo: confirm chained frame velocities produce correct velocity
 }
 
 } // namespace snark {
