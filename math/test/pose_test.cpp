@@ -6,15 +6,25 @@
 
 namespace snark {
 
+static void expect_near( const Eigen::Vector3d& p, const Eigen::Vector3d& q )
+{
+    EXPECT_NEAR( p.x(), q.x(), 10e-6 );
+    EXPECT_NEAR( p.y(), q.y(), 10e-6 );
+    EXPECT_NEAR( p.z(), q.z(), 10e-6 );
+}
+
+static void expect_true( const pose& p, const roll_pitch_yaw& v, const Eigen::Vector3d& expected )
+{
+    expect_near( p.tangent_velocity( v ), expected );
+}
+
 static void expect_true( const pose& p, const pose& v, const pose& expected )
 {
     const auto& r = p.velocity_from( v );
-    EXPECT_NEAR( r.x(), expected.x(), 0.001 );
-    EXPECT_NEAR( r.y(), expected.y(), 0.001 );
-    EXPECT_NEAR( r.z(), expected.z(), 0.001 );
-    EXPECT_NEAR( r.roll(), expected.roll(), 0.001 );
-    EXPECT_NEAR( r.pitch(), expected.pitch(), 0.001 );
-    EXPECT_NEAR( r.yaw(), expected.yaw(), 0.001 );
+    expect_near( r.translation, expected.translation );
+    EXPECT_NEAR( r.roll(), expected.roll(), 10e-6 );
+    EXPECT_NEAR( r.pitch(), expected.pitch(), 10e-6 );
+    EXPECT_NEAR( r.yaw(), expected.yaw(), 10e-6 );
 }
 
 TEST( math_pose, velocity )
