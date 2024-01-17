@@ -381,7 +381,11 @@ int main( int argc, char** argv )
         }
         pipeline_with_header pipeline( output, filters, *reader, number_of_threads );
         pipeline.run();
-        if( vm.count( "stay" ) ) { while( !is_shutdown && cv::waitKey( 1000 ) == 255 ); }
+        if( vm.count( "stay" ) )
+        {
+            std::cerr << "cv-cat: stopped; asked to --stay...; press any key to exit" << std::endl;
+            while( !is_shutdown && cv::waitKey( 1000 ) == 255 );
+        }
         return 0;
     }
     catch( std::exception& ex ) { std::cerr << "cv-cat: " << ex.what() << std::endl; }
