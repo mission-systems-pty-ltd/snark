@@ -36,9 +36,14 @@ struct pose
 
     pose& to( const pose& frame );
 
+    /// @todo current limitation: only resulting rotational velocity under 1Hz is currently supported
+    ///       it's not too hard to add element-wise
     ::Eigen::Vector3d tangent_velocity( const roll_pitch_yaw& frame_rotation_velocity ) const;
 
-    pose velocity_from( const pose& frame_velocity ) const;
+    /// @todo current limitation: only single rotational velocity is currently supported, i.e.
+    ///       it won't work if e.g. you have your aircraft rolling and your sensor mounted on
+    ///       the wing spinning
+    pose velocity_from( const pose& frame, const pose& frame_velocity ) const;
 
     double& x() { return translation.x(); }
     double x() const { return translation.x(); }

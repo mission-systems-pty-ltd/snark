@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Vsevolod Vlaskine
 // All rights reserved.
 
+#include <comma/base/exception.h>
 #include "pose.h"
 #include "position.h"
 #include "rotation_matrix.h"
@@ -41,14 +42,16 @@ pose& pose::to( const pose& frame ) // todo! use affine; also, for many applicat
 
 ::Eigen::Vector3d pose::tangent_velocity( const roll_pitch_yaw& frame_rotation_velocity ) const
 {
+    COMMA_ASSERT( std::abs( frame_rotation_velocity.roll() ) <= M_PI, "high angular speeds not supported (todo); got roll: " << frame_rotation_velocity.roll() );
+    COMMA_ASSERT( std::abs( frame_rotation_velocity.pitch() ) <= M_PI / 2, "high angular speeds not supported (todo); got pitch: " << frame_rotation_velocity.pitch() );
+    COMMA_ASSERT( std::abs( frame_rotation_velocity.yaw() ) <= M_PI, "high angular speeds not supported (todo); got yaw: " << frame_rotation_velocity.yaw() );
     Eigen::AngleAxisd a( snark::rotation_matrix::rotation( frame_rotation_velocity ) );
     return Eigen::Vector3d( a.axis().cross( translation ) * a.angle() ); // Eigen::AngleAxis seems to guarantee that axis is normalized
 }
 
-pose pose::velocity_from( const pose& frame_velocity ) const
+pose pose::velocity_from( const pose& frame, const pose& frame_velocity ) const
 {
-    // todo? does this->rotation affect resulting velocity? no, right?
-    return pose{ frame_velocity.translation + tangent_velocity( frame_velocity.rotation ), frame_velocity.rotation };
+    return pose{ frame_velocity.translation + snark::rotation_matrix::rotation( frame.rotation ) * tangent_velocity( frame_velocity.rotation ), frame_velocity.rotation };
 }
 
 pose::operator position() const { return position{ translation, rotation }; }
