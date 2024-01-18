@@ -58,13 +58,11 @@ TEST( math_pose, velocity_from_reference_frame )
     // todo: more tests
 }
 
-TEST( DISABLED_geometry_pose, tangent_velocity_high_value )
+TEST( geometry_pose, tangent_velocity_high_value )
 {
-    // todo
-    // - run this test: snark_math_test --gtest_also_run_disabled_tests; observe that test fails
-    // - fix by supporting higher rotation velocities; see comments in snark::pose class
-    expect( {0, -M_PI * 2, 0},  {0, 0, 1, 0, 0, 0},   roll_pitch_yaw( M_PI * 2, 0, 0 ) );
-    // todo! more tests once high angular speeds are supported
+    expect( {0, M_PI * 2, 0},  {0, 0, 1, 0, 0, 0},   roll_pitch_yaw( M_PI * 2, 0, 0 ) );
+    expect( {0, M_PI * 15.123, 0},  {0, 0, 1, 0, 0, 0},   roll_pitch_yaw( M_PI * 15.123, 0, 0 ) );
+    // todo! WAY more tests!
 }
 
 } // namespace snark {

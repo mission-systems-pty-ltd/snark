@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Vsevolod Vlaskine
 // All rights reserved.
 
-#include <comma/base/exception.h>
 #include "pose.h"
 #include "position.h"
 #include "rotation_matrix.h"
@@ -40,13 +39,16 @@ pose& pose::to( const pose& frame ) // todo! use affine; also, for many applicat
     return *this;
 }
 
-::Eigen::Vector3d pose::tangent_velocity( const roll_pitch_yaw& frame_rotation_velocity ) const
+// see e.g. https://physics.stackexchange.com/questions/672712/angular-velocity-via-extrinsic-euler-angles
+::Eigen::Vector3d pose::tangent_velocity( const roll_pitch_yaw& r ) const
 {
-    COMMA_ASSERT( std::abs( frame_rotation_velocity.roll() ) <= M_PI, "high angular speeds not supported (todo); got roll: " << frame_rotation_velocity.roll() );
-    COMMA_ASSERT( std::abs( frame_rotation_velocity.pitch() ) <= M_PI / 2, "high angular speeds not supported (todo); got pitch: " << frame_rotation_velocity.pitch() );
-    COMMA_ASSERT( std::abs( frame_rotation_velocity.yaw() ) <= M_PI, "high angular speeds not supported (todo); got yaw: " << frame_rotation_velocity.yaw() );
-    Eigen::AngleAxisd a( snark::rotation_matrix::rotation( frame_rotation_velocity ) );
-    return Eigen::Vector3d( a.axis().cross( translation ) * a.angle() ); // Eigen::AngleAxis seems to guarantee that axis is normalized
+    const auto& roll = snark::rotation_matrix::rotation( roll_pitch_yaw( r.roll(), 0, 0 ) );
+    const auto& pitch = snark::rotation_matrix::rotation( roll_pitch_yaw( 0, r.pitch(), 0 ) );
+    //const auto& yaw = snark::rotation_matrix::rotation( roll_pitch_yaw( 0, 0, r.yaw() ) );
+    Eigen::Vector3d v = Eigen::Vector3d( r.roll(), 0, 0 ) + roll * ( Eigen::Vector3d( 0, r.pitch(), 0 ) + pitch * Eigen::Vector3d( 0, 0, r.yaw() ) );
+    double angle = v.norm();
+    Eigen::AngleAxisd a( snark::rotation_matrix::rotation( r ) ); //Eigen::Vector3d axis = v / angle; // todo! use v instead of Eigen::AngleAxisd
+    return Eigen::Vector3d( a.axis().cross( translation ) * angle ); // Eigen::AngleAxis seems to guarantee that axis is normalized
 }
 
 pose pose::velocity_from( const pose& frame, const pose& frame_velocity ) const
