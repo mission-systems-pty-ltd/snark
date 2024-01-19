@@ -484,6 +484,8 @@ bool frames_as_array_handle( const comma::command_line_options& options )
 
 static bool frames_from_config_handle( const comma::command_line_options& options )
 {
+    // todo: --help
+    // todo: from/to usage semantics
     std::string config = options.value< std::string >( "--config", "" );
     bool config_expand = options.exists( "--config-expand,--expand-config" );
     if( config_expand )

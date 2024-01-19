@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 #include <comma/name_value/ptree.h>
-#include "../position.h"
+#include "../pose.h"
 
 namespace snark { namespace frames {
 
@@ -38,7 +38,7 @@ class tree
 
         const boost::property_tree::ptree& operator()() const { return _tree; }
 
-        std::vector< position > operator()( const comma::xpath& path, const std::string& name = "frame" ) const;
+        std::vector< pose > operator()( const comma::xpath& path, const std::string& name = "frame" ) const;
         
     private:
         offset_format::values _format;

@@ -49,7 +49,7 @@
 
 namespace snark{ namespace applications {
 
-struct position
+struct position // todo: phase out, use snark::pose
 {
     position() : coordinates( Eigen::Vector3d::Zero() ), orientation( Eigen::Vector3d::Zero() ) {}
     position( const Eigen::Vector3d& p ) : coordinates( p ), orientation( Eigen::Vector3d::Zero() ) {}

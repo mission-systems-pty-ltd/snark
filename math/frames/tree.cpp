@@ -3,9 +3,11 @@
 
 #include <fstream>
 #include <comma/base/exception.h>
+#include <comma/base/none.h>
 #include <comma/csv/ascii.h>
 #include <comma/name_value/serialize.h>
 #include <comma/visiting/traits.h>
+#include "../pose.h"
 #include "../../visiting/traits.h"
 #include "tree.h"
 
@@ -20,7 +22,7 @@ struct pose_flat // quick and dirty
     double pitch{0};
     double yaw{0};
 
-    operator position() const { return position( {x, y, z}, {roll, pitch, yaw} ); }
+    operator pose() const { return pose( {x, y, z}, {roll, pitch, yaw} ); }
 };
 
 } } } // namespace snark { namespace frames { namespace impl {
@@ -56,9 +58,9 @@ template <> struct traits< snark::frames::impl::pose_flat >
 
 namespace snark { namespace frames {
 
-static boost::optional< position > _position( const boost::property_tree::ptree& t, const comma::xpath& path, tree::offset_format::values format )
+static boost::optional< pose > _pose( const boost::property_tree::ptree& t, const comma::xpath& path, tree::offset_format::values format )
 {
-    boost::optional< position > p;
+    boost::optional< pose > p = comma::silent_none< pose >();
     switch( format )
     {
         case tree::offset_format::flat:
@@ -69,12 +71,12 @@ static boost::optional< position > _position( const boost::property_tree::ptree&
         }
         case tree::offset_format::nested:
         {
-            p = comma::property_tree::as< position >( t, path, true, true );
+            p = comma::property_tree::as< pose >( t, path, true, true );
             break;
         }
         case tree::offset_format::csv:
         {
-            static comma::csv::ascii< position > ascii( "x,y,z,roll,pitch,yaw", ',', false );
+            static comma::csv::ascii< pose > ascii( "x,y,z,roll,pitch,yaw", ',', false );
             auto s = comma::property_tree::get( t, path, true );
             if( s ) { p = ascii.get( s ); }
             break;
@@ -107,12 +109,12 @@ tree& tree::make( const std::string& filename, const comma::xpath& path, offset_
     return make( ifs, path, format, t );
 }
 
-std::vector< position > tree::operator()( const comma::xpath& path, const std::string& name ) const
+std::vector< pose > tree::operator()( const comma::xpath& path, const std::string& name ) const
 {
-    std::vector< position > v( path.elements.size() );
+    std::vector< pose > v( path.elements.size() );
     for( auto p = path; !p.elements.empty(); p = p.head() )
     {
-        auto o = _position( _tree, p / name, _format );
+        auto o = _pose( _tree, p / name, _format );
         if( o ) { v[ v.size() - p.elements.size() ] = *o; }
     }
     return v;
