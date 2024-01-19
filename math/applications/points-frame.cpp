@@ -13,6 +13,7 @@
 #include <boost/optional.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
+#include <comma/base/none.h>
 #include <comma/csv/ascii.h>
 #include <comma/csv/binary.h>
 #include <comma/csv/stream.h>
@@ -167,10 +168,12 @@ static void usage( bool verbose = false )
     exit( 0 );
 }
 
-bool timestamp_required = false; // quick and dirty
-boost::optional< boost::posix_time::time_duration > max_gap;
-uint64_t discarded_counter=0;
-boost::posix_time::time_duration discarded_time_diff_max;
+namespace snark { namespace applications {
+
+static bool timestamp_required{false}; // quick and dirty
+static boost::optional< boost::posix_time::time_duration > max_gap = comma::silent_none< boost::posix_time::time_duration >();
+static uint64_t discarded_counter{0};
+static boost::posix_time::time_duration discarded_time_diff_max;
 
 std::vector< boost::shared_ptr< snark::applications::frame > > parse_frames( const std::vector< std::string >& values
                                                                            , const comma::csv::options& options
@@ -221,7 +224,7 @@ std::vector< boost::shared_ptr< snark::applications::frame > > parse_frames( con
     return frames;
 }
 
-void run( const std::vector< boost::shared_ptr< snark::applications::frame > >& frames, const comma::csv::options& csv )
+static void run( const std::vector< boost::shared_ptr< snark::applications::frame > >& frames, const comma::csv::options& csv )
 {
     comma::signal_flag is_shutdown;
     comma::csv::input_stream< snark::applications::frame::point_type > istream( std::cin, csv );
@@ -324,8 +327,6 @@ void run( const std::vector< boost::shared_ptr< snark::applications::frame > >& 
         }
     }
 }
-
-namespace snark { namespace applications {
 
 struct position_and_frames
 {
@@ -448,10 +449,10 @@ R"(    usage
         todo: implementation in progress; examples marked as todo below are not functional yet
     examples
         todo: camera pose in world frame (frame[1])
-            some-input.csv | points-frames --config config.json:frames \
-                                           --from frame[0]=platform/mount/joint/camera \
-                                           --fields x,y,z,roll,pitch,yaw,frames[1] \
-                                           --emplace
+            some-input.csv | points-frames   --config config.json:frames \
+                                             --from frame[0]=platform/mount/joint/camera \
+                                             --fields x,y,z,roll,pitch,yaw,frames[1] \
+                                             --emplace
         todo: camera pose in mount frame
             echo 0,0,0,0,0,0 | points-frames --config config.json:frames \
                                              --from frame[0]=platform/mount/joint/camera \
@@ -465,16 +466,14 @@ R"(    usage
                                              --fields x,y,z,roll,pitch,yaw \
                                              --emplace
         todo: camera in world frame (frames[2]) where joint is rotating around yaw axis
-            some-input.csv | points-frames --config config.json:frames \
-                                           --from frame[0]=platform/mount/joint/camera \ todo!!!
-                                           --from frame[0]=platform/mount/joint/camera \ todo!!!
-                                           --fields x,y,z,roll,pitch,yaw,platform/mount/joint/position/yaw,frames[2] \
-                                           --emplace
+            some-input.csv | points-frames   --config config.json:frames \
+                                             --from frame[0]=platform/mount/joint/camera \
+                                             --fields x,y,z,roll,pitch,yaw,platform/mount/joint/position/yaw,frames[2] \
+                                             --emplace
         todo: more examples...
 )"
                    :
-R"(    usage
-    examples
+R"(    usage, examples
         run --help --verbose for more
 )";
 }
@@ -504,14 +503,14 @@ static snark::frames::tree tree( const comma::command_line_options& options )
 
 } // namespace config {
 
-static bool as_array_handle( const comma::command_line_options& options )
+static bool run( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
     std::set< unsigned int > indices;
-    if( config::handle_info_options( options ) ) { return true; }
-    auto tree = config::tree( options );
+    if( frames::config::handle_info_options( options ) ) { return true; }
+    auto tree = frames::config::tree( options );
     std::tie( csv.fields, indices ) = frames::as_array( csv.fields, tree );
     const auto& froms = frames::from_options( options, "--from", tree );
     const auto& tos = frames::from_options( options, "--to", tree );
@@ -556,6 +555,48 @@ static bool as_array_handle( const comma::command_line_options& options )
 
 } // namespace frames {
 
+static int run( const comma::command_line_options& options )
+{
+    comma::csv::options csv( options );
+    csv.full_xpath = false;
+    if( csv.fields == "" ) { csv.fields="t,x,y,z"; }
+    std::vector< std::string > v = comma::split( csv.fields, ',' );
+    bool rotation_present = false;
+    for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
+    if( options.exists( "--pose,--position" ) ) { std::cerr << "points-frame: --pose given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
+    bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
+    bool from = options.exists( "--from" );
+    bool to = options.exists( "--to" );
+    if( !to && !from ) { COMMA_THROW( comma::exception, "please specify either --to or --from" ); }
+    bool interpolate = !options.exists( "--no-interpolate" );
+    std::vector< std::string > names = options.names();
+    std::vector< bool > to_vector;
+    for( unsigned int i = 0u; i < names.size(); i++ )
+    {
+        if( names[i] == "--from" ) { to_vector.push_back( false ); }
+        else if( names[i] == "--to" ) { to_vector.push_back( true ); }
+    }
+    if( options.exists( "--max-gap" ) )
+    {
+        double d = options.value< double >( "--max-gap" );
+        if( !comma::math::less( 0, d ) ) { std::cerr << "points-frame: expected --max-gap in seconds, got " << d << std::endl; usage(); }
+        max_gap = boost::posix_time::seconds( int( d ) ) + boost::posix_time::microseconds( int( 1000000.0 * ( d - int( d ) ) ) );
+    }
+    std::vector< boost::shared_ptr< snark::applications::frame > > frames = parse_frames( options.values< std::string >( "--from,--to" )
+                                                                                        , csv
+                                                                                        , discard_out_of_order
+                                                                                        , options.exists( "--output-frame" )
+                                                                                        , to_vector
+                                                                                        , interpolate
+                                                                                        , rotation_present );
+    //if( timestamp_required ) { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "t,x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields t,x,y,z; got " << csv.fields ); } }
+    //else { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields x,y,z; got " << csv.fields ); } }
+    if( timestamp_required ) { if( csv.fields != "" && !comma::csv::fields_exist( csv.fields, "t" ) ) { COMMA_THROW( comma::exception, "expected mandatory field t; got " << csv.fields ); } }
+    snark::applications::run( frames, csv );
+    if( discarded_counter ) { std::cerr << "points-frame: discarded " << discarded_counter << " points; max time diff: " << discarded_time_diff_max.total_microseconds() <<" microseconds" << std::endl; }
+    return 0;
+}
+
 } } // namespace snark { namespace applications {
 
 int main( int ac, char** av )
@@ -563,45 +604,7 @@ int main( int ac, char** av )
     try
     {
         comma::command_line_options options( ac, av, usage );
-        comma::csv::options csv( options );
-        csv.full_xpath = false;
-        if( csv.fields == "" ) { csv.fields="t,x,y,z"; }
-        std::vector< std::string > v = comma::split( csv.fields, ',' );
-        bool rotation_present = false;
-        for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        if( snark::applications::frames::as_array_handle( options ) ) { return 0; }
-        if( options.exists( "--pose,--position" ) ) { std::cerr << "points-frame: --pose given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
-        bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
-        bool from = options.exists( "--from" );
-        bool to = options.exists( "--to" );
-        if( !to && !from ) { COMMA_THROW( comma::exception, "please specify either --to or --from" ); }
-        bool interpolate = !options.exists( "--no-interpolate" );
-        std::vector< std::string > names = options.names();
-        std::vector< bool > to_vector;
-        for( unsigned int i = 0u; i < names.size(); i++ )
-        {
-            if( names[i] == "--from" ) { to_vector.push_back( false ); }
-            else if( names[i] == "--to" ) { to_vector.push_back( true ); }
-        }
-        if( options.exists( "--max-gap" ) )
-        {
-            double d = options.value< double >( "--max-gap" );
-            if( !comma::math::less( 0, d ) ) { std::cerr << "points-frame: expected --max-gap in seconds, got " << d << std::endl; usage(); }
-            max_gap = boost::posix_time::seconds( int( d ) ) + boost::posix_time::microseconds( int( 1000000.0 * ( d - int( d ) ) ) );
-        }
-        std::vector< boost::shared_ptr< snark::applications::frame > > frames = parse_frames( options.values< std::string >( "--from,--to" )
-                                                                                            , csv
-                                                                                            , discard_out_of_order
-                                                                                            , options.exists( "--output-frame" )
-                                                                                            , to_vector
-                                                                                            , interpolate
-                                                                                            , rotation_present );
-        //if( timestamp_required ) { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "t,x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields t,x,y,z; got " << csv.fields ); } }
-        //else { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields x,y,z; got " << csv.fields ); } }
-        if( timestamp_required ) { if( csv.fields != "" && !comma::csv::fields_exist( csv.fields, "t" ) ) { COMMA_THROW( comma::exception, "expected mandatory field t; got " << csv.fields ); } }
-        run( frames, csv );
-        if( discarded_counter ) { std::cerr << "points-frame: discarded " << discarded_counter << " points; max time diff: " << discarded_time_diff_max.total_microseconds() <<" microseconds" << std::endl; }
-        return 0;
+        if( !snark::applications::frames::run( options ) ) { return snark::applications::run( options ); }
     }
     catch( std::exception& ex ) { std::cerr << "points-frame: " << ex.what() << std::endl; }
     catch( ... ) { std::cerr << "points-frame: unknown exception" << std::endl; }
