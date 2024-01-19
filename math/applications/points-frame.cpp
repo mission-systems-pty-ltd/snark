@@ -417,7 +417,7 @@ static std::pair< std::string, std::set< unsigned int > > frames_as_array( const
     return std::make_pair( comma::join( v, ',' ), indices );
 }
 
-std::pair< std::map< unsigned int, snark::applications::position >, bool > frames_from_options( const comma::command_line_options& options, const std::string& option )
+static std::pair< std::map< unsigned int, snark::applications::position >, bool > frames_from_options( const comma::command_line_options& options, const std::string& option )
 {
     const auto& values = options.values< std::string >( option );
     std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
@@ -434,12 +434,37 @@ std::pair< std::map< unsigned int, snark::applications::position >, bool > frame
     return m;
 }
 
-bool frames_as_array_handle( const comma::command_line_options& options )
+static bool frames_from_config_handle( const comma::command_line_options& options )
+{
+    // todo: --help
+    // todo: from/to usage semantics
+    std::string config = options.value< std::string >( "--config", "" );
+    bool config_expand = options.exists( "--config-expand,--expand-config" );
+    if( config_expand )
+    {
+        if( config.empty() ) { config = "-"; }
+        auto c = comma::split( config, ':', true );
+        auto f = snark::frames::tree::frame_format::from_string( options.value( "--config-frame-format", std::string() ) );
+        auto t = c.size() == 1 ? snark::frames::tree::make( config, f ) : snark::frames::tree::make( c[0], c[1], f ); // todo: handle xpath
+        comma::name_value::impl::write_json( std::cout, t(), true, true );
+        return true;
+    }
+    if( config.empty() ) { return false; }
+
+    // todo: from/to usage semantics
+
+    COMMA_THROW_BRIEF( comma::exception, "--config: implementation in progress..." );
+}
+
+static bool frames_as_array_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
     std::set< unsigned int > indices;
+
+    if( frames_from_config_handle( options ) ) { return true; }
+
     std::tie( csv.fields, indices ) = frames_as_array( csv.fields );
     const auto& froms = frames_from_options( options, "--from" );
     const auto& tos = frames_from_options( options, "--to" );
@@ -482,28 +507,6 @@ bool frames_as_array_handle( const comma::command_line_options& options )
     return true;
 }
 
-static bool frames_from_config_handle( const comma::command_line_options& options )
-{
-    // todo: --help
-    // todo: from/to usage semantics
-    std::string config = options.value< std::string >( "--config", "" );
-    bool config_expand = options.exists( "--config-expand,--expand-config" );
-    if( config_expand )
-    {
-        if( config.empty() ) { config = "-"; }
-        auto c = comma::split( config, ':', true );
-        auto f = snark::frames::tree::frame_format::from_string( options.value( "--config-frame-format", std::string() ) );
-        auto t = c.size() == 1 ? snark::frames::tree::make( config, f ) : snark::frames::tree::make( c[0], c[1], f ); // todo: handle xpath
-        comma::name_value::impl::write_json( std::cout, t(), true, true );
-        return true;
-    }
-    if( config.empty() ) { return false; }
-
-    // todo: from/to usage semantics
-
-    COMMA_THROW_BRIEF( comma::exception, "--config: implementation in progress..." );
-}
-
 int main( int ac, char** av )
 {
     try
@@ -515,17 +518,6 @@ int main( int ac, char** av )
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        if( frames_from_config_handle( options ) ) { return 0; }
-        std::string config = options.value< std::string >( "--config", "" );
-        bool config_expand = options.exists( "--config-expand,--expand-config" );
-        if( config_expand )
-        {
-            if( config.empty() ) { config = "-"; }
-            auto c = comma::split( config, ':', true );
-            auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
-            comma::name_value::impl::write_json( std::cout, t(), true, true );
-            return 0;
-        }
         if( frames_as_array_handle( options ) ) { return 0; }
         if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
