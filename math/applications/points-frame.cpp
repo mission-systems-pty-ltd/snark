@@ -35,7 +35,7 @@ static void usage( bool verbose = false )
     std::cerr << std::endl;
     std::cerr << "usage: cat points.csv | points-frame <options> > points.converted.csv" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "options:" << std::endl;
+    std::cerr << "options" << std::endl;
     std::cerr << "    --from[=<frame>] : convert points from frames to the reference frame," << std::endl;
     std::cerr << "    --to[=<frame>] : convert points from the reference frame to frame" << std::endl;
     std::cerr << "        <frame> ::= <frame>[+<frames>]" << std::endl;
@@ -103,7 +103,7 @@ static void usage( bool verbose = false )
     std::cerr << "               If still confused, try simple coordinate transformations," << std::endl;
     std::cerr << "               just like examples below." << std::endl;
     std::cerr << std::endl;
-    std::cerr << "config (if --config present)" << std::endl;
+    std::cerr << "config" << std::endl;
     std::cerr << snark::applications::frames::config::usage( verbose ) << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options" << std::endl;
@@ -444,9 +444,14 @@ namespace config {
 
 std::string usage( bool verbose )
 {
-    return verbose ?
-R"(    usage
-        todo: implementation in progress; examples marked as todo below are not functional yet
+    std::string s =
+R"(    options
+        --config=[<path>]; json config file
+        --config-expand,--expand-config; todo: expand offsets in config following paths in it
+)";
+    return s + ( verbose ?
+R"(    data model
+        todo
     examples
         todo: camera pose in world frame (frame[1])
             some-input.csv | points-frames   --config config.json:frames \
@@ -470,12 +475,10 @@ R"(    usage
                                              --from frame[0]=platform/mount/joint/camera \
                                              --fields x,y,z,roll,pitch,yaw,platform/mount/joint/position/yaw,frames[2] \
                                              --emplace
-        todo: more examples...
-)"
+        todo: more examples...)"
                    :
-R"(    usage, examples
-        run --help --verbose for more
-)";
+R"(    data model, examples
+        run --help --verbose for more...)" );
 }
 
 static bool handle_info_options( const comma::command_line_options& options )
