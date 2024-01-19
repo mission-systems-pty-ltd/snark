@@ -466,9 +466,6 @@ static std::pair< std::string, std::set< unsigned int > > parse_fields( const st
     ( void )t; ( void )aliases;
     auto v = comma::split( fields, ',' );
     std::set< unsigned int > indices;
-
-    // todo: handle conflicting frame indices
-
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
     {
         if( f.empty() ) { continue; }
@@ -479,14 +476,19 @@ static std::pair< std::string, std::set< unsigned int > > parse_fields( const st
         {
             comma::xpath p( f );
             if( p.elements.back().index ) { continue; }
-            const auto& n = p.elements.back().name;
-            ( void )n;
-            //std::string if( n == "x" || n == "y" || n == "z" || n == "roll" || n == "pitch" || n == "yaw" )
-            {
-                // todo
-            }
+            auto n = p.elements.back().name;
+            if( !( n == "x" || n == "y" || n == "z" || n == "roll" || n == "pitch" || n == "yaw" ) ) { n = std::string(); }
+            else { p = p.head(); n = "/" + n; }
+            auto it = aliases.find( p.to_string() );
+            if( it == aliases.end() ) { continue; }
+            f = "frames[" + std::to_string( it->second ) + "]" + n;
         }
     }
+
+
+    // todo! handle frame indices vs aliases
+
+
     for( auto& f: v ) // super-quick and dirty for now
     {
         unsigned int i;
