@@ -1,4 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2023-2024 Vsevolod Vlaskine
+// All rights reserved
 
 #ifdef WIN32
 #include <stdio.h>
@@ -385,61 +387,6 @@ struct transform // todo: quick and dirty for now; brush this all up
 
 namespace frames {
 
-static std::pair< unsigned int, std::string::size_type > index( const std::string& f )
-{
-    if( f.substr( 0, 7 ) != "frames[" ) { return std::make_pair( 0, std::string::npos ); }
-    auto p = f.find_first_of( ']' );
-    return std::make_pair( p == std::string::npos ? 0 : boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) ), p );
-}
-
-static std::pair< std::string, std::set< unsigned int > > as_array( const std::string& fields, const snark::frames::tree& t )
-{
-    ( void )t;
-    auto v = comma::split( fields, ',' );
-    std::set< unsigned int > indices;
-    for( auto& f: v ) // quick and dirty: keeping it backward compatible
-    {
-        if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; }
-        else if( f == "frame" ) { f = "frames[0]"; }
-        else if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
-    }
-    for( auto& f: v ) // super-quick and dirty for now
-    {
-        unsigned int i;
-        std::string::size_type p;
-        std::tie( i, p ) = frames::index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
-        if( p == std::string::npos ) { continue; }
-        if( p + 1 == f.size() )
-        {
-            indices.insert( i );
-        }
-        else
-        {
-            COMMA_ASSERT_BRIEF( f[p + 1] == '/', "invalid csv fields: '" << fields << "'" );
-            auto r = f.substr( p + 2 );
-            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { indices.insert( i ); }
-        }
-    }
-    return std::make_pair( comma::join( v, ',' ), indices );
-}
-
-static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t )
-{
-    const auto& values = options.values< std::string >( option );
-    std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
-    m.second = false;
-    for( const auto& v: values )
-    {
-        unsigned int index;
-        std::string::size_type pos;
-        std::tie( index, pos ) = frames::index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
-        if( pos == std::string::npos || v[pos + 1] != '=' ) { m.second = true; }
-        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
-    }
-    if( m.first.empty() && options.exists( option ) ) { m.second = true; }
-    return m;
-}
-
 namespace config {
 
 std::string usage( bool verbose )
@@ -506,6 +453,65 @@ static snark::frames::tree tree( const comma::command_line_options& options )
 
 } // namespace config {
 
+static std::pair< unsigned int, std::string::size_type > index( const std::string& f )
+{
+    if( f.substr( 0, 7 ) != "frames[" ) { return std::make_pair( 0, std::string::npos ); }
+    auto p = f.find_first_of( ']' );
+    return std::make_pair( p == std::string::npos ? 0 : boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) ), p );
+}
+
+static std::pair< std::string, std::set< unsigned int > > parse_fields( const std::string& fields, const snark::frames::tree& t, const std::map< std::string, unsigned int >& aliases )
+{
+    ( void )t; ( void )aliases;
+    auto v = comma::split( fields, ',' );
+    std::set< unsigned int > indices;
+    for( auto& f: v ) // quick and dirty: keeping it backward compatible
+    {
+        if( f == "x" || f == "y" || f == "z" || f == "roll" || f == "pitch" || f == "yaw" ) { f = "position/" + f; }
+        else if( f == "frame" ) { f = "frames[0]"; }
+        else if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
+        else if( !aliases.empty() )
+        {
+            
+        }
+    }
+    for( auto& f: v ) // super-quick and dirty for now
+    {
+        unsigned int i;
+        std::string::size_type p;
+        std::tie( i, p ) = frames::index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
+        if( p == std::string::npos ) { continue; }
+        if( p + 1 == f.size() )
+        {
+            indices.insert( i );
+        }
+        else
+        {
+            COMMA_ASSERT_BRIEF( f[p + 1] == '/', "invalid csv fields: '" << fields << "'" );
+            auto r = f.substr( p + 2 );
+            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { indices.insert( i ); }
+        }
+    }
+    return std::make_pair( comma::join( v, ',' ), indices );
+}
+
+static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t )
+{
+    const auto& values = options.values< std::string >( option );
+    std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
+    m.second = false;
+    for( const auto& v: values )
+    {
+        unsigned int index;
+        std::string::size_type pos;
+        std::tie( index, pos ) = frames::index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
+        if( pos == std::string::npos || v[pos + 1] != '=' ) { m.second = true; }
+        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
+    }
+    if( m.first.empty() && options.exists( option ) ) { m.second = true; }
+    return m;
+}
+
 static bool run( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
@@ -514,7 +520,8 @@ static bool run( const comma::command_line_options& options )
     std::set< unsigned int > indices;
     if( frames::config::handle_info_options( options ) ) { return true; }
     auto tree = frames::config::tree( options );
-    std::tie( csv.fields, indices ) = frames::as_array( csv.fields, tree );
+    std::map< std::string, unsigned int > aliases; // todo
+    std::tie( csv.fields, indices ) = frames::parse_fields( csv.fields, tree, aliases );
     const auto& froms = frames::from_options( options, "--from", tree );
     const auto& tos = frames::from_options( options, "--to", tree );
     if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
