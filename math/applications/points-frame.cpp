@@ -58,13 +58,13 @@ static void usage( bool verbose = false )
     std::cerr << "    --output-frame : output each frame for each point" << std::endl;
     std::cerr << "                     can be individually specified for a frame, e.g.:" << std::endl;
     std::cerr << "                     --from \"novatel.csv;output-frame\"" << std::endl;
-    std::cerr << "    --position=[<x>,<y>,<z>,<roll>,<pitch>,<yaw>]: default position, if 'frame' fields are present" << std::endl;
+    std::cerr << "    --pose,--position=[<x>,<y>,<z>,<roll>,<pitch>,<yaw>]: default position, if 'frame' fields are present" << std::endl;
     std::cerr << "        example scenario: you have a gps unit trajectory and gps unit offset from the centre of the vehicle" << std::endl;
     std::cerr << "                          now, you want to find the trajectory of the centre of the vehicle" << std::endl;
     std::cerr << "                          in this case, the gps unit trajectory is the frame, which is variable," << std::endl;
     std::cerr << "                          while the point to georeference (the vehicle centre) is fixed" << std::endl;
     std::cerr << "                          then you could run:" << std::endl;
-    std::cerr << "                              cat gps.unit.trajectory.csv | points-frame --fields frame --position <gps unit offset relative to vehicle centre>" << std::endl;
+    std::cerr << "                              cat gps.unit.trajectory.csv | points-frame --fields frame --pose <gps unit offset relative to vehicle centre>" << std::endl;
     std::cerr << "                          this is equivalent to a much longer version:" << std::endl;
     std::cerr << "                              cat gps.unit.trajectory.csv \\" << std::endl;
     std::cerr << "                                  | csv-paste - value=<gps unit offset relative to vehicle centre> \\" << std::endl;
@@ -420,7 +420,6 @@ static std::pair< std::string, std::set< unsigned int > > as_array( const std::s
 
 static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t )
 {
-    ( void )t;
     const auto& values = options.values< std::string >( option );
     std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
     m.second = false;
@@ -478,7 +477,7 @@ static bool as_array_handle( const comma::command_line_options& options )
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
     bool emplace = options.exists( "--emplace,--in-place" );
     snark::applications::position_and_frames sample;
-    sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--position", "0,0,0,0,0,0" ) );
+    sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--pose,--position", "0,0,0,0,0,0" ) );
     bool from = froms.second || !tos.second;
     // todo: add checks of --from, --to consistency, same frame index repeating, etc
     unsigned int max_index = indices.empty() ? 0 : *indices.rbegin();
@@ -529,7 +528,7 @@ int main( int ac, char** av )
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
         if( snark::applications::frames::as_array_handle( options ) ) { return 0; }
-        if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
+        if( options.exists( "--pose,--position" ) ) { std::cerr << "points-frame: --pose given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
         bool from = options.exists( "--from" );
         bool to = options.exists( "--to" );
