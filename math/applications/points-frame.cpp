@@ -378,17 +378,18 @@ struct transform // todo: quick and dirty for now; brush this all up
     }
 };
 
-} } // namespace snark { namespace applications {
+namespace frames {
 
-static std::pair< unsigned int, std::string::size_type > frame_index( const std::string& f )
+static std::pair< unsigned int, std::string::size_type > index( const std::string& f )
 {
     if( f.substr( 0, 7 ) != "frames[" ) { return std::make_pair( 0, std::string::npos ); }
     auto p = f.find_first_of( ']' );
     return std::make_pair( p == std::string::npos ? 0 : boost::lexical_cast< unsigned int >( f.substr( 7, p - 7 ) ), p );
 }
 
-static std::pair< std::string, std::set< unsigned int > > frames_as_array( const std::string& fields )
+static std::pair< std::string, std::set< unsigned int > > as_array( const std::string& fields, const snark::frames::tree& t )
 {
+    ( void )t;
     auto v = comma::split( fields, ',' );
     std::set< unsigned int > indices;
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
@@ -401,7 +402,7 @@ static std::pair< std::string, std::set< unsigned int > > frames_as_array( const
     {
         unsigned int i;
         std::string::size_type p;
-        std::tie( i, p ) = frame_index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
+        std::tie( i, p ) = frames::index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
         if( p == std::string::npos ) { continue; }
         if( p + 1 == f.size() )
         {
@@ -417,8 +418,9 @@ static std::pair< std::string, std::set< unsigned int > > frames_as_array( const
     return std::make_pair( comma::join( v, ',' ), indices );
 }
 
-static std::pair< std::map< unsigned int, snark::applications::position >, bool > frames_from_options( const comma::command_line_options& options, const std::string& option )
+static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t )
 {
+    ( void )t;
     const auto& values = options.values< std::string >( option );
     std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
     m.second = false;
@@ -426,7 +428,7 @@ static std::pair< std::map< unsigned int, snark::applications::position >, bool 
     {
         unsigned int index;
         std::string::size_type pos;
-        std::tie( index, pos ) = frame_index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
+        std::tie( index, pos ) = frames::index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
         if( pos == std::string::npos || v[pos + 1] != '=' ) { m.second = true; }
         else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
     }
@@ -434,40 +436,44 @@ static std::pair< std::map< unsigned int, snark::applications::position >, bool 
     return m;
 }
 
-static bool frames_from_config_handle( const comma::command_line_options& options )
+namespace config {
+
+static bool handle_info_options( const comma::command_line_options& options )
 {
-    // todo: --help
-    // todo: from/to usage semantics
-    std::string config = options.value< std::string >( "--config", "" );
-    bool config_expand = options.exists( "--config-expand,--expand-config" );
-    if( config_expand )
+    if( options.exists( "--config-expand,--expand-config" ) )
     {
-        if( config.empty() ) { config = "-"; }
+        std::string config = options.value< std::string >( "--config", "-" );
         auto c = comma::split( config, ':', true );
         auto f = snark::frames::tree::frame_format::from_string( options.value( "--config-frame-format", std::string() ) );
         auto t = c.size() == 1 ? snark::frames::tree::make( config, f ) : snark::frames::tree::make( c[0], c[1], f ); // todo: handle xpath
         comma::name_value::impl::write_json( std::cout, t(), true, true );
         return true;
     }
-    if( config.empty() ) { return false; }
-
-    // todo: from/to usage semantics
-
-    COMMA_THROW_BRIEF( comma::exception, "--config: implementation in progress..." );
+    return false;
 }
 
-static bool frames_as_array_handle( const comma::command_line_options& options )
+static snark::frames::tree tree( const comma::command_line_options& options )
+{
+    std::string config = options.value< std::string >( "--config", "" );
+    if( config.empty() ) { return snark::frames::tree(); }
+    auto c = comma::split( config, ':', true );
+    auto f = snark::frames::tree::frame_format::from_string( options.value( "--config-frame-format", std::string() ) );
+    return c.size() == 1 ? snark::frames::tree::make( config, f ) : snark::frames::tree::make( c[0], c[1], f ); // todo: handle xpath
+}
+
+} // namespace config {
+
+static bool as_array_handle( const comma::command_line_options& options )
 {
     comma::csv::options csv( options );
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
     std::set< unsigned int > indices;
-
-    if( frames_from_config_handle( options ) ) { return true; }
-
-    std::tie( csv.fields, indices ) = frames_as_array( csv.fields );
-    const auto& froms = frames_from_options( options, "--from" );
-    const auto& tos = frames_from_options( options, "--to" );
+    if( config::handle_info_options( options ) ) { return true; }
+    auto tree = config::tree( options );
+    std::tie( csv.fields, indices ) = frames::as_array( csv.fields, tree );
+    const auto& froms = frames::from_options( options, "--from", tree );
+    const auto& tos = frames::from_options( options, "--to", tree );
     if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
     bool emplace = options.exists( "--emplace,--in-place" );
@@ -507,6 +513,10 @@ static bool frames_as_array_handle( const comma::command_line_options& options )
     return true;
 }
 
+} // namespace frames {
+
+} } // namespace snark { namespace applications {
+
 int main( int ac, char** av )
 {
     try
@@ -518,7 +528,7 @@ int main( int ac, char** av )
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         bool rotation_present = false;
         for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-        if( frames_as_array_handle( options ) ) { return 0; }
+        if( snark::applications::frames::as_array_handle( options ) ) { return 0; }
         if( options.exists( "--position" ) ) { std::cerr << "points-frame: --position given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
         bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
         bool from = options.exists( "--from" );

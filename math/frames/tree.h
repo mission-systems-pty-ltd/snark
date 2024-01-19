@@ -36,17 +36,18 @@ class tree
             static values from_string( const std::string& s );
         };
 
+        tree() = default;
         static tree make( std::istream& is, const comma::xpath& path=comma::xpath(), frame_format::values format = frame_format::nested ) { tree t; return _make( is, path, format, t );}
         static tree make( std::istream& is, frame_format::values format ) { tree t; return _make( is, comma::xpath(), format, t ); }
         static tree make( const std::string& filename, const comma::xpath& path=comma::xpath(), frame_format::values format = frame_format::nested  ) { tree t; return _make( filename, path, format, t ); }
         static tree make( const std::string& filename, frame_format::values format ) { tree t; return _make( filename, comma::xpath(), format, t ); }
-        const boost::property_tree::ptree& operator()() const { return _tree; }
         std::vector< pose > operator()( const comma::xpath& path, const std::string& name = "frame" ) const;
+        const boost::property_tree::ptree& operator()() const { return _tree; }
+        bool empty() const { return _tree.empty(); }
         
     private:
-        frame_format::values _format;
+        frame_format::values _format{frame_format::nested};
         boost::property_tree::ptree _tree;
-        tree() = default;
         static tree& _make( std::istream& is, const comma::xpath& path, frame_format::values format, tree& t );
         static tree& _make( const std::string& filename, const comma::xpath& path, frame_format::values format, tree& t );
 };
