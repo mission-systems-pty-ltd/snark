@@ -25,6 +25,8 @@
 #include "../frames/tree.h"
 #include "frame.h"
 
+namespace snark { namespace applications { namespace frames { namespace config { static std::string usage( bool verbose ); } } } }
+
 static void usage( bool verbose = false )
 {
     std::cerr << std::endl;
@@ -97,9 +99,11 @@ static void usage( bool verbose = false )
     std::cerr << "        default: t,x,y,z" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    IMPORTANT: <frame> is the transformation from reference frame to frame" << std::endl;
-    std::cerr << std::endl;
     std::cerr << "               If still confused, try simple coordinate transformations," << std::endl;
     std::cerr << "               just like examples below." << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "config (if --config present)" << std::endl;
+    std::cerr << snark::applications::frames::config::usage( verbose ) << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options" << std::endl;
     std::cerr << comma::csv::options::usage( verbose ) << std::endl;
@@ -436,6 +440,44 @@ static std::pair< std::map< unsigned int, snark::applications::position >, bool 
 }
 
 namespace config {
+
+std::string usage( bool verbose )
+{
+    return verbose ?
+R"(    usage
+        todo: implementation in progress; examples marked as todo below are not functional yet
+    examples
+        todo: camera pose in world frame (frame[1])
+            some-input.csv | points-frames --config config.json:frames \
+                                           --from frame[0]=platform/mount/joint/camera \
+                                           --fields x,y,z,roll,pitch,yaw,frames[1] \
+                                           --emplace
+        todo: camera pose in mount frame
+            echo 0,0,0,0,0,0 | points-frames --config config.json:frames \
+                                             --from frame[0]=platform/mount/joint/camera \
+                                             --to frame[1]=platform/mount
+                                             --fields x,y,z,roll,pitch,yaw \
+                                             --emplace
+        todo: camera in mount frame, shortcut assuming frame indices are in order of appearance, i.e. camera frame index is 0, mount frame index is 1
+            echo 0,0,0,0,0,0 | points-frames --config config.json:frames \
+                                             --from platform/mount/joint/camera \
+                                             --to platform/mount
+                                             --fields x,y,z,roll,pitch,yaw \
+                                             --emplace
+        todo: camera in world frame (frames[2]) where joint is rotating around yaw axis
+            some-input.csv | points-frames --config config.json:frames \
+                                           --from frame[0]=platform/mount/joint/camera \ todo!!!
+                                           --from frame[0]=platform/mount/joint/camera \ todo!!!
+                                           --fields x,y,z,roll,pitch,yaw,platform/mount/joint/position/yaw,frames[2] \
+                                           --emplace
+        todo: more examples...
+)"
+                   :
+R"(    usage
+    examples
+        run --help --verbose for more
+)";
+}
 
 static bool handle_info_options( const comma::command_line_options& options )
 {
