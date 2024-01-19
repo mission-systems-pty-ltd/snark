@@ -492,7 +492,8 @@ static bool frames_from_config_handle( const comma::command_line_options& option
     {
         if( config.empty() ) { config = "-"; }
         auto c = comma::split( config, ':', true );
-        auto t = c.size() == 1 ? snark::frames::tree::make( config ) : snark::frames::tree::make( c[0], c[1] ); // todo: handle xpath
+        auto f = snark::frames::tree::frame_format::from_string( options.value( "--config-frame-format", std::string() ) );
+        auto t = c.size() == 1 ? snark::frames::tree::make( config, f ) : snark::frames::tree::make( c[0], c[1], f ); // todo: handle xpath
         comma::name_value::impl::write_json( std::cout, t(), true, true );
         return true;
     }

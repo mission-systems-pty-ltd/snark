@@ -58,23 +58,23 @@ template <> struct traits< snark::frames::impl::pose_flat >
 
 namespace snark { namespace frames {
 
-static boost::optional< pose > _pose( const boost::property_tree::ptree& t, const comma::xpath& path, tree::offset_format::values format )
+static boost::optional< pose > _pose( const boost::property_tree::ptree& t, const comma::xpath& path, tree::frame_format::values format )
 {
     boost::optional< pose > p = comma::silent_none< pose >();
     switch( format )
     {
-        case tree::offset_format::flat:
+        case tree::frame_format::flat:
         {
             auto f = comma::property_tree::as< impl::pose_flat >( t, path, true, true );
             if( f ) { p = *f; }
             break;
         }
-        case tree::offset_format::nested:
+        case tree::frame_format::nested:
         {
             p = comma::property_tree::as< pose >( t, path, true, true );
             break;
         }
-        case tree::offset_format::csv:
+        case tree::frame_format::csv:
         {
             static comma::csv::ascii< pose > ascii( "x,y,z,roll,pitch,yaw", ',', false );
             auto s = comma::property_tree::get( t, path, true );
@@ -85,7 +85,15 @@ static boost::optional< pose > _pose( const boost::property_tree::ptree& t, cons
     return p;
 }
 
-tree& tree::make( std::istream& is, const comma::xpath& path, offset_format::values format, tree& t )
+tree::frame_format::values tree::frame_format::from_string( const std::string& s )
+{
+    if( s == "nested" || s.empty() ) { return tree::frame_format::nested; }
+    if( s == "flat" ) { return tree::frame_format::flat; }
+    if( s == "csv" ) { return tree::frame_format::csv; }
+    COMMA_THROW( comma::exception, "expected 'nested', 'flat', or 'csv'; got: '" << s << "'" );
+}
+
+tree& tree::_make( std::istream& is, const comma::xpath& path, frame_format::values format, tree& t )
 {
     boost::property_tree::ptree p;
     comma::property_tree::from_unknown( is, p );
@@ -101,12 +109,12 @@ tree& tree::make( std::istream& is, const comma::xpath& path, offset_format::val
     return t;
 }
 
-tree& tree::make( const std::string& filename, const comma::xpath& path, offset_format::values format, tree& t )
+tree& tree::_make( const std::string& filename, const comma::xpath& path, frame_format::values format, tree& t )
 {
-    if( filename == "-" ) { return make( std::cin, path, format, t ); }
+    if( filename == "-" ) { return _make( std::cin, path, format, t ); }
     std::ifstream ifs( filename );
     COMMA_ASSERT( ifs.is_open(), "failed to open: \"" << filename << "\"" );
-    return make( ifs, path, format, t );
+    return _make( ifs, path, format, t );
 }
 
 std::vector< pose > tree::operator()( const comma::xpath& path, const std::string& name ) const
