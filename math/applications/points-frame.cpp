@@ -487,7 +487,7 @@ static std::pair< std::string, std::set< unsigned int > > parse_fields( const st
 
 
     // todo! handle frame indices vs aliases
-
+    
 
     for( auto& f: v ) // super-quick and dirty for now
     {
@@ -509,7 +509,7 @@ static std::pair< std::string, std::set< unsigned int > > parse_fields( const st
     return std::make_pair( comma::join( v, ',' ), indices );
 }
 
-static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t )
+static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t, std::map< std::string, unsigned int >& aliases )
 {
     const auto& values = options.values< std::string >( option );
     std::pair< std::map< unsigned int, snark::applications::position >, bool > m;
@@ -520,7 +520,7 @@ static std::pair< std::map< unsigned int, snark::applications::position >, bool 
         std::string::size_type pos;
         std::tie( index, pos ) = frames::index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
         if( pos == std::string::npos || v[pos] != '=' ) { m.second = true; }
-        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 2 ) ); }
+        else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 1 ) ); }
     }
     if( m.first.empty() && options.exists( option ) ) { m.second = true; }
     return m;
@@ -537,8 +537,11 @@ static bool run( const comma::command_line_options& options )
     std::set< unsigned int > indices;
     auto tree = frames::config::tree( options );
     std::map< std::string, unsigned int > aliases; // todo
-    const auto& froms = frames::from_options( options, "--from", tree );
-    const auto& tos = frames::from_options( options, "--to", tree );
+
+    // todo! fix! --from and --to may be interleaved!
+
+    const auto& froms = frames::from_options( options, "--from", tree, aliases );
+    const auto& tos = frames::from_options( options, "--to", tree, aliases );
     std::tie( csv.fields, indices ) = frames::parse_fields( csv.fields, tree, aliases );
     if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
