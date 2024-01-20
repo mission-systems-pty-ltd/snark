@@ -161,6 +161,9 @@ static void usage( bool verbose = false )
         std::cerr << "                                   --from=frames[1]=5,6,7,0,0,0 \\" << std::endl;
         std::cerr << "                                   --to=frames[2]=1,2,3,0,0,0 \\" << std::endl;
         std::cerr << "                                   --emplace" << std::endl;
+        // todo: epicycles
+        // csv-paste line-number | csv-eval --flush --fields a 'a*=pi/180/10' | csv-shuffle --fields a --output-fields a,a,a,a | csv-eval --fields a,b,c 'a*=4.53;b*=0.01;c*=0.053;d*=0.042' --flush | csv-paste value=100,0,0,0,0,0 - | points-frame --fields x,y,z,roll,pitch,yaw,frames[0]/yaw,frames[1]/yaw,frames[2]/yaw --from frames[0]=100,0,0,0,0,0 --from frames[1]=83,0,0,0,0,0 --from frames[2]=57,0,0,0,0,0 --emplace -v | view-points '-;size=5000000' --orthographic
+        // csv-paste line-number | csv-eval --flush --fields a 'a*=pi/180/10' | csv-shuffle --fields a --output-fields a,a,a,a | csv-eval --fields a,b,c 'a*=4.53;b*=0.01;c*=0.053;d*=0.042' --flush | csv-paste value=100,0,0,0,0,0 - | points-frame --fields x,y,z,roll,pitch,yaw,frames[0]/yaw,frames[1]/yaw,frames[2]/yaw,frames[1]/pitch --from frames[0]=100,0,0,0,0,0 --from frames[1]=83,0,0,0,0,0 --from frames[2]=57,0,0,0,0,0 --emplace -v | view-points '-;size=5000000' --orthographic
     }
     else
     {
