@@ -19,6 +19,7 @@
 #include <comma/csv/format.h>
 #include <comma/name_value/parser.h>
 #include <comma/name_value/ptree.h>
+#include <comma/name_value/serialize.h>
 #include <comma/visiting/apply.h>
 #include <comma/visiting/traits.h>
 #endif
@@ -146,14 +147,6 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
     std::cout << std::setprecision( 16 ) << p.x() << "," << p.y() << "," << p.z() << click_mode.double_right_click.to_output_string() << std::endl;
 }
 
-template < typename T > static void _write_json( const T& t, std::ostream& os, bool pretty )
-{
-    boost::property_tree::ptree p;
-    comma::to_ptree to_ptree( p );
-    comma::visiting::apply( to_ptree ).to( t );
-    boost::property_tree::write_json( os, p, pretty );
-}
-
 void viewer::keyPressEvent( QKeyEvent *event )
 {
     click_mode.double_right_click.on_key_press( event );
@@ -260,7 +253,7 @@ void viewer::keyPressEvent( QKeyEvent *event )
             else if( event->modifiers() == Qt::ControlModifier )
             {
                 if( !stdout_allowed ) { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream; outputting to stderr instead:" << std::endl; }
-                _write_json( _camera, stdout_allowed ? std::cout : std::cerr, false );
+                comma::write_json( _camera, stdout_allowed ? std::cout : std::cerr, false, true ) << std::endl;
             }
             else if( event->modifiers() == Qt::AltModifier )
             {
@@ -404,7 +397,7 @@ void viewer::load_camera_config( const std::string& filename )
     }
     _camera_bookmarks_index = 0;
     _camera = _camera_bookmarks.front();
-    //_write_json( _camera, std::cerr, false );
+    //comma::write_json( _camera, std::cerr, false, true ) << std::endl;
     _print_keys_help();
 }
 
@@ -412,7 +405,8 @@ void viewer::write_camera_config( std::ostream& os, bool on_change, bool pretty 
 {
     if( on_change && previous_camera_ && _camera == *previous_camera_ ) { return; }
     previous_camera_ = _camera;
-    _write_json( _camera, os, pretty );
+    comma::write_json( _camera, os, pretty, true );
+    if( !pretty ) { os << std::endl; }
 }
 
 void viewer::write_camera_position_( std::ostream& os, bool on_change )
