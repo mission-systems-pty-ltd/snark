@@ -523,6 +523,8 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
         t.emplace_back( std::vector< transform_t >( 1, transform_t( comma::csv::ascii< position_t >().get( s ), from, true ) ) );
         explicit_frame_index_required = true;
     }
+    std::unordered_set< unsigned int > from_indices; // todo: phase out; handle paths
+    for( const auto& i: froms.first ) { from_indices.insert( i.first ); }
     for( unsigned int i{0}, fi{0}, ti{0}; i < from_to.size(); ++i )
     {
         ( void )fi; ( void )ti;
@@ -538,7 +540,7 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
             COMMA_ASSERT_BRIEF( v[index].first.empty() || v[index].first == s, "ambiguous frame " << index << ": '" << v[index].first << "' vs '" << s << "'" );
             v[index] = std::make_pair( s, w[1] );
             t[index].resize( 1 );
-            t[index][0] = transform_t( comma::csv::ascii< position_t >().get( w[1] ), from, true );
+            t[index][0] = transform_t( comma::csv::ascii< position_t >().get( w[1] ), from_indices.find( index ) != from_indices.end(), true );
             explicit_frame_index_required = true;
         }
         else
@@ -548,7 +550,7 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
             COMMA_ASSERT_BRIEF( v[i].first.empty() || v[i].first == w[0], "ambiguous frame " << i << ": '" << v[i].first << "' vs '" << w[0] << "'" );
             v[i] = std::make_pair( w[0], w[0] );
 
-            // todo! t[index]
+            // todo! t[index]: fill out
         }
     }
     const auto& fields = comma::split( comma::csv::options( options ).fields, ',' );
@@ -577,8 +579,6 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
             // todo: if precomputed xpath, precompute full transform
         }
     }
-    for( const auto& i: froms.first ) { t[i.first][0].from = true; } // todo: phase out; handle paths
-    for( const auto& i: tos.first ) { t[i.first][0].from = false; } // todo: phase out; handle paths
     // for( unsigned int i = 0; i < v.size(); ++i )
     // {
     //     if( v[i].first.empty() ) { continue; }
