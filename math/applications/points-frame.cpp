@@ -336,8 +336,12 @@ static void run( const std::vector< boost::shared_ptr< snark::applications::fram
 
 struct position_and_frames
 {
-    snark::applications::position position;
-    std::vector< snark::applications::position > frames;
+    typedef snark::applications::position position_t;
+    position_t position;
+    std::vector< position_t > frames;
+
+    position_and_frames( const position_t& position, const std::vector< position_t >& frames ): position( position ), frames( frames ) {}
+    position_and_frames( unsigned int size = 0 ): frames( size ) {}
 };
 
 } } // namespace snark { namespace applications {
@@ -611,6 +615,8 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
 
 static bool run( const comma::command_line_options& options )
 {
+    typedef snark::applications::transform transform_t;
+    typedef snark::applications::position position_t;
     if( frames::config::handle_info_options( options ) ) { return true; }
     comma::csv::options csv( options );
     std::string frame_field = options.value< std::string >( "--config-frame-field-name,--frame-field", "frame" );
@@ -620,26 +626,23 @@ static bool run( const comma::command_line_options& options )
     std::set< unsigned int > indices;
     auto tree = frames::config::tree( options );
     std::map< std::string, unsigned int > aliases; // todo
-
-    //get_transforms( options );
-    //exit( 0 );
-
     const auto& froms = frames::from_options( options, "--from", tree, aliases );
     const auto& tos = frames::from_options( options, "--to", tree, aliases );
     std::tie( csv.fields, indices ) = frames::parse_fields( csv.fields, tree, aliases );
     if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
     bool emplace = options.exists( "--emplace,--in-place" );
-    snark::applications::position_and_frames sample;
-    sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--pose,--position", "0,0,0,0,0,0" ) );
     bool from = froms.second || !tos.second;
+    const auto& tr = get_transforms( options );
+    snark::applications::position_and_frames sample( tr.size() );
+    sample.position = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--pose,--position", "0,0,0,0,0,0" ) );
     // todo: add checks of --from, --to consistency, same frame index repeating, etc
-    unsigned int max_index = indices.empty() ? 0 : *indices.rbegin();
-    if( !froms.first.empty() && froms.first.rbegin()->first > max_index ) { max_index = froms.first.rbegin()->first; }
-    if( !tos.first.empty() && tos.first.rbegin()->first > max_index ) { max_index = tos.first.rbegin()->first; }
-    sample.frames = std::vector< snark::applications::position >( max_index + 1 );
+    // unsigned int max_index = indices.empty() ? 0 : *indices.rbegin();
+    // if( !froms.first.empty() && froms.first.rbegin()->first > max_index ) { max_index = froms.first.rbegin()->first; }
+    // if( !tos.first.empty() && tos.first.rbegin()->first > max_index ) { max_index = tos.first.rbegin()->first; }
+    // sample.frames.resize( max_index + 1 );
     sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
-    std::vector< std::vector< snark::applications::transform > > transforms( sample.frames.size(), std::vector< snark::applications::transform >( 1 ) );
+    std::vector< std::vector< transform_t > > transforms( sample.frames.size(), std::vector< transform_t >( 1 ) );
     for( auto& t: transforms ) { t[0].from = from; }
     for( const auto& i: froms.first ) { transforms[i.first][0].from = true; sample.frames[i.first] = i.second; }
     for( const auto& i: tos.first ) { transforms[i.first][0].from = false; sample.frames[i.first] = i.second; }
@@ -648,9 +651,9 @@ static bool run( const comma::command_line_options& options )
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
-    if( csv.binary() ) { output_csv.format( comma::csv::format::value< snark::applications::position >() ); }
-    comma::csv::output_stream< snark::applications::position > os( std::cout, output_csv );
-    comma::csv::tied< snark::applications::position_and_frames, snark::applications::position > tied( is, os );
+    if( csv.binary() ) { output_csv.format( comma::csv::format::value< position_t >() ); }
+    comma::csv::output_stream< position_t > os( std::cout, output_csv );
+    comma::csv::tied< snark::applications::position_and_frames, position_t > tied( is, os );
     comma::csv::passed< snark::applications::position_and_frames > passed( is, std::cout, csv.flush );
     while( is.ready() || std::cin.good() )
     {
