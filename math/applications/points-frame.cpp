@@ -619,6 +619,8 @@ static bool run( const comma::command_line_options& options )
         position_t& r = pf.position;
         for( unsigned int i = 0; i < p->frames.size(); ++i )
         {
+            // todo: update the respective transform chain at correct levels
+            // todo: apply the whole chain, not just transforms[i][0]
             r = transforms[i].empty() ? r : ( ( transforms[i][0].precomputed ? transforms[i][0] : transform_t( p->frames[i], transforms[i][0].from ) ) * r );
         }
         if( emplace ) { passed.write( pf ); } else { tied.append( r ); }
