@@ -363,13 +363,13 @@ template <> struct traits< snark::applications::position_and_frames >
 
 namespace snark { namespace applications {
 
-struct transform // todo: quick and dirty for now; brush this all up
+struct transform // todo: quick and dirty for now; brush up all of it
 {
     Eigen::Translation3d translation;
     Eigen::Matrix3d rotation;
     Eigen::Affine3d affine;
     bool from{false};
-    bool precomputed{true}; // todo
+    bool precomputed{true};
 
     transform() = default;
     transform( const snark::applications::position& frame, bool from, bool precomputed = true )
@@ -381,7 +381,7 @@ struct transform // todo: quick and dirty for now; brush this all up
     {
     }
 
-    snark::applications::position operator*( const snark::applications::position& rhs ) const // todo: simplify
+    snark::applications::position operator*( const snark::applications::position& rhs ) const // todo: simplify, just use affine
     {
         Eigen::Matrix3d m = snark::rotation_matrix::rotation( rhs.orientation );
         if( from ) { m = rotation * m; } else { m = rotation.transpose() * m; }
@@ -575,8 +575,19 @@ std::map< std::string, unsigned int > frame_indices( const comma::command_line_o
             COMMA_ASSERT_BRIEF( v[index].first.empty() || v[index].first == s, "ambiguous frame " << index << ": '" << v[index].first << "' vs '" << s << "'" );
             v[index].first = s;
             if( v[index].second.empty() ) { v[index].second = "0,0,0,0,0,0"; }
+            // todo: set precomputed flag
+        }
+        else
+        {
+            // todo: find xpath
+            // todo: transform: support multilevel transform
+            // todo: set precomputed flag
+            // todo: set from flag
         }
     }
+    // todo: if precomputed xpath, replace with frame in fields and options
+    // todo: if precomputed xpath, precompute full transform
+
     // for( unsigned int i = 0; i < v.size(); ++i )
     // {
     //     if( v[i].first.empty() ) { continue; }
@@ -615,12 +626,12 @@ static bool run( const comma::command_line_options& options )
     if( !tos.first.empty() && tos.first.rbegin()->first > max_index ) { max_index = tos.first.rbegin()->first; }
     sample.frames = std::vector< snark::applications::position >( max_index + 1 );
     sample.frames[0] = comma::csv::ascii< snark::applications::position >().get( options.value< std::string >( "--frame", "0,0,0,0,0,0" ) ); // for backward compatibility
-    std::vector< snark::applications::transform > transforms( sample.frames.size() );
-    for( auto& t: transforms ) { t.from = from; }
-    for( const auto& i: froms.first ) { transforms[i.first].from = true; sample.frames[i.first] = i.second; }
-    for( const auto& i: tos.first ) { transforms[i.first].from = false; sample.frames[i.first] = i.second; }
-    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i] = snark::applications::transform( sample.frames[i], transforms[i].from ); }
-    for( unsigned int i : indices ) { transforms[i].precomputed = false; }
+    std::vector< std::vector< snark::applications::transform > > transforms( sample.frames.size(), std::vector< snark::applications::transform >() );
+    for( auto& t: transforms ) { t[0].from = from; }
+    for( const auto& i: froms.first ) { transforms[i.first][0].from = true; sample.frames[i.first] = i.second; }
+    for( const auto& i: tos.first ) { transforms[i.first][0].from = false; sample.frames[i.first] = i.second; }
+    for( unsigned int i = 0; i < sample.frames.size(); ++i ) { transforms[i][0] = snark::applications::transform( sample.frames[i], transforms[i][0].from ); }
+    for( unsigned int i : indices ) { transforms[i][0].precomputed = false; }
     comma::csv::input_stream< snark::applications::position_and_frames > is( std::cin, csv, sample );
     comma::csv::options output_csv;
     output_csv.flush = csv.flush;
@@ -635,7 +646,7 @@ static bool run( const comma::command_line_options& options )
         snark::applications::position r = p->position;
         for( unsigned int i = 0; i < p->frames.size(); ++i )
         {
-            r = ( transforms[i].precomputed ? transforms[i] : snark::applications::transform( p->frames[i], transforms[i].from ) ) * r;
+            r = ( transforms[i][0].precomputed ? transforms[i][0] : snark::applications::transform( p->frames[i], transforms[i][0].from ) ) * r;
         }
         if( emplace ) { passed.write( snark::applications::position_and_frames{r, p->frames} ); } else { tied.append( r ); }
     }
