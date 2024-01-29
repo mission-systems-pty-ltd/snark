@@ -471,10 +471,9 @@ static std::pair< unsigned int, std::string::size_type > index( const std::strin
     return p.elements.size() > 0 && p.elements[0].name == "frames" && p.elements[0].index ? std::make_pair( *p.elements[0].index, p.elements[0].to_string().size() ) : std::make_pair( std::size_t( 0 ), std::string::npos );
 }
 
-static std::pair< std::string, std::set< unsigned int > > parse_fields( const std::string& fields )
+static std::vector< std::string > parse_fields( const std::string& fields ) // todo? inefficient; phase out?
 {
     auto v = comma::split( fields, ',' );
-    std::set< unsigned int > indices;
     for( auto& f: v ) // quick and dirty: keeping it backward compatible
     {
         if( f.empty() ) { continue; }
@@ -482,24 +481,7 @@ static std::pair< std::string, std::set< unsigned int > > parse_fields( const st
         else if( f == "frame" ) { f = "frames[0]"; }
         else if( f.substr( 0, 6 ) == "frame/" ) { f = "frames[0]/" + f.substr( 6 ); }
     }
-    for( auto& f: v ) // super-quick and dirty for now
-    {
-        unsigned int i;
-        std::string::size_type p;
-        std::tie( i, p ) = frames::index( f ); // auto [ i, p ] = frame_index( f ); // made backward compatible: avoid compiler warnings for now
-        if( p == std::string::npos ) { continue; }
-        if( p == f.size() )
-        {
-            indices.insert( i );
-        }
-        else
-        {
-            COMMA_ASSERT_BRIEF( f[p] == '/', "invalid csv fields: '" << fields << "'" );
-            auto r = f.substr( p + 1 );
-            if( r == "x" || r == "y" || r == "z" || r == "roll" || r == "pitch" || r == "yaw" ) { indices.insert( i ); }
-        }
-    }
-    return std::make_pair( comma::join( v, ',' ), indices );
+    return v;
 }
 
 //static std::pair< std::map< unsigned int, snark::applications::position >, bool > from_options( const comma::command_line_options& options, const std::string& option, const snark::frames::tree& t, std::map< std::string, unsigned int >& aliases )
@@ -618,8 +600,7 @@ static bool run( const comma::command_line_options& options )
     ( void )frame_field; // todo
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
-    std::set< unsigned int > indices;
-    std::tie( csv.fields, indices ) = frames::parse_fields( csv.fields );
+    csv.fields = comma::join ( frames::parse_fields( csv.fields ), ',' );
     auto transforms = get_transforms( options );
     if( transforms.empty() ) { return false; } // if( indices.empty() && froms.first.empty() && tos.first.empty() ) { return false; }
     snark::applications::position_and_frames sample( transforms.size() );
@@ -634,12 +615,13 @@ static bool run( const comma::command_line_options& options )
     {
         const snark::applications::position_and_frames* p = is.read();
         if( !p ) { break; }
-        position_t r = p->position;
+        snark::applications::position_and_frames pf = *p;
+        position_t& r = pf.position;
         for( unsigned int i = 0; i < p->frames.size(); ++i )
         {
             r = transforms[i].empty() ? r : ( ( transforms[i][0].precomputed ? transforms[i][0] : transform_t( p->frames[i], transforms[i][0].from ) ) * r );
         }
-        if( emplace ) { passed.write( snark::applications::position_and_frames( r, p->frames ) ); } else { tied.append( r ); }
+        if( emplace ) { passed.write( pf ); } else { tied.append( r ); }
     }
     return true;
 }
