@@ -610,7 +610,7 @@ static bool run( const comma::command_line_options& options )
     comma::csv::output_stream< position_t > os( std::cout, comma::csv::options::make_same_kind< position_t >( csv ) );
     bool emplace = options.exists( "--emplace,--in-place" );
     auto tied = comma::csv::make_tied( is, os );
-    auto passed = comma::csv::passed( is, std::cout, csv.flush );
+    auto passed = comma::csv::make_passed( is, std::cout, csv.flush );
     while( is.ready() || std::cin.good() )
     {
         const snark::applications::position_and_frames* p = is.read();
