@@ -536,24 +536,8 @@ std::map< std::string, unsigned int > frame_indices( const comma::command_line_o
     const auto& from = options.values< std::string >( "--from" );
     const auto& to = options.values< std::string >( "--to" );
     const auto& from_to = options.values< std::string >( "--from,--to" );
-    const auto& fields = comma::split( comma::csv::options( options ).fields, ',' );
-    std::vector< std::pair< std::string, std::string > > v;
-    for( const auto& f: fields )
-    {
-        comma::xpath p( f );
-        if( p.elements.empty() ) { continue; }
-        if( p.elements[0].name == "frame" )
-        {
-            if( v.empty() ) { v.resize( 1 ); }
-            v[0] = std::make_pair( std::string( "frames[0]" ), std::string( "0,0,0,0,0,0" ) );
-        }
-        else if( p.elements[0].name == "frames" && p.elements[0].index )
-        {
-            if( *p.elements[0].index >= v.size() ) { v.resize( *p.elements[0].index + 1 ); }
-            v[*p.elements[0].index] = std::make_pair( p.elements[0].to_string(), std::string( "0,0,0,0,0,0" ) );
-        }
-    }
     bool explicit_frame_index_required{false};
+    std::vector< std::pair< std::string, std::string > > v;
     for( unsigned int i{0}, f{0}, t{0}; i < from_to.size(); ++i )
     {
         ( void )f; ( void )t;
@@ -567,7 +551,7 @@ std::map< std::string, unsigned int > frame_indices( const comma::command_line_o
             unsigned int index = *p.elements[0].index;
             if( index >= v.size() ) { v.resize( index + 1 ); }
             COMMA_ASSERT_BRIEF( v[index].first.empty() || v[index].first == s, "ambiguous frame " << index << ": '" << v[index].first << "' vs '" << s << "'" );
-            v[index] = std::make_pair( p.elements[0].to_string(), w[1] );
+            v[index] = std::make_pair( s, w[1] );
             explicit_frame_index_required = true;
         }
         else
@@ -576,6 +560,21 @@ std::map< std::string, unsigned int > frame_indices( const comma::command_line_o
             if( i >= v.size() ) { v.resize( i + 1 ); }
             COMMA_ASSERT_BRIEF( v[i].first.empty() || v[i].first == w[0], "ambiguous frame " << i << ": '" << v[i].first << "' vs '" << w[0] << "'" );
             v[i] = std::make_pair( w[0], w[0] );
+        }
+    }
+    for( const auto& f: comma::split( comma::csv::options( options ).fields, ',' ) )
+    {
+        comma::xpath p( f );
+        if( p.elements.empty() ) { continue; }
+        if( p.elements[0].name == "frame" ) { p.elements[0].name = "frames"; p.elements[0].index = 0; }
+        if( p.elements[0].name == "frames" && p.elements[0].index )
+        {
+            const auto& s = p.elements[0].to_string();
+            unsigned int index = *p.elements[0].index;
+            if( index >= v.size() ) { v.resize( index + 1 ); }
+            COMMA_ASSERT_BRIEF( v[index].first.empty() || v[index].first == s, "ambiguous frame " << index << ": '" << v[index].first << "' vs '" << s << "'" );
+            v[index].first = s;
+            if( v[index].second.empty() ) { v[index].second = "0,0,0,0,0,0"; }
         }
     }
     // for( unsigned int i = 0; i < v.size(); ++i )
@@ -598,10 +597,8 @@ static bool run( const comma::command_line_options& options )
     auto tree = frames::config::tree( options );
     std::map< std::string, unsigned int > aliases; // todo
 
-    //frame_indices( options );
-    //exit( 0 );
-
-    // todo! fix! --from and --to may be interleaved!
+    // frame_indices( options );
+    // exit( 0 );
 
     const auto& froms = frames::from_options( options, "--from", tree, aliases );
     const auto& tos = frames::from_options( options, "--to", tree, aliases );
