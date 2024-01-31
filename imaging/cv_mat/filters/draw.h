@@ -58,6 +58,7 @@ struct draw
                 std::string label;
                 std::pair< float, float > extents{0, 0};
                 float step{1};
+                unsigned int steps{0};
                 std::pair< cv::Point, cv::Point > geometry{{0, 0}, {0, 0}};
                 unsigned int size{0};
                 cv::Scalar color;

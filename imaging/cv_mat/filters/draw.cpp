@@ -33,6 +33,7 @@ template < typename H > struct _impl // quick and dirty
         if( !e.empty() ) { p.extents.first = e[0]; p.extents.second = e[1]; }
         COMMA_ASSERT_BRIEF( p.extents.first != p.extents.second, "expected non-zero length extents; got: '" << extents << "'" );
         v.apply( "step", p.step );
+        v.apply( "steps", p.steps );
         std::string origin;
         v.apply( "origin", origin );
         const auto& s = comma::split_as< unsigned int >( origin, ',' );
@@ -56,6 +57,7 @@ template < typename H > struct _impl // quick and dirty
         extents << p.extents.first << "," << p.extents.second;
         v.apply( "extents", extents.str() );
         v.apply( "step", p.step );
+        v.apply( "steps", p.steps );
         std::ostringstream origin;
         extents << p.origin.x() << "," << p.origin.y();
         v.apply( "origin", origin.str() );
@@ -63,7 +65,7 @@ template < typename H > struct _impl // quick and dirty
         std::ostringstream color;
         color << p.color.r() << "," << p.color.g() << "," << p.color.b() << "," << p.color.a();
         v.apply( "color", color.str() );
-        v.apply( "vertical", p.vertical );
+        v.apply( "vertical", p.vertical );        
     }
 
     typedef typename snark::cv_mat::filters::draw< H >::status::properties status_t;
@@ -309,11 +311,13 @@ std::string draw< H >::axis::usage( unsigned int indent )
     oss << i << "    draw axis on image; currently only 3-byte rgb supported\n";
     oss << i << "    <options>\n";
     oss << i << "        [label:<text>]\n";
+    oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
     oss << i << "        extents:<begin>,<end>: extents of values along the axis\n";
-    oss << i << "        step:<value>: value step\n";
+    oss << i << "        no-end: do not draw the last label\n";
     oss << i << "        origin:<x>,<y>: axis origin in pixels\n";
     oss << i << "        size:<pixels>: axis size in pixels\n";
-    oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
+    oss << i << "        step:<value>: value step\n";
+    oss << i << "        steps:<n>: draw up to <n> notches\n";
     oss << i << "        vertical: axis is vertical; default: horizontal; todo: axis label and values\n";
     return oss.str();
 }
@@ -329,7 +333,8 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::axis::make( const st
     a._label_position = ( a._properties.geometry.first + a._properties.geometry.second ) / 2;
     if( a._properties.vertical ) { a._label_position.x -= 32; } else { a._label_position.y += 34; }
     ( a._properties.vertical ? a._label_position.y : a._label_position.x ) -= a._properties.label.size() * 4;
-    for( float v = a._properties.extents.first; v <= a._properties.extents.second; v += a._properties.step )
+    unsigned int s{0};
+    for( float v = a._properties.extents.first; v <= a._properties.extents.second && ( a._properties.steps == 0 || s < a._properties.steps ); v += a._properties.step, ++s )
     { 
         std::ostringstream oss;
         oss.precision( 4 );
@@ -355,7 +360,7 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     cv::line( m.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
     cv::Point a = _properties.geometry.first;
     float v = _properties.extents.first;
-    for( unsigned int o{0}, i{0}; o <= _properties.size; o += _step, v += _properties.step, ++i )
+    for( unsigned int o{0}, i{0}; o <= _properties.size && ( _properties.steps == 0 || i < _properties.steps ); o += _step, v += _properties.step, ++i )
     {
         cv::Point b{a};
         ( _properties.vertical ? b.x : b.y ) += 3;
