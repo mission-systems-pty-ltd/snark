@@ -5,6 +5,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <QApplication>
 #include <QMainWindow>
 #include <QShortcut>
 #include <QTimer>
@@ -21,7 +22,8 @@ class main_window: public QMainWindow
     Q_OBJECT
     public:
         typedef std::map< std::string, snark::graphics::plotting::chart* > charts_t;
-        main_window( const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
+        main_window( const QApplication& application
+                   , const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                    , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                    , const std::string& layout
                    , float timeout );
@@ -35,8 +37,10 @@ class main_window: public QMainWindow
     public slots:
         void update();
         void print_window_geometry() const;
+        void screenshot() const;
         
     private:
+        const QApplication& _application;
         QTimer timer_;
         bool verbose_;
         boost::ptr_vector< plotting::stream > streams_;
@@ -44,6 +48,7 @@ class main_window: public QMainWindow
         std::string pass_through_stream_name_;
         QShortcut _escape;
         QShortcut _print_window_geometry;
+        QShortcut _screenshot;
 
         void closeEvent( QCloseEvent* event );
 };

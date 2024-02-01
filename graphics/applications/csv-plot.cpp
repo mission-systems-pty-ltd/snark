@@ -149,7 +149,9 @@ static void usage( bool verbose = false )
     std::cerr << "    middle-click and drag: pan" << std::endl;
     std::cerr << std::endl;
     std::cerr << "hot keys" << std::endl;
-    std::cerr << "    ctrl-g: print window geometry as <left>,<top>,<width>,<height> to stderr" << std::endl;
+    std::cerr << "    ctrl-g : print window geometry as <left>,<top>,<width>,<height> to stderr" << std::endl;
+    std::cerr << "    p      : capture current view to <timestamp>.png file" << std::endl;
+    std::cerr << "    <ESC>  : exit" << std::endl;
     std::cerr << std::endl;
     if( verbose )
     {
@@ -366,7 +368,7 @@ int main( int ac, char** av )
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
         std::string layout = options.value< std::string >( "--layout", "grid" );
         QApplication application( ac, av );
-        snark::graphics::plotting::main_window main_window( stream_configs, chart_configs, layout, timeout );
+        snark::graphics::plotting::main_window main_window( application, stream_configs, chart_configs, layout, timeout );
         auto window_size = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--window-size", "800,600" ) );
         std::string window_position = options.value< std::string >( "--window-geometry,--window-position,--window", "" );
         if( window_position.empty() )
@@ -394,6 +396,10 @@ int main( int ac, char** av )
         main_window.start();
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         comma::saymore() << "started" << std::endl;
+        comma::saymore() << "hotkeys" << std::endl;
+        comma::saymore() << "    ctrl+g : print window geometry to stderr" << std::endl;
+        comma::saymore() << "    p      : capture current view to <timestamp>.png file" << std::endl;
+        comma::saymore() << "    <ESC>  : exit" << std::endl;
         return application.exec();
     }
     catch( std::exception& ex ) { std::cerr << "csv-plot: " << ex.what() << std::endl; }

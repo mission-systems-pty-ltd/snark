@@ -1,7 +1,9 @@
 #include <map>
 #include <functional>
 #include <QGridLayout>
+#include <QScreen>
 #include <QTabWidget>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <comma/base/exception.h>
 #include <comma/csv/options.h>
 #include <comma/csv/traits.h>
@@ -64,12 +66,15 @@ static QWidget* make_widget_( const std::string& l, main_window::charts_t& chart
     COMMA_THROW( comma::exception, "csv-plot: expected layout; got: '" << shape << "'" );
 }
 
-main_window::main_window( const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
+main_window::main_window( const QApplication& application
+                        , const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                         , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                         , const std::string& layout
                         , float timeout )
-    : _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
+    : _application ( application )
+    , _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
     , _print_window_geometry( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) )
+    , _screenshot( QKeySequence( tr( "P" ) ), this, SLOT( screenshot() ) )
 {
     //application.addShortcut( new QShortcut( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) );
     for( const auto& c: stream_configs )
@@ -121,6 +126,15 @@ void main_window::print_window_geometry() const
 {
     auto g = geometry();
     std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
+}
+
+void main_window::screenshot() const
+{
+    auto screenshot = _application.primaryScreen()->grabWindow( winId() );
+    auto filename = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+    filename += filename.find( "." ) == std::string::npos ? ".000000.png" : ".png"; // quick and dirty
+    screenshot.save( filename.c_str(), "png" );
+    std::cerr << "csv-plot: screenshot saved to " << filename << std::endl;
 }
 
 void main_window::start()
