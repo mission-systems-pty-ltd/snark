@@ -61,7 +61,8 @@ std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
     char c = cv::waitKey( _delay );
     if( c == 27 ) { return std::pair< H, cv::Mat >(); } // HACK to notify application to exit
     if( c == ' ' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
-    if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
+    else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
+    else if( c == 's' ) { cv::waitKey( -1 ); }
     return m;
 }
 
@@ -71,23 +72,25 @@ std::string view< H >::usage( unsigned int indent )
     std::ostringstream oss;
     std::string i( indent, ' ' );
     oss << i << "view[=<wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>]]]]]: view image;\n";
-    oss << i << "                        press <space> to save image (timestamp or system time as filename); \n";
-    oss << i << "                        press <esc>: to close\n";
-    oss << i << "                        press numerical '0' to '9' to add the id (0-9) to the file name:\n";
-    oss << i << "                            <timestamp>.<id>.<suffix>\n";
-    oss << i << "                        press any other key to show the next frame\n";
-    oss << i << "                        <wait-interval>: a hack for now; seconds to wait for image display or key press\n";
-    oss << i << "                                         e.g. view=0.1: wait for 100ms\n";
-    oss << i << "                                         view=-1 or view=stay: wait indefinitely\n";
-    oss << i << "                                         default: 0.001 (1 millisecond)\n";
-    oss << i << "                        <name>: view window name; default: the number of view occurence in the filter string\n";
-    oss << i << "                        <suffix>: image suffix type e.g. png, default ppm\n";
-    oss << i << "                        <offset/x>,<offset/y>: window position on screen in pixels\n";
-    oss << i << "                        <size/x>,<size/y>: window size on screen in pixels (not very useful, but it's there)\n";
-    oss << i << "        attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
-    oss << i << "                   in opencv or in underlying x window stuff therefore,\n";
-    oss << i << "                   instead of: cv-cat 'view;do-something;view'\n";
-    oss << i << "                          use: cv-cat 'view;do-something' | cv-cat 'view'\n";
+    oss << i << "    hot keys\n";
+    oss << i << "        <esc>: exit\n";
+    oss << i << "        <whitespace>: save image with image timestamp or system time as filename\n";
+    oss << i << "        s: suspend, press any key to continue (i/o of the applications upstream will be blocked)\n";
+    oss << i << "        0-9: add the id from 0 to 9 to the file name: <timestamp>.<id>.<suffix>\n";
+    oss << i << "        any other key: if view=stay, continue\n";
+    oss << i << "    <wait-interval>: seconds to wait for image display or key press\n";
+    oss << i << "                     e.g. view=0.1: wait for 100ms\n";
+    oss << i << "                     view=-1 or view=stay: wait indefinitely for a key press\n";
+    oss << i << "                                           (i/o of the applications upstream will be blocked)\n";
+    oss << i << "                     default: 0.001 (1 millisecond)\n";
+    oss << i << "    <name>: view window title\n";
+    oss << i << "    <suffix>: one <whitespace> press (see above) image suffix; e.g. png, jpg, ppm, etc; default: png\n";
+    oss << i << "    <offset/x>,<offset/y>: window position on screen in pixels\n";
+    oss << i << "    <size/x>,<size/y>: window size on screen in pixels (not very useful, but it's there)\n";
+    oss << i << "    attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
+    oss << i << "               in opencv or in underlying x window stuff therefore,\n";
+    oss << i << "               instead of: cv-cat 'view;do-something;view'\n";
+    oss << i << "                      use: cv-cat 'view;do-something' | cv-cat 'view'\n";
     return oss.str();
 }
 
