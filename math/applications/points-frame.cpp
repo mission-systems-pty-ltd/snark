@@ -508,10 +508,12 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
     typedef snark::applications::transform transform_t;
     typedef snark::applications::position position_t;
     auto tree = frames::config::tree( options ); // todo
+    std::string frame_field = options.value< std::string >( "--config-frame-field-name,--frame-field", "frame" );
+    ( void )frame_field;
     const auto& froms = frames::from_options( options, "--from" ); // todo: phase out
     const auto& tos = frames::from_options( options, "--to" ); // todo: phase out
     COMMA_ASSERT_BRIEF( !froms.second || !tos.second, "--from and --to are mutually exclusive as default direction of frame conversions" );
-    bool from = froms.second || !tos.second;
+    bool from = froms.second || !tos.second; // todo! backward-compatible usage semantics when both --from and --to are present
     const auto& from_to = options.values< std::string >( "--from,--to" );
     bool explicit_frame_index_required{false};
     std::vector< std::pair< std::string, std::string > > v;
@@ -549,8 +551,16 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
             if( i >= v.size() ) { v.resize( i + 1 ); }
             COMMA_ASSERT_BRIEF( v[i].first.empty() || v[i].first == w[0], "ambiguous frame " << i << ": '" << v[i].first << "' vs '" << w[0] << "'" );
             v[i] = std::make_pair( w[0], w[0] );
+            // todo!
 
-            // todo! t[index]: fill out
+            //const auto& f = tree( comma::xpath( w[1] ), frame_field );
+            //if( f.empty() ) { continue; }
+
+            //bool from{true}; // todo!!!
+
+            // t[index].resize( f.size() );
+            // todo! for( unsigned int i = 0; i < f.size(); ++i ) { t[index][i] = transform_t( f[i], from_indices.find( index ) != from_indices.end(), true ); }
+            
         }
     }
     const auto& fields = comma::split( comma::csv::options( options ).fields, ',' );
@@ -596,8 +606,6 @@ static bool run( const comma::command_line_options& options )
     typedef snark::applications::transform transform_t;
     if( frames::config::handle_info_options( options ) ) { return true; }
     comma::csv::options csv( options );
-    std::string frame_field = options.value< std::string >( "--config-frame-field-name,--frame-field", "frame" );
-    ( void )frame_field; // todo
     auto v = comma::split( csv.fields, ',' );
     for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "x" || v[i] == "y" || v[i] == "z" || v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "position/" + v[i]; } }
     csv.fields = comma::join ( frames::parse_fields( csv.fields ), ',' );
