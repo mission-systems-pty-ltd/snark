@@ -1,5 +1,5 @@
-snark (1.0.10-0ppa0) jammy; urgency=low
+snark (1.1.0-0ppa0) jammy; urgency=low
 
-  * fixing so installation paths
+  * new features in csv-plot, math-fft, points-frame, view-points, and many others
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Sun, 15 May 2022 01:34:59 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Mon, 5 Feb 2022 20:26:00 +1000
