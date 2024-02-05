@@ -16,6 +16,10 @@ function say() { echo "usage: $0: $@" >&2; }; function die() { say "$@"; exit 1;
 what=$1
 snark_version=$2
 name=snark_${snark_version}
+
+# todo: add comma ppa
+# todo: install comma
+
 [[ -d snark ]] || die "snark directory not found; please run in something like ~/src"
 if [[ "$what" == "orig" ]]; then
     rm -f snark/debian/files
@@ -28,3 +32,5 @@ elif [[ "$what" == "update" ]]; then # todo! fix! need to tar on update as well;
 else
     die "expected <what>: orig or update; got \"$what\""
 fi
+
+# todo: remove comma from /usr
