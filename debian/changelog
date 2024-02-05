@@ -1,5 +1,5 @@
-snark (1.1.0-0ppa0) jammy; urgency=low
+snark (1.1.1-0ppa0) jammy; urgency=low
 
-  * new features in csv-plot, math-fft, points-frame, view-points, and many others
+  * new features in csv-plot, math-fft, points-frame, view-points, and many others; exiv2 added to dependencies
 
- -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Mon, 5 Feb 2022 20:26:00 +1000
+ -- Vsevolod Vlaskine <vsevolod.vlaskine@gmail.com>  Mon, 6 Feb 2024 00:00:00 +1000
