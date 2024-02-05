@@ -638,11 +638,11 @@ static int run( const comma::command_line_options& options )
     std::vector< std::string > v = comma::split( csv.fields, ',' );
     bool rotation_present = false;
     for( unsigned int i = 0; i < v.size() && !rotation_present; ++i ) { rotation_present = v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw"; }
-    if( options.exists( "--pose,--position" ) ) { std::cerr << "points-frame: --pose given, but no frame fields on stdin: not supported, yet" << std::endl; return 1; }
+    COMMA_ASSERT_BRIEF( !options.exists( "--pose,--position" ), "--pose given, but no frame fields on stdin: not supported, yet" );
     bool discard_out_of_order = options.exists( "--discard-out-of-order,--discard" );
     bool from = options.exists( "--from" );
     bool to = options.exists( "--to" );
-    if( !to && !from ) { COMMA_THROW( comma::exception, "please specify either --to or --from" ); }
+    COMMA_ASSERT_BRIEF( to || from, "please specify either --to or --from" );
     bool interpolate = !options.exists( "--no-interpolate" );
     std::vector< std::string > names = options.names();
     std::vector< bool > to_vector;
@@ -664,11 +664,9 @@ static int run( const comma::command_line_options& options )
                                                                                         , to_vector
                                                                                         , interpolate
                                                                                         , rotation_present );
-    //if( timestamp_required ) { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "t,x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields t,x,y,z; got " << csv.fields ); } }
-    //else { if( csv.fields != "" && !comma::csv::namesValid( comma::split( csv.fields, ',' ), comma::split( "x,y,z", ',' ) ) ) { COMMA_THROW( comma::exception, "expected mandatory fields x,y,z; got " << csv.fields ); } }
-    if( timestamp_required ) { if( csv.fields != "" && !comma::csv::fields_exist( csv.fields, "t" ) ) { COMMA_THROW( comma::exception, "expected mandatory field t; got " << csv.fields ); } }
+    COMMA_ASSERT_BRIEF( csv.fields.empty() || comma::csv::fields_exist( csv.fields, "t" ), "expected mandatory field 't'; got " << csv.fields );
     snark::applications::run( frames, csv );
-    if( discarded_counter ) { std::cerr << "points-frame: discarded " << discarded_counter << " points; max time diff: " << discarded_time_diff_max.total_microseconds() <<" microseconds" << std::endl; }
+    if( discarded_counter ) { comma::say() << " discarded " << discarded_counter << " points; max time diff: " << discarded_time_diff_max.total_microseconds() <<" microseconds" << std::endl; }
     return 0;
 }
 
@@ -681,6 +679,6 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( !snark::applications::frames::run( options ) ) { return snark::applications::run( options ); }
     }
-    catch( std::exception& ex ) { std::cerr << "points-frame: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "points-frame: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
 }
