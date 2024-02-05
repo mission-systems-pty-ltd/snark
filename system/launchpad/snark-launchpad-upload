@@ -12,7 +12,7 @@
 #   ? check current version at launchpad
 
 function say() { echo "usage: $0: $@" >&2; }; function die() { say "$@"; exit 1; }
-[[ -n "$2" ]] || { echo "usage: $0 <what> <ubuntu-name> <snark-version>" >&2; exit 1; }
+[[ -n "$2" ]] || { echo "usage: $0 <what> <snark-version>" >&2; exit 1; }
 what=$1
 snark_version=$2
 name=snark_${snark_version}
