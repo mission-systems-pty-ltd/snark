@@ -1,13 +1,14 @@
 // Copyright (c) 2019 The University of Sydney
 // Copyright (c) 2020 Mission Systems Pty Ltd
 
-#include "../packet.h"
-#include "../traits.h"
-#include "../../../../imaging/cv_mat/serialization.h"
 #include <comma/application/command_line_options.h>
 #include <comma/csv/format.h>
 #include <comma/csv/options.h>
 #include <comma/csv/stream.h>
+#include "../packet.h"
+#include "../traits.h"
+#include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
 
 static void bash_completion( unsigned int const ac, char const * const * av )
 {

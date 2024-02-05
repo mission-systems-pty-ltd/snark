@@ -89,7 +89,7 @@ class serialization
         
         /// return true, if constructed with no-header option
         bool no_header() const;
-        
+
         /// return usage
         static const std::string& usage();
 
@@ -99,8 +99,9 @@ class serialization
         std::size_t size( const std::pair< header::buffer_t, cv::Mat >& m ) const;
 
         /// read from stream, if eof, return empty cv::Mat
+        /// @todo: make nothrow
         template < typename H >
-        std::pair< H, cv::Mat > read( std::istream& is );
+        std::pair< H, cv::Mat > read( std::istream& is ) noexcept;
                 
         /// return last header buffer after read()
         const std::vector< char >& header_buffer() const;
@@ -120,6 +121,12 @@ class serialization
         /// Returns the C-style pointer to the header's binary serializer, NULL if no-header specified in serialisation
         const comma::csv::binary< header >* header_binary() const;
 
+        /// when serialization::read() from a tbb pipeline, at the moment of writing it was not 
+        /// possible to establish whether the pipeline exited gracefully or with an error
+        /// thus, use this method instead: it returns true, "" on success and
+        /// false, <error message> otherwise
+        const std::string& last_error() const;
+
     private:
         boost::optional< comma::csv::binary< header > > m_binary;
         boost::optional< comma::csv::binary< header > > _no_header_binary;
@@ -129,64 +136,7 @@ class serialization
         bool m_headerOnly;
         header m_header; /// default header
         bool _set_timestamp{false};
+        std::string _last_error;
 };
 
 } }  // namespace snark{ namespace cv_mat {
-
-namespace comma { namespace visiting {
-
-template <> struct traits< snark::cv_mat::serialization::header >
-{
-    template < typename K, typename V >
-    static void visit( const K&, snark::cv_mat::serialization::header& h, V& v )
-    {
-        v.apply( "t", h.timestamp );
-        v.apply( "rows", h.rows );
-        v.apply( "cols", h.cols );
-        v.apply( "type", h.type );
-        v.apply( "size", h.size );
-    }
-
-    template < typename K, typename V >
-    static void visit( const K&, const snark::cv_mat::serialization::header& h, V& v )
-    {
-        v.apply( "t", h.timestamp );
-        v.apply( "rows", h.rows );
-        v.apply( "cols", h.cols );
-        v.apply( "type", h.type );
-        v.apply( "size", h.size );
-    }
-};
-
-template <> struct traits< snark::cv_mat::serialization::options >
-{
-    template < typename K, typename V >
-    static void visit( const K&, snark::cv_mat::serialization::options& h, V& v )
-    {
-        v.apply( "fields", h.fields );
-        std::string s = h.format.string();
-        v.apply( "binary", s );
-        h.format = comma::csv::format(s);
-        v.apply( "rows", h.rows );
-        v.apply( "cols", h.cols );
-        v.apply( "type", h.type );
-        v.apply( "no-header", h.no_header );
-        v.apply( "header-only", h.header_only );
-        v.apply( "timestamp", h.timestamp );
-    }
-
-    template < typename K, typename V >
-    static void visit( const K&, const snark::cv_mat::serialization::options& h, V& v )
-    {
-        v.apply( "fields", h.fields );
-        v.apply( "binary", h.format.string() );
-        v.apply( "rows", h.rows );
-        v.apply( "cols", h.cols );
-        v.apply( "type", h.type );
-        v.apply( "no-header", h.no_header );
-        v.apply( "header-only", h.header_only );
-        v.apply( "timestamp", h.timestamp );
-    }
-};
-
-} } // namespace comma { namespace visiting {

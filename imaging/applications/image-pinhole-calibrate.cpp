@@ -19,6 +19,7 @@
 #include "../camera/pinhole.h"
 #include "../camera/traits.h"
 #include "../cv_mat/serialization.h"
+#include "../cv_mat/traits.h"
 #include "../../math/roll_pitch_yaw.h"
 #include "../../visiting/eigen.h"
 #include "../../visiting/traits.h"

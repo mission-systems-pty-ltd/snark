@@ -28,6 +28,7 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind/bind.hpp>
+#include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
 #include <tbb/pipeline.h>
@@ -39,9 +40,9 @@
 #include <comma/name_value/map.h>
 #include "../../../../imaging/cv_mat/filters.h"
 #include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
 #include "../../../../tbb/queue.h"
 #include "../flycapture.h"
-#include <boost/program_options.hpp>
 
 static comma::signal_flag is_shutdown;
 static bool verbose;

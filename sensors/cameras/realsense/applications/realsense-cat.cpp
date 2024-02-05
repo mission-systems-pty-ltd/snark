@@ -27,6 +27,9 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <fstream>
+#include <sstream>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/application/verbose.h>
 #include <comma/csv/options.h>
@@ -36,13 +39,11 @@
 #include <comma/csv/stream.h>
 #include <comma/io/stream.h>
 #include <comma/io/publisher.h>
-#include <opencv2/imgproc/imgproc.hpp>
 #include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
+#include "../../../../visiting/eigen.h"
 #include "../realsense.h"
 #include "../traits.h"
-#include "../../../../visiting/eigen.h"
-#include <sstream>
-#include <fstream>
 
 using namespace snark::realsense;
 comma::signal_flag signaled;

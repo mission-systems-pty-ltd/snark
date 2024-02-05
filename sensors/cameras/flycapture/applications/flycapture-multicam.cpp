@@ -27,21 +27,22 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
 #include <tbb/pipeline.h>
 #include <tbb/task_scheduler_init.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
 #include <comma/csv/stream.h>
 #include <comma/name_value/map.h>
 #include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
 #include "../../../../tbb/queue.h"
 #include "../flycapture.h"
-#include <boost/algorithm/string/join.hpp>
-#include <boost/program_options.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 static bool verbose;
 static unsigned int discard_more_than;

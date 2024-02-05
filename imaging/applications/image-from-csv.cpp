@@ -36,6 +36,7 @@
 #include <comma/csv/options.h>
 #include "../cv_mat/filters.h"
 #include "../cv_mat/serialization.h"
+#include "../cv_mat/traits.h"
 #include "../cv_mat/type_traits.h"
     
 struct input_t

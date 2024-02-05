@@ -13,6 +13,7 @@
 #include <comma/csv/options.h>
 #include <comma/string/split.h>
 #include "../cv_mat/serialization.h"
+#include "../cv_mat/traits.h"
 
 static const char* app_name="image-to-csv";
 static boost::onullstream nullstream;

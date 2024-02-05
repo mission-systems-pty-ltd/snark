@@ -20,11 +20,12 @@
 #include <comma/application/verbose.h>
 #include <comma/csv/binary.h>
 #include <comma/string/split.h>
-#include "../cv_mat/pipeline.h"
 #include "../cv_mat/filters/help.h"
+#include "../cv_mat/pipeline.h"
+#include "../cv_mat/serialization.h"
+#include "../cv_mat/traits.h"
 
-typedef std::pair< snark::cv_mat::serialization::header::buffer_t, cv::Mat > pair;
-typedef snark::cv_mat::serialization serialization;
+typedef std::pair< snark::cv_mat::serialization::header::buffer_t, cv::Mat > pair_t;
 
 class rate_limit /// timer class, sleeping if faster than the specified fps
 {
@@ -46,7 +47,7 @@ class rate_limit /// timer class, sleeping if faster than the specified fps
 
 static comma::signal_flag is_shutdown( comma::signal_flag::hard );
 
-static pair capture( cv::VideoCapture& capture, rate_limit& rate )
+static pair_t capture( cv::VideoCapture& capture, rate_limit& rate )
 {
     cv::Mat image;
     capture >> image;
@@ -59,17 +60,17 @@ static pair capture( cv::VideoCapture& capture, rate_limit& rate )
     return std::make_pair( buffer , image );
 }
 
-static pair read_image_files( const std::string& images, rate_limit& rate, bool timestamped, snark::cv_mat::serialization& input ) // todo? refactor that it can mix of images and videos, too?
+static pair_t read_image_files( const std::string& images, rate_limit& rate, bool timestamped, snark::cv_mat::serialization& input ) // todo? refactor that it can mix of images and videos, too?
 {
     static bool done = false;
     static std::ifstream ifs( images ); // todo? use csv stream or at least io::stream?
-    if( done ) { return pair(); }
+    if( done ) { return pair_t(); }
     if( !ifs.is_open() ) { std::cerr << "cv-cat: failed to open '" << images << "'" << std::endl; exit( 1 ); }
     rate.wait();
     std::string line;
     while( true )
     {
-        if( !ifs.good() || ifs.eof() ) { done = true; return pair(); }
+        if( !ifs.good() || ifs.eof() ) { done = true; return pair_t(); }
         std::getline( ifs, line );
         line = comma::strip( line );
         if( !line.empty() && line[0] != '#' ) { break; }
@@ -115,10 +116,10 @@ static pair read_image_files( const std::string& images, rate_limit& rate, bool 
     return std::make_pair( buffer, p.second );
 }
 
-static pair output_single_image( const std::pair< boost::posix_time::ptime, cv::Mat >& p )
+static pair_t output_single_image( const std::pair< boost::posix_time::ptime, cv::Mat >& p )
 {
     static bool done = false;
-    if( done ) { return pair(); }
+    if( done ) { return pair_t(); }
     done = true;
     static comma::csv::binary< snark::cv_mat::serialization::header > default_binary( "t,3ui", "t,rows,cols,type" );
     static snark::cv_mat::serialization::header::buffer_t buffer( default_binary.format().size() );
@@ -128,9 +129,9 @@ static pair output_single_image( const std::pair< boost::posix_time::ptime, cv::
     return std::make_pair( buffer, p.second );
 }
 
-static pair read( snark::cv_mat::serialization& input, rate_limit& rate )
+static pair_t read( snark::cv_mat::serialization& input, rate_limit& rate )
 {
-    if( is_shutdown || std::cin.eof() || std::cin.bad() || !std::cin.good() ) { return pair(); }
+    if( is_shutdown || std::cin.eof() || std::cin.bad() || !std::cin.good() ) { return pair_t(); }
     rate.wait();
     return input.read< snark::cv_mat::serialization::header::buffer_t >( std::cin );
 }
@@ -312,7 +313,7 @@ int main( int argc, char** argv )
         cv::VideoCapture video_capture;
         snark::cv_mat::serialization input( input_options );
         snark::cv_mat::serialization output( output_options );
-        boost::scoped_ptr< snark::tbb::bursty_reader< pair > > reader;
+        boost::scoped_ptr< snark::tbb::bursty_reader< pair_t > > reader;
         std::pair< boost::posix_time::ptime, cv::Mat > p;
         typedef snark::imaging::applications::pipeline_with_header pipeline_with_header;
         typedef snark::cv_mat::filters_with_header filters_with_header;
@@ -355,40 +356,42 @@ int main( int argc, char** argv )
                     if ( time_strings.size() == 2 ){ p.first = boost::posix_time::from_iso_string( time_strings[0] ); }
                     else if ( time_strings.size() > 2 ){ p.first = boost::posix_time::from_iso_string( time_strings[0] + '.' + time_strings[1] ); }
                 }
-                reader.reset( new snark::tbb::bursty_reader< pair >( boost::bind( &output_single_image, boost::cref( p ) ), discard, capacity ) );
+                reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &output_single_image, boost::cref( p ) ), discard, capacity ) );
             }
             else
             {
                 video_capture.open( name );
                 skip( number_of_frames_to_skip, video_capture, rate );
-                reader.reset( new snark::tbb::bursty_reader< pair >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard, capacity ) );
+                reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard, capacity ) );
             }
         }
         else if( vm.count( "files" ) )
         {
-            reader.reset( new snark::tbb::bursty_reader< pair >( boost::bind( &read_image_files, boost::cref( files ), boost::ref( rate ), vm.count( "timestamped" ) > 0, boost::ref( input ) ), discard, capacity ) );
+            reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &read_image_files, boost::cref( files ), boost::ref( rate ), vm.count( "timestamped" ) > 0, boost::ref( input ) ), discard, capacity ) );
         }
         else if( vm.count( "camera" ) || vm.count( "id" ) )
         {
             video_capture.open( device );
             skip( number_of_frames_to_skip, video_capture, rate );
-            reader.reset( new snark::tbb::bursty_reader< pair >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard ) );
+            reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard ) );
         }
         else
         {
             skip( number_of_frames_to_skip, input, rate );
-            reader.reset( new snark::tbb::bursty_reader< pair >( boost::bind( &read, boost::ref( input ), boost::ref( rate ) ), discard, capacity ) );
+            reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &read, boost::ref( input ), boost::ref( rate ) ), discard, capacity ) );
         }
         pipeline_with_header pipeline( output, filters, *reader, number_of_threads );
         pipeline.run();
+        if( !input.last_error().empty() ) { std::cerr << "cv-cat: " << input.last_error() << std::endl; return 1; }
+        if( !output.last_error().empty() ) { std::cerr << "cv-cat: " << output.last_error() << std::endl; return 1; }
         if( vm.count( "stay" ) )
         {
-            std::cerr << "cv-cat: stopped; asked to --stay...; press any key to exit" << std::endl;
+            std::cerr << "cv-cat: " << "stopped; asked to --stay...; press any key to exit" << std::endl;
             while( !is_shutdown && cv::waitKey( 1000 ) == 255 );
         }
         return 0;
     }
     catch( std::exception& ex ) { std::cerr << "cv-cat: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "cv-cat : unknown exception" << std::endl; }
+    catch( ... ) { std::cerr << "cv-cat: " << "unknown exception" << std::endl; }
     return 1;
 }

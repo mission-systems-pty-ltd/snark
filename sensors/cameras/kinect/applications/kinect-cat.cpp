@@ -29,28 +29,29 @@
 
 /// @authors john gardenier, vsevolod vlaskine
 
+#include <cmath>
 #include <Eigen/Core>
-#include <comma/application/command_line_options.h>
-#include <comma/base/types.h>
-#include <comma/csv/stream.h>
-#include <comma/csv/traits.h>
-#include <comma/string/string.h>
-#include "../../../../visiting/traits.h"
-#include "../../../../timing/timestamped.h"
-#include "../../../../timing/traits.h"
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/logger.h>
 #include <cv.h>
+#include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
-#include "../../../../imaging/cv_mat/serialization.h"
+#include <comma/base/types.h>
+#include <comma/csv/stream.h>
+#include <comma/csv/traits.h>
 #include <comma/name_value/ptree.h>
 #include <comma/name_value/serialize.h>
+#include <comma/string/string.h>
 #include "../../../../imaging/camera/pinhole.h"
 #include "../../../../imaging/camera/traits.h"
-#include <cmath>
+#include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
+#include "../../../../timing/timestamped.h"
+#include "../../../../timing/traits.h"
+#include "../../../../visiting/traits.h"
 
 static void usage( bool verbose )
 {

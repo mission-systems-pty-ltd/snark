@@ -1104,6 +1104,7 @@ int main( int ac, char** av )
                 if( realtime ) { p.first = boost::posix_time::microsec_clock::universal_time(); }
                 output_serialization.write_to_stdout( p );
             }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "chessboard-corners")
@@ -1156,6 +1157,8 @@ int main( int ac, char** av )
                     }
                 }
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "crop-random" || operation == "roi-random" || operation == "random-crop" || operation == "random-roi" )
@@ -1198,6 +1201,8 @@ int main( int ac, char** av )
                 }
                 std::cout.flush();
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "draw" )
@@ -1221,6 +1226,8 @@ int main( int ac, char** av )
                 sample.strm_shapes.draw( p.second, input_serialization.get_header( &input_serialization.header_buffer()[0] ).timestamp );
                 output_serialization.write_to_stdout( p, csv.flush );
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
@@ -1244,6 +1251,8 @@ int main( int ac, char** av )
                 if( non_zero.keep( filtered.second ) ) { output_serialization.write_to_stdout( p ); }
                 std::cout.flush();
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "life" )
@@ -1263,6 +1272,8 @@ int main( int ac, char** av )
                 output_serialization.write_to_stdout( life( p ) ); // todo: decouple step from output
                 std::cout.flush();
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "histogram" )
@@ -1297,6 +1308,8 @@ int main( int ac, char** av )
                 }
                 std::cout.flush();
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "mean" )
@@ -1339,6 +1352,7 @@ int main( int ac, char** av )
                 for( int i = 0; i < p.second.channels(); ++i ) { std::cout.write( reinterpret_cast< char* >( &means[i] ), sizeof( double ) ); std::cout.write( reinterpret_cast< char* >( &counts[i] ), sizeof( comma::uint32 ) ); }
                 if( flush ) { std::cout.flush(); }
             }
+            if( !serialization.last_error().empty() ) { comma::say() << serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
@@ -1418,6 +1432,8 @@ int main( int ac, char** av )
                     }
                 }
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "unstride" ) { return snark::cv_calc::unstride::run( options, input_options, output_options ); }
@@ -1437,6 +1453,8 @@ int main( int ac, char** av )
                 if( p.second.empty() ) { return 0; }
                 if( keep ) { output_serialization.write_to_stdout( p ); std::cout.flush(); }
             }
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "unstride-positions" ) // TODO move to another utility since it doesn't operate on an image ?
@@ -1516,6 +1534,8 @@ int main( int ac, char** av )
             const auto& h = serialization.get_header( &serialization.header_buffer()[0] );
             std::string output = comma::csv::ascii< snark::cv_mat::serialization::header >( "rows,cols,type" ).put( h );
             std::cout << output << "," << snark::cv_mat::format_from_type( h.type ) << std::endl;
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "format" )
@@ -1533,6 +1553,8 @@ int main( int ac, char** av )
             comma::csv::format format = input_options.format.elements().empty() ? comma::csv::format("t,3ui") : input_options.format ;
             format += "s[" + boost::lexical_cast<std::string>( comma::uint64(header.rows) * header.cols * p.second.elemSize() )  + "]";
             std::cout << format.string() << std::endl;
+            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
         if( operation == "roi" )
@@ -1611,6 +1633,8 @@ int main( int ac, char** av )
                         }
                     }
                 }
+                if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+                if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             }
             else
             {
@@ -1670,12 +1694,14 @@ int main( int ac, char** av )
                         }
                     }
                 }
+                if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
+                if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             }
             return 0;
         }
-        std::cerr << name << " unknown operation: '" << operation << "'" << std::endl;
+        comma::say() << " unknown operation: '" << operation << "'" << std::endl;
     }
-    catch( std::exception& ex ) { std::cerr << "cv-calc: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "cv-calc: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }

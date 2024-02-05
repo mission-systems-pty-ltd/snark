@@ -1,7 +1,11 @@
 // Copyright (c) 2017 The University of Sydney
 // Copyright (c) 2021 Mission Systems Pty Ltd
 
-#include "detail/file-util.h"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <comma/application/command_line_options.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
@@ -9,14 +13,9 @@
 #include <comma/csv/options.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
-#include <ros/ros.h>
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <chrono>
-#include <thread>
-#include <unordered_map>
+#include "../../imaging/cv_mat/serialization.h"
+#include "../../imaging/cv_mat/traits.h"
+#include "detail/file-util.h"
 #include "detail/ros-points-detail.h"
 
 void bash_completion( unsigned int const ac, char const * const * av )

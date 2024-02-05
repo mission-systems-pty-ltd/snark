@@ -10,6 +10,7 @@
 #include <boost/bimap.hpp>
 #include "utils.h"
 #include "serialization.h"
+#include "traits.h"
 
 namespace snark { namespace cv_mat {
 
@@ -151,40 +152,40 @@ std::size_t serialization::size( const std::pair< serialization::header::buffer_
 
 std::size_t serialization::size( const std::pair< boost::posix_time::ptime, cv::Mat >& m ) const { return size( m.second ); }
 
-template <> std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< serialization::header::buffer_t >( std::istream& is )
+const std::string& serialization::last_error() const { return _last_error; }
+
+template <> std::pair< serialization::header::buffer_t, cv::Mat > serialization::read< serialization::header::buffer_t >( std::istream& is ) noexcept
 {
-    std::pair< serialization::header::buffer_t, cv::Mat > p;
-    if( m_binary )
-    {
-        is.read( &m_buffer[0], m_buffer.size() );
-        int count = is.gcount();
-        if( count <= 0 ) { return p; }
-        if( count < int( m_buffer.size() ) ) { COMMA_THROW( comma::exception, "expected " << m_buffer.size() << " bytes, got " << count ); }        
-        m_binary->get( m_header, &m_buffer[0] );
-    }
-    if( _set_timestamp ) // quick and dirty; todo: watch performance!
-    {
-        m_header.timestamp = boost::posix_time::microsec_clock::universal_time();
-        ( m_binary ? m_binary : _no_header_binary )->put( m_header, &m_buffer[0] );
-    }
-    p.first = m_buffer;
     try
     {
+        std::pair< serialization::header::buffer_t, cv::Mat > p;
+        if( m_binary )
+        {
+            is.read( &m_buffer[0], m_buffer.size() );
+            int count = is.gcount();
+            if( count <= 0 ) { return p; }
+            if( count < int( m_buffer.size() ) ) { COMMA_THROW( comma::exception, "expected " << m_buffer.size() << " bytes, got " << count ); }        
+            m_binary->get( m_header, &m_buffer[0] );
+        }
+        if( _set_timestamp ) // quick and dirty; todo: watch performance!
+        {
+            m_header.timestamp = boost::posix_time::microsec_clock::universal_time();
+            ( m_binary ? m_binary : _no_header_binary )->put( m_header, &m_buffer[0] );
+        }
+        p.first = m_buffer;
         p.second = cv::Mat( m_header.rows, m_header.cols, m_header.type );
+        std::size_t size = p.second.dataend - p.second.datastart;
+        // todo: accumulate
+        is.read( const_cast< char* >( reinterpret_cast< const char* >( p.second.datastart ) ), size ); // quick and dirty
+        int count = is.gcount();
+        return count < int( size ) ? std::pair< serialization::header::buffer_t, cv::Mat >() : p;
     }
-    catch( cv::Exception& ex )
-    {
-        std::cerr << comma::verbose.app_name() << ": caught cv::Exception: " << ex.what() << std::endl;
-        return std::pair< serialization::header::buffer_t, cv::Mat >();
-    }
-    std::size_t size = p.second.dataend - p.second.datastart;
-    // todo: accumulate
-    is.read( const_cast< char* >( reinterpret_cast< const char* >( p.second.datastart ) ), size ); // quick and dirty
-    int count = is.gcount();
-    return count < int( size ) ? std::pair< serialization::header::buffer_t, cv::Mat >() : p;
+    catch( std::exception& ex ) { _last_error = ex.what(); }
+    catch( ... ) { _last_error = "snark::cv_mat::serialization::read(): unknow exception caught"; }
+    return std::pair< serialization::header::buffer_t, cv::Mat >();
 }
 
-template <> std::pair< boost::posix_time::ptime, cv::Mat > serialization::read< boost::posix_time::ptime >( std::istream& is )
+template <> std::pair< boost::posix_time::ptime, cv::Mat > serialization::read< boost::posix_time::ptime >( std::istream& is ) noexcept
 {
     std::pair< serialization::header::buffer_t, cv::Mat > p = read< serialization::header::buffer_t >( is );
     return std::make_pair( _set_timestamp ? boost::posix_time::microsec_clock::universal_time() : m_header.timestamp, p.second );

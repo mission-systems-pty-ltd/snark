@@ -56,6 +56,7 @@
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include "../cv_mat/serialization.h"
+#include "../cv_mat/traits.h"
 #include "../../render/colour_map.h"
 
 void usage()
