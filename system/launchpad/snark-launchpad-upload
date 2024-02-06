@@ -18,8 +18,12 @@ what=$1
 snark_version=$2
 name=snark_${snark_version}
 
-# todo: add comma ppa
-# todo: install comma or build in docker
+sudo add-apt-repository --yes ppa:orthographic/comma
+sudo add-apt-repository --yes multiverse
+sudo apt update
+sudo apt remove --yes comma # remove any old version
+sudo apt install --yes comma
+trap "sudo apt remove --yes comma" EXIT
 
 [[ -d snark ]] || die "snark directory not found; please run in something like ~/src"
 if [[ "$what" == "orig" ]]; then
@@ -33,5 +37,3 @@ elif [[ "$what" == "update" ]]; then # todo! fix! need to tar on update as well;
 else
     die "expected <what>: orig or update; got \"$what\""
 fi
-
-# todo: remove comma from /usr
