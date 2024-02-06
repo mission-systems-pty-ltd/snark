@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # todo
+#   - !!! script to build in docker (how to manage signature and dput in docker?)
 #   - manual steps (automate if possible)
 #     - update changelog
 #       - version
@@ -18,7 +19,7 @@ snark_version=$2
 name=snark_${snark_version}
 
 # todo: add comma ppa
-# todo: install comma
+# todo: install comma or build in docker
 
 [[ -d snark ]] || die "snark directory not found; please run in something like ~/src"
 if [[ "$what" == "orig" ]]; then
