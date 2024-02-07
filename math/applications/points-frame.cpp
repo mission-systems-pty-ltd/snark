@@ -672,7 +672,8 @@ static int run( const comma::command_line_options& options )
                                                                                         , to_vector
                                                                                         , interpolate
                                                                                         , rotation_present );
-    COMMA_ASSERT_BRIEF( csv.fields.empty() || comma::csv::fields_exist( csv.fields, "t" ), "expected mandatory field 't'; got " << csv.fields );
+    
+    COMMA_ASSERT_BRIEF( !timestamp_required || csv.fields.empty() || comma::csv::fields_exist( csv.fields, "t" ), "expected mandatory field 't'; got " << csv.fields );
     snark::applications::run( frames, csv );
     if( discarded_counter ) { comma::say() << " discarded " << discarded_counter << " points; max time diff: " << discarded_time_diff_max.total_microseconds() <<" microseconds" << std::endl; }
     return 0;
