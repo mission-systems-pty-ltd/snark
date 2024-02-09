@@ -20,9 +20,7 @@ static const char* hex_color_( const std::string& c )
     if( c == "black" ) { return "#000000"; }
     if( c == "white" ) { return "#FFFFFF"; }
     if( c == "grey" ) { return "#888888"; }
-    return &c[0];
-}
-
+    // todo: more colours, e.g:
     // Red: #FF0000
     // Cyan: #00FFFF
     // Green: #00FF00
@@ -39,15 +37,19 @@ static const char* hex_color_( const std::string& c )
     // Fuchsia: #FF00FF
     // Dodger Blue: #1E90FF
     // Dark Orange: #FF8C00
+    return &c[0];
+}
 
 std::unordered_map< std::string, std::vector< std::string > > default_colourmaps()
 {
     static std::unordered_map< std::string, std::vector< std::string > > m =
     {
         { "black", { "black" } },
-        { "rgb", { "red", "green", "blue" } }, // todo: replace with nice multicolour maps
+        { "rgb", { "red", "green", "blue" } },
         { "cmyk", { "cyan", "magenta", "yellow", "black" } },
+        { "basic-8", { "red", "green", "blue", "cyan", "magenta", "yellow", "black", "grey" } },
         { "basic-16", { "#FF0000","#00FFFF","#00FF00","#FF00FF","#0000FF","#FFA500","#800080","#008080","#8B0000","#00FF00","#008B8B","#4B0082","#006400","#FF00FF","#1E90FF","#FF8C00" } }
+        // todo: more nice maps
     };
     return m;
 }

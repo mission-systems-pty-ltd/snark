@@ -100,7 +100,7 @@ static void usage( bool verbose = false )
     std::cerr << "        examples" << std::endl;
     std::cerr << "            --colours=rgb" << std::endl;
     std::cerr << "            --colours=blue,green,red,cyan,magenta" << std::endl;
-    std::cerr << "    --shape=<what>: line (default)" << std::endl;
+    std::cerr << "    --shape=<what>; <what>: line (default), scatter, spline" << std::endl;
     std::cerr << "                    todo: more shapes" << std::endl;
     std::cerr << "    --title=[<title>]: series title" << std::endl;
     std::cerr << "    --weight=<weight>: point or line weight" << std::endl;
