@@ -183,6 +183,14 @@ std::string draw< H >::usage( unsigned int indent )
     oss << grid::usage( 4 + indent );
     oss << status::usage( 4 + indent );
     oss << time::usage( 4 + indent );
+    // todo: move to respective classes
+    oss << "    cross[=<x>,<y>]: draw cross-hair at x,y; default: at image center\n";
+    oss << "    circle=<x>,<y>,<radius>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw circle\n";
+    oss << "        see cv::circle for details on parameters and defaults\n";
+    oss << "        <alpha>: todo\n";
+    oss << "    rectangle=<x>,<y>,<x>,<y>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>,<alpha>]: draw rectangle\n";
+    oss << "        see cv::rectangle for details on parameters and defaults\n";
+    oss << "        <alpha>: between 0 and 255, default: 255\n";
     return oss.str();
 }
 
@@ -500,9 +508,26 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
 
 void drawing::circle::draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
 
+drawing::rectangle::rectangle( const cv::Point& upper_left, const cv::Point& lower_right, const cv::Scalar& color, int thickness, int line_type, int shift )
+    : shape( color, thickness, line_type, shift )
+    , upper_left( upper_left )
+    , lower_right( lower_right )
+{
+}
+
 void drawing::rectangle::draw( cv::Mat m ) const
-{ 
-    cv::rectangle( m, upper_left, lower_right, color, thickness, line_type, shift );
+{
+    if( color[3] == 255 )
+    {
+        cv::rectangle( m, upper_left, lower_right, color, thickness, line_type, shift );
+    }
+    else
+    {
+        cv::Mat roi = m( cv::Rect( upper_left, lower_right ) );
+        cv::Mat rect( roi.size(), m.type(), color ); // todo? stash on construction and then lazily update?
+        double alpha = color[3] / 255.;
+        cv::addWeighted( rect, alpha, roi, 1.0 - alpha , 0.0, roi ); 
+    }
 }
 
 void drawing::cross::draw( cv::Mat m ) const

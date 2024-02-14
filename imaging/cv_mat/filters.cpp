@@ -2199,11 +2199,11 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         const auto& p = comma::split_as< int >( e[1], ',', defaults );
         return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::cross, boost::placeholders::_1, filters::drawing::cross( cv::Point( p[0], p[1] ), cv::Scalar( p[4], p[3], p[2] ), p[5], p[6], p[7] ) ), true );
     }
-    if( e[0] == "rectangle" || e[0] == "box" ) // todo: quick and dirty, move to filters/draw
+    if( e[0] == "rectangle" ) // todo: quick and dirty, move to filters/draw
     {
-        boost::array< int, 10 > defaults = {{ 0, 0, 0, 0, 0, 0, 0, 1, 8, 0 }};
+        boost::array< int, 11 > defaults = {{ 0, 0, 0, 0, 0, 0, 0, 1, 8, 0, 255 }};
         const auto& p = comma::split_as< int >( e[1], ',', defaults );
-        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::rectangle, boost::placeholders::_1, filters::drawing::rectangle( cv::Point( p[0], p[1] ), cv::Point( p[2], p[3] ), cv::Scalar( p[6], p[5], p[4] ), p[7], p[8], p[9] ) ), true );
+        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::rectangle, boost::placeholders::_1, filters::drawing::rectangle( cv::Point( p[0], p[1] ), cv::Point( p[2], p[3] ), cv::Scalar( p[6], p[5], p[4], p[10] ), p[7], p[8], p[9] ) ), true );
     }
     if( e[0] == "frame-rate" ) { return filters::frame_rate< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); } // todo? pass delimiter?
     if( e[0] == "contraharmonic" ) { return filters::contraharmonic< H >::make( e.size() > 1 ? e[1] : "" ); }
@@ -3233,11 +3233,6 @@ static std::string usage_impl_()
     oss << "    rows-to-channels=1,4,5[,pad:value,repeat:step]; same as cols-to-channels but operates on rows\n";
     oss << "\n";
     oss << "drawing on images\n";
-    oss << "    cross[=<x>,<y>]: draw cross-hair at x,y; default: at image center\n";
-    oss << "    circle=<x>,<y>,<radius>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw circle\n";
-    oss << "        see cv::circle for details on parameters and defaults\n";
-    oss << "    rectangle,box=<x>,<y>,<x>,<y>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw rectangle\n";
-    oss << "        see cv::rectangle for details on parameters and defaults\n";
     oss << filters::draw< boost::posix_time::ptime >::usage(4);
     oss << "\n";
     oss << "morphology operations\n";

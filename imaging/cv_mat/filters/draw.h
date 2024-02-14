@@ -37,7 +37,7 @@ struct rectangle : public shape
     cv::Point upper_left;
     cv::Point lower_right;
     rectangle() {};
-    rectangle( const cv::Point& upper_left, const cv::Point& lower_right, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), upper_left( upper_left ), lower_right( lower_right ) {}
+    rectangle( const cv::Point& upper_left, const cv::Point& lower_right, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 );
     void draw( cv::Mat m ) const;
 };
 
