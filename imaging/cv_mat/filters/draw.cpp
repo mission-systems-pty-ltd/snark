@@ -498,6 +498,28 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
     return m;
 }
 
+void drawing::circle::draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
+
+void drawing::rectangle::draw( cv::Mat m ) const
+{ 
+    cv::rectangle( m, upper_left, lower_right, color, thickness, line_type, shift );
+}
+
+void drawing::cross::draw( cv::Mat m ) const
+{
+    cv::line( m, cv::Point( centre.x, 0 ), cv::Point( centre.x, m.size().height ), color, thickness, line_type, shift );
+    cv::line( m, cv::Point( 0, centre.y ), cv::Point( m.size().width, centre.y ), color, thickness, line_type, shift );
+}
+
+template < typename H >
+typename std::pair< H, cv::Mat > draw< H >::circle( std::pair< H, cv::Mat > m, const drawing::circle& circle ) { circle.draw( m.second ); return m; }
+
+template < typename H >
+typename std::pair< H, cv::Mat > draw< H >::rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle ) { rectangle.draw( m.second ); return m; }
+
+template < typename H >
+typename std::pair< H, cv::Mat > draw< H >::cross( std::pair< H, cv::Mat > m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
+
 template struct draw< boost::posix_time::ptime >;
 template struct draw< std::vector< char > >;
 

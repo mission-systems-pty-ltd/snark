@@ -29,7 +29,7 @@ struct circle : public shape
     int radius;
     circle() {}
     circle( const cv::Point& center, int radius, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), center( center ), radius( radius ) {}
-    void draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
+    void draw( cv::Mat m ) const;
 };
 
 struct rectangle : public shape
@@ -38,7 +38,7 @@ struct rectangle : public shape
     cv::Point lower_right;
     rectangle() {};
     rectangle( const cv::Point& upper_left, const cv::Point& lower_right, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), upper_left( upper_left ), lower_right( lower_right ) {}
-    void draw( cv::Mat m ) const { cv::rectangle( m, upper_left, lower_right, color, thickness, line_type, shift ); }
+    void draw( cv::Mat m ) const;
 };
 
 struct cross : public shape
@@ -46,11 +46,7 @@ struct cross : public shape
     cv::Point centre;
     cross(): centre( 0, 0 ) {};
     cross( const cv::Point& centre, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), centre( centre ) {}
-    void draw( cv::Mat m ) const
-    {
-        cv::line( m, cv::Point( centre.x, 0 ), cv::Point( centre.x, m.size().height ), color, thickness, line_type, shift );
-        cv::line( m, cv::Point( 0, centre.y ), cv::Point( m.size().width, centre.y ), color, thickness, line_type, shift );
-    }
+    void draw( cv::Mat m ) const;
 };
 
 } // namespace drawing {
@@ -161,11 +157,11 @@ struct draw
             timestamp_functor_t _timestamp;
     };
 
-    static typename std::pair< H, cv::Mat > circle( std::pair< H, cv::Mat > m, const drawing::circle& circle ) { circle.draw( m.second ); return m; }
+    static typename std::pair< H, cv::Mat > circle( std::pair< H, cv::Mat > m, const drawing::circle& circle );
 
-    static typename std::pair< H, cv::Mat > rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle ) { rectangle.draw( m.second ); return m; }
+    static typename std::pair< H, cv::Mat > rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle );
 
-    static typename std::pair< H, cv::Mat > cross( std::pair< H, cv::Mat > m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
+    static typename std::pair< H, cv::Mat > cross( std::pair< H, cv::Mat > m, const drawing::cross& cross );
 };
 
 } } }  // namespace snark { namespace cv_mat { namespace filters {
