@@ -1090,59 +1090,6 @@ static typename impl::filters< H >::value_type merge_impl_( typename impl::filte
     return n;
 }
 
-namespace drawing {
-
-struct shape
-{
-    cv::Scalar color;
-    int thickness;
-    int line_type;
-    int shift;
-    shape() : thickness( 1 ), line_type( 8 ), shift( 0 ) {}
-    shape( const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : color( color ), thickness( thickness ), line_type( line_type ), shift( shift ) {}
-};
-
-struct circle : public shape
-{
-    cv::Point center;
-    int radius;
-    circle() {}
-    circle( const cv::Point& center, int radius, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), center( center ), radius( radius ) {}
-    void draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
-};
-
-struct rectangle : public shape
-{
-    cv::Point upper_left;
-    cv::Point lower_right;
-    rectangle() {};
-    rectangle( const cv::Point& upper_left, const cv::Point& lower_right, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), upper_left( upper_left ), lower_right( lower_right ) {}
-    void draw( cv::Mat m ) const { cv::rectangle( m, upper_left, lower_right, color, thickness, line_type, shift ); }
-};
-
-struct cross : public shape
-{
-    cv::Point centre;
-    cross(): centre( 0, 0 ) {};
-    cross( const cv::Point& centre, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 ) : shape( color, thickness, line_type, shift ), centre( centre ) {}
-    void draw( cv::Mat m ) const
-    {
-        cv::line( m, cv::Point( centre.x, 0 ), cv::Point( centre.x, m.size().height ), color, thickness, line_type, shift );
-        cv::line( m, cv::Point( 0, centre.y ), cv::Point( m.size().width, centre.y ), color, thickness, line_type, shift );
-    }
-};
-
-} // namespace drawing {
-
-template < typename H >
-static typename impl::filters< H >::value_type circle_impl_( typename impl::filters< H >::value_type m, const drawing::circle& circle ) { circle.draw( m.second ); return m; }
-
-template < typename H >
-static typename impl::filters< H >::value_type rectangle_impl_( typename impl::filters< H >::value_type m, const drawing::rectangle& rectangle ) { rectangle.draw( m.second ); return m; }
-
-template < typename H >
-static typename impl::filters< H >::value_type cross_impl_( typename impl::filters< H >::value_type m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
-
 template < typename T > static comma::csv::options make_csv_options_( bool binary ) // quick and dirty
 {
     comma::csv::options csv;
@@ -2240,19 +2187,23 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "canvas" ) { return filters::canvas< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "colorbar" ) { return filters::draw< H >::colorbar::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "draw" ) { return filters::draw< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
-    if( e[0] == "cross" ) // todo: quick and dirty, implement using traits
+    if( e[0] == "circle" ) // todo: quick and dirty, move to filters/draw
     {
-        boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
-        const std::vector< std::string > v = comma::split( e[1], ',' );
-        for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
-        return std::make_pair( boost::bind< value_type_t >( cross_impl_< H >, boost::placeholders::_1, drawing::cross( cv::Point( p[0], p[1] ), cv::Scalar( p[4], p[3], p[2] ), p[5], p[6], p[7] ) ), true );
+        boost::array< int, 9 > defaults = {{ 0, 0, 0, 0, 0, 0, 1, 8, 0 }};
+        const auto& p = comma::split_as< int >( e[1], ',', defaults );
+        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::circle, boost::placeholders::_1, filters::drawing::circle( cv::Point( p[0], p[1] ), p[2], cv::Scalar( p[5], p[4], p[3] ), p[6], p[7], p[8] ) ), true );
     }
-    if( e[0] == "circle" ) // todo: quick and dirty, implement using traits
+    if( e[0] == "cross" ) // todo: quick and dirty, move to filters/draw
     {
-        boost::array< int, 9 > p = {{ 0, 0, 0, 0, 0, 0, 1, 8, 0 }};
-        const std::vector< std::string > v = comma::split( e[1], ',' );
-        for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
-        return std::make_pair( boost::bind< value_type_t >( circle_impl_< H >, boost::placeholders::_1, drawing::circle( cv::Point( p[0], p[1] ), p[2], cv::Scalar( p[5], p[4], p[3] ), p[6], p[7], p[8] ) ), true );
+        boost::array< int, 9 > defaults = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
+        const auto& p = comma::split_as< int >( e[1], ',', defaults );
+        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::cross, boost::placeholders::_1, filters::drawing::cross( cv::Point( p[0], p[1] ), cv::Scalar( p[4], p[3], p[2] ), p[5], p[6], p[7] ) ), true );
+    }
+    if( e[0] == "rectangle" || e[0] == "box" ) // todo: quick and dirty, move to filters/draw
+    {
+        boost::array< int, 10 > defaults = {{ 0, 0, 0, 0, 0, 0, 0, 1, 8, 0 }};
+        const auto& p = comma::split_as< int >( e[1], ',', defaults );
+        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::rectangle, boost::placeholders::_1, filters::drawing::rectangle( cv::Point( p[0], p[1] ), cv::Point( p[2], p[3] ), cv::Scalar( p[6], p[5], p[4] ), p[7], p[8], p[9] ) ), true );
     }
     if( e[0] == "frame-rate" ) { return filters::frame_rate< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); } // todo? pass delimiter?
     if( e[0] == "contraharmonic" ) { return filters::contraharmonic< H >::make( e.size() > 1 ? e[1] : "" ); }
@@ -2260,13 +2211,6 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "hard-edge" ) { return filters::hard_edge< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "partition" ) { return filters::partitions::partition< H >::make( e.size() > 1 ? e[1] : "" ); }
     if( e[0] == "partitions-reduce" ) { return filters::partitions::reduce< H >::make( e.size() > 1 ? e[1] : "" ); }
-    if( e[0] == "rectangle" || e[0] == "box" ) // todo: quick and dirty, implement using traits
-    {
-        boost::array< int, 10 > p = {{ 0, 0, 0, 0, 0, 0, 0, 1, 8, 0 }};
-        const std::vector< std::string > v = comma::split( e[1], ',' );
-        for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
-        return std::make_pair( boost::bind< value_type_t >( rectangle_impl_< H >, boost::placeholders::_1, drawing::rectangle( cv::Point( p[0], p[1] ), cv::Point( p[2], p[3] ), cv::Scalar( p[6], p[5], p[4] ), p[7], p[8], p[9] ) ), true );
-    }
     if( e[0] == "remove-speckles" )
     {
         std::vector< std::string > s = comma::split( e[1], ',' );
