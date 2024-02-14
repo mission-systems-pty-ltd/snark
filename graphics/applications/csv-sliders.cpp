@@ -3,8 +3,15 @@
 
 /// @author Aspen Eyers
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 #include <QApplication>
+#include <QDoubleSpinBox>
+#include <QFontDatabase>
+#include <QLineEdit>
+#include <QMainWindow>
+#include <QThread>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/base/types.h>
@@ -12,15 +19,8 @@
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
 #include <comma/visiting/traits.h>
-#include <QThread>
-#include <thread>
-#include <chrono>
-
-#include "csv_sliders/slider_gui.h"
 #include "csv_sliders/slider.h"
-#include <QFontDatabase>
-#include <QLineEdit>
-#include <QDoubleSpinBox>
+#include "csv_sliders/slider_gui.h"
 
 // todo
 //     - on input
@@ -237,35 +237,23 @@ void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config
 int main(int ac, char** av) {
     try
     {
-        comma::command_line_options opts( ac, av, usage );
-        comma::csv::options global_csv( opts );
-        int gui_update_period_ms = opts.value< int >( "--gui-frequency", 20 );
-        auto unnamed = opts.unnamed( "--on-change,--verbose,-v,--flush,--vertical", "-[^;].*" );
+        comma::command_line_options options( ac, av, usage );
+        comma::csv::options global_csv( options );
+        int gui_update_period_ms = options.value< int >( "--gui-frequency", 20 );
+        auto unnamed = options.unnamed( "--on-change,--verbose,-v,--flush,--vertical", "-[^;].*" );
         if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file ('-' as stdin) or slider" ); } 
-
         int argc = 0;
         char** argv = nullptr;
         QApplication app(argc, argv);
-
-        QWidget mainWindow;
-        QVBoxLayout mainLayout(&mainWindow);
-
-        auto window_geometry = comma::split_as< int >( opts.value< std::string >( "--window-geometry", ",,," ), ',', -1 );
-        mainWindow.move( 
-              (window_geometry[0] == -1) ? mainWindow.pos().x() : window_geometry[0]
-            , (window_geometry[1] == -1) ? mainWindow.pos().y() : window_geometry[1]
-        );
-        // if not specified, set the window size to small & let the layout expand it
-        mainWindow.resize(
-              (window_geometry[2] == -1) ? 500 : window_geometry[2]
-            , (window_geometry[3] == -1) ? 10 : window_geometry[3]
-        ); 
-        mainWindow.setWindowTitle( &opts.value< std::string >( "--window-title,--title", "csv-sliders" )[0] );
-
+        QWidget main_window;
+        QVBoxLayout mainLayout(&main_window);
+        auto window_geometry = comma::split_as< int >( options.value< std::string >( "--window-geometry", "0,0,500,10" ), ',', -1 );
+        main_window.move( window_geometry[0], window_geometry[1] );
+        main_window.resize( window_geometry[2], window_geometry[3] ); 
+        main_window.setWindowTitle( &options.value< std::string >( "--window-title,--title", "csv-sliders" )[0] );
         std::vector<snark::graphics::sliders::FloatSlider*> gui_sliders;
-
-        comma::name_value::parser csv_parser( "filename", ';', '=', false );
-        auto csv = csv_parser.get< comma::csv::options >( unnamed[0] );
+        comma::name_value::parser csv_options_parser( "filename", ';', '=', false );
+        auto csv = csv_options_parser.get< comma::csv::options >( unnamed[0] );
         std::string sliders_buffer;
         std::string sliders_binary;
         std::string comma;
@@ -277,22 +265,15 @@ int main(int ac, char** av) {
         sliders.reserve(unnamed.size());
         int offset = 0;
         snark::graphics::sliders::config< float > sample_config;
-        sample_config.vertical = opts.exists( "--vertical" ); // todo: plug in
-
-        // determine the length of the name of each slider so that we can make them all the same length
-        uint max_name_length = 0;
-        for( uint j = i; j < unnamed.size(); j++ ){
-            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[j], sample_config );
-            if (format_detail.name.length() > max_name_length) { max_name_length = format_detail.name.length(); }
-        }
-
-        for( ; i < unnamed.size(); i++ ){
-
-            // Set up the buffer & check for binary or ascii
-            auto s = csv_parser.get< comma::csv::options >( unnamed[i] );
+        sample_config.vertical = options.exists( "--vertical" ); // todo: plug in
+        std::size_t max_name_length = 0;
+        for( uint j = i; j < unnamed.size(); ++j ) { max_name_length = std::max( max_name_length, comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[j], sample_config ).name.size() ); }
+        for( ; i < unnamed.size(); i++ )
+        {
+            // set up the buffer & check for binary or ascii
+            auto s = csv_options_parser.get< comma::csv::options >( unnamed[i] );
             COMMA_ASSERT( s.binary() == csv.binary(), "expected all streams " << ( csv.binary() ? "binary" : "ascii" ) << "; got: '" << unnamed[0] << "' and '" << unnamed[i] << "'" );
             if( s.binary() ) { sliders_binary += comma + s.format().string(); comma = ","; }
-
             auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i], sample_config );
             draw_slider<float>(mainLayout, format_detail, gui_sliders, max_name_length);
             auto slider = std::make_shared<snark::graphics::sliders::slider<float>>(offset, sizeof(float));
@@ -303,21 +284,18 @@ int main(int ac, char** av) {
             // sliders.at(i) = std::move(slider);
             sliders.push_back( std::move(slider) ); // todo? emplace_back() should do the same thing as push_back( std::move( slider ) )
         }
-
-    // TODO: deal with types or formats...
-    //             if(format_detail.format == "f"){
-    //                 // auto s = new snark::graphics::sliders::slider<float>(0,0);
-    //                 auto s = std::make_shared<snark::graphics::sliders::slider<float>>(0,0);
-    //                 // auto s = reinterpret_cast<const snark::graphics::sliders::slider<float>*>(&slider);
-    //                 s->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
-    //                 s->set_name(format_detail.name);
-    //                 std::cerr << "Min is : " << s->min() << " Max is : " << s->max() << std::endl;
-    //                 sliders.push_back( s );
-    //             }else{ 
-
+        // TODO: deal with types or formats...
+        //             if(format_detail.format == "f"){
+        //                 // auto s = new snark::graphics::sliders::slider<float>(0,0);
+        //                 auto s = std::make_shared<snark::graphics::sliders::slider<float>>(0,0);
+        //                 // auto s = reinterpret_cast<const snark::graphics::sliders::slider<float>*>(&slider);
+        //                 s->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
+        //                 s->set_name(format_detail.name);
+        //                 std::cerr << "Min is : " << s->min() << " Max is : " << s->max() << std::endl;
+        //                 sliders.push_back( s );
+        //             }else{ 
         sliders_buffer.resize( comma::csv::format( sliders_binary ).size() );
-        mainWindow.show();
-
+        main_window.show();
         if( csv.filename == "-" )
         {
             fd_set read_fds;
@@ -325,21 +303,15 @@ int main(int ac, char** av) {
             comma::csv::input_stream< snark::graphics::sliders::input > istream( std::cin, csv );
             comma::uint32 block = 0;
             bool has_block = csv.has_field( "block" );
-
             while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
-                FD_ZERO(&read_fds);
-                FD_SET(STDIN_FILENO, &read_fds);
-
+                FD_ZERO( &read_fds );
+                FD_SET( STDIN_FILENO, &read_fds );
                 timeout.tv_sec = 0;
                 timeout.tv_usec = gui_update_period_ms * 1000;
-
-                int ret = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
-
-                // Update from stdin
-                if (ret > 0 && FD_ISSET(STDIN_FILENO, &read_fds)) {
-
-
+                int ret = select( STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout ); // todo: use comma::io select
+                if( ret > 0 && FD_ISSET( STDIN_FILENO, &read_fds ) ) // handle stdin
+                {
                     const snark::graphics::sliders::input* p = istream.read();
                     if( !p ) { break; }
                     if( !has_block || p->block != block )
@@ -370,42 +342,49 @@ int main(int ac, char** av) {
                         std::cout << comma::join( istream.ascii().last(), global_csv.delimiter ) << global_csv.delimiter << comma::join( sliders_values, global_csv.delimiter ) << std::endl;
                     }
                     if( global_csv.flush ) { std::cout.flush(); }
-
-                // Update the GUI
-                } else if (ret == 0) {
-                    for( unsigned int i = 0; i < sliders.size(); i++ ) { 
-                        if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
-                            auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
-                            s->set(gui_sliders[i]->value());
-                        }else {
+                }
+                else if( ret == 0 )
+                {
+                    for( unsigned int i = 0; i < sliders.size(); i++ )
+                    { 
+                        if( sliders[i]->type() == snark::graphics::sliders::slider_type::float_ )
+                        {
+                            auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>( sliders[i].get() );
+                            s->set( gui_sliders[i]->value() );
+                        }
+                        else
+                        {
                             COMMA_THROW( comma::exception, "slider type for slider " << i << " not implemented");
                         }
                     }
-
                     app.processEvents();
                     sliders_values={};
-                    for( unsigned int i = 0; i < sliders.size(); i++ ) { 
-                        sliders_values.push_back(sliders[i]->as_string());
-                    }
-                } else {
-                    COMMA_THROW( comma::exception, "select error");
+                    for( unsigned int i = 0; i < sliders.size(); i++ ) { sliders_values.push_back( sliders[i]->as_string() ); }
+                }
+                else
+                {
+                    COMMA_THROW( comma::exception, "select error" );
                 }
             }
-        } else
+        }
+        else // Handle case no stdin - i.e. we just publish the slider values. 
         {
-            // Handle case with no stdin - i.e. we just publish the slider values. 
-            float frequency = opts.value< float >( "--frequency", 1 );
+            float frequency = options.value< float >( "--frequency", 1 );
             bool update_on_change = false;
-            if( opts.exists( "--on-change" ) ) { update_on_change = true; }
-
+            if( options.exists( "--on-change" ) ) { update_on_change = true; }
             bool sliders_values_changed = false;
-            while(true){
-                for( unsigned int i = 0; i < sliders.size(); i++ ) { 
-                    if (sliders[i]->type() == snark::graphics::sliders::slider_type::float_){
-                        auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>(sliders[i].get());
-                        s->set(gui_sliders[i]->value());
-                    }else {
-                        COMMA_THROW( comma::exception, "slider type for slider " << i << " not implemented");
+            while( true )
+            {
+                for( unsigned int i = 0; i < sliders.size(); i++ )
+                { 
+                    if( sliders[i]->type() == snark::graphics::sliders::slider_type::float_)
+                    {
+                        auto s = dynamic_cast< snark::graphics::sliders::slider< float >* >( sliders[i].get() ); // todo: use comma dispatch or alike
+                        s->set( gui_sliders[i]->value() );
+                    }
+                    else
+                    {
+                        COMMA_THROW( comma::exception, "slider type for slider " << i << " not implemented" );
                     }
                 }
                 if( csv.binary() )
@@ -417,35 +396,33 @@ int main(int ac, char** av) {
                 {
                     // Sliders have a flag set on change, but it is not cleared unless the user clears it.
                     for( const auto& slider : gui_sliders ) { if( slider->valueUpdated() ) { sliders_values_changed = true; } }
-
-                    if ( !update_on_change  || ( update_on_change && sliders_values_changed ) ){
-
+                    if( !update_on_change  || ( update_on_change && sliders_values_changed ) )
+                    {
                         std::string delimiter;
-                        for( const auto& slider : gui_sliders ) { 
-                            std::cout << delimiter << slider->value(); delimiter = global_csv.delimiter; 
+                        for( const auto& slider : gui_sliders )
+                        { 
+                            std::cout << delimiter << slider->value();
+                            delimiter = global_csv.delimiter; 
                             slider->unsetUpdated();
                         }
                         std::cout << std::endl;
                         sliders_values_changed = false;
                     }
-
                 }
                 if( global_csv.flush ) { std::cout.flush(); }
                 auto now = std::chrono::system_clock::now();
-                auto loop_period = std::chrono::milliseconds(int(1000/frequency));
-                while( std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now) < loop_period ){
+                auto loop_period = std::chrono::milliseconds( int( 1000 / frequency ) );
+                while( std::chrono::duration_cast< std::chrono::milliseconds >( std::chrono::system_clock::now() - now ) < loop_period )
+                {
                     app.processEvents();
                     std::this_thread::sleep_for(std::chrono::milliseconds(gui_update_period_ms));
                 }
             };
             return 0;
         }
-        exit(0);
+        return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "csv-slider: caught: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "csv-slider: caught unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }
-
-
-

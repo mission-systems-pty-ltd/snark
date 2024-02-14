@@ -1,17 +1,16 @@
 #pragma once
 
-#include <QMainWindow>
+#include <cmath>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <QDebug>
+#include <QLabel>
 #include <QMap>
 #include <QPair>
 #include <QSlider>
-#include <QVBoxLayout>
-#include <QDebug>
-#include <QLabel>
 #include <QValidator>
-#include <boost/ptr_container/ptr_vector.hpp>
+#include <QVBoxLayout>
 #include "slider.h"
 
-#include <cmath>
 namespace snark { namespace graphics { namespace sliders {
 
 class FloatSlider : public QSlider {
