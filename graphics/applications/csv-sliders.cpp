@@ -19,8 +19,8 @@
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
 #include <comma/visiting/traits.h>
+#include "csv_sliders/gui.h"
 #include "csv_sliders/slider.h"
-#include "csv_sliders/slider_gui.h"
 
 // todo
 //     - on input
@@ -28,8 +28,8 @@
 //     - vertical sliders
 //       - slider properties: vertical (a boolean field): if present, slider is vertical
 //       --vertical: if present, all sliders are vertical by default, unless vertical=false specified
-//            -> if vertical: modify to QHBoxLayout mainLayout
-//            -> if vertical: modify to QVBoxLayout* sliderLayout
+//            -> if vertical: modify to QHBoxLayout main_layout
+//            -> if vertical: modify to QVBoxLayout* slider_layout
 //            -> if vertical: modify to FloatSlider(Qt::Vertical);
 //     - slider types
 //       - checkbox
@@ -179,62 +179,51 @@ template <> struct traits< snark::graphics::sliders::input > {
 } } // namespace comma { namespace visiting {
 
 template< typename T >
-void draw_slider(QVBoxLayout& mainLayout, const snark::graphics::sliders::config<T>& format_detail, std::vector<snark::graphics::sliders::FloatSlider*>& sliders, int max_name_length = 0){
-
+void draw_slider( QVBoxLayout& main_layout, const snark::graphics::sliders::config< T >& slider_config, std::vector< snark::graphics::sliders::FloatSlider*>& sliders, int max_name_length = 0 )
+{
     QFont font;
     font.setFamily("Courier New");  // You can also try "Monospace", etc.
     font.setPointSize(12);
-
-    QHBoxLayout* sliderLayout = new QHBoxLayout();
-
-    // Name label
-    QString name = QString::fromStdString(format_detail.name);
+    QHBoxLayout* slider_layout = new QHBoxLayout();
+    QString name = QString::fromStdString(slider_config.name);
     name = name.leftJustified(max_name_length, ' ');
-    QLabel* nameLabel = new QLabel(name);
-    nameLabel->setFont(font);
-    sliderLayout->addWidget(nameLabel);
-
-    // Nested layout for range + slider
-    QHBoxLayout* nestedLayout = new QHBoxLayout();
-
-    // Range label
-    QString range = QString("%1:%2").arg(format_detail.min).arg(format_detail.max);
-    QLabel* rangeLabel = new QLabel(range);
-    rangeLabel->setFont(font);
-    rangeLabel->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
-    nestedLayout->addWidget(rangeLabel, 1);
-
-    // Slider
-    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider(Qt::Horizontal);
-    slider->setMinimum(format_detail.min);
-    slider->setMaximum(format_detail.max);
-    slider->setValue(format_detail.default_value);
-    sliders.push_back(slider); // Store the pointer
-    nestedLayout->addWidget(slider, 2);
-
-    // Add nested layout to the main slider layout
-    sliderLayout->addLayout(nestedLayout);
-
-    // Value display
-    QDoubleSpinBox* valueSpinBox = new QDoubleSpinBox();
-    valueSpinBox->setFont(font);
-    valueSpinBox->setMinimum(format_detail.min);
-    valueSpinBox->setMaximum(format_detail.max);
-    valueSpinBox->setFixedWidth(100);
-    valueSpinBox->setSingleStep(format_detail.step);  // Set the step size as you like
-    valueSpinBox->setValue(format_detail.default_value);
-    QObject::connect(slider, &snark::graphics::sliders::FloatSlider::valueChanged, [valueSpinBox, slider]() {
-        valueSpinBox->setValue(slider->value());
-    });
-    QObject::connect(valueSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [valueSpinBox, slider](double value) {
-        slider->setValue(static_cast<float>(value));
-    });
-    sliderLayout->addWidget(valueSpinBox);
-
-    mainLayout.addLayout(sliderLayout);
+    QLabel* name_label = new QLabel(name);
+    name_label->setFont(font);
+    slider_layout->addWidget(name_label);
+    QHBoxLayout* nested_layout = new QHBoxLayout();
+    QString range = QString("%1:%2").arg(slider_config.min).arg(slider_config.max);
+    QLabel* range_label = new QLabel(range);
+    range_label->setFont(font);
+    range_label->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    nested_layout->addWidget(range_label, 1);
+    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider( Qt::Horizontal, nullptr, slider_config.default_value );
+    slider->setMinimum( slider_config.min );
+    slider->setMaximum( slider_config.max );
+    slider->setValue( slider_config.default_value );
+    sliders.push_back( slider ); // Store the pointer
+    nested_layout->addWidget( slider, 2 );
+    slider_layout->addLayout( nested_layout );
+    QDoubleSpinBox* value_spin_box = new QDoubleSpinBox();
+    value_spin_box->setFont( font );
+    value_spin_box->setMinimum( slider_config.min );
+    value_spin_box->setMaximum( slider_config.max );
+    value_spin_box->setFixedWidth(100);
+    value_spin_box->setSingleStep( slider_config.step );  // Set the step size as you like
+    value_spin_box->setValue( slider_config.default_value );
+    QObject::connect( slider, &snark::graphics::sliders::FloatSlider::valueChanged, [ value_spin_box, slider ]()
+    {
+        value_spin_box->setValue(slider->value());
+    } );
+    QObject::connect( value_spin_box, QOverload< double >::of( &QDoubleSpinBox::valueChanged ), [ value_spin_box, slider ]( double value )
+    {
+        slider->setValue( static_cast< float >( value ) );
+    } );
+    slider_layout->addWidget( value_spin_box );
+    main_layout.addLayout( slider_layout );
 }
 
-int main(int ac, char** av) {
+int main( int ac, char** av )
+{
     try
     {
         comma::command_line_options options( ac, av, usage );
@@ -244,14 +233,7 @@ int main(int ac, char** av) {
         if( unnamed.empty() ) { COMMA_THROW( comma::exception, "You must specify an input file ('-' as stdin) or slider" ); } 
         int argc = 0;
         char** argv = nullptr;
-        QApplication app(argc, argv);
-        QWidget main_window;
-        QVBoxLayout mainLayout(&main_window);
-        auto window_geometry = comma::split_as< int >( options.value< std::string >( "--window-geometry", "0,0,500,10" ), ',', -1 );
-        main_window.move( window_geometry[0], window_geometry[1] );
-        main_window.resize( window_geometry[2], window_geometry[3] ); 
-        main_window.setWindowTitle( &options.value< std::string >( "--window-title,--title", "csv-sliders" )[0] );
-        std::vector<snark::graphics::sliders::FloatSlider*> gui_sliders;
+        std::vector< snark::graphics::sliders::FloatSlider* > gui_sliders;
         comma::name_value::parser csv_options_parser( "filename", ';', '=', false );
         auto csv = csv_options_parser.get< comma::csv::options >( unnamed[0] );
         std::string sliders_buffer;
@@ -260,41 +242,49 @@ int main(int ac, char** av) {
         COMMA_ASSERT_BRIEF( csv.filename != "-" || unnamed.size() > 1, "please specify at least one slider" );
         unsigned int i = csv.filename == "-" ? 1 : 0;
         std::vector< std::string > sliders_values( unnamed.size() ); // todo: fill from sliders so that sliders_buffer has default values
-        sliders_values={};
+        sliders_values = {}; // why?
         snark::graphics::sliders::sliders_ptr sliders;
-        sliders.reserve(unnamed.size());
-        int offset = 0;
+        sliders.reserve( unnamed.size() );
+        uint offset = 0;
         snark::graphics::sliders::config< float > sample_config;
         sample_config.vertical = options.exists( "--vertical" ); // todo: plug in
         std::size_t max_name_length = 0;
         for( uint j = i; j < unnamed.size(); ++j ) { max_name_length = std::max( max_name_length, comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[j], sample_config ).name.size() ); }
+        QApplication app( argc, argv );
+        snark::graphics::sliders::main_window main_window;
+        auto window_geometry = comma::split_as< int >( options.value< std::string >( "--window-geometry", "0,0,500,10" ), ',', -1 );
+        main_window.move( window_geometry[0], window_geometry[1] );
+        main_window.resize( window_geometry[2], window_geometry[3] ); 
+        main_window.setWindowTitle( &options.value< std::string >( "--window-title,--title", "csv-sliders" )[0] );
+        QVBoxLayout main_layout( &main_window );
         for( ; i < unnamed.size(); i++ )
         {
             // set up the buffer & check for binary or ascii
             auto s = csv_options_parser.get< comma::csv::options >( unnamed[i] );
             COMMA_ASSERT( s.binary() == csv.binary(), "expected all streams " << ( csv.binary() ? "binary" : "ascii" ) << "; got: '" << unnamed[0] << "' and '" << unnamed[i] << "'" );
             if( s.binary() ) { sliders_binary += comma + s.format().string(); comma = ","; }
-            auto format_detail = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i], sample_config );
-            draw_slider<float>(mainLayout, format_detail, gui_sliders, max_name_length);
-            auto slider = std::make_shared<snark::graphics::sliders::slider<float>>(offset, sizeof(float));
-            offset += sizeof(float);
-            slider->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
-            slider->set_name(format_detail.name);
+            auto slider_config = comma::name_value::parser( "name", ';', '=', false ).get< snark::graphics::sliders::config< float > >( unnamed[i], sample_config );
+            draw_slider< float >( main_layout, slider_config, gui_sliders, max_name_length );
+            auto slider = std::make_shared< snark::graphics::sliders::slider< float > >( offset, sizeof( float ) );
+            offset += sizeof( float );
+            slider->set( std::min( std::max( slider_config.default_value, slider_config.min ), slider_config.max ) ).set_min( slider_config.min ).set_max( slider_config.max ).set_default( slider_config.default_value );
+            slider->set_name( slider_config.name );
             sliders_values.push_back( slider->as_string() );
             // sliders.at(i) = std::move(slider);
-            sliders.push_back( std::move(slider) ); // todo? emplace_back() should do the same thing as push_back( std::move( slider ) )
+            sliders.push_back( std::move( slider ) ); // todo? emplace_back() should do the same thing as push_back( std::move( slider ) )
         }
         // TODO: deal with types or formats...
-        //             if(format_detail.format == "f"){
+        //             if(slider_config.format == "f"){
         //                 // auto s = new snark::graphics::sliders::slider<float>(0,0);
         //                 auto s = std::make_shared<snark::graphics::sliders::slider<float>>(0,0);
         //                 // auto s = reinterpret_cast<const snark::graphics::sliders::slider<float>*>(&slider);
-        //                 s->set(std::min(std::max(format_detail.default_value,format_detail.min),format_detail.max)).set_min(format_detail.min).set_max(format_detail.max);
-        //                 s->set_name(format_detail.name);
+        //                 s->set(std::min(std::max(slider_config.default_value,slider_config.min),slider_config.max)).set_min(slider_config.min).set_max(slider_config.max);
+        //                 s->set_name(slider_config.name);
         //                 std::cerr << "Min is : " << s->min() << " Max is : " << s->max() << std::endl;
         //                 sliders.push_back( s );
         //             }else{ 
         sliders_buffer.resize( comma::csv::format( sliders_binary ).size() );
+        main_window.sliders = gui_sliders; // todo: quick and dirty, move construction of sliders to gui
         main_window.show();
         if( csv.filename == "-" )
         {
@@ -350,7 +340,7 @@ int main(int ac, char** av) {
                         if( sliders[i]->type() == snark::graphics::sliders::slider_type::float_ )
                         {
                             auto s = dynamic_cast<snark::graphics::sliders::slider<float>*>( sliders[i].get() );
-                            s->set( gui_sliders[i]->value() );
+                            s->set( main_window.sliders[i]->value() );
                         }
                         else
                         {
@@ -380,7 +370,7 @@ int main(int ac, char** av) {
                     if( sliders[i]->type() == snark::graphics::sliders::slider_type::float_)
                     {
                         auto s = dynamic_cast< snark::graphics::sliders::slider< float >* >( sliders[i].get() ); // todo: use comma dispatch or alike
-                        s->set( gui_sliders[i]->value() );
+                        s->set( main_window.sliders[i]->value() );
                     }
                     else
                     {
@@ -395,11 +385,11 @@ int main(int ac, char** av) {
                 else
                 {
                     // Sliders have a flag set on change, but it is not cleared unless the user clears it.
-                    for( const auto& slider : gui_sliders ) { if( slider->valueUpdated() ) { sliders_values_changed = true; } }
+                    for( const auto& slider : main_window.sliders ) { if( slider->valueUpdated() ) { sliders_values_changed = true; } }
                     if( !update_on_change  || ( update_on_change && sliders_values_changed ) )
                     {
                         std::string delimiter;
-                        for( const auto& slider : gui_sliders )
+                        for( const auto& slider : main_window.sliders )
                         { 
                             std::cout << delimiter << slider->value();
                             delimiter = global_csv.delimiter; 
@@ -415,7 +405,7 @@ int main(int ac, char** av) {
                 while( std::chrono::duration_cast< std::chrono::milliseconds >( std::chrono::system_clock::now() - now ) < loop_period )
                 {
                     app.processEvents();
-                    std::this_thread::sleep_for(std::chrono::milliseconds(gui_update_period_ms));
+                    std::this_thread::sleep_for( std::chrono::milliseconds( gui_update_period_ms ) );
                 }
             };
             return 0;

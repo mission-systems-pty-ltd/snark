@@ -87,13 +87,16 @@ public:
     slider( unsigned int offset, unsigned int size = 0 ): slider_base( offset, size == 0 ? sizeof( T ) : size ) {}
     std::string as_string() const { return std::to_string( _value ); }
     void write( char* buffer ) const { std::memcpy( buffer + _offset, slider_traits< T >::ptr( _value ), this->_size ); }
-    slider<T>& set( const T& value ) { _value = value; return *this; }
-    slider<T>& set_max( const T& value ) { _max = value; return *this; }
-    slider<T>& set_min( const T& value ) { _min = value; return *this; }
+    slider< T >& set( const T& value ) { _value = value; return *this; }
+    slider< T >& set_default( const T& value ) { _default_value = value; return *this; }
+    slider< T >& set_max( const T& value ) { _max = value; return *this; }
+    slider< T >& set_min( const T& value ) { _min = value; return *this; }
+    slider< T >& reset() { _value = _default_value; return *this; }
     T min() const { return _min; }
     T max() const { return _max; }
-    const snark::graphics::sliders::slider_type type( ) const { return slider_traits< T >::type(); }
+    const snark::graphics::sliders::slider_type type() const { return slider_traits< T >::type(); }
 private:
+    T _default_value{0};
     T _value{0};
     T _max{0};
     T _min{0};
