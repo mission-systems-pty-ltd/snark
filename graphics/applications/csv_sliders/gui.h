@@ -3,11 +3,15 @@
 #include <cmath>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <QDebug>
+#include <QDoubleSpinBox>
+#include <QFontDatabase>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMap>
 #include <QPair>
 #include <QShortcut>
 #include <QSlider>
+#include <QThread>
 #include <QValidator>
 #include <QVBoxLayout>
 #include "slider.h"
@@ -84,16 +88,60 @@ class FloatValidator : public QValidator
         int _decimals;
 };
 
+template< typename T >
+inline void draw_slider( QVBoxLayout& main_layout, const snark::graphics::sliders::config< T >& slider_config, std::vector< snark::graphics::sliders::FloatSlider*>& sliders, int max_name_length = 0 )
+{
+    QFont font;
+    font.setFamily("Courier New");  // You can also try "Monospace", etc.
+    font.setPointSize(12);
+    QHBoxLayout* slider_layout = new QHBoxLayout();
+    QString name = QString::fromStdString(slider_config.name);
+    name = name.leftJustified(max_name_length, ' ');
+    QLabel* name_label = new QLabel(name);
+    name_label->setFont(font);
+    slider_layout->addWidget(name_label);
+    QHBoxLayout* nested_layout = new QHBoxLayout();
+    QString range = QString("%1:%2").arg(slider_config.min).arg(slider_config.max);
+    QLabel* range_label = new QLabel(range);
+    range_label->setFont(font);
+    range_label->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    nested_layout->addWidget(range_label, 1);
+    snark::graphics::sliders::FloatSlider* slider = new snark::graphics::sliders::FloatSlider( Qt::Horizontal, nullptr, slider_config.default_value );
+    slider->setName( slider_config.name );
+    slider->setMinimum( slider_config.min );
+    slider->setMaximum( slider_config.max );
+    slider->setValue( slider_config.default_value );
+    sliders.push_back( slider ); // Store the pointer
+    nested_layout->addWidget( slider, 2 );
+    slider_layout->addLayout( nested_layout );
+    QDoubleSpinBox* value_spin_box = new QDoubleSpinBox();
+    value_spin_box->setFont( font );
+    value_spin_box->setMinimum( slider_config.min );
+    value_spin_box->setMaximum( slider_config.max );
+    value_spin_box->setFixedWidth(100);
+    value_spin_box->setSingleStep( slider_config.step );  // Set the step size as you like
+    value_spin_box->setValue( slider_config.default_value );
+    QObject::connect( slider, &snark::graphics::sliders::FloatSlider::valueChanged, [ value_spin_box, slider ]()
+    {
+        value_spin_box->setValue(slider->value());
+    } );
+    QObject::connect( value_spin_box, QOverload< double >::of( &QDoubleSpinBox::valueChanged ), [ value_spin_box, slider ]( double value )
+    {
+        slider->setValue( static_cast< float >( value ) );
+    } );
+    slider_layout->addWidget( value_spin_box );
+    main_layout.addLayout( slider_layout );
+}
+
 // todo
-//   - move implementation to csv
-//   - ctrl+v: print current settings to stderr
-//   - ctrl+r: reset to defaults
+//   - move implementation to cpp
 class main_window : public QWidget
 {
     Q_OBJECT
 
     public:
         typedef std::vector< snark::graphics::sliders::FloatSlider* > sliders_t;
+
         sliders_t sliders;
 
         main_window()
@@ -103,10 +151,18 @@ class main_window : public QWidget
         {
         }
 
+        static std::string usage()
+        {
+            return R"(hot keys
+    <esc>    : exit
+    <ctrl+p> : print current slider values as path-value to stderr
+    <ctrl+r> : reset all sliders to default values)";
+        }
+
     private slots:
         void _exit_hard() { exit( 0 ); } // quick and dirty for now, otherwise other threads hang
 
-        void _print_current_values() { std::cerr << "ctrl+p" << std::endl; } // todo
+        void _print_current_values() { std::string d; for( auto& slider: sliders ) { std::cerr << d << slider->name() << "=" << slider->value(); d = ";"; } std::cerr << std::endl; }
 
         void _reset() { for( auto& slider: sliders ) { slider->reset(); } }
         
