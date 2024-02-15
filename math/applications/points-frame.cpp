@@ -540,7 +540,7 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
             unsigned int index = *p.elements[0].index;
             if( index >= v.size() ) { v.resize( index + 1 ); t.resize( index + 1 ); }
             COMMA_ASSERT_BRIEF( v[index].first.empty() || v[index].first == s, "ambiguous frame " << index << ": '" << v[index].first << "' vs '" << s << "'" );
-            v[index] = std::make_pair( s, w[1] );
+            v[index] = std::make_pair( s, w.size() == 1 ? std::string( "0,0,0,0,0,0" ) : w[1] ); // quick and dirty
             t[index].resize( 1 );
             t[index][0] = transform_t( comma::csv::ascii< position_t >().get( w[1] ), from_indices.find( index ) != from_indices.end(), true );
             explicit_frame_index_required = true;
