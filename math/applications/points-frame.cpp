@@ -535,7 +535,7 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
         comma::xpath p( w[0] );
         if( p.elements[0].name == "frames" && p.elements[0].index )
         {
-            COMMA_ASSERT_BRIEF( w.size() == 2, "expected '" << p.elements[0].to_string() << "=<frame>'; got: '" << from_to[i] << "'" );
+            COMMA_ASSERT_BRIEF( w.size() == 1 || w.size() == 2, "expected '" << p.elements[0].to_string() << "[=<frame>]'; got: '" << from_to[i] << "'" );
             const auto& s = p.elements[0].to_string();
             unsigned int index = *p.elements[0].index;
             if( index >= v.size() ) { v.resize( index + 1 ); t.resize( index + 1 ); }
