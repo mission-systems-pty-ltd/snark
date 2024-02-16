@@ -28,13 +28,11 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
     if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
     int flags = cv::WINDOW_AUTOSIZE | cv::WINDOW_NORMAL;
-    bool autosize = true;
     for( unsigned int i = 6; i < w.size(); ++i )
     {
         if( w[i] == "expanded" ) { flags &= ~cv::WINDOW_NORMAL; flags |= cv::WINDOW_GUI_EXPANDED; }
-        else if( w[i] == "noauto" ) { autosize = false; flags &= ~cv::WINDOW_AUTOSIZE; flags |= cv::WINDOW_KEEPRATIO; }
+        else if( w[i] == "noauto" ) { flags &= ~cv::WINDOW_AUTOSIZE; flags |= cv::WINDOW_KEEPRATIO; }
     }
-    //if( autosize ) { flags |= cv::WINDOW_AUTOSIZE; }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size, flags ), boost::placeholders::_1 ), false );
 }
 
