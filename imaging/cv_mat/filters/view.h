@@ -26,7 +26,8 @@ class view
             , double delay
             , const std::string& suffix
             , const boost::optional< std::pair< int, int > >& window_position = boost::none
-            , const boost::optional< std::pair< int, int > >& window_size = boost::none );
+            , const boost::optional< std::pair< int, int > >& window_size = boost::none
+            , int flags = 0 );
         
         static std::pair< functor_t, bool > make( const std::string& options
                                                 , const timestamp_functor_t& get_timestamp );

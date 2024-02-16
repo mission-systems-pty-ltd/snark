@@ -27,7 +27,15 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     if( w.size() > 2 && !w[2].empty() ) { suffix = w[2]; }
     if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
     if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size ), boost::placeholders::_1 ), false );
+    int flags = cv::WINDOW_AUTOSIZE | cv::WINDOW_NORMAL;
+    bool autosize = true;
+    for( unsigned int i = 6; i < w.size(); ++i )
+    {
+        if( w[i] == "expanded" ) { flags &= ~cv::WINDOW_NORMAL; flags |= cv::WINDOW_GUI_EXPANDED; }
+        else if( w[i] == "noauto" ) { autosize = false; flags &= ~cv::WINDOW_AUTOSIZE; flags |= cv::WINDOW_KEEPRATIO; }
+    }
+    //if( autosize ) { flags |= cv::WINDOW_AUTOSIZE; }
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size, flags ), boost::placeholders::_1 ), false );
 }
 
 static std::string _make_name() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // uber-quick and dirty
@@ -38,7 +46,8 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
                , double delay
                , const std::string& suffix
                , const boost::optional< std::pair< int, int > >& window_position
-               , const boost::optional< std::pair< int, int > >& window_size )
+               , const boost::optional< std::pair< int, int > >& window_size
+               , int flags )
     : _get_timestamp( get_timestamp )
     , _name( _make_name() )
     , _delay( delay >= 0 ? int( delay * 1000 ) : -1 )
@@ -47,7 +56,7 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
         cv::namedWindow( title.empty() ? &_name[0] : &title[0] );
     #else
-        cv::namedWindow( &_name[0], cv::WINDOW_AUTOSIZE | cv::WINDOW_GUI_NORMAL );
+        cv::namedWindow( &_name[0], flags );
         std::string t = title.empty() ? std::string( "view" ) : title;
         cv::setWindowTitle( &_name[0], &t[0] );
         if( window_position ) { cv::moveWindow( &_name[0], window_position->first, window_position->second ); }
@@ -73,7 +82,7 @@ std::string view< H >::usage( unsigned int indent )
 {
     std::ostringstream oss;
     std::string i( indent, ' ' );
-    oss << i << "view[=<wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>]]]]]: view image;\n";
+    oss << i << "view[=<wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>[,<options>]]]]]]: view image;\n";
     oss << i << "    hot keys\n";
     oss << i << "        <esc>: exit\n";
     oss << i << "        <whitespace>, p: save image with image timestamp or system time as filename\n";
@@ -89,6 +98,9 @@ std::string view< H >::usage( unsigned int indent )
     oss << i << "    <suffix>: one <whitespace> press (see above) image suffix; e.g. png, jpg, ppm, etc; default: png\n";
     oss << i << "    <offset/x>,<offset/y>: window position on screen in pixels\n";
     oss << i << "    <size/x>,<size/y>: window size on screen in pixels (not very useful, but it's there)\n";
+    oss << i << "    <options>\n";
+    oss << i << "        expanded: use expanded image view with resizing, zooming, etc; broken in opencv version on ubuntu 20.04\n";
+    oss << i << "        noauto: no auto-sizing; may look uglier, but allows resizing image view\n";
     oss << i << "    attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
     oss << i << "               in opencv or in underlying x window stuff therefore,\n";
     oss << i << "               instead of: cv-cat 'view;do-something;view'\n";
