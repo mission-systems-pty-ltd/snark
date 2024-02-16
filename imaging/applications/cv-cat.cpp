@@ -386,12 +386,12 @@ int main( int argc, char** argv )
         if( !output.last_error().empty() ) { std::cerr << "cv-cat: " << output.last_error() << std::endl; return 1; }
         if( vm.count( "stay" ) )
         {
-            std::cerr << "cv-cat: " << "stopped; asked to --stay...; press any key to exit" << std::endl;
+            std::cerr << "cv-cat: stopped; asked to --stay...; press any key to exit" << std::endl;
             while( !is_shutdown && cv::waitKey( 1000 ) == -1 ); // todo: handle ' ' for screenshot - need access to the last image in view
         }
         return 0;
     }
     catch( std::exception& ex ) { std::cerr << "cv-cat: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "cv-cat: " << "unknown exception" << std::endl; }
+    catch( ... ) { std::cerr << "cv-cat: unknown exception" << std::endl; }
     return 1;
 }

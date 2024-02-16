@@ -2,6 +2,7 @@
 
 /// @author vsevolod vlaskine
 
+#include <iostream>
 #include <boost/bind/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -57,10 +58,11 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
 template < typename H >
 std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
 {
+    if( m.second.rows == 0 && m.second.cols == 0 ) { return m; }
     cv::imshow( &_name[0], m.second );
     char c = cv::waitKey( _delay );
     if( c == 27 ) { return std::pair< H, cv::Mat >(); } // HACK to notify application to exit
-    if( c == ' ' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
+    if( c == ' ' || c == 'p' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
     else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
     else if( c == 's' ) { cv::waitKey( -1 ); }
     return m;
@@ -74,7 +76,7 @@ std::string view< H >::usage( unsigned int indent )
     oss << i << "view[=<wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>]]]]]: view image;\n";
     oss << i << "    hot keys\n";
     oss << i << "        <esc>: exit\n";
-    oss << i << "        <whitespace>: save image with image timestamp or system time as filename\n";
+    oss << i << "        <whitespace>, p: save image with image timestamp or system time as filename\n";
     oss << i << "        s: suspend, press any key to continue (i/o of the applications upstream will be blocked)\n";
     oss << i << "        0-9: add the id from 0 to 9 to the file name: <timestamp>.<id>.<suffix>\n";
     oss << i << "        any other key: if view=stay, continue\n";
