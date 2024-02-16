@@ -387,7 +387,7 @@ int main( int argc, char** argv )
         if( vm.count( "stay" ) )
         {
             std::cerr << "cv-cat: " << "stopped; asked to --stay...; press any key to exit" << std::endl;
-            while( !is_shutdown && ( cv::waitKey( 1000 ) & 0xff ) == 255 ); // todo: handle ' ' for screenshot - need access to the last image in view
+            while( !is_shutdown && cv::waitKey( 1000 ) == -1 ); // todo: handle ' ' for screenshot - need access to the last image in view
         }
         return 0;
     }
