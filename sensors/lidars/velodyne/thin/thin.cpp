@@ -136,7 +136,7 @@ static std::size_t deserialize( velodyne::hdl64::packet::laser_block& upper, vel
 
 comma::uint32 deserialize( velodyne::hdl64::packet& packet, const char* buf )
 {
-    ::memset( &packet, 0, velodyne::hdl64::packet::size );
+    packet.clear();
     comma::uint32 scan;
     memcpy( &scan, buf, sizeof( comma::uint32 ) );
     buf += sizeof( comma::uint32 );

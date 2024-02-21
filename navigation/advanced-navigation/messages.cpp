@@ -90,7 +90,7 @@ void header::reset( unsigned char i, unsigned char l, const char* buf )
 command::command( uint8_t id, const char* buf, unsigned int size )
     : header( id, size, buf )
 {
-    std::memcpy( &msg_data[0], buf, size );
+    std::memcpy( ( char* )( &msg_data[0] ), buf, size );
 }
 
 // ---------------
@@ -321,7 +321,7 @@ boost::posix_time::ptime external_time::t() const
 rtcm_corrections::rtcm_corrections( const char* buf, unsigned int size )
     : header( id, size, buf)
 {
-    std::memcpy( &msg_data[0], buf,size );
+    std::memcpy( ( char* )( &msg_data[0] ), buf, size );
 }
 
 // ---------------------------

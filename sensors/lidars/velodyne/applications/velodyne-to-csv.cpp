@@ -27,7 +27,6 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 #include <boost/optional.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
@@ -35,6 +34,7 @@
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/base/exception.h>
+#include <comma/base/none.h>
 #include <comma/base/types.h>
 #include <comma/csv/format.h>
 #include <comma/csv/names.h>
@@ -297,7 +297,7 @@ int main( int ac, char** av )
         else if( options.exists( "--hdl64,--64" ) || model_string == "hdl64" || model_string == "hdl-64" || model_string == "64" ) { model = models::hdl64; }
         else if( model_string.empty() ) { std::cerr << "velodyne-to-csv: please specify --model" << std::endl; return 1; }
         else { std::cerr << "velodyne-to-csv: expected model, got: \"" << model_string << "\"" << std::endl; return 1; }
-        boost::optional< snark::velodyne::puck::ntp_t > ntp;
+        boost::optional< snark::velodyne::puck::ntp_t > ntp = comma::silent_none< snark::velodyne::puck::ntp_t >();
         switch( model )
         {
             case models::puck:
