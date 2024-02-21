@@ -26,6 +26,7 @@
 //            -> if vertical: modify to QHBoxLayout main_layout
 //            -> if vertical: modify to QVBoxLayout* slider_layout
 //            -> if vertical: modify to FloatSlider(Qt::Vertical);
+//     - fixed-step sliders
 //     - slider types
 //       - checkbox
 //       - integer slider
