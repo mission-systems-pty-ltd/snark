@@ -23,9 +23,11 @@ namespace snark { namespace graphics { namespace view {
 MainWindow::MainWindow( const std::string& title
                       , const std::shared_ptr< snark::graphics::view::controller >& c
                       , const std::vector< int >& window_geometry
-                      , bool minimalistic )
+                      , bool minimalistic
+                      , bool show_fields )
     : controller( c )
-    , m_fileFrameVisible( !minimalistic && controller->readers.size() > 1 )
+    , _file_frame_visible( !minimalistic && controller->readers.size() > 1 )
+    , _show_fields( show_fields )
     , _escape( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) ) )
 {
     QMenu* file_menu = menuBar()->addMenu( "File" );
@@ -97,11 +99,11 @@ MainWindow::MainWindow( const std::string& title
     setCentralWidget( outer_frame ); // setCentralWidget( frame );
     _view_menu = menuBar()->addMenu( "View" );
     ToggleAction* toggle_action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggle_file_frame, this, boost::placeholders::_1 ) );
-    toggle_action->setChecked( m_fileFrameVisible );
+    toggle_action->setChecked( _file_frame_visible );
     _view_menu->addAction( toggle_action );
 
     updateFileFrame();
-    toggle_file_frame( m_fileFrameVisible );
+    toggle_file_frame( _file_frame_visible );
     setWindowTitle( &title[0] );
 
     #if Qt3D_VERSION>=2
@@ -152,12 +154,12 @@ void MainWindow::updateFileFrame() // quick and dirty
             delete widget;
         }
     }
-    bool sameFields = true;
+    bool same_fields = true;
     std::string fields;
-    for( std::size_t i = 0; sameFields && i < controller->readers.size(); ++i )
+    for( std::size_t i = 0; same_fields && i < controller->readers.size(); ++i )
     {
         if( i == 0 ) { fields = controller->readers[0]->options.fields; } // quick and dirty
-        else { sameFields = controller->readers[i]->options.fields == fields; }
+        else { same_fields = controller->readers[i]->options.fields == fields; }
     }
     m_userGroups.clear();
     m_fieldsGroups.clear();
@@ -174,19 +176,19 @@ void MainWindow::updateFileFrame() // quick and dirty
             #endif
             title = leaf.length() >= maxLength ? leaf : std::string( "..." ) + title.substr( title.length() - maxLength );
         }
-        if( !sameFields ) { title += ": \"" + controller->readers[i]->options.fields + "\""; }
-        m_fileLayout->addWidget( new QLabel( title.c_str() ), i + 1, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &Reader::show, boost::ref( *controller->readers[i] ), boost::placeholders::_1 ) );
-        viewBox->setCheckState( controller->readers[i]->show() ? Qt::Checked : Qt::Unchecked );
-        connect( viewBox, SIGNAL( toggled( bool ) ), this, SLOT( update_view() ) ); // redraw when box is toggled
-        viewBox->setToolTip( ( std::string( "check to make " ) + title + " visible" ).c_str() );
-        m_fileLayout->addWidget( viewBox, i + 1, 1, Qt::AlignRight | Qt::AlignTop );
+        if( _show_fields && !same_fields ) { title += ": \"" + controller->readers[i]->options.fields + "\""; }
+        m_fileLayout->addWidget( new QLabel( &title[0] ), i + 1, 0, Qt::AlignLeft | Qt::AlignTop );
+        CheckBox* view_box = new CheckBox( boost::bind( &Reader::show, boost::ref( *controller->readers[i] ), boost::placeholders::_1 ) );
+        view_box->setCheckState( controller->readers[i]->show() ? Qt::Checked : Qt::Unchecked );
+        connect( view_box, SIGNAL( toggled( bool ) ), this, SLOT( update_view() ) ); // redraw when box is toggled
+        view_box->setToolTip( ( std::string( "check to make " ) + title + " visible" ).c_str() );
+        m_fileLayout->addWidget( view_box, i + 1, 1, Qt::AlignRight | Qt::AlignTop );
         m_fileLayout->setRowStretch( i + 1, i + 1 == controller->readers.size() ? 1 : 0 );
-        m_fieldsGroups[ controller->readers[i]->options.fields ].push_back( viewBox );
+        m_fieldsGroups[ controller->readers[i]->options.fields ].push_back( view_box );
         if ( !controller->readers[i]->groups.empty() )
         {
             auto group_list = comma::split( controller->readers[i]->groups, ',' );
-            for( auto& gi : group_list ) { m_userGroups[ gi ].push_back( viewBox ); }
+            for( auto& gi : group_list ) { m_userGroups[ gi ].push_back( view_box ); }
         }
     }
     std::size_t i = 1 + controller->readers.size();
@@ -215,20 +217,20 @@ void MainWindow::updateFileFrame() // quick and dirty
     for( FileGroupMap::const_iterator it = m_userGroups.begin(); it != m_userGroups.end(); ++it, ++i )
     {
         m_fileLayout->addWidget( new QLabel( ( "\"" + it->first + "\"" ).c_str() ), i, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
-        //viewBox->setCheckState( Qt::Checked );
-        viewBox->setToolTip( ( std::string( "check to make files within group \"" ) + it->first + "\" visible" ).c_str() );
-        m_fileLayout->addWidget( viewBox, i, 1, Qt::AlignRight | Qt::AlignTop );
+        CheckBox* view_box = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
+        //view_box->setCheckState( Qt::Checked );
+        view_box->setToolTip( ( std::string( "check to make files within group \"" ) + it->first + "\" visible" ).c_str() );
+        m_fileLayout->addWidget( view_box, i, 1, Qt::AlignRight | Qt::AlignTop );
         m_fileLayout->setRowStretch( i, i + 1 == controller->readers.size() ? 1 : 0 );
     }
     m_fileLayout->addWidget( new QLabel( "<b>groups by fields</b>" ), i++, 0, Qt::AlignLeft | Qt::AlignTop );
     for( FileGroupMap::const_iterator it = m_fieldsGroups.begin(); it != m_fieldsGroups.end(); ++it, ++i )
     {
         m_fileLayout->addWidget( new QLabel( ( "\"" + it->first + "\"" ).c_str() ), i, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
-        //viewBox->setCheckState( Qt::Checked );
-        viewBox->setToolTip( ( std::string( "check to make files with fields \"" ) + it->first + "\" visible" ).c_str() );
-        m_fileLayout->addWidget( viewBox, i, 1, Qt::AlignRight | Qt::AlignTop );
+        CheckBox* view_box = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
+        //view_box->setCheckState( Qt::Checked );
+        view_box->setToolTip( ( std::string( "check to make files with fields \"" ) + it->first + "\" visible" ).c_str() );
+        m_fileLayout->addWidget( view_box, i, 1, Qt::AlignRight | Qt::AlignTop );
         m_fileLayout->setRowStretch( i, i + 1 == controller->readers.size() + fields.size() ? 1 : 0 );
     }
 }
@@ -242,7 +244,7 @@ void MainWindow::update_view()
 
 void MainWindow::toggle_file_frame( bool visible )
 {
-    m_fileFrameVisible = visible;
+    _file_frame_visible = visible;
     if( visible ) { m_fileFrame->show(); } else { m_fileFrame->hide(); }
 }
 

@@ -30,7 +30,8 @@ class MainWindow : public QMainWindow
         MainWindow( const std::string& title
                   , const std::shared_ptr< snark::graphics::view::controller >& controller
                   , const std::vector< int >& window_geometry
-                  , bool minimalistic );
+                  , bool minimalistic
+                  , bool show_fields );
         void toggle_file_frame( bool shown );
 
     private slots:
@@ -41,7 +42,8 @@ class MainWindow : public QMainWindow
         std::shared_ptr< snark::graphics::view::controller > controller;
         QFrame* m_fileFrame;
         QGridLayout* m_fileLayout;
-        bool m_fileFrameVisible;
+        bool _file_frame_visible{true};
+        bool _show_fields{true};
         typedef std::map< std::string, std::vector< CheckBox* > > FileGroupMap;
         FileGroupMap m_userGroups; // quick and dirty
         FileGroupMap m_fieldsGroups; // quick and dirty

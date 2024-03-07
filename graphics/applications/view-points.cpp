@@ -299,6 +299,7 @@ static void usage( bool )
         "\n    --background-colour,--background-color=<colour> : default: black"
         "\n    --full-screen,--maximize; start view-points in full-screen"
         "\n    --hide-file-panel; do not show file pane on start"
+        "\n    --hide-file-panel-fields,--hide-fields; do not show csv fields in the hide panel (show only stream title)"
         "\n    --output-camera-config,--output-camera: output camera config to stdout as stream of json structures"
         "\n    --output-camera-position: output camera position as x,y,z,roll,pitch,yaw in the world frame, i.e. same as --camera-position"
         "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
@@ -789,7 +790,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if( options.exists( "--version" ) ) { version(); exit( 0 ); }
         comma::csv::options csv_options( argc, argv, "", false );
-        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill,--hide-file-panel", "-[^;].*" );
+        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill,--hide-file-panel,--hide-file-panel-fields,--hide-fields", "-[^;].*" );
         snark::graphics::view::color_t  background_color( QColor( QString( options.value< std::string >( "--background-colour,--background-color", "#000000" ).c_str() ) ) );
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;
@@ -879,7 +880,8 @@ int main( int argc, char** argv )
         snark::graphics::view::MainWindow main_window( options.value( "--window-title", comma::join( argv, argc, ' ' ) )
                                                      , controller
                                                      , comma::split_as< int >( options.value< std::string >( "--window-geometry", ",,," ), ',', -1 )
-                                                     , options.exists( "--hide-file-panel" ) );
+                                                     , options.exists( "--hide-file-panel" )
+                                                     , !options.exists( "--hide-file-panel-fields,--hide-fields" ) );
         options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
         QApplication::exec();
         return 0;       // We never actually reach this line because we raise SIGINT when closing
