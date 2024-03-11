@@ -5,6 +5,7 @@
 #include <comma/visiting/apply.h>
 #include <comma/visiting/visit.h>
 #include "../math/interval.h"
+#include "../math/polynomial.h"
 #include "../math/pose.h"
 #include "../math/position.h"
 #include "../math/range_bearing_elevation.h"
@@ -14,11 +15,8 @@
 
 namespace comma { namespace visiting {
 
-/// visiting traits
-template <>
-struct traits< snark::range_bearing_elevation >
+template <> struct traits< snark::range_bearing_elevation >
 {
-    /// const visiting
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::range_bearing_elevation& p, Visitor& v )
     {
@@ -27,7 +25,6 @@ struct traits< snark::range_bearing_elevation >
         v.apply( "elevation", p.elevation() );
     }
 
-    /// visiting
     template < typename Key, class Visitor >
     static void visit( const Key&, snark::range_bearing_elevation& p, Visitor& v )
     {
@@ -41,8 +38,7 @@ struct traits< snark::range_bearing_elevation >
     }
 };
 
-template <>
-struct traits< snark::bearing_elevation >
+template <> struct traits< snark::bearing_elevation >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::bearing_elevation& p, Visitor& v )
     {
@@ -60,8 +56,7 @@ struct traits< snark::bearing_elevation >
     }
 };
 
-template <>
-struct traits< snark::roll_pitch_yaw >
+template <> struct traits< snark::roll_pitch_yaw >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const snark::roll_pitch_yaw& p, Visitor& v )
     {
@@ -82,10 +77,8 @@ struct traits< snark::roll_pitch_yaw >
     }
 };
 
-template < typename T, unsigned int D >
-struct traits< snark::math::closed_interval< T, D > >
+template < typename T, unsigned int D > struct traits< snark::math::closed_interval< T, D > >
 {
-    /// const visiting
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::math::closed_interval< T, D >& p, Visitor& v )
     {
@@ -93,7 +86,6 @@ struct traits< snark::math::closed_interval< T, D > >
         v.apply( "max", p ? p.max() : Eigen::Matrix< T, D, 1 >() ); // quick and dirty
     }
 
-    /// visiting
     template < typename Key, class Visitor >
     static void visit( const Key&, snark::math::closed_interval< T, D >& p, Visitor& v )
     {
@@ -151,6 +143,19 @@ template <> struct traits< snark::position >
     {
         v.apply( "coordinates", p.coordinates );
         v.apply( "orientation", p.orientation );
+    }
+};
+
+template < typename T, unsigned int Dim, unsigned int Degree > struct traits< snark::polynomial< T, Dim, Degree > >
+{
+    template< typename K, typename V > static void visit( const K& k, snark::polynomial< T, Dim, Degree >& t, V& v )
+    {
+        v.apply( "coef", t.coef );
+    }
+
+    template< typename K, typename V > static void visit( const K& k, const snark::polynomial< T, Dim, Degree >& t, V& v )
+    {
+        v.apply( "coef", t.coef );
     }
 };
 

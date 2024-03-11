@@ -1,0 +1,52 @@
+// Copyright (c) 2024 Vsevolod Vlaskine
+
+/// @author vsevolod vlaskine
+
+#pragma once
+
+#include <array>
+#include <cmath>
+
+namespace snark {
+
+template < typename T, unsigned int Dim, unsigned int Degree >
+struct polynomial
+{
+    typedef T value_type;
+    static constexpr unsigned int dim = Dim;
+    static constexpr unsigned int degree = Degree;
+    static constexpr unsigned int number_of_coefficients = 0; // todo: quick and dirty; generalise, it's easy
+
+    std::array< T, number_of_coefficients > coef;
+
+    T operator()( const std::array< T, dim >& rhs ) const;  // todo: quick and dirty; generalise, it's easy
+};
+
+template < typename T, unsigned int Degree >
+struct polynomial< T, 2, Degree >
+{
+    static constexpr unsigned int dim = 2;
+    static constexpr unsigned int degree = Degree;
+    static constexpr unsigned int number_of_coefficients = ( degree + 1 ) * ( degree + 2 ) / 2;
+
+    std::array< T, number_of_coefficients > coef;
+
+    T operator()( const std::array< T, dim >& rhs ) const;
+};
+
+
+template < typename T, unsigned int Degree >
+inline T polynomial< T, 2, Degree >::operator()( const std::array< T, 2 >& rhs ) const // todo: generalise, it's easy
+{
+    const auto& x = rhs[0];
+    const auto& y = rhs[1];
+    static constexpr auto power = []( T t, unsigned int d )->T { T r{t}; for( unsigned int i{1}; i < d; r *= t, ++i ); return r; }; // todo: quick and dirty for now; unroll
+    T r{0};
+    for( unsigned int i{0}, k{0}; i < degree + 1; ++i ) // todo? optimise power? or let the compiler to do optimisation?
+    {
+        for( unsigned int j = 0; j < degree + 1 - i; r += power( x, j ) * power( y, degree - j ) * coef[k++], ++j ); 
+    }
+    return r;
+}
+
+} // namespace snark {
