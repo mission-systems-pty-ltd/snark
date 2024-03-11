@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstring>
 
 namespace snark {
 
@@ -19,6 +20,7 @@ struct polynomial
 
     std::array< T, number_of_coefficients > coef;
 
+    polynomial() { std::memset( reinterpret_cast< char* >( &coef[0] ), 0, coef.size() * sizeof( T ) ); }
     T operator()( const std::array< T, dim >& rhs ) const;  // todo: quick and dirty; generalise, it's easy
 };
 
@@ -31,6 +33,7 @@ struct polynomial< T, 2, Degree >
 
     std::array< T, number_of_coefficients > coef;
 
+    polynomial() { std::memset( reinterpret_cast< char* >( &coef[0] ), 0, coef.size() * sizeof( T ) ); }
     T operator()( const std::array< T, dim >& rhs ) const;
 };
 
