@@ -34,15 +34,14 @@ struct polynomial< T, 2, Degree >
     std::array< T, number_of_coefficients > coef;
 
     polynomial() { std::memset( reinterpret_cast< char* >( &coef[0] ), 0, coef.size() * sizeof( T ) ); }
-    T operator()( const std::array< T, dim >& rhs ) const;
+    T operator()( const std::array< T, dim >& rhs ) const { return operator()( rhs[0], rhs[1] ); }
+    T operator()( T x, T y ) const; // todo: generalise with variadic templates
 };
 
 
 template < typename T, unsigned int Degree >
-inline T polynomial< T, 2, Degree >::operator()( const std::array< T, 2 >& rhs ) const // todo: generalise, it's easy
+inline T polynomial< T, 2, Degree >::operator()( T x, T y ) const // todo: generalise, it's easy
 {
-    const auto& x = rhs[0];
-    const auto& y = rhs[1];
     static constexpr auto power = []( T t, unsigned int d )->T { T r{t}; for( unsigned int i{1}; i < d; r *= t, ++i ); return r; }; // todo: quick and dirty for now; unroll
     T r{0};
     for( unsigned int i{0}, k{0}; i < degree + 1; ++i ) // todo? optimise power? or let the compiler to do optimisation?
