@@ -17,10 +17,9 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
 {
     double default_delay = 0.001; // todo!
     double delay = default_delay;
-    std::string n;
-    std::string suffix="png"; // std::string suffix="ppm";
-    boost::optional< std::pair< int, int > > position;
-    boost::optional< std::pair< int, int > > size;
+    std::string n, filename, suffix{"png"};
+    boost::optional< std::pair< int, int > > position, size;
+    bool capture_on_exit{false};
     const std::vector< std::string >& w = comma::split( options, ',' );
     if( w.size() > 0 && !w[0].empty() ) { delay = w[0] == "stay" ? -1 : boost::lexical_cast< double >( w[0] ); }
     if( w.size() > 1 && !w[1].empty() ) { n = w[1]; }
@@ -28,12 +27,17 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
     if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
     int flags = cv::WINDOW_AUTOSIZE | cv::WINDOW_NORMAL;
-    for( unsigned int i = 6; i < w.size(); ++i )
+    for( unsigned int i = 0; i < w.size(); ++i )
     {
         if( w[i] == "expanded" ) { flags &= ~cv::WINDOW_NORMAL; flags |= cv::WINDOW_GUI_EXPANDED; }
         else if( w[i] == "noauto" ) { flags &= ~cv::WINDOW_AUTOSIZE; flags |= cv::WINDOW_KEEPRATIO; }
+        else if( w[i].substr( 0, 15 ) == "capture-on-exit" )
+        {
+            capture_on_exit = true;
+            filename = w[i].substr( 15, 1 ) == ":" ? w[i].substr( 16 ) : std::string();
+        }
     }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size, flags ), boost::placeholders::_1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size, flags, capture_on_exit, filename ), boost::placeholders::_1 ), false );
 }
 
 static std::string _make_name() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // uber-quick and dirty
@@ -45,11 +49,15 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
                , const std::string& suffix
                , const boost::optional< std::pair< int, int > >& window_position
                , const boost::optional< std::pair< int, int > >& window_size
-               , int flags )
+               , int flags
+               , bool capture_on_exit
+               , const std::string& capture_on_exit_filename )
     : _get_timestamp( get_timestamp )
     , _name( _make_name() )
     , _delay( delay >= 0 ? int( delay * 1000 ) : -1 )
     , _suffix( suffix )
+    , _capture_on_exit( capture_on_exit )
+    , _capture_on_exit_filename( capture_on_exit_filename )
 {
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
         cv::namedWindow( title.empty() ? &_name[0] : &title[0] );
@@ -65,13 +73,18 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
 template < typename H >
 std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
 {
-    if( m.second.rows == 0 && m.second.cols == 0 ) { return m; }
+    if( m.second.rows == 0 && m.second.cols == 0 ) // todo: capture on exit does not work because tbb pipeline exits upstream and never gets here
+    {
+        if( _capture_on_exit ) { cv::imwrite( _capture_on_exit_filename.empty() ? snark::cv_mat::make_filename( _last.first, _suffix ) : _capture_on_exit_filename, _last.second ); }
+        return m;
+    }
     cv::imshow( &_name[0], m.second );
     char c = cv::waitKey( _delay );
     if( c == 27 ) { return std::pair< H, cv::Mat >(); } // HACK to notify application to exit
     if( c == ' ' || c == 'p' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
     else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
     else if( c == 's' ) { cv::waitKey( -1 ); }
+    if( _capture_on_exit ) { _last.first = _get_timestamp( m.first ); m.second.copyTo( _last.second ); } // todo: quick and dirty, watch performance
     return m;
 }
 

@@ -27,7 +27,9 @@ class view
             , const std::string& suffix
             , const boost::optional< std::pair< int, int > >& window_position = boost::none
             , const boost::optional< std::pair< int, int > >& window_size = boost::none
-            , int flags = 0 );
+            , int flags = 0
+            , bool capture_on_exit = false
+            , const std::string& capture_on_exit_filename = "" );
         
         static std::pair< functor_t, bool > make( const std::string& options
                                                 , const timestamp_functor_t& get_timestamp );
@@ -40,6 +42,9 @@ class view
         std::string _name;
         int _delay;
         std::string _suffix;
+        bool _capture_on_exit;
+        std::string _capture_on_exit_filename;
+        std::pair< boost::posix_time::ptime, cv::Mat > _last;
 };
 
 } } }  // namespace snark { namespace cv_mat { namespace impl {
