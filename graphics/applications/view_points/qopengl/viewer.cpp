@@ -105,6 +105,11 @@ viewer::viewer( controller_base* handler
     timer->start( 40 );
 }
 
+viewer::~viewer()
+{
+    if( _capture_on_exit ) { _save_screenshot(); }
+}
+
 void viewer::reset_handler( controller_base* h ) { handler = h; }
 
 void viewer::init() { if( handler != nullptr ) { handler->init(); } }

@@ -102,6 +102,8 @@ public:
           , const std::string& grab_options = ""
           , QMainWindow* parent = nullptr );
 
+    ~viewer();
+
     void reset_handler(controller_base* h = nullptr);
     void look_at_center();
     void load_camera_config( const std::string& file_name );
@@ -135,7 +137,8 @@ private:
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;
     viewer::camera::options _camera_options;
-    
+    bool _capture_on_exit{false};
+
     void _save_screenshot();
 };
 
