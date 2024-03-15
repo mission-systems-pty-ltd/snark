@@ -51,6 +51,7 @@ class main_window: public QMainWindow
         QShortcut _screenshot;
 
         void closeEvent( QCloseEvent* event );
+        void _save_screenshot( const std::string& filename = "" ) const;
 };
 
 } } } // namespace snark { namespace graphics { namespace plotting {

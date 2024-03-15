@@ -128,14 +128,23 @@ void main_window::print_window_geometry() const
     std::cerr << g.left() << "," << g.top() << "," << g.width() << "," << g.height() << std::endl;
 }
 
-void main_window::screenshot() const
+void main_window::_save_screenshot( const std::string& filename ) const
 {
-    auto screenshot = _application.primaryScreen()->grabWindow( winId() );
-    auto filename = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
-    filename += filename.find( "." ) == std::string::npos ? ".000000.png" : ".png"; // quick and dirty
-    screenshot.save( filename.c_str(), "png" );
+    std::string name{filename}, format{"png"};
+    if( filename.empty() )
+    {
+        name = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+        name += name.find( "." ) == std::string::npos ? ".000000.png" : ".png"; // quick and directory
+    }
+    else
+    {
+        format = comma::split( filename, '.' ).back();
+    }
+    _application.primaryScreen()->grabWindow( winId() ).save( &filename[0], &format[0] );
     std::cerr << "csv-plot: screenshot saved to " << filename << std::endl;
 }
+
+void main_window::screenshot() const { _save_screenshot(); }
 
 void main_window::start()
 {
