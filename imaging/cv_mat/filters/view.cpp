@@ -71,20 +71,22 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
 }
 
 template < typename H >
+view< H >::~view()
+{
+    if( _capture_on_exit && _last.second.rows > 0 ) { cv::imwrite( _capture_on_exit_filename.empty() ? snark::cv_mat::make_filename( _last.first, _suffix ) : _capture_on_exit_filename, _last.second ); }
+}
+
+template < typename H >
 std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
 {
-    if( m.second.rows == 0 && m.second.cols == 0 ) // todo: capture on exit does not work because tbb pipeline exits upstream and never gets here
-    {
-        if( _capture_on_exit ) { cv::imwrite( _capture_on_exit_filename.empty() ? snark::cv_mat::make_filename( _last.first, _suffix ) : _capture_on_exit_filename, _last.second ); }
-        return m;
-    }
+    if( m.second.rows == 0 && m.second.cols == 0 ) { return m; } // todo: capture on exit does not work because tbb pipeline exits upstream and never gets here
+    if( _capture_on_exit ) { _last.first = _get_timestamp( m.first ); m.second.copyTo( _last.second ); } // todo: quick and dirty, watch performance
     cv::imshow( &_name[0], m.second );
     char c = cv::waitKey( _delay );
     if( c == 27 ) { return std::pair< H, cv::Mat >(); } // HACK to notify application to exit
     if( c == ' ' || c == 'p' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
     else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
     else if( c == 's' ) { cv::waitKey( -1 ); }
-    if( _capture_on_exit ) { _last.first = _get_timestamp( m.first ); m.second.copyTo( _last.second ); } // todo: quick and dirty, watch performance
     return m;
 }
 

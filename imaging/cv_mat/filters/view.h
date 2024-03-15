@@ -30,6 +30,8 @@ class view
             , int flags = 0
             , bool capture_on_exit = false
             , const std::string& capture_on_exit_filename = "" );
+            
+        ~view();
         
         static std::pair< functor_t, bool > make( const std::string& options
                                                 , const timestamp_functor_t& get_timestamp );
