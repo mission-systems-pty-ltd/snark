@@ -249,38 +249,39 @@ void viewer::keyPressEvent( QKeyEvent *event )
             }
             break;
         case Qt::Key_V:
-            if( event->modifiers() == Qt::NoModifier )
+            switch( event->modifiers() )
             {
-                _camera_bookmarks.push_back( _camera );
-                //_camera_bookmarks.back().center = _camera_bookmarks[0].center; // todo! a terrible hack to make transitions smoot
-                std::cerr << "view-points: stored camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
-                _print_keys_help();
-            }
-            else if( event->modifiers() == Qt::ControlModifier )
-            {
-                if( !stdout_allowed ) { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream; outputting to stderr instead:" << std::endl; }
-                comma::write_json( _camera, stdout_allowed ? std::cout : std::cerr, false, true ) << std::endl;
-            }
-            else if( event->modifiers() == Qt::AltModifier )
-            {
-                if( !_camera_bookmarks.empty() )
-                {
-                    _camera_bookmarks.pop_front();
-                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.empty() ? 0 : _camera_bookmarks.size() - 1; }
-                    std::cerr << "view-points: removed first camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                case Qt::NoModifier:
+                    _camera_bookmarks.push_back( _camera );
+                    //_camera_bookmarks.back().center = _camera_bookmarks[0].center; // todo! a terrible hack to make transitions smoot
+                    std::cerr << "view-points: stored camera configuration; currently: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
                     _print_keys_help();
-                }
-            }
-            else if( event->modifiers() == ( Qt::AltModifier | Qt::ShiftModifier ) )
-            {
-                if( !_camera_bookmarks.empty() )
-                {
-                    unsigned int i{0};
-                    for( auto it = _camera_bookmarks.begin(); it != _camera_bookmarks.end(); ++it, ++i ) { if( i == _camera_bookmarks_index ) { _camera_bookmarks.erase( it ); break; } }
-                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
-                    std::cerr << "view-points: removed current camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
-                    _print_keys_help();
-                }
+                    break;
+                case Qt::ControlModifier:
+                    if( !stdout_allowed ) { std::cerr << "view-points: on ctrl+v: ignored since stdout is used by another stream; outputting to stderr instead:" << std::endl; }
+                    comma::write_json( _camera, stdout_allowed ? std::cout : std::cerr, false, true ) << std::endl;
+                    break;
+                case Qt::AltModifier:
+                    if( !_camera_bookmarks.empty() )
+                    {
+                        _camera_bookmarks.pop_front();
+                        if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.empty() ? 0 : _camera_bookmarks.size() - 1; }
+                        std::cerr << "view-points: removed first camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                        _print_keys_help();
+                    }
+                    break;
+                case Qt::AltModifier | Qt::ShiftModifier:
+                    if( !_camera_bookmarks.empty() )
+                    {
+                        unsigned int i{0};
+                        for( auto it = _camera_bookmarks.begin(); it != _camera_bookmarks.end(); ++it, ++i ) { if( i == _camera_bookmarks_index ) { _camera_bookmarks.erase( it ); break; } }
+                        if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = _camera_bookmarks.size() - 1; }
+                        std::cerr << "view-points: removed current camera configuration; remaining: " << _camera_bookmarks.size() << " saved camera configuration(s)" << std::endl;
+                        _print_keys_help();
+                    }
+                    break;
+                default:
+                    break;
             }
             break;
         default:
