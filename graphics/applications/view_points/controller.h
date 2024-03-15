@@ -62,7 +62,8 @@ public:
               , bool output_camera_config
               , bool output_camera_position
               , const snark::graphics::view::click_mode& click_mode
-              , const std::string& grab_options );
+              , const std::string& grab_options
+              , bool capture_on_exit );
     ~controller();
     void inhibit_stdout();
     void shutdown( bool kill = true );

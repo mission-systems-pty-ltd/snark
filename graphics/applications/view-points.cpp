@@ -857,7 +857,8 @@ int main( int argc, char** argv )
                                                                                                               , options.exists( "--output-camera-config,--output-camera" )
                                                                                                               , options.exists( "--output-camera-position" )
                                                                                                               , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) )
-                                                                                                              , options.value< std::string >( "--grab-frames,--grab", "" ) ) ); // todo? construct grab from grab options here?
+                                                                                                              , options.value< std::string >( "--grab-frames,--grab", "" )
+                                                                                                              , options.exists( "--capture-on-exit" ) ) ); // todo? construct grab from grab options here?
         controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene radius update properly
         controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene center update properly
         #endif

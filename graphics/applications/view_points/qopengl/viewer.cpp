@@ -87,6 +87,7 @@ viewer::viewer( controller_base* handler
               , double arg_scene_radius
               , const snark::graphics::view::click_mode& click_mode
               , const std::string& grab_options
+              , bool capture_on_exit
               , QMainWindow* parent )
     : snark::graphics::qopengl::widget( background_color, camera_options, parent )
     , handler( handler )

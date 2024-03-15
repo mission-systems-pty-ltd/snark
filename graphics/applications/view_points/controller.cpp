@@ -46,7 +46,8 @@ controller::controller( const color_t& background_color
                       , bool output_camera_config
                       , bool output_camera_position
                       , const snark::graphics::view::click_mode& click_mode
-                      , const std::string& grab_options )
+                      , const std::string& grab_options
+                      , bool capture_on_exit )
     : m_cameraposition( cameraposition )
     , m_cameraorientation( cameraorientation )
     , m_exit_on_end_of_input( exit_on_end_of_input )
@@ -58,7 +59,7 @@ controller::controller( const color_t& background_color
 //     viewer=new viewer_t(background_color, camera_options, scene_center, scene_radius,parent);
     COMMA_THROW( comma::exception,"view-points: Qt3D_VERSION==1: not supported");
 #elif Qt3D_VERSION>=2
-    viewer.reset( new viewer_t( this, background_color, camera_options, scene_center, scene_radius, click_mode, grab_options ) );
+    viewer.reset( new viewer_t( this, background_color, camera_options, scene_center, scene_radius, click_mode, grab_options, capture_on_exit ) );
     viewer->output_camera_config = output_camera_config; // super-quick and dirty
     viewer->output_camera_position = output_camera_position; // super-quick and dirty
 #endif
