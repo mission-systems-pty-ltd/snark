@@ -129,6 +129,7 @@ main_window::~main_window()
 void main_window::closeEvent( QCloseEvent* event )
 {
     timer_.stop();
+    if( _capture_on_exit ) { _save_screenshot( _capture_on_exit_filename ); }
     ::exit( 0 ); // todo! super-quick and dirty, call shutdown instead once stopping threads implemented
 }
 
@@ -150,8 +151,8 @@ void main_window::_save_screenshot( const std::string& filename ) const
     {
         format = comma::split( filename, '.' ).back();
     }
-    _application.primaryScreen()->grabWindow( winId() ).save( &filename[0], &format[0] );
-    std::cerr << "csv-plot: screenshot saved to " << filename << std::endl;
+    _application.primaryScreen()->grabWindow( winId() ).save( &name[0], &format[0] );
+    std::cerr << "csv-plot: screenshot saved to " << name << std::endl;
 }
 
 void main_window::screenshot() const { _save_screenshot(); }
@@ -167,6 +168,7 @@ void main_window::shutdown()
     timer_.stop();
     // todo! stop threads properly (they block on read() if no more input)
     for( unsigned int i = 0; i < streams_.size(); ++i ) { streams_[i].shutdown(); }
+    if( _capture_on_exit ) { _save_screenshot( _capture_on_exit_filename ); }
 }
 
 void main_window::update()
