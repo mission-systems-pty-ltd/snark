@@ -112,6 +112,7 @@ std::string view< H >::usage( unsigned int indent )
     oss << i << "    <offset/x>,<offset/y>: window position on screen in pixels\n";
     oss << i << "    <size/x>,<size/y>: window size on screen in pixels (not very useful, but it's there)\n";
     oss << i << "    <options>\n";
+    oss << i << "        capture-on-exit[:<filename>]: capture the last image on destruction of view filter\n";
     oss << i << "        expanded: use expanded image view with resizing, zooming, etc; broken in opencv version on ubuntu 20.04\n";
     oss << i << "        noauto: no auto-sizing; may look uglier, but allows resizing image view\n";
     oss << i << "    attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
