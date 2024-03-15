@@ -87,7 +87,7 @@ viewer::viewer( controller_base* handler
               , double arg_scene_radius
               , const snark::graphics::view::click_mode& click_mode
               , const std::string& grab_options
-              , bool capture_on_exit
+              , const std::string& on_exit_options
               , QMainWindow* parent )
     : snark::graphics::qopengl::widget( background_color, camera_options, parent )
     , handler( handler )
@@ -99,6 +99,15 @@ viewer::viewer( controller_base* handler
     , _grab( comma::name_value::parser( "filename", ';', '=', false ).get( grab_options, viewer::grab::options_t() ) )
     , _camera_options( camera_options )
 {
+    if( !on_exit_options.empty() ) // todo: quick and dirty; do it properly
+    {
+        for( const auto& s: comma::split( on_exit_options, ';' ) )
+        {
+            if( s == "capture" ) { _capture_on_exit = true; }
+            else if( s.substr( 0, 8 ) == "capture=" ) { _capture_on_exit = true; _capture_on_exit_filename = s.substr( 8 ); }
+            else { COMMA_THROW_BRIEF( comma::exception, "--on-exit: invalid option: '" << s << "'" ); }
+        }
+    }
     QTimer* timer = new QTimer( this );
     connect( timer, SIGNAL( timeout() ), this, SLOT( _on_timeout() ) );
     connect( &_camera_transition_timer, SIGNAL( timeout() ), this, SLOT( _on_camera_transition() ) );
@@ -106,10 +115,12 @@ viewer::viewer( controller_base* handler
     timer->start( 40 );
 }
 
-viewer::~viewer()
+void viewer::finalise()
 {
-    if( _capture_on_exit ) { _save_screenshot(); }
+    if( _capture_on_exit ) { _save_screenshot( _capture_on_exit_filename ); }
 }
+
+viewer::~viewer() {}
 
 void viewer::reset_handler( controller_base* h ) { handler = h; }
 
@@ -153,12 +164,20 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
     std::cout << std::setprecision( 16 ) << p.x() << "," << p.y() << "," << p.z() << click_mode.double_right_click.to_output_string() << std::endl;
 }
 
-void viewer::_save_screenshot()
+void viewer::_save_screenshot( const std::string& filename )
 {
-    auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
-    s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
-    QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
-    std::cerr << "view-points: screenshot saved in " << s << std::endl;
+    std::string format{"png"}, name{filename};
+    if( filename.empty() )
+    {
+        name = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+        name += name.find( "." ) == std::string::npos ? ".000000.png" : ".png";
+    }
+    else
+    {
+        format = comma::split( filename, '.' ).back();
+    }
+    QImageWriter( &name[0], &format[0] ).write( grabFramebuffer() );
+    std::cerr << "view-points: screenshot saved in " << name << std::endl;
 }
 
 void viewer::keyPressEvent( QKeyEvent *event )

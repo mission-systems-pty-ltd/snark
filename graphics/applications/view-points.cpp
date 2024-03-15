@@ -295,6 +295,13 @@ static void usage( bool )
         "\n                             - press ctrl-p to stop video capture"
         "\n                             - repeat as needed"
         "\n"
+        "\non-exit options"
+        "\n     --on-exit=<options>"
+        "\n         <options>"
+        "\n             capture[=<filename>]: capture last view on exit, e.g:"
+        "\n                                   --on-exit=capture (image name will be system time)"
+        "\n                                   --on-exit=capture=last-view.png"
+        "\n"
         "\nmore options"
         "\n    --background-colour,--background-color=<colour> : default: black"
         "\n    --full-screen,--maximize; start view-points in full-screen"
@@ -858,7 +865,7 @@ int main( int argc, char** argv )
                                                                                                               , options.exists( "--output-camera-position" )
                                                                                                               , snark::graphics::view::click_mode( options.value< std::string >( "--click-mode", "none" ) )
                                                                                                               , options.value< std::string >( "--grab-frames,--grab", "" )
-                                                                                                              , options.exists( "--capture-on-exit" ) ) ); // todo? construct grab from grab options here?
+                                                                                                              , options.value< std::string >( "--on-exit", "" ) ) ); // todo? construct grab from grab options here?
         controller->viewer->scene_radius_fixed = options.exists( "--scene-radius,--radius,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene radius update properly
         controller->viewer->scene_center_fixed = options.exists( "--scene-center,--center,--camera-position" ); // todo! --camera-position: hyper-quick and dirty for now; fix scene center update properly
         #endif

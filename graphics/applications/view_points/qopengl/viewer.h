@@ -100,7 +100,7 @@ public:
           , double scene_radius
           , const snark::graphics::view::click_mode& click_mode
           , const std::string& grab_options = ""
-          , bool capture_on_exit = false
+          , const std::string& on_exit_options = ""
           , QMainWindow* parent = nullptr );
 
     ~viewer();
@@ -111,6 +111,7 @@ public:
     void set_camera_position( const Eigen::Vector3d& position, const Eigen::Vector3d& orientation );
     void update_view( const QVector3D& min, const QVector3D& max );
     void write_camera_config( std::ostream& os, bool on_change = false, bool pretty = true );
+    void finalise();
 
 public slots:
     void toggle_block_mode( bool );
@@ -139,8 +140,9 @@ private:
     viewer::grab _grab;
     viewer::camera::options _camera_options;
     bool _capture_on_exit{false};
+    std::string _capture_on_exit_filename;
 
-    void _save_screenshot();
+    void _save_screenshot( const std::string& filename = "" );
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {
