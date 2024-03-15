@@ -46,7 +46,7 @@ inline T polynomial< T, 2, Degree >::operator()( T x, T y ) const // todo: gener
     T r{0};
     for( unsigned int i{0}, k{0}; i < degree + 1; ++i ) // todo? optimise power? or let the compiler to do optimisation?
     {
-        for( unsigned int j = 0; j < degree + 1 - i; r += power( x, j ) * power( y, degree - j ) * coef[k++], ++j ); 
+        for( unsigned int j = 0; j < degree + 1 - i; r += power( x, i ) * power( y, j ) * coef[k++], ++j ); 
     }
     return r;
 }
