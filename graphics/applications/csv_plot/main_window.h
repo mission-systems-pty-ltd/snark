@@ -26,7 +26,8 @@ class main_window: public QMainWindow
                    , const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                    , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                    , const std::string& layout
-                   , float timeout );
+                   , float timeout
+                   , const std::string& on_exit_options );
         virtual ~main_window();
         void start();
         void shutdown();
@@ -43,6 +44,8 @@ class main_window: public QMainWindow
         const QApplication& _application;
         QTimer timer_;
         bool verbose_;
+        bool _capture_on_exit{false};
+        std::string _capture_on_exit_filename;
         boost::ptr_vector< plotting::stream > streams_;
         charts_t charts_;
         std::string pass_through_stream_name_;

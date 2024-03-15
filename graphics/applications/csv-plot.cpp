@@ -112,6 +112,13 @@ static void usage( bool verbose = false )
     std::cerr << "        - series 2 will be shown in chart 'two'; series 0, 1, and 3 in chart 'one'" << std::endl;
     std::cerr << "        - series 1 will be blue; series 2 green; series 0 and 3 red" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "on-exit options" << std::endl;
+    std::cerr << "    --on-exit=<options>" << std::endl;
+    std::cerr << "        <options>" << std::endl;
+    std::cerr << "            capture[=<filename>]: capture last view on exit, e.g:" << std::endl;
+    std::cerr << "                                  --on-exit=capture (image name will be system time)" << std::endl;
+    std::cerr << "                                  --on-exit=capture=last-view.png" << std::endl;
+    std::cerr << std::endl;
     std::cerr << "window options" << std::endl;
     std::cerr << "    --frames-per-second,--fps=<value>; default=10; how often to update chart(s)" << std::endl;
     std::cerr << "    --full-screen,--maximize: todo: initially, create full screen windows" << std::endl;
@@ -367,8 +374,9 @@ int main( int ac, char** av )
         comma::saymore() << "got " << stream_configs.size() << " input stream config(s)" << std::endl;
         float timeout = options.value( "--timeout", 1. / options.value( "--frames-per-second,--fps", 10 ) );
         std::string layout = options.value< std::string >( "--layout", "grid" );
+        std::string on_exit_options = options.value< std::string >( "--on-exit", "" );
         QApplication application( ac, av );
-        snark::graphics::plotting::main_window main_window( application, stream_configs, chart_configs, layout, timeout );
+        snark::graphics::plotting::main_window main_window( application, stream_configs, chart_configs, layout, timeout, on_exit_options );
         auto window_size = comma::csv::ascii< std::pair< unsigned int, unsigned int > >().get( options.value< std::string >( "--window-size", "800,600" ) );
         std::string window_position = options.value< std::string >( "--window-geometry,--window-position,--window", "" );
         if( window_position.empty() )

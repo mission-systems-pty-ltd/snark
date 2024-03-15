@@ -70,13 +70,23 @@ main_window::main_window( const QApplication& application
                         , const std::vector< snark::graphics::plotting::stream::config_t >& stream_configs
                         , std::map< std::string, snark::graphics::plotting::chart::config_t > chart_configs
                         , const std::string& layout
-                        , float timeout )
+                        , float timeout
+                        , const std::string& on_exit_options )
     : _application ( application )
     , _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
     , _print_window_geometry( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) )
     , _screenshot( QKeySequence( tr( "P" ) ), this, SLOT( screenshot() ) )
 {
     //application.addShortcut( new QShortcut( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) );
+    if( !on_exit_options.empty() ) // todo: quick and dirty; do it properly
+    {
+        for( const auto& s: comma::split( on_exit_options, ';' ) )
+        {
+            if( s == "capture" ) { _capture_on_exit = true; }
+            else if( s.substr( 0, 8 ) == "capture=" ) { _capture_on_exit = true; _capture_on_exit_filename = s.substr( 8 ); }
+            else { COMMA_THROW_BRIEF( comma::exception, "--on-exit: invalid option: '" << s << "'" ); }
+        }
+    }
     for( const auto& c: stream_configs )
     {
         for( const auto& s: c.series ) // quick and dirty
