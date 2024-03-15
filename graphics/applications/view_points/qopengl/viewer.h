@@ -135,6 +135,8 @@ private:
     void write_camera_position_( std::ostream& os, bool on_change = false );
     viewer::grab _grab;
     viewer::camera::options _camera_options;
+    
+    void _save_screenshot();
 };
 
 } } } } // namespace snark { namespace graphics { namespace view { namespace qopengl {

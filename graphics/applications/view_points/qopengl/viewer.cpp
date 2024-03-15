@@ -147,22 +147,25 @@ void viewer::double_right_click(const boost::optional< QVector3D >& point)
     std::cout << std::setprecision( 16 ) << p.x() << "," << p.y() << "," << p.z() << click_mode.double_right_click.to_output_string() << std::endl;
 }
 
+void viewer::_save_screenshot()
+{
+    auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
+    s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
+    QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
+    std::cerr << "view-points: screenshot saved in " << s << std::endl;
+}
+
 void viewer::keyPressEvent( QKeyEvent *event )
 {
     click_mode.double_right_click.on_key_press( event );
     switch( event->key() )
     {
         case Qt::Key_P:
-            if( event->modifiers() == Qt::NoModifier )
+            switch( event->modifiers() )
             {
-                auto s = boost::posix_time::to_iso_string( boost::posix_time::microsec_clock::universal_time() );
-                s += s.find( "." ) == std::string::npos ? ".000000.png" : ".png";
-                QImageWriter( &s[0], "png" ).write( grabFramebuffer() );
-                std::cerr << "view-points: screenshot saved in " << s << std::endl;
-            }
-            else if( event->modifiers() == Qt::ControlModifier )
-            {
-                _grab.toggle();
+                case Qt::NoModifier: _save_screenshot(); break;
+                case Qt::ControlModifier: _grab.toggle(); break;
+                default: break;
             }
             break;
         case Qt::Key_R:
@@ -171,14 +174,17 @@ void viewer::keyPressEvent( QKeyEvent *event )
             _camera_transition_index = 0;
             if( !_camera_bookmarks.empty() )
             {
-                if( event->modifiers() == Qt::ControlModifier )
+                switch( event->modifiers() )
                 {
-                    ++_camera_bookmarks_index;
-                    if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = 0; }
-                }
-                else if( event->modifiers() == ( Qt::ControlModifier | Qt::ShiftModifier ) )
-                {
-                    _camera_bookmarks_index = ( _camera_bookmarks_index == 0 ? _camera_bookmarks.size() : _camera_bookmarks_index ) - 1;
+                    case Qt::ControlModifier:
+                        ++_camera_bookmarks_index;
+                        if( _camera_bookmarks_index >= _camera_bookmarks.size() ) { _camera_bookmarks_index = 0; }
+                        break;
+                    case Qt::ControlModifier | Qt::ShiftModifier:
+                        _camera_bookmarks_index = ( _camera_bookmarks_index == 0 ? _camera_bookmarks.size() : _camera_bookmarks_index ) - 1;
+                        break;
+                    default:
+                        break;
                 }
                 std::cerr << "view-points: restoring camera position to camera configuration " << ( _camera_bookmarks_index + 1 ) << " of " << _camera_bookmarks.size() << " positions(s)..." << std::endl;
                 _print_keys_help();
