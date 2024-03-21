@@ -494,6 +494,7 @@ static std::pair< std::map< unsigned int, snark::applications::position >, bool 
     {
         unsigned int index;
         std::string::size_type pos;
+        if( !v.empty() && v[0] == '-' ) { continue; } // skip command line options; quick and dirty for not to keep backward compatible; todo?! phase out valueless --from/--to?
         std::tie( index, pos ) = frames::index( v ); // auto [ index, pos ] = frame_index( v ); // made backward compatible: avoid compiler warnings for now
         if( pos == std::string::npos || v[pos] != '=' ) { m.second = true; }
         else { m.first[index] = comma::csv::ascii< snark::applications::position >().get( v.substr( pos + 1 ) ); }
@@ -531,7 +532,8 @@ std::vector< std::vector< snark::applications::transform > > get_transforms( con
     {
         ( void )fi; ( void )ti;
         const auto& w = comma::split( from_to[i], '=', true );
-        if( w.empty() ) { continue; } // right?
+        if( w.empty() ) { continue; } // // skip command line options; quick and dirty for not to keep backward compatible; todo?! phase out valueless --from/--to?
+        if( !w[0].empty() && w[0][0] == '-' ) { continue; } // // skip command line options; quick and dirty for not to keep backward compatible; todo?! phase out valueless --from/--to?
         comma::xpath p( w[0] );
         if( p.elements[0].name == "frames" && p.elements[0].index )
         {
