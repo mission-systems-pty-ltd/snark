@@ -55,7 +55,8 @@ static void usage( bool verbose = false )
     std::cerr << "                          see more examples in examples section below" << std::endl;
     std::cerr << "      ATTENTION: if 'frame' field present on stdin, specify --from or --to without value, default behaviour: --from" << std::endl;
     std::cerr << "    --discard-out-of-order,--discard : if present, discard out of order points silently" << std::endl;
-    std::cerr << "    --frame[=<frame>]; default: 0,0,0,0,0,0; if 'frame' field present, <frame> will be used as default for frame fields" << std::endl;
+    std::cerr << "    --frame=<frame>; default=0,0,0,0,0,0; if 'frame' field present, <frame> will be used as default for frame fields" << std::endl;
+    std::cerr << "                                          --frame is deprecated; use --from=frames[0]=<pose> or --to=frames[0]=<pose>" << std::endl;
     std::cerr << "    --max-gap <seconds> : max valid time gap between two successive nav solutions;" << std::endl;
     std::cerr << "                          if exceeded, input points between those two timestamps" << std::endl;
     std::cerr << "                          will be discarded, thus use --discard, too; default: infinity" << std::endl;
