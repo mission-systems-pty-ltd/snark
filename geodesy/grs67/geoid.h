@@ -27,18 +27,12 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SNARK_GEODESY_GRS67_H_
-#define SNARK_GEODESY_GRS67_H_
+#pragma once
 
-#include "../../math/spherical_geometry/ellipsoid.h"
 #include <sstream>
+#include "../../math/spherical_geometry/ellipsoid.h"
 
-namespace snark
-{
-namespace geodesy
-{
-namespace grs67
-{
+namespace snark { namespace geodesy { namespace grs67 {
 
 static const double eccentricity = 1.0 / 298.247167427;
 static const double major_semiaxis = 6378160.0;
@@ -55,25 +49,22 @@ static const std::string name( "grs67" );
 
 inline std::string help()
 {
-    std::stringstream os;
-    os << "        GRS67: Geodesic Reference System 1967 (6,378,160; 6,356,774.516); 298.247167427" << std::endl;
-    return os.str();
+    std::stringstream oss;
+    oss << "        GRS67: Geodesic Reference System 1967 (6,378,160; 6,356,774.516); 298.247167427" << std::endl;
+    return oss.str();
 }
 
 inline std::string info()
 {
-    std::stringstream os;
-    os << "GRS67,Geodesic Reference System 1967," << major_semiaxis << "," << minor_semiaxis << "," << eccentricity << std::endl;
-    return os.str();
+    std::stringstream oss;
+    oss << "GRS67,Geodesic Reference System 1967," << major_semiaxis << "," << minor_semiaxis << "," << eccentricity << std::endl;
+    return oss.str();
 }
 
 struct geoid : public spherical::ellipsoid
 {
-    geoid() : ellipsoid( major_semiaxis, minor_semiaxis ) {}
+    //geoid() : ellipsoid( major_semiaxis, minor_semiaxis ) {}
+    geoid() : ellipsoid( 6378160.0, 6356774.516 ) {} // todo: properly fix compiler warning about the initialisation 
 };
 
-}
-}
-} // namespace snark { namespace geodesy { namespace agd84 {
-
-#endif // SNARK_GEODESY_GRS67_H_
+} } } // namespace snark { namespace geodesy { namespace agd84 {

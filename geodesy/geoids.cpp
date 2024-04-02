@@ -57,30 +57,30 @@ static std::string unit_info()
 
 } // namespace impl
 
-const snark::spherical::ellipsoid& geoids::select( std::string name )
+const snark::spherical::ellipsoid& geoids::select( const std::string& n )
 {
-    if ( name.empty())
-        return impl::wgs84;
-    boost::algorithm::to_lower(name);
+    if ( n.empty()) { return impl::wgs84; }
+    std::string name = n;
+    boost::algorithm::to_lower( name );
     if ( name == wgs84::name ) { return impl::wgs84; }
-    else if ( name == agd84::name ) { return impl::agd84; }
-    else if ( name == grs67::name ) { return impl::grs67; }
-    else if ( name == "sphere" ) { return impl::sphere; }
-    else if ( name == "unit" ) { return impl::unit; }
-    else { COMMA_THROW( comma::exception, "geoid not supported: "<<name); }
+    if ( name == agd84::name ) { return impl::agd84; }
+    if ( name == grs67::name ) { return impl::grs67; }
+    if ( name == "sphere" ) { return impl::sphere; }
+    if ( name == "unit" ) { return impl::unit; }
+    COMMA_THROW( comma::exception, "geoid not supported: '" << name << "'" );
 }
 
-std::string geoids::info( std::string name )
+std::string geoids::info( const std::string& n )
 {
-    if ( name.empty())
-        return wgs84::info();
+    if ( n.empty()) { return wgs84::info(); }
+    std::string name = n;
     boost::algorithm::to_lower( name );
     if ( name == wgs84::name ) { return wgs84::info(); }
-    else if ( name == agd84::name ) { return agd84::info(); }
-    else if ( name == grs67::name ) { return grs67::info(); }
-    else if ( name == "sphere" ) { return impl::sphere_info(); }
-    else if ( name == "unit" ) { return impl::unit_info(); }
-    else { COMMA_THROW( comma::exception, "can't get info on geoid: "<<name); }
+    if ( name == agd84::name ) { return agd84::info(); }
+    if ( name == grs67::name ) { return grs67::info(); }
+    if ( name == "sphere" ) { return impl::sphere_info(); }
+    if ( name == "unit" ) { return impl::unit_info(); }
+    COMMA_THROW( comma::exception, "can't get info on geoid: '" << name << "'" );
 }
 
 std::string geoids::help()

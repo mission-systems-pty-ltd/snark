@@ -35,12 +35,6 @@
 
 namespace snark { namespace spherical {
 
-ellipsoid::ellipsoid( double major_semiaxis, double minor_semiaxis )
-    : major_semiaxis( major_semiaxis )
-    , minor_semiaxis( minor_semiaxis )
-{
-}
-
 static double square( double x ) { return x * x; }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */

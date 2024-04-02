@@ -46,10 +46,10 @@ static const double earth_average_radius = 6371000;
 struct geoids
 {
     /// make a geoid
-    static const snark::spherical::ellipsoid& select( std::string geoid_option = std::string() );
+    static const snark::spherical::ellipsoid& select( const std::string& geoid_option = "" );
     
     /// return geoid info
-    static std::string info( std::string geoid_option = std::string() );
+    static std::string info( const std::string& geoid_option = "" );
     
     /// return help on geoids
     static std::string help();

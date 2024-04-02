@@ -27,8 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SNARK_MATH_SPHERICAL_GEOMETRY_ELLIPSOID_H_
-#define SNARK_MATH_SPHERICAL_GEOMETRY_ELLIPSOID_H_
+#pragma once
 
 #include <vector>
 #include <boost/optional.hpp>
@@ -71,11 +70,11 @@ namespace snark { namespace spherical {
 struct ellipsoid
 {
     /// constructor
-    ellipsoid( double major_semiaxis, double minor_semiaxis );
+    ellipsoid( double major_semiaxis, double minor_semiaxis ): major_semiaxis( major_semiaxis ), minor_semiaxis( minor_semiaxis ) {}
 
-    double major_semiaxis;
+    double major_semiaxis{0};
 
-    double minor_semiaxis;
+    double minor_semiaxis{0};
 
     /// return distance between from and to coordinates, using vincenty's formulae
     double distance( const coordinates &from, const coordinates &to ) const;
@@ -97,11 +96,10 @@ struct ellipsoid
         //spherical coordinates in radian
         coordinates centre;
         //radius is distance in metric unit
-        double radius;
+        double radius{0};
         struct arc;
         std::vector< coordinates > discretize( const ellipsoid &ellipsoid, const boost::optional< double > &resolution, const boost::optional< unsigned int > &circle_size ) const;
     };
-
 };
 
 //circular arc
@@ -110,10 +108,10 @@ struct ellipsoid::circle::arc
     /// circle of which this is an arc
     ellipsoid::circle circle;
     /// begin bearing
-    double begin;
+    double begin{0};
     /// end bearing
-    double end;
-    arc() {}
+    double end{0};
+    arc() = default;
     arc( const ellipsoid::circle &circle, double begin, double end ) : circle( circle ), begin( begin ), end( end ) {}
     std::vector< coordinates > discretize( const ellipsoid &ellipsoid, const boost::optional< double > &resolution, const boost::optional< unsigned int > &circle_size ) const;
 
@@ -126,5 +124,3 @@ struct ellipsoid::circle::arc
 };
 
 } } // namespace snark { namespace spherical {
-
-#endif // SNARK_MATH_SPHERICAL_GEOMETRY_ELLIPSOID_H_
