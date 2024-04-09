@@ -1,8 +1,9 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020,2022 Mission Systems Pty Ltd
+// Copyright (c) 2020-2024 Mission Systems Pty Ltd
 
 #include "../config.h"
 #include "../packet.h"
+#include "../timestamp.h"
 #include "../traits.h"
 #include "../types.h"
 #include <comma/application/command_line_options.h>
@@ -135,6 +136,7 @@ struct intrinsics_t
 };
 
 static snark::ouster::lidar::beam_angle_lut_t beam_angle_lut;
+static std::unique_ptr< snark::ouster::lidar::timestamp_converter_t > timestamp_converter;
 static intrinsics_t intrinsics;
 
 template< typename I, typename O >
@@ -184,7 +186,7 @@ void app< snark::ouster::lidar::v1::azimuth_block_t, snark::ouster::lidar::outpu
         // we can't use frame_id for the block_id because it rolls over about once an hour
         if( azimuth_block.encoder_count() < last_encoder_count ) { block_id++; }
         last_encoder_count = azimuth_block.encoder_count();
-        const snark::ouster::lidar::output_azimuth_block_t output_azimuth_block( azimuth_block, block_id );
+        const snark::ouster::lidar::output_azimuth_block_t output_azimuth_block( azimuth_block, block_id, *timestamp_converter );
         const double azimuth_encoder_angle( M_PI * 2 * azimuth_block.encoder_count() / snark::ouster::lidar::encoder_ticks_per_rev );
         for( comma::uint16 channel = 0; channel < azimuth_block.data_blocks.size(); ++channel )
         {
@@ -217,7 +219,7 @@ static void output_v2_lidar( const I& measurement_block, comma::csv::binary_outp
         // we can't use frame_id for the block_id because it rolls over about once an hour
         if( measurement_block.encoder_count() < last_encoder_count ) { block_id++; }
         last_encoder_count = measurement_block.encoder_count();
-        const snark::ouster::lidar::output_azimuth_block_t output_azimuth_block( measurement_block, block_id );
+        const snark::ouster::lidar::output_azimuth_block_t output_azimuth_block( measurement_block, block_id, *timestamp_converter );
         const double azimuth_encoder_angle( M_PI * 2 * measurement_block.encoder_count() / snark::ouster::lidar::encoder_ticks_per_rev );
         for( comma::uint16 channel = 0; channel < I::num_beams; ++channel )
         {
@@ -271,7 +273,7 @@ void app< snark::ouster::lidar::imu_block_t, snark::ouster::lidar::output_imu_t 
         ( const snark::ouster::lidar::imu_block_t& data_block
         , comma::csv::binary_output_stream< snark::ouster::lidar::output_imu_t >& os )
 {
-    os.write( snark::ouster::lidar::output_imu_t( data_block ));
+    os.write( snark::ouster::lidar::output_imu_t( data_block, *timestamp_converter ));
     os.flush();
 }
 
@@ -369,6 +371,9 @@ int main( int ac, char** av )
             intrinsics = intrinsics_t( config );
 
             if( options.exists( "--output-frame" )) { std::cout << output_frame( mode, intrinsics ) << std::endl; return 0; }
+
+            comma::verbose << "raw data time standard is " << config.device.time_standard << std::endl;
+            timestamp_converter.reset( new snark::ouster::lidar::timestamp_converter_t( config.device.time_standard ));
 
             api_version api = firmware_to_api_version( config.device.firmware );
             switch( mode )

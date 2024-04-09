@@ -1,17 +1,36 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2022 Mission Systems Pty Ltd
+// Copyright (c) 2022-2024 Mission Systems Pty Ltd
 
 #pragma once
 
+#include <comma/base/types.h>
 #include <string>
 #include <vector>
-#include <comma/base/types.h>
 
 namespace snark { namespace ouster { namespace lidar { namespace config {
+
+struct time_standard_t
+{
+    enum ts { utc = 0, tai };
+    ts value;
+    time_standard_t( const std::string& s );
+    time_standard_t( time_standard_t::ts v ) : value( v ) {}
+    time_standard_t() : value( utc ) {}         // default to UTC
+
+    operator ts() const { return value; }
+    operator std::string() const;
+};
+
+inline std::ostream& operator<<( std::ostream& os, const time_standard_t& ts )
+{
+    os << std::string( ts );
+    return os;
+}
 
 struct device_t
 {
     std::string firmware;
+    time_standard_t time_standard;
 };
 
 struct beam_intrinsics_t

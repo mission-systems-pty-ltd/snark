@@ -1,9 +1,10 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020,2022 Mission Systems Pty Ltd
+// Copyright (c) 2020-2024 Mission Systems Pty Ltd
 
 #pragma once
 
 #include "packet.h"
+#include "timestamp.h"
 #include "../../../math/roll_pitch_yaw.h"
 #include "../../../timing/timestamped.h"
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -44,19 +45,24 @@ struct output_azimuth_block_t
     {}
 
     output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
-                          , comma::uint32 block_id );
+                          , comma::uint32 block_id
+                          , timestamp_converter_t& timestamp_converter );
 
     output_azimuth_block_t( const v2::measurement_block_t<16>& measurement_block
-                          , comma::uint32 block_id );
+                          , comma::uint32 block_id
+                          , timestamp_converter_t& timestamp_converter );
 
     output_azimuth_block_t( const v2::measurement_block_t<32>& measurement_block
-                          , comma::uint32 block_id );
+                          , comma::uint32 block_id
+                          , timestamp_converter_t& timestamp_converter );
 
     output_azimuth_block_t( const v2::measurement_block_t<64>& measurement_block
-                          , comma::uint32 block_id );
+                          , comma::uint32 block_id
+                          , timestamp_converter_t& timestamp_converter );
 
     output_azimuth_block_t( const v2::measurement_block_t<128>& measurement_block
-                          , comma::uint32 block_id );
+                          , comma::uint32 block_id
+                          , timestamp_converter_t& timestamp_converter );
 };
 
 struct output_data_block_t
@@ -114,7 +120,7 @@ struct output_imu_t
         , angular_acceleration( snark::timestamped< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 )))
     {}
 
-    output_imu_t( const imu_block_t& imu_block );
+    output_imu_t( const imu_block_t& imu_block, timestamp_converter_t& timestamp_converter );
 };
 
 } } } // namespace snark { namespace ouster { namespace lidar {

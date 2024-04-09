@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020,2022 Mission Systems Pty Ltd
+// Copyright (c) 2020-2024 Mission Systems Pty Ltd
 
 #pragma once
 
@@ -18,6 +18,9 @@ template <> struct traits< snark::ouster::lidar::config::device_t >
     static void visit( const Key&, snark::ouster::lidar::config::device_t& t, Visitor& v )
     {
         v.apply( "firmware", t.firmware );
+        std::string ts;
+        v.apply( "time_standard", ts );
+        if( !ts.empty() ) { t.time_standard = snark::ouster::lidar::config::time_standard_t( ts ); }
     }
 };
 

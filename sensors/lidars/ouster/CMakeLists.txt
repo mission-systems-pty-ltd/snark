@@ -25,3 +25,7 @@ install(
 )
 
 add_subdirectory( applications )
+
+if( BUILD_TESTS )
+  add_subdirectory( test )
+endif( BUILD_TESTS )

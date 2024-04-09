@@ -1,18 +1,11 @@
 // Copyright (c) 2019 The University of Sydney
-// Copyright (c) 2020,2022 Mission Systems Pty Ltd
+// Copyright (c) 2020-2024 Mission Systems Pty Ltd
 
 #include "types.h"
 #include "../../../math/range_bearing_elevation.h"
 #include "../../../math/rotation_matrix.h"
-#include "../../../timing/time.h"
 
 namespace snark { namespace ouster { namespace lidar {
-
-static boost::posix_time::ptime convert_timestamp( comma::uint64 timestamp )
-{
-    return boost::posix_time::ptime( snark::timing::epoch
-                                   , boost::posix_time::microseconds( static_cast< long >( timestamp / 1000 )));
-}
 
 transform_t::transform_t( std::vector< double >& transform_vector )
 {
@@ -30,8 +23,9 @@ std::vector< double > transform_t::frame() const
 }
 
 output_azimuth_block_t::output_azimuth_block_t( const v1::azimuth_block_t& azimuth_block
-                                              , comma::uint32 block_id )
-    : t( convert_timestamp( azimuth_block.timestamp() ))
+                                              , comma::uint32 block_id
+                                              , timestamp_converter_t& timestamp_converter )
+    : t( timestamp_converter.to_utc( azimuth_block.timestamp() ))
     , measurement_id( azimuth_block.measurement_id() )
     , frame_id( azimuth_block.frame_id() )
     , encoder_count( azimuth_block.encoder_count() )
@@ -40,8 +34,9 @@ output_azimuth_block_t::output_azimuth_block_t( const v1::azimuth_block_t& azimu
 }
 
 output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<16>& measurement_block
-                                              , comma::uint32 block_id )
-    : t( convert_timestamp( measurement_block.timestamp() ))
+                                              , comma::uint32 block_id
+                                              , timestamp_converter_t& timestamp_converter )
+    : t( timestamp_converter.to_utc( measurement_block.timestamp() ))
     , measurement_id( measurement_block.measurement_id() )
     , frame_id( measurement_block.frame_id() )
     , encoder_count( measurement_block.encoder_count() )
@@ -50,8 +45,9 @@ output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<16
 }
 
 output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<32>& measurement_block
-                                              , comma::uint32 block_id )
-    : t( convert_timestamp( measurement_block.timestamp() ))
+                                              , comma::uint32 block_id
+                                              , timestamp_converter_t& timestamp_converter )
+    : t( timestamp_converter.to_utc( measurement_block.timestamp() ))
     , measurement_id( measurement_block.measurement_id() )
     , frame_id( measurement_block.frame_id() )
     , encoder_count( measurement_block.encoder_count() )
@@ -60,8 +56,9 @@ output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<32
 }
 
 output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<64>& measurement_block
-                                              , comma::uint32 block_id )
-    : t( convert_timestamp( measurement_block.timestamp() ))
+                                              , comma::uint32 block_id
+                                              , timestamp_converter_t& timestamp_converter )
+    : t( timestamp_converter.to_utc( measurement_block.timestamp() ))
     , measurement_id( measurement_block.measurement_id() )
     , frame_id( measurement_block.frame_id() )
     , encoder_count( measurement_block.encoder_count() )
@@ -70,8 +67,9 @@ output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<64
 }
 
 output_azimuth_block_t::output_azimuth_block_t( const v2::measurement_block_t<128>& measurement_block
-                                              , comma::uint32 block_id )
-    : t( convert_timestamp( measurement_block.timestamp() ))
+                                              , comma::uint32 block_id
+                                              , timestamp_converter_t& timestamp_converter)
+    : t( timestamp_converter.to_utc( measurement_block.timestamp() ))
     , measurement_id( measurement_block.measurement_id() )
     , frame_id( measurement_block.frame_id() )
     , encoder_count( measurement_block.encoder_count() )
@@ -109,13 +107,13 @@ output_data_block_t::output_data_block_t( double azimuth_encoder_angle
 
 const double g0 = 9.80665;    // m/s^2, as per ISO 80000
 
-output_imu_t::output_imu_t( const imu_block_t& imu_block )
-    : start_time( convert_timestamp( imu_block.start_read_time() ))
-    , acceleration( convert_timestamp( imu_block.acceleration_read_time() )
+output_imu_t::output_imu_t( const imu_block_t& imu_block, timestamp_converter_t& timestamp_converter  )
+    : start_time( timestamp_converter.to_utc( imu_block.start_read_time() ))
+    , acceleration( timestamp_converter.to_utc( imu_block.acceleration_read_time() )
                   , Eigen::Vector3d( imu_block.acceleration_x() * g0
                                    , imu_block.acceleration_y() * g0
                                    , imu_block.acceleration_z() * g0 ))
-    , angular_acceleration( convert_timestamp( imu_block.gyro_read_time() )
+    , angular_acceleration( timestamp_converter.to_utc( imu_block.gyro_read_time() )
                           , Eigen::Vector3d( imu_block.angular_acceleration_x() * M_PI / 180
                                            , imu_block.angular_acceleration_y() * M_PI / 180
                                            , imu_block.angular_acceleration_z() * M_PI / 180 ))
