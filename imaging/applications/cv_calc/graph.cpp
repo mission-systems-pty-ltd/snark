@@ -46,6 +46,7 @@ struct graph_t
 {
     struct g_t
     {
+        struct shapes { enum values { ellipse, rectangle, circle }; }; // quick and dirty for now, use dispatch?
         struct attr_t
         {
             std::string idname;
@@ -184,6 +185,10 @@ int run( const comma::command_line_options& options )
         }
         return 0;
     }
+    std::unordered_map< unsigned int, graph_t::g_t > nodes;
+    std::unordered_map< unsigned int, graph_t::g_t > edges;
+    for( const auto& g: graph.g ) { if( g.attr.classname == "node" ) { nodes[g.attr.id()] = g; } }
+    for( const auto& g: graph.g ) { if( g.attr.classname == "edge" ) { edges[g.attr.id()] = g; } }
     std::string output_options_string = options.value< std::string >( "--output", "" );
     snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( output_options_string );
     snark::cv_mat::serialization output_serialization( output_options );
@@ -194,7 +199,6 @@ int run( const comma::command_line_options& options )
     cv::VideoCapture capture;
     capture.open( filename );
     capture >> svg;
-    cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
     std::unordered_map< std::uint32_t, input > previous;
     std::unordered_map< std::uint32_t, input > inputs;
     comma::csv::input_stream< input > istream( std::cin, csv );
@@ -209,13 +213,26 @@ int run( const comma::command_line_options& options )
             auto now = boost::posix_time::microsec_clock::universal_time();
             if( ( deadline.is_not_a_date_time() || now >= deadline ) && changed )
             {
-                output_serialization.write_to_stdout( std::make_pair( now, svg ), true );
+                cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
+                svg.copyTo( canvas );
+                for( auto n: nodes )
+                {
+                    auto i = inputs.find( n.first );
+                    auto e = n.second.ellipse.attr;
+                    //std::cerr << "==> b: " << n.first << " (" << n.second.title << ") " << ( i == inputs.end() ? "not found" : "found" ) << std::endl;
+                    //if( i != inputs.end() ) { std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl; }
+                    cv::ellipse( canvas, cv::Point( e.cx, canvas.rows + e.cy ), cv::Size( e.rx, e.ry ), 0, -180, 180, i == inputs.end() ? cv::Scalar( 0, 0, 0 ) : cv::Scalar( 0, 0, 255 ), 3, cv::LINE_AA );
+                }
+                // todo: states -> color map
+                // csv-paste 'line-number;size=20;index' 'line-number;size=20;index' value=0 | csv-repeat --pace --period 0.1 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
+                output_serialization.write_to_stdout( std::make_pair( now, canvas ), true );
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
             previous = std::move( inputs );
             inputs.clear();
         }
         if( !p ) { break; }
+        //std::cerr << "==> a: p->id: " << p->id << std::endl;
         inputs[p->id] = *p;
     }
     return 0;
