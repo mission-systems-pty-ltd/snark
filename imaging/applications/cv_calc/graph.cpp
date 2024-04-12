@@ -15,6 +15,7 @@
 #include <comma/csv/stream.h>
 #include <comma/name_value/parser.h>
 #include <comma/name_value/ptree.h>
+#include <comma/name_value/serialize.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include <comma/xpath/xpath.h>
@@ -41,6 +42,36 @@ struct input
     std::uint32_t state{0};
 };
 
+struct graph_t
+{
+    struct g_t
+    {
+        struct attr_t
+        {
+            std::string idname;
+            std::string classname;
+            unsigned int id() const { return boost::lexical_cast< unsigned int >( idname.substr( classname.size() ) ); }
+        };
+        struct ellipse_t
+        {
+            struct attr_t
+            {
+                float cx{0};
+                float cy{0};
+                float rx{0};
+                float ry{0};
+            };
+            attr_t attr;
+        };
+        attr_t attr;
+        std::string title;
+        ellipse_t ellipse;
+        // todo: circle
+        // todo: rectangle
+    };
+    std::vector< g_t > g;
+};
+
 } } } // namespace snark { namespace cv_calc { namespace graph {
 
 namespace comma { namespace visiting {
@@ -61,52 +92,96 @@ template <> struct traits< snark::cv_calc::graph::input >
     }
 };
 
+template <> struct traits< snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
+    { 
+        v.apply( "cx", p.cx );
+        v.apply( "cy", p.cy );
+        v.apply( "rx", p.rx );
+        v.apply( "ry", p.ry );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
+    { 
+        v.apply( "cx", p.cx );
+        v.apply( "cy", p.cy );
+        v.apply( "rx", p.rx );
+        v.apply( "ry", p.ry );
+    }
+};
+
+template <> struct traits< snark::cv_calc::graph::graph_t::g_t::ellipse_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::ellipse_t& p, Visitor& v )
+    { 
+        v.apply( "<xmlattr>", p.attr );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::ellipse_t& p, Visitor& v )
+    { 
+        v.apply( "<xmlattr>", p.attr );
+    }
+};
+
+template <> struct traits< snark::cv_calc::graph::graph_t::g_t::attr_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::attr_t& p, Visitor& v )
+    { 
+        v.apply( "id", p.idname );
+        v.apply( "class", p.classname );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::attr_t& p, Visitor& v )
+    { 
+        v.apply( "id", p.idname );
+        v.apply( "class", p.classname );
+    }
+};
+
+template <> struct traits< snark::cv_calc::graph::graph_t::g_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t& p, Visitor& v )
+    { 
+        v.apply( "<xmlattr>", p.attr );
+        v.apply( "title", p.title );
+        v.apply( "ellipse", p.ellipse );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t& p, Visitor& v )
+    { 
+        v.apply( "<xmlattr>", p.attr );
+        v.apply( "title", p.title );
+        v.apply( "ellipse", p.ellipse );
+    }
+};
+
+template <> struct traits< snark::cv_calc::graph::graph_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t& p, Visitor& v )
+    { 
+        v.apply( "g", p.g );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t& p, Visitor& v )
+    { 
+        v.apply( "g", p.g );
+    }
+};
+
 } } // namespace comma { namespace visiting {
 
 namespace snark { namespace cv_calc { namespace graph {
-
-static void traverse( boost::property_tree::ptree::const_iterator i, comma::xpath& path, comma::xpath& display_path )
-{
-    if( i->second.begin() == i->second.end() )
-    {
-        std::cout << ( display_path / i->first ).to_string() << ": " << i->second.get_value< std::string >() << std::endl;
-    }
-    else
-    {
-        path /= i->first;
-        display_path /= i->first;
-        boost::optional< std::string > v = i->second.get_value_optional< std::string >();
-        if( v ) // quick and dirty
-        {
-            const std::string& stripped = comma::strip( *v );
-            if( !stripped.empty() ) { std::cout << display_path.to_string() << ": " << i->second.get_value< std::string >() << std::endl; }
-        }
-        comma::uint32 index=0;
-        for( boost::property_tree::ptree::const_iterator j = i->second.begin(); j != i->second.end(); ++j )
-        {
-            if( j->first.empty() ) { display_path.elements.back().index = index++; }
-            traverse( j, path, display_path );
-        }
-        if( !( i->first.empty() ) ) { path = path.head(); display_path = display_path.head(); }
-    }
-}
 
 int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
     std::string filename = options.value< std::string >( "--svg" );
-    boost::property_tree::ptree t;
-    {
-        std::ifstream ifs( filename );
-        COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open svg file '" << filename << "'" );
-        boost::property_tree::read_xml( ifs, t );
-    }
+    auto graph = comma::read_xml< graph_t >( filename, "svg" );
     if( options.exists( "--list" ) )
     {
-        comma::xpath path, display_path;
-        auto s  = t.get_child_optional( "svg" );
-        COMMA_ASSERT_BRIEF( s, "section 'svg' not found in '" << filename << "'" );
-        for( boost::property_tree::ptree::const_iterator j = s->begin(); j != s->end(); ++j ) { traverse( j, path, display_path ); } // quick and dirty
+        for( const auto& g: graph.g ) // todo: use traits -> csv
+        {
+            if( g.attr.classname != "node" && g.attr.classname != "edge" ) { continue; }
+            std::cout << g.attr.id() << "," << g.attr.classname << "," << g.title << ",";
+            if( g.ellipse.attr.rx != 0 ) { std::cout << "ellipse," << g.ellipse.attr.cx << "," << g.ellipse.attr.cy << "," << g.ellipse.attr.rx << "," << g.ellipse.attr.ry; }
+            std::cout << std::endl;
+        }
         return 0;
     }
     std::string output_options_string = options.value< std::string >( "--output", "" );
@@ -147,3 +222,44 @@ int run( const comma::command_line_options& options )
 }
 
 } } } // namespace snark { namespace cv_calc { namespace graph {
+
+
+// static void traverse( boost::property_tree::ptree::const_iterator i, comma::xpath& path, comma::xpath& display_path )
+// {
+//     if( i->second.begin() == i->second.end() )
+//     {
+//         std::cout << ( display_path / i->first ).to_string() << ": " << i->second.get_value< std::string >() << std::endl;
+//     }
+//     else
+//     {
+//         path /= i->first;
+//         display_path /= i->first;
+//         boost::optional< std::string > v = i->second.get_value_optional< std::string >();
+//         if( v ) // quick and dirty
+//         {
+//             const std::string& stripped = comma::strip( *v );
+//             if( !stripped.empty() ) { std::cout << display_path.to_string() << ": " << i->second.get_value< std::string >() << std::endl; }
+//         }
+//         comma::uint32 index=0;
+//         //std::cout << "==> a" << std::endl;
+//         for( boost::property_tree::ptree::const_iterator j = i->second.begin(); j != i->second.end(); ++j )
+//         {
+//             if( j->first == "g" ) { display_path.elements.back().index = index++; }
+//             traverse( j, path, display_path );
+//         }
+//         //std::cout << "==> b" << std::endl;
+//         if( !( i->first.empty() ) ) { path = path.head(); display_path = display_path.head(); }
+//     }
+// }
+
+// boost::property_tree::ptree t;
+// {
+//     std::ifstream ifs( filename );
+//     COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open svg file '" << filename << "'" );
+//     boost::property_tree::read_xml( ifs, t );
+// }
+
+// comma::xpath path, display_path;
+// auto s  = t.get_child_optional( "svg" );
+// COMMA_ASSERT_BRIEF( s, "section 'svg' not found in '" << filename << "'" );
+// for( boost::property_tree::ptree::const_iterator j = s->begin(); j != s->end(); ++j ) { traverse( j, path, display_path ); } // quick and dirty
