@@ -14,8 +14,10 @@
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
 #include <comma/name_value/parser.h>
+#include <comma/name_value/ptree.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
+#include <comma/xpath/xpath.h>
 #include "../../cv_mat/traits.h"
 #include "graph.h"
 
@@ -63,48 +65,31 @@ template <> struct traits< snark::cv_calc::graph::input >
 
 namespace snark { namespace cv_calc { namespace graph {
 
-// static void traverse( boost::property_tree::ptree::const_iterator i
-//                     , bool is_begin
-//                     , xpath& path
-//                     , xpath& display_path
-//                     , property_tree::path_mode mode
-//                     , char equal_sign
-//                     , char delimiter
-//                     , const std::string& root
-//                     , bool const unquote_numbers )
-// {
-//     if( i->second.begin() == i->second.end() )
-//     {
-//         if( os ) { ptree_output_value_( *os, i->second.get_value< std::string >(), is_begin, display_path / i->first, equal_sign, delimiter, root, unquote_numbers ); }
-//         else { pv.push_back( std::make_pair( display_path / i->first, i->second.get_value< std::string >() ) ); }
-//     }
-//     else
-//     {
-//         path /= i->first;
-//         display_path /= i->first;
-//         boost::optional< std::string > v = i->second.get_value_optional< std::string >();
-//         if( v ) // quick and dirty
-//         {
-//             const std::string& stripped = comma::strip( *v );
-//             if( !stripped.empty() )
-//             { 
-//                 if( os ) { ptree_output_value_( *os, stripped, is_begin, display_path, equal_sign, delimiter, root, unquote_numbers ); }
-//                 else { pv.push_back( std::make_pair( display_path, stripped ) ); }
-//             }
-//         }
-//         comma::uint32 index=0;
-//         for( boost::property_tree::ptree::const_iterator j = i->second.begin(); j != i->second.end(); ++j )
-//         {
-//             // Test if it is json array data, if so all keys are empty. If so display indices in path if requested
-//             if( mode == property_tree::without_brackets && j->first.empty()  ) { display_path /= boost::lexical_cast< std::string >( index++ ); }
-//             else if( mode == property_tree::with_brackets && j->first.empty() ) { display_path.elements.back().index = index++; }
-//             ptree_to_path_value_string_impl( os, pv, j, is_begin, path, display_path, mode, equal_sign, delimiter, root, unquote_numbers );
-//             if( mode == property_tree::without_brackets && j->first.empty() ) { display_path = display_path.head(); }
-//             is_begin = false;
-//         }
-//         if( !(i->first.empty()) ) { path = path.head(); display_path = display_path.head(); } // for json arrays, the keys are empty
-//     }
-// }
+static void traverse( boost::property_tree::ptree::const_iterator i, comma::xpath& path, comma::xpath& display_path )
+{
+    if( i->second.begin() == i->second.end() )
+    {
+        std::cout << ( display_path / i->first ).to_string() << ": " << i->second.get_value< std::string >() << std::endl;
+    }
+    else
+    {
+        path /= i->first;
+        display_path /= i->first;
+        boost::optional< std::string > v = i->second.get_value_optional< std::string >();
+        if( v ) // quick and dirty
+        {
+            const std::string& stripped = comma::strip( *v );
+            if( !stripped.empty() ) { std::cout << display_path.to_string() << ": " << i->second.get_value< std::string >() << std::endl; }
+        }
+        comma::uint32 index=0;
+        for( boost::property_tree::ptree::const_iterator j = i->second.begin(); j != i->second.end(); ++j )
+        {
+            if( j->first.empty() ) { display_path.elements.back().index = index++; }
+            traverse( j, path, display_path );
+        }
+        if( !( i->first.empty() ) ) { path = path.head(); display_path = display_path.head(); }
+    }
+}
 
 int run( const comma::command_line_options& options )
 {
@@ -118,7 +103,10 @@ int run( const comma::command_line_options& options )
     }
     if( options.exists( "--list" ) )
     {
-        // todo
+        comma::xpath path, display_path;
+        auto s  = t.get_child_optional( "svg" );
+        COMMA_ASSERT_BRIEF( s, "section 'svg' not found in '" << filename << "'" );
+        for( boost::property_tree::ptree::const_iterator j = s->begin(); j != s->end(); ++j ) { traverse( j, path, display_path ); } // quick and dirty
         return 0;
     }
     std::string output_options_string = options.value< std::string >( "--output", "" );
