@@ -13,6 +13,7 @@
 #include <comma/base/exception.h>
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
+#include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include "graph.h"
@@ -60,17 +61,23 @@ template <> struct traits< snark::cv_calc::graph::input >
 
 namespace snark { namespace cv_calc { namespace graph {
 
-int run( const comma::command_line_options& options, const snark::cv_mat::serialization& input_options, const snark::cv_mat::serialization& output_options )
+int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
-    snark::cv_mat::serialization input_serialization( input_options ); ( void )( input_serialization ); // in case we later decide to have svg input stream or alike
+    std::string output_options_string = options.value< std::string >( "--output", "" );
+    snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( output_options_string );
     snark::cv_mat::serialization output_serialization( output_options );
     comma::csv::options csv( options );
     bool has_block = csv.fields.empty() || csv.has_field( "block" );
     unsigned int fps = options.value( "--fps", 0 );
     std::string filename = options.value< std::string >( "--svg" );
-    cv::Mat svg = cv::imread( filename, cv::IMREAD_UNCHANGED );
-    std::cerr << "==> svg: rows: " << svg.rows << " cols: " << svg.cols << std::endl;
+    cv::Mat svg, image;
+    cv::VideoCapture capture;
+    capture.open( filename );
+    capture >> svg;
+    svg.copyTo( image );
+    //cv::imshow( "blah", svg );
+    //cv::waitKey( 0 );
     boost::property_tree::ptree t;
     {
         std::ifstream ifs( filename );
@@ -84,15 +91,14 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     while( std::cin.good() || istream.ready() )
     {
         auto p = istream.read();
-        if( !p || !has_block || ( !inputs.empty() && p->block != inputs.begin()->second.block ) )
+        bool do_output = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
+        if( do_output )
         {
-            // todo: fps
-            // todo: changed?
-            cv::Mat image = svg;
+            bool changed = true; // todo: skip if no change and --on-change
             auto now = boost::posix_time::microsec_clock::universal_time();
-            if( deadline.is_not_a_date_time() || now >= deadline )
+            if( ( deadline.is_not_a_date_time() || now >= deadline ) && changed )
             {
-                output_serialization.write_to_stdout( std::make_pair( now, svg ) );
+                output_serialization.write_to_stdout( std::make_pair( now, svg ), true );
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
             previous = std::move( inputs );

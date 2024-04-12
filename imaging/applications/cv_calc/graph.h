@@ -11,6 +11,6 @@ namespace snark { namespace cv_calc { namespace graph {
 
 std::string options();
 
-int run( const comma::command_line_options& options, const snark::cv_mat::serialization& input_options, const snark::cv_mat::serialization& output_options );
+int run( const comma::command_line_options& options );
 
 } } } // namespace snark { namespace cv_calc { namespace graph {

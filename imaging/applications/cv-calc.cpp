@@ -1233,7 +1233,7 @@ int main( int ac, char** av )
         }
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
-        if( operation == "graph" ) { return snark::cv_calc::graph::run( options, input_options, output_options ); }
+        if( operation == "graph" ) { return snark::cv_calc::graph::run( options ); }
         if( operation == "grep" )
         {
             // Need to be created inside, some operation (roi) has other default fields. If not using --binary also requires --fields
