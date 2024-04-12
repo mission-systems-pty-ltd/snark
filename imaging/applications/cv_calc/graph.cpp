@@ -16,6 +16,7 @@
 #include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
+#include "../../cv_mat/traits.h"
 #include "graph.h"
 
 namespace snark { namespace cv_calc { namespace graph {
