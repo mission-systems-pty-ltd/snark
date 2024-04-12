@@ -2,6 +2,7 @@
 
 /// @author vsevolod vlaskine
 
+#include <array>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
@@ -42,35 +43,45 @@ struct input
     std::uint32_t state{0};
 };
 
-struct graph_t
+struct svg_t // todo? move to snark/render?
 {
-    struct g_t
+    struct graph_t
     {
-        struct shapes { enum values { ellipse, rectangle, circle }; }; // quick and dirty for now, use dispatch?
         struct attr_t
         {
-            std::string idname;
-            std::string classname;
-            unsigned int id() const { return boost::lexical_cast< unsigned int >( idname.substr( classname.size() ) ); }
+            std::string width;
+            std::string height;
+            std::string viewbox;
         };
-        struct ellipse_t
+        struct g_t
         {
+            struct shapes { enum values { ellipse, rectangle, circle }; }; // quick and dirty for now, use dispatch?
             struct attr_t
             {
-                float cx{0};
-                float cy{0};
-                float rx{0};
-                float ry{0};
+                std::string idname;
+                std::string classname;
+                unsigned int id() const { return boost::lexical_cast< unsigned int >( idname.substr( classname.size() ) ); }
+            };
+            struct ellipse_t
+            {
+                struct attr_t
+                {
+                    float cx{0};
+                    float cy{0};
+                    float rx{0};
+                    float ry{0};
+                };
+                attr_t attr;
             };
             attr_t attr;
+            std::string title;
+            ellipse_t ellipse;
+            // todo: circle
+            // todo: rectangle
         };
         attr_t attr;
-        std::string title;
-        ellipse_t ellipse;
-        // todo: circle
-        // todo: rectangle
+        std::vector< g_t > g;
     };
-    std::vector< g_t > g;
 };
 
 } } } // namespace snark { namespace cv_calc { namespace graph {
@@ -93,16 +104,16 @@ template <> struct traits< snark::cv_calc::graph::input >
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t::attr_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
     { 
         v.apply( "cx", p.cx );
         v.apply( "cy", p.cy );
         v.apply( "rx", p.rx );
         v.apply( "ry", p.ry );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t::attr_t& p, Visitor& v )
     { 
         v.apply( "cx", p.cx );
         v.apply( "cy", p.cy );
@@ -111,41 +122,41 @@ template <> struct traits< snark::cv_calc::graph::graph_t::g_t::ellipse_t::attr_
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::graph_t::g_t::ellipse_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::ellipse_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t& p, Visitor& v )
     { 
         v.apply( "<xmlattr>", p.attr );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::ellipse_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t::g_t::ellipse_t& p, Visitor& v )
     { 
         v.apply( "<xmlattr>", p.attr );
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::graph_t::g_t::attr_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::g_t::attr_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t::g_t::attr_t& p, Visitor& v )
     { 
         v.apply( "id", p.idname );
         v.apply( "class", p.classname );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t::g_t::attr_t& p, Visitor& v )
     { 
         v.apply( "id", p.idname );
         v.apply( "class", p.classname );
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::graph_t::g_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::g_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t::g_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t::g_t& p, Visitor& v )
     { 
         v.apply( "<xmlattr>", p.attr );
         v.apply( "title", p.title );
         v.apply( "ellipse", p.ellipse );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t::g_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t::g_t& p, Visitor& v )
     { 
         v.apply( "<xmlattr>", p.attr );
         v.apply( "title", p.title );
@@ -153,14 +164,32 @@ template <> struct traits< snark::cv_calc::graph::graph_t::g_t >
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::graph_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::attr_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::graph_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t::attr_t& p, Visitor& v )
+    {
+        v.apply( "width", p.width );
+        v.apply( "height", p.height );
+        v.apply( "viewBox", p.viewbox );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t::attr_t& p, Visitor& v )
     { 
+        v.apply( "width", p.width );
+        v.apply( "height", p.height );
+        v.apply( "viewBox", p.viewbox );
+    }
+};
+
+template <> struct traits< snark::cv_calc::graph::svg_t::graph_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t& p, Visitor& v )
+    {
+        v.apply( "<xmlattr>", p.attr );
         v.apply( "g", p.g );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::graph_t& p, Visitor& v )
-    { 
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::graph_t& p, Visitor& v )
+    {
+        v.apply( "<xmlattr>", p.attr );
         v.apply( "g", p.g );
     }
 };
@@ -173,7 +202,7 @@ int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
     std::string filename = options.value< std::string >( "--svg" );
-    auto graph = comma::read_xml< graph_t >( filename, "svg" );
+    auto graph = comma::read_xml< svg_t::graph_t >( filename, "svg" );
     if( options.exists( "--list" ) )
     {
         for( const auto& g: graph.g ) // todo: use traits -> csv
@@ -185,8 +214,10 @@ int run( const comma::command_line_options& options )
         }
         return 0;
     }
-    std::unordered_map< unsigned int, graph_t::g_t > nodes;
-    std::unordered_map< unsigned int, graph_t::g_t > edges;
+    const auto& geometry = comma::split_as< float >( graph.attr.viewbox, ' ' );
+    //std::cerr << "==> graph.attr.viewbox: " << graph.attr.viewbox << " geometry.size(): " << geometry.size() << std::endl;
+    std::unordered_map< unsigned int, svg_t::graph_t::g_t > nodes;
+    std::unordered_map< unsigned int, svg_t::graph_t::g_t > edges;
     for( const auto& g: graph.g ) { if( g.attr.classname == "node" ) { nodes[g.attr.id()] = g; } }
     for( const auto& g: graph.g ) { if( g.attr.classname == "edge" ) { edges[g.attr.id()] = g; } }
     std::string output_options_string = options.value< std::string >( "--output", "" );
@@ -219,9 +250,15 @@ int run( const comma::command_line_options& options )
                 {
                     auto i = inputs.find( n.first );
                     auto e = n.second.ellipse.attr;
-                    //std::cerr << "==> b: " << n.first << " (" << n.second.title << ") " << ( i == inputs.end() ? "not found" : "found" ) << std::endl;
-                    //if( i != inputs.end() ) { std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl; }
-                    cv::ellipse( canvas, cv::Point( e.cx, canvas.rows + e.cy ), cv::Size( e.rx, e.ry ), 0, -180, 180, i == inputs.end() ? cv::Scalar( 0, 0, 0 ) : cv::Scalar( 0, 0, 255 ), 3, cv::LINE_AA );
+                    cv::Point centre( e.cx / geometry[2] * svg.cols, ( 1 + e.cy / geometry[3] ) * svg.rows ); // todo: precalculate
+                    cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
+                    // std::cerr << "==> b: " << n.first << " (" << n.second.title << ") " << ( i == inputs.end() ? "not found" : "found" ) << std::endl;
+                    // if( i != inputs.end() ){ std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl; }
+                    // std::cerr << "==> e.cx: " << e.cx << " canvas.cols: " << canvas.cols << " geometry[2]:" << geometry[2] << std::endl;
+                    // std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl;
+                    // std::cerr << "==> " << centre.x << "," << centre.y << " " << size.width << "," << size.height << std::endl;
+                    if( i == inputs.end() ) { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA ); }
+                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 255 ), 3, cv::LINE_AA ); }
                 }
                 // todo: states -> color map
                 // csv-paste 'line-number;size=20;index' 'line-number;size=20;index' value=0 | csv-repeat --pace --period 0.1 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
