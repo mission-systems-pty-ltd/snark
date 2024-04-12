@@ -36,6 +36,7 @@
 #include "../../visiting/eigen.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
+#include "cv_calc/graph.h"
 #include "cv_calc/polar_map.h"
 #include "cv_calc/unstride.h"
 
@@ -1232,6 +1233,7 @@ int main( int ac, char** av )
         }
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
+        if( operation == "graph" ) { return snark::cv_calc::graph::run( options, input_options, output_options ); }
         if( operation == "grep" )
         {
             // Need to be created inside, some operation (roi) has other default fields. If not using --binary also requires --fields
