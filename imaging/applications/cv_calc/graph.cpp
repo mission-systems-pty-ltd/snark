@@ -45,6 +45,10 @@ struct input
 
 struct svg_t // todo? move to snark/render?
 {
+    struct attr_t
+    {
+        std::string transform;
+    };
     struct graph_t
     {
         struct attr_t
@@ -82,6 +86,9 @@ struct svg_t // todo? move to snark/render?
         attr_t attr;
         std::vector< g_t > g;
     };
+
+    attr_t attr;
+    graph_t g;
 };
 
 } } } // namespace snark { namespace cv_calc { namespace graph {
@@ -180,6 +187,18 @@ template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::attr_t >
     }
 };
 
+template <> struct traits< snark::cv_calc::graph::svg_t::attr_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::attr_t& p, Visitor& v )
+    {
+        v.apply( "transform", p.transform );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::attr_t& p, Visitor& v )
+    {
+        v.apply( "transform", p.transform );
+    }
+};
+
 template <> struct traits< snark::cv_calc::graph::svg_t::graph_t >
 {
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::graph_t& p, Visitor& v )
@@ -194,6 +213,20 @@ template <> struct traits< snark::cv_calc::graph::svg_t::graph_t >
     }
 };
 
+template <> struct traits< snark::cv_calc::graph::svg_t >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t& p, Visitor& v )
+    {
+        v.apply( "<xmlattr>", p.attr );
+        v.apply( "g", p.g );
+    }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t& p, Visitor& v )
+    {
+        v.apply( "<xmlattr>", p.attr );
+        v.apply( "g", p.g );
+    }
+};
+
 } } // namespace comma { namespace visiting {
 
 namespace snark { namespace cv_calc { namespace graph {
@@ -202,7 +235,9 @@ int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
     std::string filename = options.value< std::string >( "--svg" );
-    auto graph = comma::read_xml< svg_t::graph_t >( filename, "svg" );
+    // todo! auto svg_tree = comma::read_xml< svg_t >( filename );
+    // todo! const auto& graph = svg_tree.g;
+    auto graph = comma::read_xml< svg_t::graph_t >( filename, "svg" ); // todo! get viewbox!
     if( options.exists( "--list" ) )
     {
         for( const auto& g: graph.g ) // todo: use traits -> csv
@@ -250,6 +285,7 @@ int run( const comma::command_line_options& options )
                 {
                     auto i = inputs.find( n.first );
                     auto e = n.second.ellipse.attr;
+                    //cv::Point centre( e.cx / geometry[2] * svg.cols + 4, ( 1 + e.cy / geometry[3] ) * svg.rows - 4 ); // todo: precalculate
                     cv::Point centre( e.cx / geometry[2] * svg.cols, ( 1 + e.cy / geometry[3] ) * svg.rows ); // todo: precalculate
                     cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
                     // std::cerr << "==> b: " << n.first << " (" << n.second.title << ") " << ( i == inputs.end() ? "not found" : "found" ) << std::endl;
