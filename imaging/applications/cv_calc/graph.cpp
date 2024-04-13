@@ -29,7 +29,7 @@ std::string options()
 {
     std::ostringstream oss;
     oss << "        options" << std::endl;
-    oss << "            --input-fields; print csv input fields to stdin and exit" << std::endl;
+    oss << "            --input-fields; print csv input fields to stdin and exit (usual csv/binary options supported)" << std::endl;
     oss << "            --fps=<n>; given frame rate, otherwise redraw on each input on change" << std::endl;
     oss << "            --list; list svg graph entities" << std::endl;
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
