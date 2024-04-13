@@ -293,15 +293,15 @@ int run( const comma::command_line_options& options )
             {
                 cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
                 svg.copyTo( canvas );
-                for( auto n: nodes )
+                for( auto i: inputs )
                 {
-                    auto i = inputs.find( n.first );
-                    auto e = n.second.ellipse.attr;
+                    auto n = nodes.find( i.first );
+                    if( n == nodes.end() ) { continue; }
+                    auto e = n->second.ellipse.attr; // todo: other shapes
                     cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
                     cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
                     auto how = cv::FILLED; // parametrize: cv::LINE_AA
-                    if( i == inputs.end() ) {} // { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA ); }
-                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, colours[i->second.state % colours.size()], -1, how ); }
+                    cv::ellipse( canvas, centre, size, 0, -180, 180, colours[i.second.state % colours.size()], -1, how );
                 }
                 cv::Mat result;
                 cv::min( canvas, svg, result );
