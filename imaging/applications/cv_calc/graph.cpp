@@ -45,9 +45,13 @@ struct input
 
 struct svg_t // todo? move to snark/render?
 {
-    struct attr_t
+    struct g_t
     {
-        std::string transform;
+        struct attr_t
+        {
+            std::string transform;
+        };
+        attr_t attr;
     };
     struct graph_t
     {
@@ -83,11 +87,12 @@ struct svg_t // todo? move to snark/render?
             // todo: circle
             // todo: rectangle
         };
+        svg_t::g_t _g;
         attr_t attr;
         std::vector< g_t > g;
     };
 
-    attr_t attr;
+    g_t::attr_t attr;
     graph_t g;
 };
 
@@ -187,13 +192,13 @@ template <> struct traits< snark::cv_calc::graph::svg_t::graph_t::attr_t >
     }
 };
 
-template <> struct traits< snark::cv_calc::graph::svg_t::attr_t >
+template <> struct traits< snark::cv_calc::graph::svg_t::g_t::attr_t >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::svg_t::g_t::attr_t& p, Visitor& v )
     {
         v.apply( "transform", p.transform );
     }
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::attr_t& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::svg_t::g_t::attr_t& p, Visitor& v )
     {
         v.apply( "transform", p.transform );
     }
@@ -231,12 +236,22 @@ template <> struct traits< snark::cv_calc::graph::svg_t >
 
 namespace snark { namespace cv_calc { namespace graph {
 
+// todo: better colour map
+// todo: colour map from command line options
+static std::unordered_map< unsigned int, cv::Scalar > colours = { { 0, cv::Scalar( 255, 255, 255 ) }
+                                                                , { 1, cv::Scalar( 190, 190, 255 ) }
+                                                                , { 2, cv::Scalar( 190, 255, 190 ) }
+                                                                , { 3, cv::Scalar( 255, 190, 190 ) }
+                                                                , { 4, cv::Scalar( 255, 190, 255 ) }
+                                                                , { 5, cv::Scalar( 190, 255, 255 ) }
+                                                                , { 6, cv::Scalar( 255, 255, 190 ) } };
+
 int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
     std::string filename = options.value< std::string >( "--svg" );
-    // todo! auto svg_tree = comma::read_xml< svg_t >( filename );
-    // todo! const auto& graph = svg_tree.g;
+    //auto svg_tree = comma::read_xml< svg_t >( filename );
+    //const auto& graph = svg_tree.g;
     auto graph = comma::read_xml< svg_t::graph_t >( filename, "svg" ); // todo! get viewbox!
     if( options.exists( "--list" ) )
     {
@@ -250,6 +265,7 @@ int run( const comma::command_line_options& options )
         return 0;
     }
     const auto& geometry = comma::split_as< float >( graph.attr.viewbox, ' ' );
+    //std::cerr << "==> graph: transform: " << graph._g.attr.transform << std::endl;
     //std::cerr << "==> graph.attr.viewbox: " << graph.attr.viewbox << " geometry.size(): " << geometry.size() << std::endl;
     std::unordered_map< unsigned int, svg_t::graph_t::g_t > nodes;
     std::unordered_map< unsigned int, svg_t::graph_t::g_t > edges;
@@ -285,17 +301,16 @@ int run( const comma::command_line_options& options )
                 {
                     auto i = inputs.find( n.first );
                     auto e = n.second.ellipse.attr;
-                    //cv::Point centre( e.cx / geometry[2] * svg.cols + 4, ( 1 + e.cy / geometry[3] ) * svg.rows - 4 ); // todo: precalculate
                     cv::Point centre( e.cx / geometry[2] * svg.cols, ( 1 + e.cy / geometry[3] ) * svg.rows ); // todo: precalculate
+                    centre += cv::Point( 4, -4 ); // todo!!! read transform from svg!!! i hate xml
                     cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
                     auto how = cv::FILLED; // parametrize: cv::LINE_AA
-                    if( i == inputs.end() ) { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA ); }
-                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 128, 128, 255 ), -1, how ); }
+                    if( i == inputs.end() ) {} // { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA ); }
+                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, colours[i->second.state % colours.size()], -1, how ); }
                 }
                 cv::Mat result;
                 cv::min( canvas, svg, result );
-                // todo: states -> color map
-                // csv-paste 'line-number;size=20;index' 'line-number;size=20;index' value=0 | csv-repeat --pace --period 0.3 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
+                // csv-random make --type=2ui --range 0,25 | csv-paste 'line-number;size=5' - | csv-repeat --pace --period 0.05 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
                 output_serialization.write_to_stdout( std::make_pair( now, result ), true );
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
