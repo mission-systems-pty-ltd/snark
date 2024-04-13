@@ -2,7 +2,6 @@
 
 /// @author vsevolod vlaskine
 
-#include <array>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
@@ -18,7 +17,6 @@
 #include <comma/name_value/serialize.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
-#include <comma/xpath/xpath.h>
 #include "../../cv_mat/traits.h"
 #include "graph.h"
 
