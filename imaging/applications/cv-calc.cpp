@@ -62,6 +62,7 @@ static void usage( bool verbose=false )
     std::cerr << "    enumerate: replace image timestamp with an 64-bit integer counter (convenience operation)" << std::endl;
     std::cerr << "    equirectangular-map: output equirectangular-to-rectilinear map for a given orientation or 6 cube faces" << std::endl;
     std::cerr << "    format: output header and data format string in ascii" << std::endl;
+    std::cerr << "    graph: view graphviz graph as svg, read states on stdin, highlight respective graph nodes" << std::endl;
     std::cerr << "    grep: output only images that satisfy conditions" << std::endl;
     std::cerr << "    header: output header information in ascii csv" << std::endl;
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
@@ -152,6 +153,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "    enumerate" << std::endl << snark::cv_calc::enumerate::options() << std::endl;
     std::cerr << "    equirectangular-map" << std::endl << snark::cv_calc::equirectangular_map::options() << std::endl;
+    std::cerr << "    graph" << std::endl << snark::cv_calc::graph::options() << std::endl;
     std::cerr << "    grep" << std::endl;
     std::cerr << "        --filter,--filters=[<filters>]; apply --non-zero logic to the image with filters applied, not to image itself" << std::endl;
     std::cerr << "                                        run cv-cat --help --verbose for filters available" << std::endl;

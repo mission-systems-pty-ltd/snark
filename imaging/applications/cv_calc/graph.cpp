@@ -28,11 +28,19 @@ namespace snark { namespace cv_calc { namespace graph {
 std::string options()
 {
     std::ostringstream oss;
-    oss << "        --input-fields; print csv input fields to stdin and exit" << std::endl;
-    oss << "        --fps=<n>; given frame rate, otherwise redraw on each input on change" << std::endl;
-    oss << "        --list; list svg graph entities" << std::endl;
-    oss << "        --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
-    oss << "        todo" << std::endl;
+    oss << "        options" << std::endl;
+    oss << "            --input-fields; print csv input fields to stdin and exit" << std::endl;
+    oss << "            --fps=<n>; given frame rate, otherwise redraw on each input on change" << std::endl;
+    oss << "            --list; list svg graph entities" << std::endl;
+    oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
+    oss << "        example" << std::endl;
+    oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph"
+    oss << "            cat sample.json | name-value-convert --to dot | dot -Tsvg > sample.svg" << std::endl;
+    oss << "            csv-random make --type=2ui --range 0,25 \\" << std::endl;
+    oss << "                | csv-paste 'line-number;size=5' - \\" << std::endl;
+    oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
+    oss << "                | cv-calc graph --svg sample.svg  \\" << std::endl;
+    oss << "                | cv-cat 'view;null'" << std::endl;
     return oss.str();
 }
 
@@ -310,7 +318,6 @@ int run( const comma::command_line_options& options )
                 }
                 cv::Mat result;
                 cv::min( canvas, svg, result );
-                // csv-random make --type=2ui --range 0,25 | csv-paste 'line-number;size=5' - | csv-repeat --pace --period 0.05 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
                 output_serialization.write_to_stdout( std::make_pair( now, result ), true );
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
