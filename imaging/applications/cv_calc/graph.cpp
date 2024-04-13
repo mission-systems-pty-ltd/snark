@@ -288,17 +288,15 @@ int run( const comma::command_line_options& options )
                     //cv::Point centre( e.cx / geometry[2] * svg.cols + 4, ( 1 + e.cy / geometry[3] ) * svg.rows - 4 ); // todo: precalculate
                     cv::Point centre( e.cx / geometry[2] * svg.cols, ( 1 + e.cy / geometry[3] ) * svg.rows ); // todo: precalculate
                     cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
-                    // std::cerr << "==> b: " << n.first << " (" << n.second.title << ") " << ( i == inputs.end() ? "not found" : "found" ) << std::endl;
-                    // if( i != inputs.end() ){ std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl; }
-                    // std::cerr << "==> e.cx: " << e.cx << " canvas.cols: " << canvas.cols << " geometry[2]:" << geometry[2] << std::endl;
-                    // std::cerr << "==>    " << e.cx << "," << e.cy << "," << e.rx << "," << e.ry << " " << canvas.rows << "," << canvas.cols << std::endl;
-                    // std::cerr << "==> " << centre.x << "," << centre.y << " " << size.width << "," << size.height << std::endl;
+                    auto how = cv::FILLED; // parametrize: cv::LINE_AA
                     if( i == inputs.end() ) { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 0 ), 1, cv::LINE_AA ); }
-                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 0, 0, 255 ), 3, cv::LINE_AA ); }
+                    else { cv::ellipse( canvas, centre, size, 0, -180, 180, cv::Scalar( 128, 128, 255 ), -1, how ); }
                 }
+                cv::Mat result;
+                cv::min( canvas, svg, result );
                 // todo: states -> color map
-                // csv-paste 'line-number;size=20;index' 'line-number;size=20;index' value=0 | csv-repeat --pace --period 0.1 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
-                output_serialization.write_to_stdout( std::make_pair( now, canvas ), true );
+                // csv-paste 'line-number;size=20;index' 'line-number;size=20;index' value=0 | csv-repeat --pace --period 0.3 | cv-calc graph --svg sample.svg | cv-cat 'view;null'
+                output_serialization.write_to_stdout( std::make_pair( now, result ), true );
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
             previous = std::move( inputs );
