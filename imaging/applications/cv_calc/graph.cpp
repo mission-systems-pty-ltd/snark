@@ -26,11 +26,14 @@ std::string options()
 {
     std::ostringstream oss;
     oss << "        options" << std::endl;
-    oss << "            --input-fields; print csv input fields to stdin and exit (usual csv/binary options supported)" << std::endl;
+    oss << "            --color,--colour=[<r>,<g>,<b>]; use fixed colour, e.g. --colour=255,0,0" << std::endl;
     oss << "            --fps=<n>; given frame rate, otherwise redraw on each input on change" << std::endl;
+    oss << "            --input-fields; print csv input fields to stdin and exit (usual csv/binary options supported)" << std::endl;
     oss << "            --list; list svg graph entities" << std::endl;
+    oss << "            --no-stdout,--null; do not output images to stdout (if --view)" << std::endl;
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
-    oss << "        example" << std::endl;
+    oss << "            --view; view instead of outputting images to stdout" << std::endl;
+    oss << "        examples" << std::endl;
     oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
     oss << "            cat sample.json | name-value-convert --to dot | dot -Tsvg > sample.svg" << std::endl;
     oss << "            csv-random make --type=2ui --range 0,25 \\" << std::endl;
@@ -38,6 +41,10 @@ std::string options()
     oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
     oss << "                | cv-calc graph --svg sample.svg  \\" << std::endl;
     oss << "                | cv-cat 'view;null'" << std::endl;
+    oss << "            csv-random make --type=2ui --range 0,25 \\" << std::endl;
+    oss << "                | csv-paste 'line-number;size=5' - \\" << std::endl;
+    oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
+    oss << "                | cv-calc graph --svg sample.svg --view --null \\" << std::endl;
     return oss.str();
 }
 
@@ -273,6 +280,16 @@ int run( const comma::command_line_options& options )
     comma::csv::options csv( options );
     bool has_block = csv.fields.empty() || csv.has_field( "block" );
     unsigned int fps = options.value( "--fps", 0 );
+    bool view = options.exists( "--view" );
+    bool no_stdout = !options.exists( "--no-stdout,--null" );
+    std::optional< cv::Scalar > colour;
+    std::string colour_string = options.value< std::string >( "--color,--colour", "" );
+    if( !colour_string.empty() )
+    {
+        const auto& v = comma::split_as< float >( colour_string, ',' );
+        COMMA_ASSERT_BRIEF( v.size() == 3, "expected --colour=<r>,<g>,<b> base 256; got '" << colour_string << "'" );
+        colour = cv::Scalar( v[2], v[1], v[0] );
+    }
     cv::Mat svg;
     cv::VideoCapture capture;
     capture.open( filename );
@@ -301,11 +318,12 @@ int run( const comma::command_line_options& options )
                     cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
                     cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
                     auto how = cv::FILLED; // parametrize: cv::LINE_AA
-                    cv::ellipse( canvas, centre, size, 0, -180, 180, colours[i.second.state % colours.size()], -1, how );
+                    cv::ellipse( canvas, centre, size, 0, -180, 180, colour ? *colour : colours[i.second.state % colours.size()], -1, how );
                 }
                 cv::Mat result;
                 cv::min( canvas, svg, result );
-                output_serialization.write_to_stdout( std::make_pair( now, result ), true );
+                if( no_stdout ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
+                if( view ) { cv::imshow( &filename[0], result ); cv::waitKey( 1 ); }
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
             previous = std::move( inputs );
