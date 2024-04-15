@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# our operations will be...
+# view: view a named layout. View available layouts with 'list'  
+# choose: configure the current layout
+# list: list the layouts available 
+# 
+# data model... ? 
+#  we want to specify nested operations.
+#  we can write the view app to dig into the data model and view it. 
+#  should look like some form of name-value-convert
+#  cv-cat or cv-calc can view the rectangles w/ names. 
+#  
+
+
+
+source $( type -p comma-application-util )
+
+operations=( lol roll )
+
+function prologue() { echo "sample application: for a given operation, print parsed command line option values and exit"; }
+
+function epilogue() { echo "example: ./application lol"; }
+
+function options-description() { echo "--some-common-option=[<value>]; default=hello; a sample common option"; }
+
+function lol-description() { echo "laugh out loud"; }
+function lol-usage() { echo "specialised usage: ./application lol [<options>]"; }
+function lol-options() { echo "--how-loud=<value>; default=0; how loud to laugh in dB"; }
+function lol-run() { echo "lol/options/how_loud=$options_how_loud"; }
+
+function roll-description() { echo "roll on the floor"; }
+function roll-options() { echo "--screaming; roll on the floor screaming"; }
+function roll-run() { echo "roll/options/screaming=$options_screaming"; }
+
+comma-application-swiss-init $@ < <( options-description ) || die "failed"
+comma-application-swiss-run $@
+
+
+
+# Examples & food for thought. 
+# { \
+# echo sliders/geometry/x=10; \
+# echo sliders/geometry/y=2; \
+# echo sliders/geometry/width=2; \
+# echo sliders/geometry/height=2; \
+# } | name-value-convert --to json
+# Probably also want the layouts to be able to describe what they are too? 
+# cv-calc blank --output 'cols=1920;rows=1080;type=3ub' | cv-cat 'rectangle=10,20,500,250,255,0,0;text=default,15,20;rectangle=100,50,400,500,0,0,255;view=stay;null'
+# 
+# Geometry will need to have 
+
