@@ -45,6 +45,8 @@ std::string options()
     oss << "                | csv-paste 'line-number;size=5' - \\" << std::endl;
     oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
     oss << "                | cv-calc graph --svg sample.svg --view --null \\" << std::endl;
+    // csv-paste line-number 'line-number;size=5;index;begin=1' value=1 line-number 'line-number;size=5;index;begin=10;step=-1' value=2 | csv-repeat --pace --period 0.1 | csv-shape split -n 3 | cv-calc graph --svg sm.svg --view --null
+    // csv-paste line-number 'line-number;size=5;index;begin=1' value=1 line-number 'line-number;size=5;index;begin=10;step=-1' value=2 | csv-repeat --pace --period 0.1 | csv-shape split -n 3 | cv-calc graph --svg sm.svg | cv-cat 'invert;view;null'
     return oss.str();
 }
 
