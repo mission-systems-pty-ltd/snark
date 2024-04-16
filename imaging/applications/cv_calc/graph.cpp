@@ -345,7 +345,12 @@ int run( const comma::command_line_options& options )
             cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
             auto how = cv::FILLED; // parametrize: cv::LINE_AA
             cv::Scalar c = colour ? *colour : colours[i.second.state % colours.size()];
-            if( fade ) { double d = double( ( now - i.second.t - now ).total_milliseconds() ) / 1000; c = d < *fade ? c : d > *fade ? cv::Scalar( 255, 255, 255 ) : ( c * ( 1. - d / *fade ) ); }
+            if( fade )
+            { 
+                float r = float( ( now - i.second.t ).total_milliseconds() ) / 1000 / *fade;
+                r = r < 0 ? 0 : r > 1 ? 1 : r;
+                c = cv::Scalar( 255, 255, 255 ) * r + c * ( 1. - r );
+            }
             cv::ellipse( canvas, centre, size, 0, -180, 180, c, -1, how );
         }
         {
