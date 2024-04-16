@@ -40,6 +40,7 @@ std::string options()
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
     oss << "            --update-on-each-input,-u; update view on each input, clear on block change" << std::endl;
     oss << "            --view; view instead of outputting images to stdout, use --pass to override the latter" << std::endl;
+    oss << "                    pressing 'p' on the view window will save the current image as <timestamp>.png" << std::endl;
     oss << "            --view-title,--title=[<title>]; if --view, title in titlebar of view window, default: svg filename" << std::endl;
     oss << "            --window-geometry=<x>,<y>[,<width>,<height>]; todo" << std::endl;
     oss << "        examples" << std::endl;
@@ -341,7 +342,7 @@ int run( const comma::command_line_options& options )
     bool view = options.exists( "--view" );
     bool pass = options.exists( "--pass" ) || !view;
     bool status = options.exists( "--status" );
-    unsigned int fps = options.value( "--fps", view ? 25 : 0 );
+    float fps = options.value( "--fps", view ? 25 : 0 );
     auto fade = options.optional< double >( "--fade" );
     COMMA_ASSERT_BRIEF( fps < 1000, "--fps greater than 1000 not supported; got: " << fps );
     bool update_on_each_input = options.exists( "--update-on-each-input,-u" );
@@ -370,13 +371,20 @@ int run( const comma::command_line_options& options )
     bool done{false};
     auto imshow = [&]()
     {
-        cv::Mat m;
+        std::pair< boost::posix_time::ptime, cv::Mat > m;
         while( !( is_shutdown || done ) )
         {
-            { std::scoped_lock lock( mutex ); result.copyTo( m ); }
-            if( pass ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
-            cv::imshow( &title[0], m );
-            cv::waitKey( 1000 / fps );
+            { std::scoped_lock lock( mutex ); m.first = now; result.copyTo( m.second ); }
+            if( pass ) { output_serialization.write_to_stdout( m, true ); }
+            cv::imshow( &title[0], m.second );
+            char c = cv::waitKey( 1000 / fps );
+            if( c == 27 ) { done = true; } // HACK to notify application to exit
+            else if( c == ' ' || c == 'p' )
+            {
+                std::string f = boost::posix_time::to_iso_string( m.first ) + ".png";
+                std::cerr << "cv-calc: graph: screenshot saved to " << f << std::endl;
+                cv::imwrite( f, m.second );
+            }
         }
     };
     auto draw = [&]( boost::posix_time::ptime t )
@@ -441,10 +449,10 @@ int run( const comma::command_line_options& options )
     if( view ) { imshow_thread.emplace( imshow ); }
     comma::io::select select;
     select.read().add( 0 );
-    while( ( istream.ready() || std::cin.good() ) && !is_shutdown )
+    while( ( istream.ready() || std::cin.good() ) && !is_shutdown && !done )
     {
         if( !istream.ready() ) { select.wait( boost::posix_time::milliseconds( 100 ) ); }
-        if( is_shutdown ) { break; }        
+        if( is_shutdown || done ) { break; }        
         bool ready = istream.ready() || select.read().ready( 0 );
         bool block_changed{false};
         const input* p{nullptr};
@@ -452,13 +460,13 @@ int run( const comma::command_line_options& options )
         {
             p = istream.read();
             ++count;
-            now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
+            { std::scoped_lock lock( mutex ); now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time(); } // todo: quick and dirty, better synchronization
             block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
         }
         else
         {
             if( has_time ) { continue; } // not much we can do
-            now = boost::posix_time::microsec_clock::universal_time();
+            { std::scoped_lock lock( mutex ); now = boost::posix_time::microsec_clock::universal_time(); } // todo: quick and dirty, better synchronization
         }
         bool deadline_expired = deadline && now >= *deadline;
         if( update_on_each_input && ready ) { if( !update( p, block_changed ) ) { break; } }
