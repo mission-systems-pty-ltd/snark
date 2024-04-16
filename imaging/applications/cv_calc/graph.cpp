@@ -308,7 +308,6 @@ int run( const comma::command_line_options& options )
     cv::VideoCapture capture;
     capture.open( filename );
     capture >> svg;
-    //std::unordered_map< std::uint32_t, input > previous; // todo?
     std::unordered_map< std::uint32_t, input > inputs;
     comma::csv::input_stream< input > istream( std::cin, csv );
     boost::posix_time::ptime now;
@@ -340,16 +339,16 @@ int run( const comma::command_line_options& options )
         if( !istream.ready() && !select.read().ready( 0 ) ) { continue; }
         auto p = istream.read();
         bool block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
-        bool do_output = update_on_each_input || block_changed;
-        if( update_on_each_input && !block_changed )
+        if( update_on_each_input )
         {
+            if( block_changed ) { inputs.clear(); }
             if( !p ) { break; }
             inputs[p->id] = *p;    
         }
-        if( !do_output ) { continue; }
         now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
         bool deadline_expired = !deadline.is_not_a_date_time() && now >= deadline;
-        if( deadline.is_not_a_date_time() || deadline_expired )
+        bool do_output = update_on_each_input || block_changed || deadline_expired;
+        if( do_output )
         {
             cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
             svg.copyTo( canvas );
@@ -373,10 +372,9 @@ int run( const comma::command_line_options& options )
         }
         if( block_changed )
         {
-            //previous = std::move( inputs );
             if( !p ) { break; }
-            inputs[p->id] = *p;
             inputs.clear();
+            inputs[p->id] = *p;
         }
     }
     done = true;
