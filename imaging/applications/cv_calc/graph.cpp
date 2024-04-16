@@ -4,15 +4,19 @@
 
 #include <fstream>
 #include <sstream>
+#include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <comma/application/signal_flag.h>
 #include <comma/base/exception.h>
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
+#include <comma/io/select.h>
 #include <comma/name_value/parser.h>
 #include <comma/name_value/serialize.h>
 #include <comma/string/string.h>
@@ -27,13 +31,14 @@ std::string options()
     std::ostringstream oss;
     oss << "        options" << std::endl;
     oss << "            --color,--colour=[<r>,<g>,<b>]; use fixed colour, e.g. --colour=255,0,0" << std::endl;
-    oss << "            --fps=<n>; given frame rate, otherwise redraw on each input on change" << std::endl;
+    oss << "            --fps=[<n>]; if --view, default: 25, given frame rate, otherwise redraw on each input on change" << std::endl;
     oss << "            --input-fields; print csv input fields to stdin and exit (usual csv/binary options supported)" << std::endl;
     oss << "            --list; list svg graph entities" << std::endl;
-    oss << "            --no-stdout,--null; do not output images to stdout (if --view)" << std::endl;
+    oss << "            --pass; if --view, still output image to stdout" << std::endl;
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
     oss << "            --update-on-each-input,-u; update view on each input, clear on block change" << std::endl;
-    oss << "            --view; view instead of outputting images to stdout" << std::endl;
+    oss << "            --view; view instead of outputting images to stdout, use --pass to override the latter" << std::endl;
+    oss << "            --window-geometry=<x>,<y>[,<width>,<height>]; todo" << std::endl;
     oss << "        examples" << std::endl;
     oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
     oss << "            cat sample.json | name-value-convert --to dot | dot -Tsvg > sample.svg" << std::endl;
@@ -53,6 +58,7 @@ std::string options()
 
 struct input
 {
+    boost::posix_time::ptime t;
     std::uint32_t block{0};
     std::uint32_t id{0};
     std::uint32_t state{0};
@@ -107,12 +113,14 @@ template <> struct traits< snark::cv_calc::graph::input >
 {
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::graph::input& p, Visitor& v )
     { 
+        v.apply( "t", p.t );
         v.apply( "block", p.block );
         v.apply( "id", p.id );
         v.apply( "state", p.state );
     }
     template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::graph::input& p, Visitor& v )
-    { 
+    {
+        v.apply( "t", p.t );
         v.apply( "block", p.block );
         v.apply( "id", p.id );
         v.apply( "state", p.state );
@@ -280,11 +288,13 @@ int run( const comma::command_line_options& options )
     std::string output_options_string = options.value< std::string >( "--output", "" );
     snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( output_options_string );
     snark::cv_mat::serialization output_serialization( output_options );
-    comma::csv::options csv( options );
+    comma::csv::options csv( options, "block,id,state" );
     bool has_block = csv.fields.empty() || csv.has_field( "block" );
-    unsigned int fps = options.value( "--fps", 0 );
+    bool has_time = csv.fields.empty() || csv.has_field( "t" );
     bool view = options.exists( "--view" );
-    bool no_stdout = !options.exists( "--no-stdout,--null" );
+    bool pass = options.exists( "--pass" ) || !view;
+    unsigned int fps = options.value( "--fps", view ? 25 : 0 );
+    COMMA_ASSERT_BRIEF( fps < 1000, "--fps greater than 1000 not supported; got: " << fps );
     bool update_on_each_input = options.exists( "--update-on-each-input,-u" );
     std::optional< cv::Scalar > colour;
     std::string colour_string = options.value< std::string >( "--color,--colour", "" );
@@ -298,49 +308,79 @@ int run( const comma::command_line_options& options )
     cv::VideoCapture capture;
     capture.open( filename );
     capture >> svg;
-    std::unordered_map< std::uint32_t, input > previous;
+    //std::unordered_map< std::uint32_t, input > previous; // todo?
     std::unordered_map< std::uint32_t, input > inputs;
     comma::csv::input_stream< input > istream( std::cin, csv );
+    boost::posix_time::ptime now;
     boost::posix_time::ptime deadline;
-    while( std::cin.good() || istream.ready() )
+    cv::Mat result;
+    result = cv::Scalar( 255, 255, 255 ) - svg;
+    std::recursive_mutex mutex;
+    comma::signal_flag is_shutdown;
+    bool done{false};
+    auto imshow = [&]()
     {
+        cv::Mat m;
+        while( !( is_shutdown || done ) )
+        {
+            { std::scoped_lock lock( mutex ); result.copyTo( m ); }
+            if( pass ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
+            cv::imshow( &filename[0], m );
+            cv::waitKey( 1000 / fps );
+        }
+    };
+    std::optional< std::thread > imshow_thread;
+    if( view ) { imshow_thread.emplace( imshow ); }
+    comma::io::select select;
+    select.read().add( 0 );
+    while( ( istream.ready() || std::cin.good() ) && !is_shutdown )
+    {
+        if( !istream.ready() ) { select.wait( boost::posix_time::milliseconds( 100 ) ); }
+        if( is_shutdown ) { break; }        
+        if( !istream.ready() && !select.read().ready( 0 ) ) { continue; }
         auto p = istream.read();
         bool block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
         bool do_output = update_on_each_input || block_changed;
-        if( do_output )
+        if( update_on_each_input && !block_changed )
         {
-            bool changed = true; // todo: skip if no change and --on-change
-            auto now = boost::posix_time::microsec_clock::universal_time();
-            if( ( deadline.is_not_a_date_time() || now >= deadline ) && changed )
+            if( !p ) { break; }
+            inputs[p->id] = *p;    
+        }
+        if( !do_output ) { continue; }
+        now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
+        bool deadline_expired = !deadline.is_not_a_date_time() && now >= deadline;
+        if( deadline.is_not_a_date_time() || deadline_expired )
+        {
+            cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
+            svg.copyTo( canvas );
+            for( auto i: inputs )
             {
-                cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
-                svg.copyTo( canvas );
-                for( auto i: inputs )
-                {
-                    auto n = nodes.find( i.first );
-                    if( n == nodes.end() ) { continue; }
-                    auto e = n->second.ellipse.attr; // todo: other shapes
-                    cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
-                    cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
-                    auto how = cv::FILLED; // parametrize: cv::LINE_AA
-                    cv::ellipse( canvas, centre, size, 0, -180, 180, colour ? *colour : colours[i.second.state % colours.size()], -1, how );
-                }
-                cv::Mat result;
+                auto n = nodes.find( i.first );
+                if( n == nodes.end() ) { continue; }
+                auto e = n->second.ellipse.attr; // todo: other shapes
+                cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
+                cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
+                auto how = cv::FILLED; // parametrize: cv::LINE_AA
+                cv::ellipse( canvas, centre, size, 0, -180, 180, colour ? *colour : colours[i.second.state % colours.size()], -1, how );
+            }
+            {
+                std::scoped_lock lock( mutex );
                 cv::min( canvas, svg, result );
                 result = cv::Scalar( 255, 255, 255 ) - result;
-                if( no_stdout ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
-                if( view ) { cv::imshow( &filename[0], result ); cv::waitKey( 1 ); }
-                if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
-            if( block_changed )
-            {
-                previous = std::move( inputs );
-                inputs.clear();
-            }
+            if( !view ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
+            if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
         }
-        if( !p ) { break; }
-        inputs[p->id] = *p;
+        if( block_changed )
+        {
+            //previous = std::move( inputs );
+            if( !p ) { break; }
+            inputs[p->id] = *p;
+            inputs.clear();
+        }
     }
+    done = true;
+    if( view ) { imshow_thread->join(); }
     return 0;
 }
 
