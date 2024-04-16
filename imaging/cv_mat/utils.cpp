@@ -81,6 +81,45 @@ boost::unordered_map< int, std::string > fill_types_as_string_()
     return types;
 }
 
+static std::unordered_map< int, cv::Scalar > _white =
+{
+    { CV_8UC1, cv::Scalar( 255 ) },
+    { CV_8UC2, cv::Scalar( 255, 255 ) },
+    { CV_8UC3, cv::Scalar( 255, 255, 255 ) },
+    { CV_8UC4, cv::Scalar( 255, 255, 255, 255 ) },
+    { CV_8SC1, cv::Scalar( 128 ) },
+    { CV_8SC2, cv::Scalar( 128, 128 ) },
+    { CV_8SC3, cv::Scalar( 128, 128, 128 ) },
+    { CV_8SC4, cv::Scalar( 128, 128, 128, 128 ) },
+    { CV_16UC1, cv::Scalar( 0xffff ) },
+    { CV_16UC2, cv::Scalar( 0xffff, 0xffff ) },
+    { CV_16UC3, cv::Scalar( 0xffff, 0xffff, 0xffff ) },
+    { CV_16UC4, cv::Scalar( 0xffff, 0xffff, 0xffff, 0xffff ) },
+    { CV_16SC1, cv::Scalar( 0x8fff ) },
+    { CV_16SC2, cv::Scalar( 0x8fff, 0x8fff ) },
+    { CV_16SC3, cv::Scalar( 0x8fff, 0x8fff, 0x8fff ) },
+    { CV_16SC4, cv::Scalar( 0x8fff, 0x8fff, 0x8fff, 0x8fff ) },
+    { CV_32SC1, cv::Scalar( 0x8fffffff ) },
+    { CV_32SC2, cv::Scalar( 0x8fffffff, 0x8fffffff ) },
+    { CV_32SC3, cv::Scalar( 0x8fffffff, 0x8fffffff, 0x8fffffff ) },
+    { CV_32SC4, cv::Scalar( 0x8fffffff, 0x8fffffff, 0x8fffffff, 0x8fffffff ) },
+    { CV_32FC1, cv::Scalar( 1. ) },
+    { CV_32FC2, cv::Scalar( 1., 1. ) },
+    { CV_32FC3, cv::Scalar( 1., 1., 1. ) },
+    { CV_32FC4, cv::Scalar( 1., 1., 1., 1. ) },
+    { CV_64FC1, cv::Scalar( 1. ) },
+    { CV_64FC2, cv::Scalar( 1., 1. ) },
+    { CV_64FC3, cv::Scalar( 1., 1., 1. ) },
+    { CV_64FC4, cv::Scalar( 1., 1., 1., 1. ) }
+};
+
+cv::Scalar white( int t )
+{
+    auto i = _white.find( t );
+    COMMA_THROW_IF( i == _white.end(), "white colour is not defined for type: " << t );
+    return i->second;
+}
+
 boost::unordered_map< std::string, unsigned int > fill_cvt_color_types_() // todo: split on comma, otherwise quadratic complexity
 {
     boost::unordered_map<std::string, unsigned int> types;

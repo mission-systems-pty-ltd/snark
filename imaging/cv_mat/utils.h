@@ -19,6 +19,8 @@ unsigned int cvt_color_type_from_string( const std::string& t );
 
 std::string type_as_string( int t );
 
+cv::Scalar white( int t );
+
 std::string make_filename( const boost::posix_time::ptime& t, const std::string& extension, boost::optional< unsigned int > index = boost::none );
 
 void check_image_type( const cv::Mat& m, const std::string& type );
