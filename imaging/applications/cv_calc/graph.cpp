@@ -32,6 +32,7 @@ std::string options()
     oss << "            --list; list svg graph entities" << std::endl;
     oss << "            --no-stdout,--null; do not output images to stdout (if --view)" << std::endl;
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
+    oss << "            --update-on-each-input,-u; update view on each input, clear on block change" << std::endl;
     oss << "            --view; view instead of outputting images to stdout" << std::endl;
     oss << "        examples" << std::endl;
     oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
@@ -284,6 +285,7 @@ int run( const comma::command_line_options& options )
     unsigned int fps = options.value( "--fps", 0 );
     bool view = options.exists( "--view" );
     bool no_stdout = !options.exists( "--no-stdout,--null" );
+    bool update_on_each_input = options.exists( "--update-on-each-input,-u" );
     std::optional< cv::Scalar > colour;
     std::string colour_string = options.value< std::string >( "--color,--colour", "" );
     if( !colour_string.empty() )
@@ -303,7 +305,8 @@ int run( const comma::command_line_options& options )
     while( std::cin.good() || istream.ready() )
     {
         auto p = istream.read();
-        bool do_output = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
+        bool block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
+        bool do_output = update_on_each_input || block_changed;
         if( do_output )
         {
             bool changed = true; // todo: skip if no change and --on-change
@@ -329,8 +332,11 @@ int run( const comma::command_line_options& options )
                 if( view ) { cv::imshow( &filename[0], result ); cv::waitKey( 1 ); }
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
             }
-            previous = std::move( inputs );
-            inputs.clear();
+            if( block_changed )
+            {
+                previous = std::move( inputs );
+                inputs.clear();
+            }
         }
         if( !p ) { break; }
         inputs[p->id] = *p;

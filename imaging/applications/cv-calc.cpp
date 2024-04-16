@@ -1074,7 +1074,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         verbose = options.exists( "--verbose,-v" );
         //std::vector< std::string > unnamed = options.unnamed("-h,--help,-v,--verbose,--flush,--input-fields,--input-format,--output-fields,--output-format,--show-partial", "--fields,--binary,--input,--output,--strides,--padding,--shape,--size,--kernel");
-        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null", "-.*" );
+        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u", "-.*" );
         if( unnamed.empty() ) { std::cerr << name << "please specify operation" << std::endl; return 1; }
         if( unnamed.size() > 1 ) { std::cerr << name << "please specify only one operation, got " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
         std::string operation = unnamed.front();
