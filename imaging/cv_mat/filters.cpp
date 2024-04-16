@@ -1236,10 +1236,12 @@ struct count_impl_
 };
 
 template < typename H >
-static typename impl::filters< H >::value_type invert_impl_( const typename impl::filters< H >::value_type& m )
+static typename impl::filters< H >::value_type invert_impl_( typename impl::filters< H >::value_type m )
 {
-    if( m.second.type() != CV_8UC1 && m.second.type() != CV_8UC2 && m.second.type() != CV_8UC3 && m.second.type() != CV_8UC4 ) { COMMA_THROW( comma::exception, "expected image type ub, 2ub, 3ub, 4ub; got: " << type_as_string( m.second.type() ) ); }
-    for( unsigned char* c = const_cast< unsigned char* >( m.second.datastart ); c < m.second.dataend; *c = 255 - *c, ++c );
+    //if( m.second.type() != CV_8UC1 && m.second.type() != CV_8UC2 && m.second.type() != CV_8UC3 && m.second.type() != CV_8UC4 ) { COMMA_THROW( comma::exception, "expected image type ub, 2ub, 3ub, 4ub; got: " << type_as_string( m.second.type() ) ); }
+    //for( unsigned char* c = const_cast< unsigned char* >( m.second.datastart ); c < m.second.dataend; *c = 255 - *c, ++c );
+    //m.second = cv::Scalar( 255, 255, 255 );
+    m.second = cv_mat::white( m.second.type() ) - m.second;
     return m;
 }
 
