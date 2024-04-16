@@ -43,17 +43,19 @@ std::string options()
     oss << "            --view-title,--title=[<title>]; if --view, title in titlebar of view window, default: svg filename" << std::endl;
     oss << "            --window-geometry=<x>,<y>[,<width>,<height>]; todo" << std::endl;
     oss << "        examples" << std::endl;
-    oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
-    oss << "            cat sample.json | name-value-convert --to dot | dot -Tsvg > sample.svg" << std::endl;
-    oss << "            csv-random make --type=2ui --range 0,25 \\" << std::endl;
-    oss << "                | csv-paste 'line-number;size=5' - \\" << std::endl;
-    oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
-    oss << "                | cv-calc graph --svg sample.svg  \\" << std::endl;
-    oss << "                | cv-cat 'view;null'" << std::endl;
-    oss << "            csv-random make --type=2ui --range 0,25 \\" << std::endl;
-    oss << "                | csv-paste 'line-number;size=5' - \\" << std::endl;
-    oss << "                | csv-repeat --pace --period 0.05 \\" << std::endl;
-    oss << "                | cv-calc graph --svg sample.svg --view --null \\" << std::endl;
+    oss << "            make a sample svg" << std::endl;
+    oss << "                see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
+    oss << "                cat sample.json | name-value-convert --to dot | dot -Tsvg > sample.svg" << std::endl;
+    oss << "            basics" << std::endl;
+    oss << "                csv-random make --type=2ui --range 0,25 \\" << std::endl;
+    oss << "                    | csv-paste 'line-number;size=5' - \\" << std::endl;
+    oss << "                    | csv-repeat --pace --period 0.05 \\" << std::endl;
+    oss << "                    | cv-calc graph --svg sample.svg --view \\" << std::endl;
+    oss << "            status bar, colour fading" << std::endl;
+    oss << "                csv-random make --type=2ui --range 0,25 \\" << std::endl;
+    oss << "                    | csv-paste 'line-number;size=5' - \\" << std::endl;
+    oss << "                    | csv-repeat --pace --period 1 \\" << std::endl;
+    oss << "                    | cv-calc graph --svg sample.svg --view --status --fade=1 --update-on-each-input \\" << std::endl;
     // csv-paste line-number 'line-number;size=5;index;begin=1' value=1 line-number 'line-number;size=5;index;begin=10;step=-1' value=2 | csv-repeat --pace --period 0.1 | csv-shape split -n 3 | cv-calc graph --svg sm.svg --view --null
     // csv-paste line-number 'line-number;size=5;index;begin=1' value=1 line-number 'line-number;size=5;index;begin=10;step=-1' value=2 | csv-repeat --pace --period 0.1 | csv-shape split -n 3 | cv-calc graph --svg sm.svg | cv-cat 'invert;view;null'
     return oss.str();
