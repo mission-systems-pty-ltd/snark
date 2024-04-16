@@ -213,14 +213,14 @@ template <> struct traits< snark::cv_calc::graph::svg_t::graph_t >
 namespace snark { namespace cv_calc { namespace graph {
 
 // todo: better colour map
-// todo: colour map from command line options
-static std::unordered_map< unsigned int, cv::Scalar > colours = { { 0, cv::Scalar( 255, 255, 255 ) }
-                                                                , { 1, cv::Scalar( 190, 190, 255 ) }
-                                                                , { 2, cv::Scalar( 190, 255, 190 ) }
-                                                                , { 3, cv::Scalar( 255, 190, 190 ) }
-                                                                , { 4, cv::Scalar( 255, 190, 255 ) }
-                                                                , { 5, cv::Scalar( 190, 255, 255 ) }
-                                                                , { 6, cv::Scalar( 255, 255, 190 ) } };
+// todo: --colours: colour map from command line options
+static std::unordered_map< unsigned int, cv::Scalar > colours = { { 0, cv::Scalar( 220, 220, 220 ) }
+                                                                , { 1, cv::Scalar( 160, 160, 220 ) }
+                                                                , { 2, cv::Scalar( 160, 220, 160 ) }
+                                                                , { 3, cv::Scalar( 220, 160, 160 ) }
+                                                                , { 4, cv::Scalar( 220, 160, 220 ) }
+                                                                , { 5, cv::Scalar( 160, 220, 220 ) }
+                                                                , { 6, cv::Scalar( 220, 220, 160 ) } };
 
 int run( const comma::command_line_options& options )
 {
@@ -290,7 +290,7 @@ int run( const comma::command_line_options& options )
     {
         const auto& v = comma::split_as< float >( colour_string, ',' );
         COMMA_ASSERT_BRIEF( v.size() == 3, "expected --colour=<r>,<g>,<b> base 256; got '" << colour_string << "'" );
-        colour = cv::Scalar( v[2], v[1], v[0] );
+        colour = cv::Scalar( 255 - v[2], 255 - v[1], 255 - v[0] );
     }
     cv::Mat svg;
     cv::VideoCapture capture;
@@ -324,6 +324,7 @@ int run( const comma::command_line_options& options )
                 }
                 cv::Mat result;
                 cv::min( canvas, svg, result );
+                result = cv::Scalar( 255, 255, 255 ) - result;
                 if( no_stdout ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
                 if( view ) { cv::imshow( &filename[0], result ); cv::waitKey( 1 ); }
                 if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
