@@ -338,6 +338,7 @@ int run( const comma::command_line_options& options )
     bool has_time = csv.fields.empty() || csv.has_field( "t" );
     bool view = options.exists( "--view" );
     bool pass = options.exists( "--pass" ) || !view;
+    bool status = options.exists( "--status" );
     unsigned int fps = options.value( "--fps", view ? 25 : 0 );
     auto fade = options.optional< double >( "--fade" );
     COMMA_ASSERT_BRIEF( fps < 1000, "--fps greater than 1000 not supported; got: " << fps );
@@ -362,6 +363,7 @@ int run( const comma::command_line_options& options )
     cv::Mat result;
     result = cv::Scalar( 255, 255, 255 ) - svg;
     std::recursive_mutex mutex;
+    std::uint64_t count{0};
     comma::signal_flag is_shutdown;
     bool done{false};
     auto imshow = [&]()
@@ -375,10 +377,14 @@ int run( const comma::command_line_options& options )
             cv::waitKey( 1000 / fps );
         }
     };
-    auto draw = [&]()
+    auto draw = [&]( boost::posix_time::ptime t )
     {
-        cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 ); // todo? reallocate
-        svg.copyTo( canvas );
+        int rows = svg.rows + ( status ? 40 : 0 ); 
+        static cv::Mat canvas( rows, svg.cols, CV_8UC3 );
+        canvas = cv::Scalar( 255, 255, 255 ); // quick and dirty, watch performance
+        static cv::Mat overlay( rows, svg.cols, CV_8UC3 ); // todo! make once and reuse
+        overlay = cv::Scalar( 255, 255, 255 ); // quick and dirty, watch performance
+        svg.copyTo( overlay( cv::Rect( 0, 0, svg.cols, svg.rows ) ) );
         for( auto i: inputs )
         {
             auto n = nodes.find( i.first );
@@ -407,9 +413,16 @@ int run( const comma::command_line_options& options )
                 cv::ellipse( canvas, centre, size, 0, -180, 180, c, -1, how );
             }
         }
+        if( status )
+        {
+            //static boost::posix_time::ptime start = t;
+            //rate += ( inputs.size() - average_input_size ) * 0.5;
+            cv::putText( canvas, boost::posix_time::to_iso_string( t ).substr( 0, 18 ), cv::Point( 10, canvas.rows - 10 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( 64, 64, 64 ), 1, cv::LINE_AA );
+            cv::putText( canvas, "inputs: " + boost::lexical_cast< std::string >( count ), cv::Point( 170, canvas.rows - 10 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( 64, 64, 64 ), 1, cv::LINE_AA );
+        }
         {
             std::scoped_lock lock( mutex );
-            cv::min( canvas, svg, result );
+            cv::min( canvas, overlay, result );
             result = cv::Scalar( 255, 255, 255 ) - result;
         }
     };
@@ -436,6 +449,7 @@ int run( const comma::command_line_options& options )
         if( ready )
         {
             p = istream.read();
+            ++count;
             now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
             block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
         }
@@ -448,7 +462,7 @@ int run( const comma::command_line_options& options )
         if( update_on_each_input && ready ) { if( !update( p, block_changed ) ) { break; } }
         if( update_on_each_input || block_changed || deadline_expired )
         {
-            draw();
+            draw( now );
             if( !view ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
             if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
         }
