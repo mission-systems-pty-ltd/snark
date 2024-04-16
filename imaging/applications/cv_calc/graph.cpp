@@ -40,6 +40,7 @@ std::string options()
     oss << "            --svg=<image>; background svg image created using graphviz dot and transparent fill" << std::endl;
     oss << "            --update-on-each-input,-u; update view on each input, clear on block change" << std::endl;
     oss << "            --view; view instead of outputting images to stdout, use --pass to override the latter" << std::endl;
+    oss << "            --view-title,--title=[<title>]; if --view, title in titlebar of view window, default: svg filename" << std::endl;
     oss << "            --window-geometry=<x>,<y>[,<width>,<height>]; todo" << std::endl;
     oss << "        examples" << std::endl;
     oss << "            see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
@@ -277,6 +278,7 @@ int run( const comma::command_line_options& options )
 {
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >(), ',' ) << std::endl; return 0; }
     std::string filename = options.value< std::string >( "--svg" );
+    std::string title = options.value( "--view-title,--title", filename );
     auto graph = comma::read_xml< svg_t::graph_t >( filename, "svg" );
     if( options.exists( "--list" ) )
     {
@@ -369,7 +371,7 @@ int run( const comma::command_line_options& options )
         {
             { std::scoped_lock lock( mutex ); result.copyTo( m ); }
             if( pass ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
-            cv::imshow( &filename[0], m );
+            cv::imshow( &title[0], m );
             cv::waitKey( 1000 / fps );
         }
     };
