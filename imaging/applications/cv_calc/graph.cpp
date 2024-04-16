@@ -32,6 +32,8 @@ std::string options()
     oss << "        options" << std::endl;
     oss << "            --color,--colour=[<r>,<g>,<b>]; use fixed colour, e.g. --colour=255,0,0" << std::endl;
     oss << "            --fps=[<n>]; if --view, default: 25, given frame rate, otherwise redraw on each input on change" << std::endl;
+    oss << "            --fade=[<seconds>]; if node state does not change, node colour into oblivion until next block arrives" << std::endl;
+    //oss << "            --list; list svg graph entities" << std::endl;
     oss << "            --input-fields; print csv input fields to stdin and exit (usual csv/binary options supported)" << std::endl;
     oss << "            --list; list svg graph entities" << std::endl;
     oss << "            --pass; if --view, still output image to stdout" << std::endl;
@@ -294,6 +296,7 @@ int run( const comma::command_line_options& options )
     bool view = options.exists( "--view" );
     bool pass = options.exists( "--pass" ) || !view;
     unsigned int fps = options.value( "--fps", view ? 25 : 0 );
+    auto fade = options.optional< double >( "--fade" );
     COMMA_ASSERT_BRIEF( fps < 1000, "--fps greater than 1000 not supported; got: " << fps );
     bool update_on_each_input = options.exists( "--update-on-each-input,-u" );
     std::optional< cv::Scalar > colour;
@@ -309,9 +312,10 @@ int run( const comma::command_line_options& options )
     capture.open( filename );
     capture >> svg;
     std::unordered_map< std::uint32_t, input > inputs;
+    //std::unordered_map< std::uint32_t, std::pair<  > > 
     comma::csv::input_stream< input > istream( std::cin, csv );
     boost::posix_time::ptime now;
-    boost::posix_time::ptime deadline;
+    std::optional< boost::posix_time::ptime > deadline;
     cv::Mat result;
     result = cv::Scalar( 255, 255, 255 ) - svg;
     std::recursive_mutex mutex;
@@ -328,6 +332,37 @@ int run( const comma::command_line_options& options )
             cv::waitKey( 1000 / fps );
         }
     };
+    auto draw = [&]()
+    {
+        cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 ); // todo? reallocate
+        svg.copyTo( canvas );
+        for( auto i: inputs )
+        {
+            auto n = nodes.find( i.first );
+            if( n == nodes.end() ) { continue; }
+            auto e = n->second.ellipse.attr; // todo: other shapes
+            cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
+            cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
+            auto how = cv::FILLED; // parametrize: cv::LINE_AA
+            cv::Scalar c = colour ? *colour : colours[i.second.state % colours.size()];
+            if( fade ) { double d = double( ( i.second.t - now ).total_milliseconds() ) / 1000; c = d < *fade ? c : d > *fade ? cv::Scalar( 255, 255, 255 ) : ( c * ( 1. - d / *fade ) ); }
+            cv::ellipse( canvas, centre, size, 0, -180, 180, c, -1, how );
+        }
+        {
+            std::scoped_lock lock( mutex );
+            cv::min( canvas, svg, result );
+            result = cv::Scalar( 255, 255, 255 ) - result;
+        }
+    };
+    auto update = [&]( const input* p, bool clear )->bool
+    {
+        if( !p ) { return false; }
+        if( clear ) { inputs.clear(); }
+        auto& i = inputs[p->id];
+        i = *p;
+        i.t = now;
+        return true;
+    };
     std::optional< std::thread > imshow_thread;
     if( view ) { imshow_thread.emplace( imshow ); }
     comma::io::select select;
@@ -336,46 +371,29 @@ int run( const comma::command_line_options& options )
     {
         if( !istream.ready() ) { select.wait( boost::posix_time::milliseconds( 100 ) ); }
         if( is_shutdown ) { break; }        
-        if( !istream.ready() && !select.read().ready( 0 ) ) { continue; }
-        auto p = istream.read();
-        bool block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
-        if( update_on_each_input )
+        bool ready = istream.ready() || select.read().ready( 0 );
+        bool block_changed{false};
+        const input* p{nullptr};
+        if( ready )
         {
-            if( block_changed ) { inputs.clear(); }
-            if( !p ) { break; }
-            inputs[p->id] = *p;    
+            p = istream.read();
+            now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
+            block_changed = ( !p && has_block ) || ( p && !has_block ) || ( p && !inputs.empty() && p->block != inputs.begin()->second.block );
         }
-        now = has_time ? p ? p->t : now : boost::posix_time::microsec_clock::universal_time();
-        bool deadline_expired = !deadline.is_not_a_date_time() && now >= deadline;
-        bool do_output = update_on_each_input || block_changed || deadline_expired;
-        if( do_output )
+        else
         {
-            cv::Mat canvas; //cv::Mat canvas = cv::Mat::zeros( svg.rows, svg.cols, CV_8UC3 );
-            svg.copyTo( canvas );
-            for( auto i: inputs )
-            {
-                auto n = nodes.find( i.first );
-                if( n == nodes.end() ) { continue; }
-                auto e = n->second.ellipse.attr; // todo: other shapes
-                cv::Point centre( ( e.cx + translate.x ) / geometry[2] * svg.cols, (  e.cy + translate.y ) / geometry[3] * svg.rows ); // todo: precalculate
-                cv::Size size( e.rx / geometry[2] * svg.cols, e.ry / geometry[3] * svg.rows ); // todo: precalculate
-                auto how = cv::FILLED; // parametrize: cv::LINE_AA
-                cv::ellipse( canvas, centre, size, 0, -180, 180, colour ? *colour : colours[i.second.state % colours.size()], -1, how );
-            }
-            {
-                std::scoped_lock lock( mutex );
-                cv::min( canvas, svg, result );
-                result = cv::Scalar( 255, 255, 255 ) - result;
-            }
+            if( has_time ) { continue; } // not much we can do
+            now = boost::posix_time::microsec_clock::universal_time();
+        }
+        bool deadline_expired = deadline && now >= *deadline;
+        if( update_on_each_input && ready ) { if( !update( p, block_changed ) ) { break; } }
+        if( update_on_each_input || block_changed || deadline_expired )
+        {
+            draw();
             if( !view ) { output_serialization.write_to_stdout( std::make_pair( now, result ), true ); }
             if( fps > 0 ) { deadline = now + boost::posix_time::microseconds( long( 1000000. / fps ) ); }
         }
-        if( block_changed )
-        {
-            if( !p ) { break; }
-            inputs.clear();
-            inputs[p->id] = *p;
-        }
+        if( ready ) { if( !update( p, block_changed ) ) { break; } }
     }
     done = true;
     if( view ) { imshow_thread->join(); }
