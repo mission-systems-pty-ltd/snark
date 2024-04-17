@@ -378,7 +378,7 @@ int run( const comma::command_line_options& options )
             if( pass ) { output_serialization.write_to_stdout( m, true ); }
             cv::imshow( &title[0], m.second );
             char c = cv::waitKey( 1000 / fps );
-            if( c == 27 ) { done = true; } // HACK to notify application to exit
+            if( c == 27 || c == 119 ) { done = true; } // ctrl-w: 119
             else if( c == ' ' || c == 'p' )
             {
                 std::string f = boost::posix_time::to_iso_string( m.first ) + ".png";
