@@ -145,9 +145,10 @@ class main_window : public QWidget
         sliders_t sliders;
 
         main_window()
-            : _esc( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( _exit_hard() ) ) )
-            , _ctrl_p( new QShortcut( QKeySequence( tr( "Ctrl+P" ) ), this, SLOT( _print_current_values() ) ) )
-            , _ctrl_r( new QShortcut( QKeySequence( tr( "Ctrl+R" ) ), this, SLOT( _reset() ) ) )
+            : _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( _exit_hard() ) )
+            , _ctrl_p( QKeySequence( tr( "Ctrl+P" ) ), this, SLOT( _print_current_values() ) )
+            , _ctrl_r( QKeySequence( tr( "Ctrl+R" ) ), this, SLOT( _reset() ) )
+            , _ctrl_w( QKeySequence( tr( "Ctrl+W" ) ), this, SLOT( _exit_hard() ) )
         {
         }
 
@@ -167,9 +168,10 @@ class main_window : public QWidget
         void _reset() { for( auto& slider: sliders ) { slider->reset(); } }
         
     private:
-        QShortcut* _esc{nullptr};
-        QShortcut* _ctrl_p{nullptr};
-        QShortcut* _ctrl_r{nullptr};
+        QShortcut _escape;
+        QShortcut _ctrl_p;
+        QShortcut _ctrl_r;
+        QShortcut _ctrl_w;
 };
 
 } } } // namespace snark { namespace graphics { namespace sliders {
