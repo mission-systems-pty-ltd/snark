@@ -74,6 +74,7 @@ main_window::main_window( const QApplication& application
                         , const std::string& on_exit_options )
     : _application ( application )
     , _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
+    , _ctrl_w( QKeySequence( tr( "Ctrl+W" ) ), this, SLOT( close() ) )
     , _print_window_geometry( QKeySequence( tr( "Ctrl+G" ) ), this, SLOT( print_window_geometry() ) )
     , _screenshot( QKeySequence( tr( "P" ) ), this, SLOT( screenshot() ) )
 {

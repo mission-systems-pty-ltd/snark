@@ -83,7 +83,7 @@ std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
     if( _capture_on_exit ) { _last.first = _get_timestamp( m.first ); m.second.copyTo( _last.second ); } // todo: quick and dirty, watch performance
     cv::imshow( &_name[0], m.second );
     char c = cv::waitKey( _delay );
-    if( c == 27 ) { return std::pair< H, cv::Mat >(); } // HACK to notify application to exit
+    if( c == 27 || c == 119 ) { return std::pair< H, cv::Mat >(); } // HACK: <esc> or ctrl-w to notify application to exit
     if( c == ' ' || c == 'p' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
     else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
     else if( c == 's' ) { cv::waitKey( -1 ); }

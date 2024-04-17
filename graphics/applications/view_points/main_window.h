@@ -47,7 +47,8 @@ class MainWindow : public QMainWindow
         typedef std::map< std::string, std::vector< CheckBox* > > FileGroupMap;
         FileGroupMap m_userGroups; // quick and dirty
         FileGroupMap m_fieldsGroups; // quick and dirty
-        QShortcut* _escape{nullptr};
+        QShortcut _escape;
+        QShortcut _ctrl_w;
 
         void closeEvent( QCloseEvent* event );
         void updateFileFrame();

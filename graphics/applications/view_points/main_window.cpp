@@ -28,7 +28,8 @@ MainWindow::MainWindow( const std::string& title
     : controller( c )
     , _file_frame_visible( !minimalistic && controller->readers.size() > 1 )
     , _show_fields( show_fields )
-    , _escape( new QShortcut( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) ) )
+    , _escape( QKeySequence( Qt::Key_Escape ), this, SLOT( close() ) )
+    , _ctrl_w( QKeySequence( tr( "Ctrl+W" ) ), this, SLOT( close() ) )
 {
     QMenu* file_menu = menuBar()->addMenu( "File" );
     menuBar()->addMenu( file_menu );

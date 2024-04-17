@@ -50,6 +50,7 @@ class main_window: public QMainWindow
         charts_t charts_;
         std::string pass_through_stream_name_;
         QShortcut _escape;
+        QShortcut _ctrl_w;
         QShortcut _print_window_geometry;
         QShortcut _screenshot;
 
