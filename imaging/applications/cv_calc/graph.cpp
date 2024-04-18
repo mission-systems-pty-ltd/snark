@@ -42,7 +42,7 @@ std::string options()
     oss << "            --view; view instead of outputting images to stdout, use --pass to override the latter" << std::endl;
     oss << "                    pressing 'p' on the view window will save the current image as <timestamp>.png" << std::endl;
     oss << "            --view-title,--title=[<title>]; if --view, title in titlebar of view window, default: svg filename" << std::endl;
-    oss << "            --window-geometry=<x>,<y>[,<width>,<height>]; todo" << std::endl;
+    oss << "            --window-geometry=<x>,<y>[,<width>,<height>]" << std::endl;
     oss << "        examples" << std::endl;
     oss << "            make a sample svg" << std::endl;
     oss << "                see: https://gitlab.com/orthographic/comma/-/wikis/name_value/visualizing-key-value-data-as-a-graph" << std::endl;
@@ -315,7 +315,7 @@ int run( const comma::command_line_options& options )
     cv::Point translate( 0, 0 );
     if( !transform.empty() ) // quick and dirty, svg decided why make it easy?
     {
-        for( unsigned int i = 0; i < transform.size(); ++i )
+        for( unsigned int i = 0; i < transform.size(); ++i ) // todo! support scale!
         {
             if( transform[i] == '(' && i > 9 && transform.substr( i - 9, 9 ) == "translate" )
             {
@@ -354,6 +354,17 @@ int run( const comma::command_line_options& options )
         COMMA_ASSERT_BRIEF( v.size() == 3, "expected --colour=<r>,<g>,<b> base 256; got '" << colour_string << "'" );
         colour = cv::Scalar( 255 - v[2], 255 - v[1], 255 - v[0] );
     }
+    std::pair< int, int > window_position{0, 0};
+    std::optional< std::pair< unsigned int, unsigned int > > window_size;
+    const auto& g = comma::split_as< int >( options.value< std::string >( "--window-geometry", "0,0" ), ',' );
+    switch( g.size() )
+    {
+        case 1: window_position = { g[0], 0 }; break;
+        case 2: window_position = { g[0], g[1] }; break;
+        case 3: window_position = { g[0], g[1] }; window_size = { g[2], 0 }; break;
+        case 4: window_position = { g[0], g[1] }; window_size = { g[2], g[3] }; break;
+        default: COMMA_THROW_BRIEF( comma::exception, "expected --window-geometry=<x>,<y>[,<width>,<height>]; got: --window-geometry=" << comma::join( g, ',' ) );
+    }
     cv::Mat svg;
     cv::VideoCapture capture;
     capture.open( filename );
@@ -376,7 +387,7 @@ int run( const comma::command_line_options& options )
         {
             { std::scoped_lock lock( mutex ); m.first = now; result.copyTo( m.second ); }
             if( pass ) { output_serialization.write_to_stdout( m, true ); }
-            cv::imshow( &title[0], m.second );
+            cv::imshow( &filename[0], m.second );
             char c = cv::waitKey( 1000 / fps );
             if( c == 27 || c == 119 ) { done = true; } // ctrl-w: 119
             else if( c == ' ' || c == 'p' )
@@ -390,6 +401,8 @@ int run( const comma::command_line_options& options )
     auto draw = [&]( boost::posix_time::ptime t )
     {
         int rows = svg.rows + ( status ? svg.cols > 400 ? 40 : 80 : 0 );
+        //static cv::Mat background( window_size->second, window_size->first, CV_8UC3 );
+        //background = cv::Scalar( 255, 255, 255 ); // quick and dirty, watch performance
         static cv::Mat canvas( rows, svg.cols, CV_8UC3 );
         canvas = cv::Scalar( 255, 255, 255 ); // quick and dirty, watch performance
         static cv::Mat overlay( rows, svg.cols, CV_8UC3 ); // todo! make once and reuse
@@ -434,8 +447,7 @@ int run( const comma::command_line_options& options )
             cv::Scalar text_color( 100, 100, 100 );
             cv::putText( canvas, boost::posix_time::to_iso_string( t ).substr( 0, 18 ), p0, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
             cv::putText( canvas, "inputs: " + boost::lexical_cast< std::string >( count ), p1, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
-            cv::putText( canvas, "updated: " + ( last.is_not_a_date_time() ? "never" : boost::lexical_cast< std::string >( ( t - last ).seconds() ) + "." + boost::lexical_cast< std::string >( ( t - last ).total_milliseconds() % 1000 ) ), p2, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
-            if( !last.is_not_a_date_time() ) { cv::putText( canvas, "sec ago", p2 + cv::Point( 120, 0 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA ); }
+            cv::putText( canvas, "updated (sec ago): " + ( last.is_not_a_date_time() ? "no input yet" : boost::lexical_cast< std::string >( ( t - last ).seconds() ) + "." + boost::lexical_cast< std::string >( ( t - last ).total_milliseconds() % 1000 ) ), p2, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
             if( last_count < count ) { last = t; }
             last_count = count;
         }
@@ -443,6 +455,7 @@ int run( const comma::command_line_options& options )
             std::scoped_lock lock( mutex );
             cv::min( canvas, overlay, result );
             result = cv::Scalar( 255, 255, 255 ) - result;
+            // if( window_size ) { cv::resize( result, result, cv::Size( window_size->first, window_size->second ) ); }
         }
     };
     auto update = [&]( const input* p, bool clear )->bool
@@ -455,7 +468,29 @@ int run( const comma::command_line_options& options )
         return true;
     };
     std::optional< std::thread > imshow_thread;
-    if( view ) { imshow_thread.emplace( imshow ); }
+    if( view )
+    {
+        #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
+            cv::namedWindow( filename );
+        #else
+            cv::namedWindow( &filename[0], window_size ? cv::WINDOW_NORMAL | cv::WINDOW_KEEPRATIO : ( cv::WINDOW_AUTOSIZE | cv::WINDOW_NORMAL ) ); //cv::WINDOW_AUTOSIZE | cv::WINDOW_NORMAL );
+            int rows = svg.rows + ( status ? svg.cols > 400 ? 40 : 80 : 0 );
+            if( window_size )
+            { 
+                if( window_size->first == 0 ) { window_size->first = ( svg.cols * window_size->second ) / rows; }
+                if( window_size->second == 0 ) { window_size->second = ( rows * window_size->first ) / svg.cols; }
+            }
+            else
+            { 
+                window_size = { svg.cols, rows };
+            }
+            //window_size->second += ( status ? window_size->first > 400 ? 40 : 80 : 0 );
+            cv::setWindowTitle( &filename[0], &title[0] );
+            cv::moveWindow( &filename[0], window_position.first, window_position.second );
+            cv::resizeWindow( &filename[0], window_size->first, window_size->second );
+        #endif
+        imshow_thread.emplace( imshow );
+    }
     comma::io::select select;
     select.read().add( 0 );
     while( ( istream.ready() || std::cin.good() ) && !is_shutdown && !done )
