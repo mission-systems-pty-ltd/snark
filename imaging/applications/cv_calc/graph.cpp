@@ -389,7 +389,7 @@ int run( const comma::command_line_options& options )
     };
     auto draw = [&]( boost::posix_time::ptime t )
     {
-        int rows = svg.rows + ( status ? 40 : 0 ); 
+        int rows = svg.rows + ( status ? svg.cols > 400 ? 40 : 80 : 0 );
         static cv::Mat canvas( rows, svg.cols, CV_8UC3 );
         canvas = cv::Scalar( 255, 255, 255 ); // quick and dirty, watch performance
         static cv::Mat overlay( rows, svg.cols, CV_8UC3 ); // todo! make once and reuse
@@ -425,10 +425,19 @@ int run( const comma::command_line_options& options )
         }
         if( status )
         {
+            static std::uint64_t last_count = count;
+            static boost::posix_time::ptime last;
             //static boost::posix_time::ptime start = t;
             //rate += ( inputs.size() - average_input_size ) * 0.5;
-            cv::putText( canvas, boost::posix_time::to_iso_string( t ).substr( 0, 18 ), cv::Point( 10, canvas.rows - 10 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( 64, 64, 64 ), 1, cv::LINE_AA );
-            cv::putText( canvas, "inputs: " + boost::lexical_cast< std::string >( count ), cv::Point( 170, canvas.rows - 10 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( 64, 64, 64 ), 1, cv::LINE_AA );
+            cv::Point p0{10, canvas.rows - 11}, p1{170, canvas.rows - 11}, p2{280, canvas.rows - 11};
+            if( svg.cols <= 400 ) { p0 = {10, canvas.rows - 51}, p1 = {10, canvas.rows - 31}, p2 = {10, canvas.rows - 11}; }
+            cv::Scalar text_color( 100, 100, 100 );
+            cv::putText( canvas, boost::posix_time::to_iso_string( t ).substr( 0, 18 ), p0, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
+            cv::putText( canvas, "inputs: " + boost::lexical_cast< std::string >( count ), p1, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
+            cv::putText( canvas, "updated: " + ( last.is_not_a_date_time() ? "never" : boost::lexical_cast< std::string >( ( t - last ).seconds() ) + "." + boost::lexical_cast< std::string >( ( t - last ).total_milliseconds() % 1000 ) ), p2, cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA );
+            if( !last.is_not_a_date_time() ) { cv::putText( canvas, "sec ago", p2 + cv::Point( 120, 0 ), cv::FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1, cv::LINE_AA ); }
+            if( last_count < count ) { last = t; }
+            last_count = count;
         }
         {
             std::scoped_lock lock( mutex );
