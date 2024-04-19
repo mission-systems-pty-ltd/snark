@@ -37,7 +37,7 @@ define('TextFeed', ["jquery", "Feed"], function ($) {
         this.base = Feed;
         this.base(feed_name, feed_path, config);
         this.height = this.config.height == undefined ? 0 : this.config.height;
-        // todo: this.width = this.config.width == undefined ? 0 : this.config.width;
+        this.width = this.config.width == undefined ? 0 : this.config.width; // todo: this.width = this.config.width == undefined ? 0 : this.config.width;
     };
     TextFeed.prototype = Object.create(Feed.prototype);
     TextFeed.prototype.load = function () {
