@@ -54,23 +54,28 @@ define('TextFeed', ["jquery", "Feed"], function ($) {
         if( this.height > 0 ) { this.target.height( this.height ); }
         // todo: if( this.width > 0 ) { this.target.width( this.width ); }
     };
-    TextFeed.prototype.onload_ = function (data) {
+    TextFeed.prototype.onload_ = function (data)
+    {
         if (data && data.length && data[data.length - 1] == '\n') { data = data.substring(0, data.length - 1); }
         var orig_data = data;
         data = data ? data : '&nbsp;';
         if (this.form_show_buttons) {
             var panel = $(this.target).find(".text-pre");
-            if (panel.length > 0) {
+            if (panel.length > 0)
+            {
                 $(panel).html(data);
             }
-            else {
+            else
+            {
                 this.target.append('<tr><td><pre class="text-pre">' + data + '</pre></td></tr>');
                 panel = $(this.target).find(".text-pre");
             }
-            if (orig_data) {
+            if (orig_data)
+            {
                 $(panel).css("overflow-y", "scroll");
             }
-            else {
+            else
+            {
                 $(panel).css("overflow", "auto");
             }
             var this_ = this;
@@ -80,7 +85,8 @@ define('TextFeed', ["jquery", "Feed"], function ($) {
             this.draw();
             $(panel).scrollTop($(panel)[0].scrollHeight);
         }
-        else {
+        else
+        {
             this.target.append('<tr><td><pre ' + ( this.config.style == undefined ? '' : 'style="' + this.config.style + '"' ) + '>' + data + '</pre></td></tr>');
             //this.target.append( '<tr><td><pre' + style + '>' + data + '</pre></td></tr>' );
             this.draw();

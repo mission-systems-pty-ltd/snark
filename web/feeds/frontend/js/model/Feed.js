@@ -53,9 +53,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.isMobile = false;
         this.fields = [];
         this.form = $('<form>', {onSubmit: "return false"});
-        if (this.form_show_buttons == undefined) {
-            this.form_show_buttons = false;
-        }
+        if (this.form_show_buttons == undefined) { this.form_show_buttons = false; }
         // if(this.config.type == "start_stop" || this.form_show_buttons != undefined){
         //     this.form_show_buttons = true;
         // }
@@ -64,12 +62,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         // }
 
         this.width = this.config.width != undefined ? this.config.width : 400;
-        if (config.form != undefined) {
+        if ( config.form != undefined )
+        {
             this.extract_fields(config.form);
             var input_fields_link = this.feed_name + "-fields";
-            if (!this.form_show_buttons) {
+            if (!this.form_show_buttons)
+            {
                 var content_html = '<a data-toggle="collapse" class="text-center" href="#' + input_fields_link + '">Input fields</a>'
-                    + '<div class="inputs-group collapse" id="' + input_fields_link + '"></div>';
+                                 + '<div class="inputs-group collapse" id="' + input_fields_link + '"></div>';
                 $(content_html).insertBefore(this.target);
                 this.input_container = $(this.id + ' .inputs-group');
             }
@@ -80,25 +80,30 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             }
             this.ok_label = this.config.ok_label != undefined ? this.config.ok_label : "Submit";
         }
-        if (this.is_add_form()) {
+        if (this.is_add_form())
+        {
             this.init_form();
             this.addListeners();
         }
     };
 
     Feed.prototype.reset = function () {
-        if (this.config.refresh.auto) {
+        if (this.config.refresh.auto)
+        {
             $(this.input_container).find("input").attr("readonly", "readonly");
             $(this.input_container).find("input").attr("title", "readonly");
             this.refresh();
-        } else {
+        }
+        else
+        {
             this.clear_interval();
             $(this.input_container).find("input").removeAttr("readonly");
             $(this.input_container).find("input").removeAttr("title");
         }
     };
 
-    Feed.prototype.extract_fields = function (form_elements) {
+    Feed.prototype.extract_fields = function (form_elements)
+    {
         if (form_elements != undefined) {
             let dropdowns = [];
             if (form_elements['dropdowns'] != undefined) {
@@ -150,7 +155,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
     };
     Feed.prototype.add_form = function () {
         if (this.form_show_buttons) {
-            this.input_container.append(this.form);
+            this.input_container.append(this.form); // hm...
         }
         else {
             this.input_container.append(this.form);
