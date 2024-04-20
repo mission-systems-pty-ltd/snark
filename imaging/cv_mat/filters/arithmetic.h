@@ -16,7 +16,7 @@ class arithmetic
 public:
     typedef std::pair< H, cv::Mat > value_type;
 
-    enum class operation { add, absdiff, divide, minimum, multiply, overlay, subtract, underlay };
+    enum class operation { add, absdiff, divide, maximum, minimum, multiply, overlay, subtract, underlay };
 
     static operation str_to_operation( const std::string& s ); 
 
