@@ -18,6 +18,7 @@ typename arithmetic< H >::operation arithmetic< H >::str_to_operation(const std:
     else if( s == "subtract" ) { return operation::subtract; }
     else if( s == "add" ) { return operation::add; }
     else if( s == "absdiff" ) { return operation::absdiff; }
+    else if( s == "minimum" ) { return operation::minimum; }
     else if( s == "overlay" ) { return operation::overlay; }
     else if( s == "underlay" ) { return operation::underlay; }
     else { COMMA_THROW(comma::exception, "expected arithmetic operation; got: \"" << s << "\"" ); }
@@ -28,12 +29,13 @@ typename std::string arithmetic< H >::operation_to_str(arithmetic< H >::operatio
 {
     switch(op)
     {
-        case operation::multiply: return "multiply";
-        case operation::divide:   return "divide";
-        case operation::subtract: return "subtract";
         case operation::add:      return "add";
         case operation::absdiff:  return "absdiff";
+        case operation::divide:   return "divide";
+        case operation::minimum:  return "minimum";
+        case operation::multiply: return "multiply";
         case operation::overlay:  return "overlay";
+        case operation::subtract: return "subtract";
         case operation::underlay:  return "underlay";
     }
     COMMA_THROW( comma::exception, "arithmetic: expected operation code; got: '" << int( op ) << "'" );
@@ -56,12 +58,13 @@ typename arithmetic< H >::value_type arithmetic< H >::apply_(const value_type& m
     value_type n( m.first, cv::Mat(m.second.rows, m.second.cols, m.second.type()) );
     switch( operation_ )
     {
-        case operation::multiply: cv::multiply(m.second, operand, n.second, 1.0, m.second.type() ); break;
-        case operation::divide:   cv::divide(m.second, operand, n.second, 1.0, m.second.type() ); break;
-        case operation::subtract: cv::subtract(m.second, operand, n.second, cv::noArray(), m.second.type() ); break;
         case operation::add:      cv::add(m.second, operand, n.second, cv::noArray(), m.second.type() );    break;
         case operation::absdiff:  cv::absdiff(m.second, operand, n.second); break;
+        case operation::divide:   cv::divide(m.second, operand, n.second, 1.0, m.second.type() ); break;
+        case operation::minimum:  cv::min(m.second, operand, n.second); break;
+        case operation::multiply: cv::multiply(m.second, operand, n.second, 1.0, m.second.type() ); break;
         case operation::overlay:  COMMA_THROW( comma::exception, "overlay: todo" ); break;
+        case operation::subtract: cv::subtract(m.second, operand, n.second, cv::noArray(), m.second.type() ); break;
         case operation::underlay: COMMA_THROW( comma::exception, "underlay: todo" ); ; break;
     }
     return n;
