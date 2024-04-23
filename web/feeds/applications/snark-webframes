@@ -183,14 +183,11 @@ def get_size_arg( *dictionaries ):
 
     Otherwise, returns an empty string."""
     size = get( 'size', *dictionaries )
-    if size is not None:
-        return "--size=%d" % size
+    if size is not None: return "--size=%d" % size
     binary = get( 'binary', *dictionaries )
-    if binary is None:
-        return ""
+    if binary is None: return ""
     size = sum([np.dtype(t).itemsize for t in comma.csv.format.to_numpy(binary)])
     return "--size=%d" % size
-
 
 class sensors:
     def _find_sensor_names( self, dictionary, xpath='' ):
@@ -198,7 +195,7 @@ class sensors:
             i=0
             for item in dictionary:
                 self._find_sensor_names( item, xpath+"["+str(i)+"]" )
-                i=i+1
+                i = i + 1
         else:
             for key,value in dictionary.items():
                 if type( value ) == dict:
@@ -239,20 +236,13 @@ class sensors:
     def get( self, name ):
         return self._parameters.get( name )
 
-def _quote_html(html):
-    return html.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
+def _quote_html( html ): return html.replace( "&", "&amp;" ).replace( "<", "&lt;" ).replace( ">", "&gt;" )
 
 class handler( http.server.BaseHTTPRequestHandler ):
     def send_error_response(self, code, message=None):
-        try:
-            short, int = self.responses[code]
-        except KeyError:
-            short, int = '???', '???'
-
-        if message is None:
-            message = short
-
+        try: short, int = self.responses[code]
+        except KeyError: short, int = '???', '???'
+        if message is None: message = short
         explain = int
         self.log_error("code %d, message %s", code, message)
         content = (self.error_message_format %{'code': code, 'message': _quote_html(message), 'explain': explain})
@@ -276,12 +266,10 @@ class handler( http.server.BaseHTTPRequestHandler ):
         url = urlparse.urlparse( self.path )
         params = dict(urlparse.parse_qsl(url.query))
         # print("params %s \n" % params)
-        if "_" in params:
-            del params['_']
+        if "_" in params: del params['_']
         param_list=[]
-        for key, value in params.items():
-            param_list.append("=".join([str(key), str(value)]))
-        query = urlparse.urlparse(self.path).query
+        for key, value in params.items(): param_list.append( f"{key}={value}" ) # todo: use sum()
+        query = urlparse.urlparse( self.path ).query
         #print("param_list %s \n" % param_list)
         sensor = url.path.strip('/')
         client = self.client_address[0]
@@ -305,11 +293,8 @@ class handler( http.server.BaseHTTPRequestHandler ):
         with lock: running_subprocesses.remove( p )
         if status != 0:
             # error is not included in message due problems with the html format for special symbols (using cgi.escape didn't help completely)
-            if error:
-                message = error.strip().decode('ascii')
-            else:
-                message = "%s: request '%s' for sensor '%s' in web config '%s' failed" % ( script_name, sensor_parameters.command, sensor, args.config )
-
+            if error: message = error.strip().decode('ascii')
+            else: message = "%s: request '%s' for sensor '%s' in web config '%s' failed" % ( script_name, sensor_parameters.command, sensor, args.config )
             self.send_error_response( http.client.INTERNAL_SERVER_ERROR, message )
             return
         else:
@@ -320,9 +305,7 @@ class handler( http.server.BaseHTTPRequestHandler ):
             self.end_headers()
             self.wfile.write( output )
 
-    def log_message(self, format, *a):
-        if args.verbose:
-            return http.server.BaseHTTPRequestHandler.log_message(self, format, *a)
+    def log_message(self, format, *a): return http.server.BaseHTTPRequestHandler.log_message(self, format, *a) if args.verbose else None
 
 
 parser = argparse.ArgumentParser( description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False )
@@ -340,10 +323,7 @@ parser.add_argument( '--verbose', '-v', help='verbose logging', action='store_tr
 args = parser.parse_args()
 
 if args.help:
-    if args.verbose:
-        parser.epilog += verbose_epilog
-    else:
-        parser.epilog += "\nfor more help run '%(prog)s -h -v'"
+    parser.epilog += verbose_epilog if args.verbose else "\nfor more help run '%(prog)s -h -v'"
     parser.print_help()
     sys.exit(0)
 
@@ -356,12 +336,13 @@ def load_config( config_file_name ):
     return json.loads( stdout )
 
 configs = {
-    'web_config': load_config( args.config ),
-    'robot_config': load_config( args.robot_config ),
-    'publish_config': load_config( args.publish_config ) }
+              'web_config':     load_config( args.config ),
+              'robot_config':   load_config( args.robot_config ),
+              'publish_config': load_config( args.publish_config )
+          }
 
 sensors = sensors( **configs )
-if(args.dry_run):
+if( args.dry_run ):
     sys.stderr.write("dry run\n")
     sensors.print_list()
     exit(0)
@@ -370,8 +351,7 @@ lock = threading.Lock()
 
 def trap( signalnum, frame ):
     with lock:
-        for p in running_subprocesses:
-            os.killpg( os.getpgid( p.pid ), signal.SIGTERM )
+        for p in running_subprocesses: os.killpg( os.getpgid( p.pid ), signal.SIGTERM )
         os._exit(0)
 
 signal.signal( signal.SIGINT, trap )
@@ -381,8 +361,6 @@ signal.signal( signal.SIGHUP, trap )
 class async_http_server( socketserver.ThreadingMixIn, http.server.HTTPServer ): pass
 
 async_http_server( ( args.host, args.port ), handler ).serve_forever()
-
-
 
 
 # in case of performance problems that too many
