@@ -1,5 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2024 Vsevolod Vlaskine
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +30,8 @@
 
 /// @author vsevolod vlaskine
 
+#include <limits>
+#include <boost/optional.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
 #include <comma/csv/stream.h>
@@ -38,7 +41,7 @@
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
 #include "../cv_mat/type_traits.h"
-    
+
 struct input_t
 {
     boost::posix_time::ptime t;
@@ -84,6 +87,9 @@ static void usage( bool verbose )
               << std::endl
               << "options" << std::endl
               << "    --help,-h: show help; --help --verbose: more help" << std::endl
+              << "    --autoscale; make sure all pixel coordinates fit into the image after applying offset" << std::endl
+              << "    --autoscale-once; make sure all pixel coordinates of the first block fit into the image" << std::endl
+              << "                      use the first block scaling factor for all subsequent blocks" << std::endl
               << "    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes" << std::endl
               << "    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0" << std::endl
               << "    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks" << std::endl
@@ -121,10 +127,10 @@ static void usage( bool verbose )
     exit( 0 );
 }
 
-static void set_pixel( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset ) // quick and dirty; reimplement as templates
+static void set_pixel( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale ) // quick and dirty; reimplement as templates
 {
-    int x = std::floor( v.x + 0.5 - offset.first );
-    int y = std::floor( v.y + 0.5 - offset.second );
+    int x = std::floor( ( v.x + 0.5 - offset.first ) * scale.first );
+    int y = std::floor( ( v.y + 0.5 - offset.second ) * scale.second );
     snark::cv_mat::set( m, y, x, v.channels );
     return;
 }
@@ -204,6 +210,10 @@ int main( int ac, char** av )
         input_t sample;
         bool is_greyscale = true;
         bool has_alpha = false;
+        options.assert_mutually_exclusive( "--offset", "--autoscale,--autoscale-once" );
+        bool autoscale_once = options.exists( "--autoscale-once" );
+        bool autoscale_all = options.exists( "--autoscale" );
+        bool autoscale = autoscale_once || autoscale_all;
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {
             if( v[i] == "grey" ) { v[i] = "channels[0]"; }
@@ -221,6 +231,7 @@ int main( int ac, char** av )
         const std::vector< std::string >& w = comma::split( offset_string, ',' );
         if( w.size() != 2 ) { std::cerr << "image-from-csv: --from: expected <x>,<y>; got: \"" << offset_string << "\"" << std::endl; return 1; }
         std::pair< double, double > offset( boost::lexical_cast< double >( w[0] ), boost::lexical_cast< double >( w[1] ) ); // todo: quick and dirty; use better types
+        std::pair< double, double > scale{1, 1};
         if( is_greyscale && has_alpha ) { std::cerr << "image-from-csv: warning: found alpha channel for a greyscale image; not implemented; ignored" << std::endl; }
         sample.channels.resize( is_greyscale ? 1 : has_alpha ? 4 : 3 );
         snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value<std::string>("--output" ) );
@@ -245,6 +256,7 @@ int main( int ac, char** av )
             cv::merge( channels, background );
         }
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
+        std::vector< input_t > inputs;
         while( is.ready() || std::cin.good() )
         {
             const input_t* p = is.read();
@@ -252,6 +264,21 @@ int main( int ac, char** av )
             if( last ) { t.update( last->t, block_done ); }
             if( !last || block_done )
             {
+                if( autoscale && !inputs.empty() )
+                {
+                    std::pair< double, double > min{ std::numeric_limits< double >::max(), std::numeric_limits< double >::max() };
+                    std::pair< double, double > max{ -std::numeric_limits< double >::max(), -std::numeric_limits< double >::max() };
+                    for( const auto& i: inputs )
+                    {
+                        if( i.x < min.first ) { min.first = i.x; } else if( i.x > max.first ) { max.first = i.x; }
+                        if( i.y < min.second ) { min.second = i.y; } else if( i.y > max.second ) { max.second = i.y; }
+                    }
+                    offset = min;
+                    scale = { double( pair.second.cols ) / ( max.first - min.first ), double( pair.second.rows ) / ( max.second - min.second ) }; // todo: check for zeroes
+                    for( const auto& i: inputs ) { set_pixel( pair.second, i, offset, scale ); }
+                    inputs.clear();
+                    if( autoscale_once ) { autoscale = false; }
+                }
                 if( last )
                 {
                     pair.first = t.value();
@@ -273,7 +300,8 @@ int main( int ac, char** av )
                 }
             }
             if( !p ) { break; }
-            set_pixel( pair.second, *p, offset );
+            if( autoscale ) { inputs.push_back( *p ); } // todo: watch performance
+            else { set_pixel( pair.second, *p, offset, scale ); }
             last = *p;
         }
         if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, pair ); }
