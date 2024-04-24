@@ -90,6 +90,7 @@ static void usage( bool verbose )
               << "    --autoscale; make sure all pixel coordinates fit into the image after applying offset" << std::endl
               << "    --autoscale-once; make sure all pixel coordinates of the first block fit into the image" << std::endl
               << "                      use the first block scaling factor for all subsequent blocks" << std::endl
+              << "    --autoscale-proportional; todo: use the same scaling factor on x and y" << std::endl
               << "    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes" << std::endl
               << "    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0" << std::endl
               << "    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks" << std::endl
@@ -211,6 +212,7 @@ int main( int ac, char** av )
         bool is_greyscale = true;
         bool has_alpha = false;
         options.assert_mutually_exclusive( "--offset", "--autoscale,--autoscale-once" );
+        COMMA_ASSERT_BRIEF( options.exists( "--autoscale-proportional" ), "--autoscale-proportional: todo, it's ease, just ask" );
         bool autoscale_once = options.exists( "--autoscale-once" );
         bool autoscale_all = options.exists( "--autoscale" );
         bool autoscale = autoscale_once || autoscale_all;
