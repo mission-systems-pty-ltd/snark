@@ -131,9 +131,30 @@ static void usage( bool verbose )
     {
         std::cerr<< snark::cv_mat::serialization::options::usage() << std::endl << std::endl;
         std::cerr<< "input stream csv options" << std::endl << comma::csv::options::usage() << std::endl << std::endl;
+        std::cerr << "examples" << std::endl;
+        std::cerr << "    basics" << std::endl;
+        std::cerr << "        cat pixels.csv | image-from-csv --fields x,y,grey --output=\"rows=1200;cols=1000;type=ub\" | cv-cat --output no-header \"encode=png\" > test.bmp" << std::endl;
+        std::cerr << "    shapes" << std::endl;
+        std::cerr << "        lines" << std::endl;
+        std::cerr << "            ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 )\\" << std::endl;
+        std::cerr << "                | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
+        std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
+        std::cerr << "            csv-random make --type 6f --range 0,1 \\" << std::endl;
+        std::cerr << "                | csv-eval --fields i,,,r,g,b 'i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
+        std::cerr << "                | head -n100  \\" << std::endl;
+        std::cerr << "                | image-from-csv --fields id,x,y,r,g,b  \\" << std::endl;
+        std::cerr << "                                 --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
+        std::cerr << "                                 --autoscale-once\\" << std::endl;
+        std::cerr << "                                 --shape=lines \\" << std::endl;
+        std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
     }
-    std::cerr << "example" << std::endl;
-    std::cerr << "     cat pixels.csv | image-from-csv --fields x,y,grey --output=\"rows=1200;cols=1000;type=ub\" | cv-cat --output no-header \"encode=png\" > test.bmp" << std::endl;
+    else
+    {
+        std::cerr << "input stream csv options..." << std::endl;
+        std::cerr << "image serialization output options..." << std::endl;
+        std::cerr << "examples..." << std::endl;
+        std::cerr << "    for details, run: image-from-csv --help --verbose" << std::endl;
+    }
     std::cerr << std::endl;
     exit( 0 );
 }
@@ -170,11 +191,9 @@ class shape_t // todo: quick and dirty, make polymorphic
                     break;
                 case types::lines:
                 {
-                    std::cerr << "==> a" << std::endl;
                     auto i = _previous.find( v.id );
                     if( i == _previous.end() )
                     { 
-                        std::cerr << "==> b: " << x << "," << y << std::endl;
                         snark::cv_mat::set( m, y, x, v.channels );
                     }
                     else
@@ -182,7 +201,6 @@ class shape_t // todo: quick and dirty, make polymorphic
                         int x0 = std::floor( ( i->second.x - offset.first ) * scale.first + 0.5 ); // todo: quick and dirty, save previous
                         int y0 = std::floor( ( i->second.y - offset.second ) * scale.second + 0.5 ); // todo: quick and dirty, save previous
                         cv::Scalar c0, c; for( unsigned int j = 0; j < v.channels.size(); ++j ) { c0[j] = i->second.channels[j]; c[j] = v.channels[j]; }
-                        std::cerr << "==> c: " << x0 << "," << y0 << " " << x << "," << y << std::endl;
                         cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( c0 + c ) / 2, 1, cv::LINE_AA );
                     }
                     _previous[v.id] = v;
@@ -327,21 +345,23 @@ int main( int ac, char** av )
             if( last ) { t.update( last->t, block_done ); }
             if( !last || block_done )
             {
-                if( autoscale && !inputs.empty() )
+                COMMA_ASSERT_BRIEF( inputs.size() != 1, "--autoscale: got only 1 point in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
+                if( autoscale && inputs.size() > 1 )
                 {
-                    std::pair< double, double > min{ std::numeric_limits< double >::max(), std::numeric_limits< double >::max() };
-                    std::pair< double, double > max{ -std::numeric_limits< double >::max(), -std::numeric_limits< double >::max() };
+                    std::pair< double, double > min{ inputs[0].x, inputs[0].y };
+                    std::pair< double, double > max{ inputs[0].x, inputs[0].y };
                     for( const auto& i: inputs )
                     {
                         if( i.x < min.first ) { min.first = i.x; } else if( i.x > max.first ) { max.first = i.x; }
                         if( i.y < min.second ) { min.second = i.y; } else if( i.y > max.second ) { max.second = i.y; }
                     }
                     offset = min;
+                    COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
+                    COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     scale = { double( pair.second.cols - 1 ) / ( max.first - min.first ), double( pair.second.rows - 1 ) / ( max.second - min.second ) }; // todo: check for zeroes
+                    comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << std::endl;
                     for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     inputs.clear();
-                    comma::saymore() << "max: " << max.first << "," << max.second << std::endl;
-                    comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << std::endl;
                     if( autoscale_once ) { autoscale = false; }
                 }
                 if( last )
