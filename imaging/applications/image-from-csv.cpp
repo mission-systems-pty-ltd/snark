@@ -212,7 +212,7 @@ int main( int ac, char** av )
         bool is_greyscale = true;
         bool has_alpha = false;
         options.assert_mutually_exclusive( "--offset", "--autoscale,--autoscale-once" );
-        COMMA_ASSERT_BRIEF( options.exists( "--autoscale-proportional" ), "--autoscale-proportional: todo, it's ease, just ask" );
+        COMMA_ASSERT_BRIEF( !options.exists( "--autoscale-proportional" ), "--autoscale-proportional: todo, it's ease, just ask" );
         bool autoscale_once = options.exists( "--autoscale-once" );
         bool autoscale_all = options.exists( "--autoscale" );
         bool autoscale = autoscale_once || autoscale_all;
