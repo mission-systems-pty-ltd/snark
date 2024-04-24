@@ -32,6 +32,8 @@
 
 #include <limits>
 #include <boost/optional.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
 #include <comma/csv/stream.h>
@@ -45,10 +47,11 @@
 struct input_t
 {
     boost::posix_time::ptime t;
-    double x;
-    double y;
+    double x{0};
+    double y{0};
     std::vector< double > channels;
-    comma::uint32 block;
+    comma::uint32 block{0};
+    comma::uint32 id{0};
     
     input_t() : x( 0 ), y( 0 ), block( 0 ) {}
 };
@@ -64,6 +67,7 @@ template <> struct traits< input_t >
         v.apply( "y", r.y );
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
+        v.apply( "id", r.id );
     }
     
     template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
@@ -73,6 +77,7 @@ template <> struct traits< input_t >
         v.apply( "y", r.y );
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
+        v.apply( "id", r.id );
     }
 };
 
@@ -97,6 +102,11 @@ static void usage( bool verbose )
               << "    --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)" << std::endl
               << "    --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered" << std::endl
               << "    --output-on-empty-input,--output-on-empty: output empty image on empty input" << std::endl
+              << "    --shape=<shape>; default=points" << std::endl
+              << "                     <shape>" << std::endl
+              << "                         point: each input point represents one pixel" << std::endl
+              << "                         lines: connect with line subsequent points with the same id" << std::endl
+              << "                                e.g. to draw a trajectory or plot a basic graph" << std::endl
               << "    --timestamp=<how>: which image timestamp to output" << std::endl
               << "          <how>" << std::endl
               << "              first: timestamp of the first point of a block" << std::endl
@@ -128,13 +138,63 @@ static void usage( bool verbose )
     exit( 0 );
 }
 
-static void set_pixel( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale ) // quick and dirty; reimplement as templates
+class shape_t // todo: quick and dirty, make polymorphic
 {
-    int x = std::floor( ( v.x + 0.5 - offset.first ) * scale.first );
-    int y = std::floor( ( v.y + 0.5 - offset.second ) * scale.second );
-    snark::cv_mat::set( m, y, x, v.channels );
-    return;
-}
+    public:
+        struct types
+        { 
+            enum values { point, lines };
+
+            static values from_string( const std::string& s )
+            {
+                if( s == "point" ) { return point; }
+                if( s == "lines" ) { return lines; }
+                COMMA_THROW_BRIEF( comma::exception, "expected shape, got: '" << s << "'" );
+            }
+        };
+
+        shape_t( types::values t = types::point ): _type( t ) {}
+
+        static shape_t make( const std::string& s ) { return shape_t( types::from_string( s ) ); }
+
+        void clear() { _previous.clear(); }
+
+        void draw( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale ) // quick and dirty; reimplement as templates
+        {
+            int x = std::floor( ( v.x - offset.first ) * scale.first + 0.5 );
+            int y = std::floor( ( v.y - offset.second ) * scale.second + 0.5 );
+            switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
+            {
+                case types::point:
+                    snark::cv_mat::set( m, y, x, v.channels );
+                    break;
+                case types::lines:
+                {
+                    std::cerr << "==> a" << std::endl;
+                    auto i = _previous.find( v.id );
+                    if( i == _previous.end() )
+                    { 
+                        std::cerr << "==> b: " << x << "," << y << std::endl;
+                        snark::cv_mat::set( m, y, x, v.channels );
+                    }
+                    else
+                    {
+                        int x0 = std::floor( ( i->second.x - offset.first ) * scale.first + 0.5 ); // todo: quick and dirty, save previous
+                        int y0 = std::floor( ( i->second.y - offset.second ) * scale.second + 0.5 ); // todo: quick and dirty, save previous
+                        cv::Scalar c0, c; for( unsigned int j = 0; j < v.channels.size(); ++j ) { c0[j] = i->second.channels[j]; c[j] = v.channels[j]; }
+                        std::cerr << "==> c: " << x0 << "," << y0 << " " << x << "," << y << std::endl;
+                        cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( c0 + c ) / 2, 1, cv::LINE_AA );
+                    }
+                    _previous[v.id] = v;
+                    break;
+                }
+            }
+        }
+
+    private:
+        types::values _type{types::point};
+        std::unordered_map< std::uint32_t, input_t > _previous;
+};
 
 class timestamping
 {
@@ -206,7 +266,7 @@ int main( int ac, char** av )
     {
         comma::command_line_options options( ac, av, usage );
         comma::csv::options csv( options );
-        if( csv.fields.empty() ) { std::cerr << "image-from-csv: please specify --fields" << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( !csv.fields.empty(), "please specify --fields" );
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         input_t sample;
         bool is_greyscale = true;
@@ -216,6 +276,7 @@ int main( int ac, char** av )
         bool autoscale_once = options.exists( "--autoscale-once" );
         bool autoscale_all = options.exists( "--autoscale" );
         bool autoscale = autoscale_once || autoscale_all;
+        auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {
             if( v[i] == "grey" ) { v[i] = "channels[0]"; }
@@ -276,9 +337,11 @@ int main( int ac, char** av )
                         if( i.y < min.second ) { min.second = i.y; } else if( i.y > max.second ) { max.second = i.y; }
                     }
                     offset = min;
-                    scale = { double( pair.second.cols ) / ( max.first - min.first ), double( pair.second.rows ) / ( max.second - min.second ) }; // todo: check for zeroes
-                    for( const auto& i: inputs ) { set_pixel( pair.second, i, offset, scale ); }
+                    scale = { double( pair.second.cols - 1 ) / ( max.first - min.first ), double( pair.second.rows - 1 ) / ( max.second - min.second ) }; // todo: check for zeroes
+                    for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     inputs.clear();
+                    comma::saymore() << "max: " << max.first << "," << max.second << std::endl;
+                    comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << std::endl;
                     if( autoscale_once ) { autoscale = false; }
                 }
                 if( last )
@@ -288,6 +351,7 @@ int main( int ac, char** av )
                     output.write( std::cout, pair );
                     std::cout.flush();
                 }
+                shape.clear();
                 background.copyTo( pair.second );
                 if( output_on_missing_blocks )
                 {
@@ -303,7 +367,7 @@ int main( int ac, char** av )
             }
             if( !p ) { break; }
             if( autoscale ) { inputs.push_back( *p ); } // todo: watch performance
-            else { set_pixel( pair.second, *p, offset, scale ); }
+            else { shape.draw( pair.second, *p, offset, scale ); }
             last = *p;
         }
         if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, pair ); }
