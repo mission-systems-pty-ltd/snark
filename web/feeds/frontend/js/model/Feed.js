@@ -216,16 +216,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         // form.append(input).append("<br>");
         $(this.form).append($('<div>', {class: "clear"}));
         this.add_form();
-        if (this.config.type == "start_stop") {
+        if( this.config.type == "start_stop" )
+        {
             this.target.append(this.form);
         }
-        else {
-            if (this.form_show_buttons) {
-                this.input_container.append(this.form);
-            }
-            else {
-                this.input_container.append(this.form);
-            }
+        else
+        {
+            if( this.form_show_buttons) { this.input_container.append(this.form); }
+            else { this.input_container.append(this.form); }
         }
 
         var size = Object.keys(this.fields).length;

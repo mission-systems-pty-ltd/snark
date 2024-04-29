@@ -61,34 +61,41 @@ define(['jquery', 'Feed', 'Grid'], function ($, Feed, Grid) {
         this.popup_img.attr('src', data);
         // this.popup_img.attr('width', this.loader.width);
         // this.popup_img.attr('height', this.loader.height);
-        if (this.loader.width != this.loader.width_prev || this.loader.height != this.loader.height_prev) {
-            if (this.target.resizable('instance')) {
+        if (this.loader.width != this.loader.width_prev || this.loader.height != this.loader.height_prev)
+        {
+            if (this.target.resizable('instance'))
+            {
                 this.target.resizable('destroy');
             }
             var minHeight = 269;
-            if (globals.isMobile) {
+            if( globals.isMobile )
+            {
                 var maxWidth = ((window.innerWidth > 0) ? window.innerWidth : screen.width ) - 100;
                 var width = this.loader.width;
                 var height = this.loader.height;
-                if (width > maxWidth) {
+                if (width > maxWidth)
+                {
                     var ratio = maxWidth / width;   // get ratio for scaling image
                     height = parseInt(height * ratio);    // Reset height to match scaled image
                     width = parseInt(width * ratio);    // Reset width to match scaled image
                 }
-                this.target.width(width);
-
-                if (height < minHeight) {
-                    minHeight = height;
-                }
+                this.target.width( width );
+                if( height < minHeight ) { minHeight = height; }
                 this.target.height(height);
-                $(this.target).css("min-height", function () {
-                    return minHeight;
-                });
+                $(this.target).css( "min-height", function () { return minHeight; } );
             }
-            // else {
-            //     this.target.width(this.loader.width);
-            //     this.target.height(this.loader.height);
-            // }
+            else
+            {
+                if( this.config.ignore_size_limits ) // todo! document!
+                {
+                    var width = this.loader.width;
+                    var height = this.loader.height;
+                    this.target.width(width);
+                    this.target.height(height);
+                    if( height < minHeight ) { minHeight = height; } // quick and dirty; todo: are we breaking something?
+                    // todo? min/max width/height
+                }
+            }
             this.target.resizable({
                 aspectRatio: true,
                 autoHide: true,
