@@ -284,7 +284,7 @@ template < typename H >
 std::pair< typename draw< H >::functor_t, bool > draw< H >::grid::make( const std::string& options, char delimiter )
 {
     const auto& v = comma::split( options, delimiter );
-    if( v.size() < 5 ) { COMMA_THROW_BRIEF( comma::exception, "draw=grid: please specify grid origin and step (got: '" << options << "'" ); }
+    COMMA_ASSERT_BRIEF( v.size() >= 4, "draw=grid: please specify at least draw=grid,<origin/x>,<origin/y>,<step/x>,<step/y> (got: '" << options << "')" );
     boost::array< int, 10 > p = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
     for( unsigned int i = 0; i < v.size(); ++i ) { if( !v[i].empty() ) { p[i] = boost::lexical_cast< int >( v[i] ); } }
     grid g; // quick and dirty
