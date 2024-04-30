@@ -105,7 +105,7 @@ stream::stream( const std::vector< plotting::series::xy >& s, const config_t& co
     , is_( config.csv.filename, config.csv.binary() ? comma::io::mode::binary : comma::io::mode::ascii, config.blocking ? comma::io::mode::blocking : comma::io::mode::non_blocking )
     , istream_( *is_, config.csv, plotting::record::sample( config.csv.fields, config.number_of_series ) )
     , count_( 0 )
-    , has_x_( config.csv.fields.empty() || config.csv.has_field( "x" ) || config.csv.has_field( "series[0]/x" ) || config.csv.has_field( "series[0]" ) ) // todo: quick and dirty, improve
+    , has_x_( config.csv.fields.empty() || config.csv.has_some_of_fields( "x,series,series[0],series[0]/x" ) ) // todo: quick and dirty, improve
     , buffers_( config.size )
     , size_( 0 )
 {
