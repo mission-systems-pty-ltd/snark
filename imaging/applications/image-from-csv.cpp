@@ -44,45 +44,6 @@
 #include "../cv_mat/traits.h"
 #include "../cv_mat/type_traits.h"
 
-struct input_t
-{
-    boost::posix_time::ptime t;
-    double x{0};
-    double y{0};
-    std::vector< double > channels;
-    comma::uint32 block{0};
-    comma::uint32 id{0};
-    
-    input_t() : x( 0 ), y( 0 ), block( 0 ) {}
-};
-
-namespace comma { namespace visiting {
-
-template <> struct traits< input_t >
-{
-    template < typename K, typename V > static void visit( const K&, input_t& r, V& v )
-    {
-        v.apply( "t", r.t );
-        v.apply( "x", r.x );
-        v.apply( "y", r.y );
-        v.apply( "channels", r.channels );
-        v.apply( "block", r.block );
-        v.apply( "id", r.id );
-    }
-    
-    template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
-    {
-        v.apply( "t", r.t );
-        v.apply( "x", r.x );
-        v.apply( "y", r.y );
-        v.apply( "channels", r.channels );
-        v.apply( "block", r.block );
-        v.apply( "id", r.id );
-    }
-};
-
-} } // namespace comma { namespace visiting {
-
 static void usage( bool verbose )
 {
     std::cerr << std::endl;
@@ -92,10 +53,12 @@ static void usage( bool verbose )
               << std::endl
               << "options" << std::endl
               << "    --help,-h: show help; --help --verbose: more help" << std::endl
-              << "    --autoscale; make sure all pixel coordinates fit into the image after applying offset" << std::endl
-              << "    --autoscale-once; make sure all pixel coordinates of the first block fit into the image" << std::endl
-              << "                      use the first block scaling factor for all subsequent blocks" << std::endl
-              << "    --autoscale-proportional; todo: use the same scaling factor on x and y" << std::endl
+              << "    --autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset" << std::endl
+              << "        <properties>" << std::endl
+              << "            centre: if proportional (see below), centre the shorter dimension in the image" << std::endl
+              << "            once: make sure all pixel coordinates of the first block fit into the image" << std::endl
+              << "                  use the first block scaling factor for all subsequent blocks" << std::endl
+              << "            proportional: use the same scaling factor on x and y" << std::endl
               << "    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes" << std::endl
               << "    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0" << std::endl
               << "    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks" << std::endl
@@ -134,17 +97,25 @@ static void usage( bool verbose )
         std::cerr << "examples" << std::endl;
         std::cerr << "    basics" << std::endl;
         std::cerr << "        cat pixels.csv | image-from-csv --fields x,y,grey --output=\"rows=1200;cols=1000;type=ub\" | cv-cat --output no-header \"encode=png\" > test.bmp" << std::endl;
+        std::cerr << "    autoscale" << std::endl;
+        std::cerr << "        csv-random make --type 6f --range 0,1 \\" << std::endl;
+        std::cerr << "            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=2;r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
+        std::cerr << "            | csv-paste 'line-number;size=10000' -  \\" << std::endl;
+        std::cerr << "            | image-from-csv --fields block,id,x,y,r,g,b \\" << std::endl;
+        std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
+        std::cerr << "                             --autoscale='once;proportional;centre'  \\" << std::endl;
+        std::cerr << "            | cv-cat 'view;null'" << std::endl;
         std::cerr << "    shapes" << std::endl;
         std::cerr << "        lines" << std::endl;
         std::cerr << "            ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 )\\" << std::endl;
         std::cerr << "                | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
         std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
         std::cerr << "            csv-random make --type 6f --range 0,1 \\" << std::endl;
-        std::cerr << "                | csv-eval --fields i,,,r,g,b 'i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
+        std::cerr << "                | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
         std::cerr << "                | head -n100  \\" << std::endl;
         std::cerr << "                | image-from-csv --fields id,x,y,r,g,b  \\" << std::endl;
         std::cerr << "                                 --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
-        std::cerr << "                                 --autoscale-once\\" << std::endl;
+        std::cerr << "                                 --autoscale='once;proportional;centre'\\" << std::endl;
         std::cerr << "                                 --shape=lines \\" << std::endl;
         std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
     }
@@ -158,6 +129,69 @@ static void usage( bool verbose )
     std::cerr << std::endl;
     exit( 0 );
 }
+
+struct input_t
+{
+    boost::posix_time::ptime t;
+    double x{0};
+    double y{0};
+    std::vector< double > channels;
+    comma::uint32 block{0};
+    comma::uint32 id{0};
+    
+    input_t() : x( 0 ), y( 0 ), block( 0 ) {}
+};
+
+struct autoscale_t
+{
+    bool once{false};
+    bool proportional{false};
+    bool centre{false};
+};
+
+namespace comma { namespace visiting {
+
+template <> struct traits< input_t >
+{
+    template < typename K, typename V > static void visit( const K&, input_t& r, V& v )
+    {
+        v.apply( "t", r.t );
+        v.apply( "x", r.x );
+        v.apply( "y", r.y );
+        v.apply( "channels", r.channels );
+        v.apply( "block", r.block );
+        v.apply( "id", r.id );
+    }
+    
+    template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
+    {
+        v.apply( "t", r.t );
+        v.apply( "x", r.x );
+        v.apply( "y", r.y );
+        v.apply( "channels", r.channels );
+        v.apply( "block", r.block );
+        v.apply( "id", r.id );
+    }
+};
+
+template <> struct traits< autoscale_t >
+{
+    template < typename K, typename V > static void visit( const K&, autoscale_t& r, V& v )
+    {
+        v.apply( "once", r.once );
+        v.apply( "proportional", r.proportional );
+        v.apply( "centre", r.centre );
+    }
+    
+    template < typename K, typename V > static void visit( const K&, const autoscale_t& r, V& v )
+    {
+        v.apply( "once", r.once );
+        v.apply( "proportional", r.proportional );
+        v.apply( "centre", r.centre );
+    }
+};
+
+} } // namespace comma { namespace visiting {
 
 class shape_t // todo: quick and dirty, make polymorphic
 {
@@ -289,11 +323,9 @@ int main( int ac, char** av )
         input_t sample;
         bool is_greyscale = true;
         bool has_alpha = false;
-        options.assert_mutually_exclusive( "--offset", "--autoscale,--autoscale-once" );
-        COMMA_ASSERT_BRIEF( !options.exists( "--autoscale-proportional" ), "--autoscale-proportional: todo, it's ease, just ask" );
-        bool autoscale_once = options.exists( "--autoscale-once" );
-        bool autoscale_all = options.exists( "--autoscale" );
-        bool autoscale = autoscale_once || autoscale_all;
+        options.assert_mutually_exclusive( "--offset", "--autoscale" );
+        boost::optional< autoscale_t > autoscale = comma::silent_none< autoscale_t >();
+        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< autoscale_t >( options.value< std::string >("--autoscale" ) ); }
         auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {
@@ -359,10 +391,23 @@ int main( int ac, char** av )
                     COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     scale = { double( pair.second.cols - 1 ) / ( max.first - min.first ), double( pair.second.rows - 1 ) / ( max.second - min.second ) }; // todo: check for zeroes
+                    if( autoscale->proportional )
+                    {
+                        if( scale.first < scale.second )
+                        {
+                            if( autoscale->centre ) { offset.second += ( max.second - min.second ) * ( 1 - scale.first / scale.second ) / 2; }
+                            scale.second = scale.first;
+                        }
+                        else
+                        {
+                            if( autoscale->centre ) { offset.first += ( max.first - min.first )  * ( 1 - scale.second / scale.first ) / 2; }
+                            scale.first = scale.second;
+                        }
+                    }
                     comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << std::endl;
                     for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     inputs.clear();
-                    if( autoscale_once ) { autoscale = false; }
+                    if( autoscale->once ) { autoscale.reset(); }
                 }
                 if( last )
                 {
