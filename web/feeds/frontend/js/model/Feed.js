@@ -53,7 +53,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.isMobile = false;
         this.fields = [];
         this.form = $('<form>', {onSubmit: "return false"});
-        if (this.form_show_buttons == undefined) { this.form_show_buttons = false; }
+        if( this.form_show_buttons == undefined ) { this.form_show_buttons = false; }
         // if(this.config.type == "start_stop" || this.form_show_buttons != undefined){
         //     this.form_show_buttons = true;
         // }
@@ -62,7 +62,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         // }
 
         this.width = this.config.width != undefined ? this.config.width : 400;
-        if ( config.form != undefined )
+        if( config.form != undefined )
         {
             this.extract_fields(config.form);
             var input_fields_link = this.feed_name + "-fields";
@@ -80,7 +80,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             }
             this.ok_label = this.config.ok_label != undefined ? this.config.ok_label : "Submit";
         }
-        if (this.is_add_form())
+        if( this.is_add_form() )
         {
             this.init_form();
             this.addListeners();
@@ -102,73 +102,67 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         }
     };
 
-    Feed.prototype.extract_fields = function (form_elements)
+    Feed.prototype.extract_fields = function ( form_elements )
     {
-        if (form_elements != undefined) {
-            let dropdowns = [];
-            if (form_elements['dropdowns'] != undefined) {
-              dropdowns = form_elements['dropdowns'];
-            }
-            if (form_elements['fields'] != undefined) {
-                this.populate_path_values(form_elements['fields'], "", dropdowns);
-                // this.buttons = form_elements['buttons'];
-            }
-            if (form_elements['buttons'] != undefined) {
-                var buttons_config = form_elements['buttons'];
-                if (buttons_config['show'] != undefined) {
-                    // `form_show_buttons` will end up being either true,
-                    // false, or a non-empty array of button names. When used as
-                    // a boolean, an array evaluates to true.
-                    var show = buttons_config['show'];
-                    if (Array.isArray(show) && show.length > 0) {
-                        this.form_show_buttons = show;
-                    } else if (show == "true" || (typeof show == "boolean" && show)) {
-                        // NOTE: Configs allow text or boolean i.e. "true"/true.
-                        this.form_show_buttons = true;
-                    } else {
-                        this.form_show_buttons = false;
-                    }
-                }
-                //
-                // this.buttons = form_elements['buttons'];
-            }
-            // else {
-            //     this.populate_path_values(form_elements, "");
-            // }
+        if( form_elements == undefined ) { return; }
+        let dropdowns = [];
+        if( form_elements['dropdowns'] != undefined )
+        {
+            dropdowns = form_elements['dropdowns'];
         }
+        if( form_elements['fields'] != undefined )
+        {
+            this.populate_path_values(form_elements['fields'], "", dropdowns);
+            // this.buttons = form_elements['buttons'];
+        }
+        if( form_elements['buttons'] != undefined )
+        {
+            var buttons_config = form_elements['buttons'];
+            if( buttons_config['show'] != undefined )
+            {
+                // `form_show_buttons` will end up being either true,
+                // false, or a non-empty array of button names. When used as
+                // a boolean, an array evaluates to true.
+                var show = buttons_config['show'];
+                this.form_show_buttons = false;
+                if( Array.isArray( show ) && show.length > 0 )
+                {
+                    this.form_show_buttons = show;
+                }
+                else if( show == "true" || ( typeof show == "boolean" && show ) ) // configs allow text or boolean i.e. "true"/true
+                {
+                    this.form_show_buttons = true;
+                }
+            }
+            //
+            // this.buttons = form_elements['buttons'];
+        }
+        // else {
+        //     this.populate_path_values(form_elements, "");
+        // }
     };
 
     Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns) {
-        for (var element in form_elements) {
+        for( var element in form_elements )
+        {
             var value = form_elements[element];
             var type = typeof value;
             var p = get_prefix(element, prefix);
-            if (type == "object" && !dropdowns.includes(p)) {
-                // Flatten 'object' field unless it is configured as a dropdown.
-                this.populate_path_values(value, p, dropdowns);
-            }
-            else {
-                this.fields[p] = value;
-            }
+            if( type == "object" && !dropdowns.includes( p ) ) { this.populate_path_values(value, p, dropdowns); } // Flatten 'object' field unless it is configured as a dropdown.
+            else { this.fields[p] = value; }
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
         }
     };
     Feed.prototype.add_form = function () {
-        if (this.form_show_buttons) {
-            this.input_container.append(this.form); // hm...
-        }
-        else {
-            this.input_container.append(this.form);
-        }
+        if( this.form_show_buttons ) { this.input_container.append(this.form); } // hm...
+        else { this.input_container.append( this.form ); }
     };
     Feed.prototype.init_form = function () {
         this.input_container.empty();
-
         this.el.removeClass('panel-disabled').addClass('panel-enabled');
         // this.target.empty();
         this.form.empty();
-        this.load_inputs(this.form);
-
+        this.load_inputs( this.form );
         var this_ = this;
 
         // var combo = $('<select>');
@@ -177,12 +171,13 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         //     alert("Handler for .submit() called.");
         //     event.preventDefault();
         // });
-        if (this.form_show_buttons) {
+        if( this.form_show_buttons )
+        {
             var buttons_div = $('<div>', {class: "col-sm-12"});
-            this.add_buttons(buttons_div);
-
-            if (this.button_enabled("clear")) {
-                var clear = $('<button/>',
+            this.add_buttons( buttons_div );
+            if( this.button_enabled( "clear" ) )
+            {
+                var clear = $( '<button/>',
                     {
                         text: 'Clear',
                         name: 'clear',
@@ -204,14 +199,12 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                             //     $(this).attr('disabled', "disabled");
                             // });
                         }
-                    });
+                    } );
                 buttons_div.append(clear);
             }
             this.form.append(buttons_div);
         }
         // var num = this.buttons.length;
-
-
         // form.append(combo).append("<br>");
         // form.append(input).append("<br>");
         $(this.form).append($('<div>', {class: "clear"}));
@@ -225,16 +218,9 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             if( this.form_show_buttons) { this.input_container.append(this.form); }
             else { this.input_container.append(this.form); }
         }
-
-        var size = Object.keys(this.fields).length;
-        if (size > 0) {
-            this.target.width(this_.width);
-        }
-        else {
-            $(this.target).css("min-width", function () {
-                return 200;
-            });
-        }
+        var size = Object.keys( this.fields ).length;
+        if( size > 0 ) { this.target.width( this_.width ); }
+        else { $( this.target ).css( "min-width", function () { return 200; } ); }
 
 
     };
@@ -243,18 +229,15 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
       // Checks if the particular button name is enabled. A button is enabled
       // when `form_show_buttons` is `true`, or when it is an array containing
       // the button `name`.
-      if (Array.isArray(this.form_show_buttons)) {
-        return this.form_show_buttons.includes(name);
-      } else {
-        return this.form_show_buttons;
-      }
+      if( Array.isArray( this.form_show_buttons ) ) { return this.form_show_buttons.includes( name ); }
+      return this.form_show_buttons;
     }
 
     Feed.prototype.add_buttons = function (container) {
         this.refresh_time = new Date();
-
         var this_ = this;
-        if (this.button_enabled("ok")) {
+        if( this.button_enabled( "ok" ) )
+        {
             var submit = $('<button/>',
                 {
                     value: "submit",
@@ -276,21 +259,21 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                                 // var json = $.parseJSON(data);
                                 // Feed.prototype.onload_(data);
                                 // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
-                                this_.onload(data);
-                            }).fail(function (jqXHR, textStatus, errorThrown) {
+                                this_.onload( data );
+                            }).fail( function ( jqXHR, textStatus, errorThrown ) {
                                 // console.log(jqXHR);
-                                if (jqXHR.readyState == 0) {
-                                    errorThrown = "Connection Refused."
-                                }
-                                this_.update_error(this_, errorThrown);
+                                if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused." }
+                                this_.update_error( this_, errorThrown );
                             });
                         }
                     }
                 });
-            container.append(submit);
+            container.append( submit );
             // Add padding between buttons.
             container.append($('<label/>', {class: "col-sm-2"}));
-        } else {
+        }
+        else
+        {
             // Left-pad so that close button aligns right.
             container.append($('<label/>', {class: "col-sm-9"}));
         }
@@ -312,16 +295,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     var get_prefix = function (key, prefix) {
         var p;
-        if (prefix.length > 0) {
+        if( prefix.length > 0 )
+        {
             var type = typeof prefix;
-            if (isNaN(key)) {
-                p = prefix + "/" + key;
-            }
-            else {
-                p = prefix + "[" + key + "]";
-            }
+            if( isNaN( key ) ) { p = prefix + "/" + key; }
+            else { p = prefix + "[" + key + "]"; }
         }
-        else {
+        else
+        {
             p = key;
         }
         return p;
@@ -358,14 +339,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         }
     };
     Feed.prototype.refresh = function () {
-        if (!this.form_show_buttons || (this.form_show_buttons && this.config.refresh.auto)) {
+        if( !this.form_show_buttons || ( this.form_show_buttons && this.config.refresh.auto ) )
+        {
             this.clear_interval();
             this.preload();
-            if (this.config.refresh.auto) {
-                this.set_interval();
-            }
+            if( this.config.refresh.auto ) { this.set_interval(); }
         }
-        if (this.hint != "") {
+        if( this.hint != "" )
+        {
             $(this.target).attr("rel", "tooltip");
             $(this.target).attr("data-placement", "top");
             $(this.target).attr("data-html", "true");
@@ -375,15 +356,20 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         }
     };
     Feed.prototype.update_view = function () {
-        if (this.config.view == 'show') {
+        if( this.config.view == 'show' )
+        {
             this.el.show();
             this.body.show();
             this.compact_icon.removeClass('glyphicon-resize-full').addClass('glyphicon-resize-small');
-        } else if (this.config.view == 'compact') {
+        }
+        else if( this.config.view == 'compact' )
+        {
             this.el.show();
             this.body.hide();
             this.compact_icon.removeClass('glyphicon-resize-small').addClass('glyphicon-resize-full');
-        } else if (this.config.view == 'hide') {
+        }
+        else if( this.config.view == 'hide' )
+        {
             this.el.hide();
         }
     };
@@ -391,40 +377,35 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
 
     Feed.prototype.load_inputs = function (container) {
         var is_disabled = false;
-        if (this.config.refresh.auto) {
-            is_disabled = true;
-        }
-        for (var field in this.fields) {
-            var row = $('<div>', {
-                class: "form"
-            });
+        if( this.config.refresh.auto ) { is_disabled = true; }
+        for( var field in this.fields )
+        {
+            var row = $( '<div>', { class: "form" } );
             var label = $('<label>',
                 {
                     text: field,
                     class: "col-sm-4 text-nowrap"
                 });
-            var each = $('<div>', {
-                class: " col-sm-8"
-            });
+            var each = $( '<div>', { class: " col-sm-8" } );
             var input;
             var fieldValue = this.fields[field];
             if (Array.isArray(fieldValue)) {
-              // Array values become a dropdown selector. These fields must have been
-              // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
-              // they'd already have been flattened to individual fields by
-              // `populate_path_values`.
-              input = $('<select>',
+                // Array values become a dropdown selector. These fields must have been
+                // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
+                // they'd already have been flattened to individual fields by
+                // `populate_path_values`.
+                input = $('<select>',
                 {
-                  class: "form-control ",
-                  name: field,
-                  value: fieldValue[0]
+                    class: "form-control ",
+                    name: field,
+                    value: fieldValue[0]
                 });
-              fieldValue.forEach(f => {
-                input.append($('<option>').append(f));
-              });
-            } else {
-              var input_type = (typeof fieldValue == 'number' ? 'number' : 'text');
-              input = $('<input>',
+                fieldValue.forEach(f => { input.append($('<option>').append(f)); });
+            }
+            else
+            {
+                var input_type = (typeof fieldValue == 'number' ? 'number' : 'text');
+                input = $('<input>',
                 {
                     type: input_type,
                     class: "form-control ",
@@ -432,7 +413,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                     value: fieldValue
                 });
             }
-            if (is_disabled) {
+            if( is_disabled )
+            {
                 $(input).prop('readonly', "readonly");
                 $(input).prop('title', "readonly");
             }
@@ -444,9 +426,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
     };
 
     Feed.prototype.preload = function () {
-        if (pending[this.feed_name]) {
-            return;
-        }
+        if( pending[this.feed_name] ) { return; }
         pending[this.feed_name] = true;
         this.refresh_time = new Date();
         this.status.fadeTo(1000, 0.4);
@@ -454,35 +434,30 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
     };
     Feed.prototype.is_add_form = function () {
         var size = Object.keys(this.fields).length;
-        return size > 0 && (this.config.type != "form" && this.config.type != 'stream');
+        return size > 0 && ( this.config.type != "form" && this.config.type != 'stream' );
     };
 
     Feed.prototype.is_feed_inputs = function () {
         var size = Object.keys(this.fields).length;
-        return size > 0 && (this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream');
+        return size > 0 && ( this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream' );
     };
     Feed.prototype.update_time = function () {
         var timestring = this.refresh_time.toString();
         //alert(timestring);
         var timezone = timestring.match(/\((.*)\)$/);
-        if (timezone != undefined && timezone.length == 2 && timezone[1].match(/ /)) {
-            var short_timezone = timezone[1].split(' ').map(function (word, index) {
-                return word[0];
-            }).join('');
+        if( timezone != undefined && timezone.length == 2 && timezone[1].match(/ /) )
+        {
+            var short_timezone = timezone[1].split(' ').map(function (word, index) { return word[0]; }).join('');
             timestring = timestring.replace(/\(.*\)$/, '(' + short_timezone + ')');
         }
         this.timestring.text(timestring);
         this.timeago.attr('datetime', this.refresh_time.toISOString()).timeago('updateFromDOM');
     };
     Feed.prototype.onload = function (data) {
-        if (this.form_show_buttons) {
-            this.removeOldStatus();
-        }
+        if (this.form_show_buttons) { this.removeOldStatus(); }
         this.update_time();
         this.status.finish().fadeTo(0, 1);
-        if (this.config.alert) {
-            this.alert(!data || !data.length);
-        }
+        if (this.config.alert) { this.alert(!data || !data.length); }
         this.onload_(data);
         delete pending[this.feed_name];
     };
@@ -491,9 +466,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.status.finish().fadeTo(0, 1);
         this.onload_();
         delete pending[this.feed_name];
-        if (this.config.alert) {
-            this.alert(true);
-        }
+        if (this.config.alert) { this.alert(true); }
     };
     Feed.prototype.removeOldStatus = function () {
         $(this.form).find(".error-message").remove();

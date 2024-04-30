@@ -280,7 +280,7 @@ define('base_controller', ['jquery', "jquery_timeago",
 
 
     base_controller.prototype.init_actions = function () {
-        $('.map').hover(function () {
+        $('.map').hover( function () {
             $('#container').sortable('disable')
         }, function () {
             $('#container').sortable('enable')
@@ -332,11 +332,8 @@ define('base_controller', ['jquery', "jquery_timeago",
         $('.panel-close').on('click', function (event) {
             var id = $(this).closest('li').attr('id');
             var feed_obj = feeds[id];
-            if (feed_obj.config.type == 'stream') {
-                gui.setProperty('show', false, feed_obj.feed_name);
-            } else {
-                gui.setProperty('view', 'hide', feed_obj.feed_name);
-            }
+            if (feed_obj.config.type == 'stream') { gui.setProperty('show', false, feed_obj.feed_name); }
+            else { gui.setProperty('view', 'hide', feed_obj.feed_name); }
         });
         $('.panel-compact').on('click', function (event) {
             var id = $(this).closest('li').attr('id');
@@ -360,27 +357,16 @@ define('base_controller', ['jquery', "jquery_timeago",
         $('.panel').on('mouseleave', function (e) {
             var id = $(this).closest('li').attr('id');
             var feed_obj = feeds[id];
-            if (feed_obj.timeago) {
+            if (feed_obj.timeago)
+            {
                 feed_obj.timestring.hide();
                 feed_obj.timeago.show();
             }
         });
-
-
-        $(document).on('keydown', function (event) {
-            if (event.ctrlKey) {
-                toggle_sortable(false);
-            }
-        });
-        $(document).on('keyup', function (event) {
-            toggle_sortable(true);
-        });
-        $(window).on('focusout', function (event) {
-            toggle_sortable(true);
-        });
-        $(window).on('beforeunload', function (e) {
-            save_last_config_file(current_config_file);
-        });
+        $(document).on('keydown', function (event) { if (event.ctrlKey) { toggle_sortable(false); } });
+        $(document).on('keyup', function (event) { toggle_sortable(true); });
+        $(window).on('focusout', function (event) { toggle_sortable(true); });
+        $(window).on('beforeunload', function (e) { save_last_config_file(current_config_file); });
     };
 
     function load_layout(config_file) {
@@ -774,16 +760,12 @@ define('base_controller', ['jquery', "jquery_timeago",
             folder.add(feed_obj.config, 'view', Feed.views).onFinishChange(function (value) {
                 var feed_name = get_feed_name(this.domElement);
                 feeds[feed_name].update_view();
-                if (value == 'hide') {
-                    gui.setProperty('auto', false, feed_name);
-                }
+                if( value == 'hide' ) { gui.setProperty('auto', false, feed_name); }
             });
             folder.add(feed_obj.config.refresh, 'auto').name("auto refresh").onFinishChange(function (value) {
                 var feed_name = get_feed_name(this.domElement);
                 var feed_obj = feeds[feed_name];
-                if (value && feed_obj.config.view == 'hide') {
-                    gui.setProperty('view', 'show', feed_name);
-                }
+                if( value && feed_obj.config.view == 'hide' ) { gui.setProperty('view', 'show', feed_name); }
                 feed_obj.reset();
             });
             folder.add(feed_obj.config.refresh, 'interval', 0, 90).name("refresh interval").step(1).onFinishChange(function (value) {
@@ -841,9 +823,7 @@ define('base_controller', ['jquery', "jquery_timeago",
             folder.add(feed_obj.config, 'show').onFinishChange(function (value) {
                 var feed_name = get_feed_name(this.domElement);
                 feeds[feed_name].toggle_show();
-                if (!value) {
-                    gui.setProperty('auto', false, feed_name);
-                }
+                if (!value) { gui.setProperty('auto', false, feed_name); }
             });
         }
         if (grid_types.indexOf(config.type) >= 0) {
