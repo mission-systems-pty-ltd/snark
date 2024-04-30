@@ -107,6 +107,14 @@ static void usage( bool verbose )
         std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
         std::cerr << "                             --autoscale='once;proportional;centre'  \\" << std::endl;
         std::cerr << "            | cv-cat 'view;null'" << std::endl;
+        std::cerr << "    autoscale: try to experiment by adding and removing --autoscaling properties" << std::endl;
+        std::cerr << "        csv-random make --type 6f --range 0,6.28 \\" << std::endl;
+        std::cerr << "            | csv-paste 'line-number;size=10000' - \\" << std::endl;
+        std::cerr << "            | csv-eval --fields block,i,x,y,r,g,b 'i=round(i*10);y=y*sin(x)*sin((block+1)*0.01);r=round(r*255/6.28);g=round(g*255/6.28);b=round(b*255/6.28)' \\" << std::endl;
+        std::cerr << "            | image-from-csv --fields block,id,x,y,r,g,b \\" << std::endl;
+        std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub'  \\" << std::endl;
+        std::cerr << "                             --autoscale='grow;proportional;centre' \\" << std::endl;
+        std::cerr << "            | cv-cat 'view;null'" << std::endl;
         std::cerr << "    shapes" << std::endl;
         std::cerr << "        lines" << std::endl;
         std::cerr << "            ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 )\\" << std::endl;
@@ -151,6 +159,8 @@ struct autoscale_t
     bool centre{false};
     bool grow{false};
     bool shrink{false};
+
+    void validate() const { COMMA_ASSERT( !grow || !shrink, "autoscale: 'grow' and 'shrink' are mutually exclusive" ); }
 };
 
 namespace comma { namespace visiting {
@@ -333,7 +343,7 @@ int main( int ac, char** av )
         bool has_alpha = false;
         options.assert_mutually_exclusive( "--offset", "--autoscale" );
         boost::optional< autoscale_t > autoscale = comma::silent_none< autoscale_t >();
-        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< autoscale_t >( options.value< std::string >("--autoscale" ) ); }
+        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< autoscale_t >( options.value< std::string >("--autoscale" ) ); autoscale->validate(); }
         auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {
@@ -349,9 +359,9 @@ int main( int ac, char** av )
         bool output_on_empty_input = options.exists( "--output-on-empty-input,--output-on-empty" );
         bool output_on_missing_blocks = options.exists( "--output-on-missing-blocks" );
         auto number_of_blocks = options.optional<unsigned int>("--number-of-blocks,--block-count");
-        const std::vector< std::string >& w = comma::split( offset_string, ',' );
+        const auto& w = comma::split_as< double >( offset_string, ',' );
         if( w.size() != 2 ) { std::cerr << "image-from-csv: --from: expected <x>,<y>; got: \"" << offset_string << "\"" << std::endl; return 1; }
-        std::pair< double, double > offset( boost::lexical_cast< double >( w[0] ), boost::lexical_cast< double >( w[1] ) ); // todo: quick and dirty; use better types
+        std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
         if( is_greyscale && has_alpha ) { std::cerr << "image-from-csv: warning: found alpha channel for a greyscale image; not implemented; ignored" << std::endl; }
         sample.channels.resize( is_greyscale ? 1 : has_alpha ? 4 : 3 );
@@ -378,6 +388,7 @@ int main( int ac, char** av )
         }
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
         std::vector< input_t > inputs;
+        bool first_block{true};
         while( is.ready() || std::cin.good() )
         {
             const input_t* p = is.read();
@@ -386,7 +397,7 @@ int main( int ac, char** av )
             if( !last || block_done )
             {
                 COMMA_ASSERT_BRIEF( inputs.size() != 1, "--autoscale: got only 1 point in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                if( autoscale && inputs.size() > 1 ) // todo: move to autoscale_t method
+                if( autoscale && inputs.size() > 1 ) // todo!!! move to autoscale_t method
                 {
                     std::pair< double, double > min{ inputs[0].x, inputs[0].y };
                     std::pair< double, double > max{ inputs[0].x, inputs[0].y };
@@ -395,28 +406,52 @@ int main( int ac, char** av )
                         if( i.x < min.first ) { min.first = i.x; } else if( i.x > max.first ) { max.first = i.x; }
                         if( i.y < min.second ) { min.second = i.y; } else if( i.y > max.second ) { max.second = i.y; }
                     }
-                    offset = min;
                     COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     std::pair< double, double > range{ max.first - min.first, max.second - min.second };
                     std::pair< double, double > size{ pair.second.cols - 1, pair.second.rows - 1 };
-                    scale = { size.first / range.first, size.second / range.second }; // todo: check for zeroes
+                    int min_x, min_y, max_x, max_y;
+                    bool grown{first_block}, shrunk{first_block};
+                    if( !first_block )
+                    {
+                        min_x = std::floor( ( min.first - offset.first ) * scale.first + 0.5 );
+                        min_y = std::floor( ( min.second - offset.second ) * scale.second + 0.5 );
+                        max_x = std::floor( ( max.first - offset.first ) * scale.first + 0.5 );
+                        max_y = std::floor( ( max.second - offset.second ) * scale.second + 0.5 );
+                        grown =     min_x < 0 || min_x >= pair.second.cols // quick and dirty for now
+                                 || min_y < 0 || min_y >= pair.second.rows
+                                 || max_x < 0 || max_x >= pair.second.cols
+                                 || max_y < 0 || max_y >= pair.second.rows;
+                        shrunk =    ( min_x > 0 && min_x < pair.second.cols )
+                                 || ( max_x > 0 && max_x < size.first )
+                                 || ( min_y > 0 && min_y < pair.second.rows )
+                                 || ( max_y > 0 && max_y < size.second );
+                        //std::cerr << "==> a: min: " << min_x << "," << min_y << " max: " << max_x << "," << max_y << std::endl;
+                    }
+                    auto new_offset = min;
+                    std::pair< double, double > new_scale = { size.first / range.first, size.second / range.second }; // todo: check for zeroes
                     if( autoscale->proportional )
                     {
-                        if( scale.first < scale.second )
+                        if( new_scale.first < new_scale.second )
                         {
-                            offset.second -= autoscale->centre ? ( size.second / scale.first - range.second ) * 0.5 : 0;
-                            scale.second = scale.first;
+                            new_offset.second -= autoscale->centre ? ( size.second / new_scale.first - range.second ) * 0.5 : 0;
+                            new_scale.second = new_scale.first;
                         }
                         else
                         {
-                            offset.first -= autoscale->centre ? ( size.first / scale.second - range.first ) * 0.5 : 0;
-                            scale.first = scale.second;
+                            new_offset.first -= autoscale->centre ? ( size.first / new_scale.second - range.first ) * 0.5 : 0;
+                            new_scale.first = new_scale.second;
                         }
                     }
-                    comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << std::endl;
+                    if( first_block || ( grown && !autoscale->shrink ) || ( shrunk && !autoscale->grow ) )
+                    {
+                        scale = new_scale;
+                        offset = new_offset;
+                        comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << " grown: " << grown << " shrunk: " << shrunk << std::endl;
+                    }
                     for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     inputs.clear();
+                    first_block = false;
                     if( autoscale->once ) { autoscale.reset(); }
                 }
                 if( last )
