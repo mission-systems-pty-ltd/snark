@@ -390,18 +390,19 @@ int main( int ac, char** av )
                     offset = min;
                     COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
                     COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                    scale = { double( pair.second.cols - 1 ) / ( max.first - min.first ), double( pair.second.rows - 1 ) / ( max.second - min.second ) }; // todo: check for zeroes
+                    std::pair< double, double > range{ max.first - min.first, max.second - min.second };
+                    std::pair< double, double > size{ pair.second.cols - 1, pair.second.rows - 1 };
+                    scale = { size.first / range.first, size.second / range.second }; // todo: check for zeroes
                     if( autoscale->proportional )
                     {
                         if( scale.first < scale.second )
                         {
-                            if( autoscale->centre ) { offset.second += ( pair.second.rows / scale.first - ( max.second - min.second ) * scale.second / scale.first ) * 0.5; }
-                            std::cerr << "==> pair.second.rows: " << pair.second.rows << " scale.first: " << scale.first << " scale.second: " << scale.second << " offset.second: " << offset.second << std::endl;
+                            offset.second -= autoscale->centre ? ( size.second / scale.first - range.second ) * 0.5 : 0;
                             scale.second = scale.first;
                         }
                         else
                         {
-                            if( autoscale->centre ) { offset.first += ( pair.second.cols * scale.first / scale.second - ( max.first - min.first ) ) * 0.5; }
+                            offset.first -= autoscale->centre ? ( size.first / scale.second - range.first ) * 0.5 : 0;
                             scale.first = scale.second;
                         }
                     }
