@@ -56,9 +56,11 @@ static void usage( bool verbose )
               << "    --autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset" << std::endl
               << "        <properties>" << std::endl
               << "            centre: if proportional (see below), centre the shorter dimension in the image" << std::endl
+              << "            grow: todo: on every block, change scale so that all input points fit into the image, never shrink" << std::endl
               << "            once: make sure all pixel coordinates of the first block fit into the image" << std::endl
               << "                  use the first block scaling factor for all subsequent blocks" << std::endl
               << "            proportional: use the same scaling factor on x and y" << std::endl
+              << "            shrink: todo: on every block, shrink scale to fit points into the image, never grow" << std::endl
               << "    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes" << std::endl
               << "    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0" << std::endl
               << "    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks" << std::endl
@@ -147,6 +149,8 @@ struct autoscale_t
     bool once{false};
     bool proportional{false};
     bool centre{false};
+    bool grow{false};
+    bool shrink{false};
 };
 
 namespace comma { namespace visiting {
@@ -181,6 +185,8 @@ template <> struct traits< autoscale_t >
         v.apply( "once", r.once );
         v.apply( "proportional", r.proportional );
         v.apply( "centre", r.centre );
+        v.apply( "grow", r.grow );
+        v.apply( "shrink", r.shrink );
     }
     
     template < typename K, typename V > static void visit( const K&, const autoscale_t& r, V& v )
@@ -188,6 +194,8 @@ template <> struct traits< autoscale_t >
         v.apply( "once", r.once );
         v.apply( "proportional", r.proportional );
         v.apply( "centre", r.centre );
+        v.apply( "grow", r.grow );
+        v.apply( "shrink", r.shrink );
     }
 };
 
