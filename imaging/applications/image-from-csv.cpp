@@ -99,7 +99,7 @@ static void usage( bool verbose )
         std::cerr << "        cat pixels.csv | image-from-csv --fields x,y,grey --output=\"rows=1200;cols=1000;type=ub\" | cv-cat --output no-header \"encode=png\" > test.bmp" << std::endl;
         std::cerr << "    autoscale" << std::endl;
         std::cerr << "        csv-random make --type 6f --range 0,1 \\" << std::endl;
-        std::cerr << "            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=2;r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
+        std::cerr << "            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
         std::cerr << "            | csv-paste 'line-number;size=10000' -  \\" << std::endl;
         std::cerr << "            | image-from-csv --fields block,id,x,y,r,g,b \\" << std::endl;
         std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
@@ -378,7 +378,7 @@ int main( int ac, char** av )
             if( !last || block_done )
             {
                 COMMA_ASSERT_BRIEF( inputs.size() != 1, "--autoscale: got only 1 point in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                if( autoscale && inputs.size() > 1 )
+                if( autoscale && inputs.size() > 1 ) // todo: move to autoscale_t method
                 {
                     std::pair< double, double > min{ inputs[0].x, inputs[0].y };
                     std::pair< double, double > max{ inputs[0].x, inputs[0].y };
@@ -395,12 +395,13 @@ int main( int ac, char** av )
                     {
                         if( scale.first < scale.second )
                         {
-                            if( autoscale->centre ) { offset.second += ( max.second - min.second ) * ( 1 - scale.first / scale.second ) / 2; }
+                            if( autoscale->centre ) { offset.second += ( pair.second.rows / scale.first - ( max.second - min.second ) * scale.second / scale.first ) * 0.5; }
+                            std::cerr << "==> pair.second.rows: " << pair.second.rows << " scale.first: " << scale.first << " scale.second: " << scale.second << " offset.second: " << offset.second << std::endl;
                             scale.second = scale.first;
                         }
                         else
                         {
-                            if( autoscale->centre ) { offset.first += ( max.first - min.first )  * ( 1 - scale.second / scale.first ) / 2; }
+                            if( autoscale->centre ) { offset.first += ( pair.second.cols * scale.first / scale.second - ( max.first - min.first ) ) * 0.5; }
                             scale.first = scale.second;
                         }
                     }
