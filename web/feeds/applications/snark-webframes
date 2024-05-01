@@ -206,10 +206,9 @@ class sensors:
                     xpath_key = ( xpath + '/' + key ) if xpath else key
                     self._find_sensor_names( value, xpath_key )
                     
-    def print_list(self):
-        sys.stderr.write("print_list %d \n"%len(self._parameters))
-        for name,value in self._parameters.items():
-            print(("%s=%s;%s" % (name,value.command,value.content_type)))
+    def print_list( self ):
+        print( f"print_list {len( self._parameters )}\n", file=sys.stderr )
+        for name,value in self._parameters.items(): print( f"{name}={value.command};{content_type}" )
 
     def __init__( self, web_config, robot_config, publish_config ):
         self._names = []
@@ -246,13 +245,12 @@ class handler( http.server.BaseHTTPRequestHandler ):
         explain = int
         self.log_error("code %d, message %s", code, message)
         content = (self.error_message_format %{'code': code, 'message': _quote_html(message), 'explain': explain})
-        self.send_response(code, message)
-        self.send_header("Content-Type", self.error_content_type)
+        self.send_response( code, message )
+        self.send_header( 'Content-Type', self.error_content_type )
         self.send_header( 'Access-Control-Allow-Origin', '*' )
-        self.send_header('Connection', 'close')
+        self.send_header( 'Connection', 'close' )
         self.end_headers()
-        if self.command != 'HEAD' and code >= 200 and code not in (204, 304):
-            self.wfile.write(content.encode('utf-8'))
+        if self.command != 'HEAD' and code >= 200 and code not in [ 204, 304 ]: self.wfile.write( content.encode( 'utf-8' ) )
 
     def do_OPTIONS(self):
         self.send_response(200, "ok")
@@ -264,26 +262,33 @@ class handler( http.server.BaseHTTPRequestHandler ):
 
     def do_GET( self ):
         url = urlparse.urlparse( self.path )
-        params = dict(urlparse.parse_qsl(url.query))
-        # print("params %s \n" % params)
-        if "_" in params: del params['_']
-        param_list=[]
-        for key, value in params.items(): param_list.append( f"{key}={value}" ) # todo: use sum()
-        query = urlparse.urlparse( self.path ).query
-        #print("param_list %s \n" % param_list)
+        params = dict( urlparse.parse_qsl( url.query ) )
+        if "_" in params: del params['_'] # _timestamp _command=query
+        param_list=[ f"{key}={value}" for key, value in params.items() ]
+        query = urlparse.urlparse( self.path ).query # todo? does not seem to be used?
         sensor = url.path.strip('/')
         client = self.client_address[0]
         sensor_parameters = sensors.get( sensor )
         if not sensor_parameters:
-            message = "%s: sensor '%s' requested by client '%s' is not in web_config '%s'" % ( script_name, sensor, client, args.config )
+            message = f"{script_name}: sensor '{sensor}' requested by client '{client}' is not in web_config '{args.config}'"
             self.send_error_response( http.client.NOT_FOUND, message )
             return
+        # if len( param_list ) > 0:
+        #     print( '==============================', file=sys.stderr )
+        #     print( params, file=sys.stderr )
+        #     print( '------------------------------', file=sys.stderr )
+        #     print( param_list, file=sys.stderr )
+        #     print( '------------------------------', file=sys.stderr )
+        #     print( f'{query=}', file=sys.stderr )
+        #     print( '------------------------------', file=sys.stderr )
+        #     print( f'{sensor=} {client=} {sensor_parameters.command=}', file=sys.stderr )
+        #     print( '==============================', file=sys.stderr )
         def preexec_fn():
             signal.signal( signal.SIGPIPE, signal.SIG_DFL )
         #    os.setsid() # using timeout is a safer option to get a process group
         with lock:
             p = subprocess.Popen( shlex.split( sensor_parameters.command ), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=preexec_fn)
-            p.stdin.write(('\n'.join(param_list) + "\n").encode('utf-8'))
+            p.stdin.write( ( '\n'.join( param_list ) + '\n' ).encode( 'utf-8' ) )
             running_subprocesses.append( p )
         output, error = p.communicate()
         #print("output=%s " % output)
@@ -293,17 +298,14 @@ class handler( http.server.BaseHTTPRequestHandler ):
         with lock: running_subprocesses.remove( p )
         if status != 0:
             # error is not included in message due problems with the html format for special symbols (using cgi.escape didn't help completely)
-            if error: message = error.strip().decode('ascii')
-            else: message = "%s: request '%s' for sensor '%s' in web config '%s' failed" % ( script_name, sensor_parameters.command, sensor, args.config )
+            message = error.strip().decode( 'ascii' ) if error else f"{script_name}: request '{sensor_parameters.command}' for sensor '{sensor}' web_config '{args.config}' failed"
             self.send_error_response( http.client.INTERNAL_SERVER_ERROR, message )
-            return
-        else:
-            self.send_response( http.client.OK )
-            self.send_header( 'Content-type', sensor_parameters.content_type )
-            self.send_header( 'Content-length', len( output ) )
-            self.send_header( 'Access-Control-Allow-Origin', '*' )
-            self.end_headers()
-            self.wfile.write( output )
+        self.send_response( http.client.OK )
+        self.send_header( 'Content-type', sensor_parameters.content_type )
+        self.send_header( 'Content-length', len( output ) )
+        self.send_header( 'Access-Control-Allow-Origin', '*' )
+        self.end_headers()
+        self.wfile.write( output )
 
     def log_message(self, format, *a): return http.server.BaseHTTPRequestHandler.log_message(self, format, *a) if args.verbose else None
 
@@ -361,7 +363,6 @@ signal.signal( signal.SIGHUP, trap )
 class async_http_server( socketserver.ThreadingMixIn, http.server.HTTPServer ): pass
 
 async_http_server( ( args.host, args.port ), handler ).serve_forever()
-
 
 # in case of performance problems that too many
 # clients fire the sensor pipeline at once
