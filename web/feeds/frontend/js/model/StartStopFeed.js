@@ -119,67 +119,65 @@
   placed in a text box above the status field.
 
  */
-define('StartStopFeed', ["jquery", "Feed"], function ($) {
+define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
+{
         var Feed = require('Feed');
-        var StartStopFeed = function (feed_name, feed_path, config) {
+        var StartStopFeed = function( feed_name, feed_path, config )
+        {
             this.base = Feed;
-            this.form_show_buttons = true;
-            this.base(feed_name, feed_path, config);
+            this.form_show_buttons = [ "start", "stop", "clear" ];
+            this.base( feed_name, feed_path, config );
             this.start_btn = undefined;
             this.stop_btn = undefined;
             // this.buttons = [];
         };
-
-        StartStopFeed.prototype = Object.create(Feed.prototype);
-
-        StartStopFeed.prototype.add_buttons = function (container) {
+        StartStopFeed.prototype = Object.create( Feed.prototype );
+        StartStopFeed.prototype.add_buttons = function( container )
+        {
             // To make the "clear" button align consistently, the buttons added here
             // need to occupy 9 columns in total. So if a button isn't shown, we replace
             // it with equivalent padding.
             let pad_cols = 0;
-
-            if (this.button_enabled("start")) {
+            if( this.button_enabled( "start" ) )
+            {
                 this.start_btn = add_button(this, "Start", "btn-primary col-sm-4", "start");
                 container.append(this.start_btn).append($('<label/>', {class: "col-sm-1"}));
-            } else {
+            }
+            else
+            {
                 pad_cols += 5;
             }
-
-            if (this.button_enabled("stop")) {
+            if( this.button_enabled( "stop" ) )
+            {
                 this.stop_btn = add_button(this, "Stop", "btn-danger col-sm-3", "stop");
                 container.append(this.stop_btn).append($('<label/>', {class: "col-sm-1"}));
-            } else {
+            }
+            else
+            {
                 pad_cols += 4;
             }
-
-            if (pad_cols > 0) {
+            if( pad_cols > 0 )
+            {
                 container.append($('<label/>', {class: "col-sm-" + pad_cols}));
             }
         };
-
         // StartStopFeed.prototype.extract_fields = function (form_elements) {
         //     if (form_elements != undefined) {
         //         this.populate_path_values(form_elements, "");
         //     }
         // };
-        StartStopFeed.prototype.addListeners = function () {
+        StartStopFeed.prototype.addListeners = function()
+        {
             var this_ = this;
-            $($(this.form).find("input")).on("input", function () {
+            $($(this.form).find("input")).on("input", function()
+            {
                 $(this_.form).find("button[name=start]").removeAttr('disabled');
                 $(this_.form).find("button[name=clear]").removeAttr('disabled');
             });
             var size = Object.keys(this.fields).length;
-            if (size > 0) {
-                this.target.width(this_.width);
-            }
-            else {
-                $(this.target).css("min-width", function () {
-                    return 200;
-                });
-            }
-            $(this.target).css("min-height", function () {
-                return 100;
-            });
+            if (size > 0) { this.target.width(this_.width); }
+            else { $(this.target).css("min-width", function () { return 200; }); }
+            $(this.target).css("min-height", function () { return 100; });
             // var isValidForm = true;
             //
             // var keys = Object.keys(this.fields);
@@ -205,19 +203,19 @@ define('StartStopFeed', ["jquery", "Feed"], function ($) {
         // StartStopFeed.prototype.load = function () {
         //     Feed.prototype.load.call(this);
         // };
-        StartStopFeed.prototype.load = function () {
-            $.ajax({
+        StartStopFeed.prototype.load = function()
+        {
+            $.ajax(
+            {
                 context: this,
                 type: "GET",
                 crossDomain: true,
                 url: this.get_url(),
                 data: $(this.target).find("form").serialize(),
                 timeout: globals.timeout
-            }).done(function (data, textStatus, jqXHR) {
-                this.onload(data);
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                this.onerror();
-            });
+            } )
+            .done(function (data, textStatus, jqXHR) { this.onload(data); })
+            .fail(function (jqXHR, textStatus, errorThrown) { this.onerror(); });
         };
 
         StartStopFeed.prototype.update_output = function (data) {

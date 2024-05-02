@@ -52,33 +52,26 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.show = true;
         this.isMobile = false;
         this.fields = [];
-        this.form = $('<form>', {onSubmit: "return false"});
+        this.form = $( '<form>', { onSubmit: "return false" } );
         if( this.form_show_buttons == undefined ) { this.form_show_buttons = false; }
-        // if(this.config.type == "start_stop" || this.form_show_buttons != undefined){
-        //     this.form_show_buttons = true;
-        // }
-        // else{
-        //     this.form_show_buttons = false;
-        // }
-
         this.width = this.config.width != undefined ? this.config.width : 400;
         if( config.form != undefined )
         {
-            this.extract_fields(config.form);
+            this.extract_fields( config.form );
             var input_fields_link = this.feed_name + "-fields";
-            if (!this.form_show_buttons)
+            var content_html;
+            if( this.form_show_buttons )
             {
-                var content_html = '<a data-toggle="collapse" class="text-center" href="#' + input_fields_link + '">Input fields</a>'
-                                 + '<div class="inputs-group collapse" id="' + input_fields_link + '"></div>';
-                $(content_html).insertBefore(this.target);
-                this.input_container = $(this.id + ' .inputs-group');
+                content_html = '<div class="inputs-group form" id="' + input_fields_link + '"></div>';
             }
-            else {
-                var content_html = '<div class="inputs-group form" id="' + input_fields_link + '"></div>';
-                $(content_html).insertBefore(this.target);
-                this.input_container = $(this.id + ' .inputs-group');
+            else
+            {
+                content_html = '<a data-toggle="collapse" class="text-center" href="#' + input_fields_link + '">Input fields</a>'
+                             + '<div class="inputs-group collapse" id="' + input_fields_link + '"></div>';
             }
-            this.ok_label = this.config.ok_label != undefined ? this.config.ok_label : "Submit";
+            $( content_html ).insertBefore( this.target );
+            this.input_container = $( this.id + ' .inputs-group' );
+            this.ok_label = this.config.ok_label != undefined ? this.config.ok_label : "Submit"; //this.ok_label = this.config.ok_label != undefined ? this.config.ok_label : "Submit";
         }
         if( this.is_add_form() )
         {
@@ -86,9 +79,9 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             this.addListeners();
         }
     };
-
-    Feed.prototype.reset = function () {
-        if (this.config.refresh.auto)
+    Feed.prototype.reset = function ()
+    {
+        if( this.config.refresh.auto )
         {
             $(this.input_container).find("input").attr("readonly", "readonly");
             $(this.input_container).find("input").attr("title", "readonly");
@@ -101,18 +94,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             $(this.input_container).find("input").removeAttr("title");
         }
     };
-
     Feed.prototype.extract_fields = function ( form_elements )
     {
         if( form_elements == undefined ) { return; }
         let dropdowns = [];
-        if( form_elements['dropdowns'] != undefined )
-        {
-            dropdowns = form_elements['dropdowns'];
-        }
+        if( form_elements['dropdowns'] != undefined ) { dropdowns = form_elements['dropdowns']; }
         if( form_elements['fields'] != undefined )
         {
-            this.populate_path_values(form_elements['fields'], "", dropdowns);
+            this.populate_path_values( form_elements['fields'], "", dropdowns );
             // this.buttons = form_elements['buttons'];
         }
         if( form_elements['buttons'] != undefined )
@@ -120,19 +109,10 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             var buttons_config = form_elements['buttons'];
             if( buttons_config['show'] != undefined )
             {
-                // `form_show_buttons` will end up being either true,
-                // false, or a non-empty array of button names. When used as
-                // a boolean, an array evaluates to true.
                 var show = buttons_config['show'];
                 this.form_show_buttons = false;
-                if( Array.isArray( show ) && show.length > 0 )
-                {
-                    this.form_show_buttons = show;
-                }
-                else if( show == "true" || ( typeof show == "boolean" && show ) ) // configs allow text or boolean i.e. "true"/true
-                {
-                    this.form_show_buttons = true;
-                }
+                if( Array.isArray( show ) && show.length > 0 ) { this.form_show_buttons = show; }
+                else if( show == "true" || ( typeof show == "boolean" && show ) ) { this.form_show_buttons = true; } // configs allow text or boolean i.e. "true"/true
             }
             //
             // this.buttons = form_elements['buttons'];
@@ -141,8 +121,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         //     this.populate_path_values(form_elements, "");
         // }
     };
-
-    Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns) {
+    Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns)
+    {
         for( var element in form_elements )
         {
             var value = form_elements[element];
@@ -153,18 +133,20 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
         }
     };
-    Feed.prototype.add_form = function () {
-        if( this.form_show_buttons ) { this.input_container.append(this.form); } // hm...
-        else { this.input_container.append( this.form ); }
+    Feed.prototype.add_form = function ()
+    {
+        // if( this.form_show_buttons ) { this.input_container.append( this.form ); } // hm...
+        // else { this.input_container.append( this.form ); }
+        this.input_container.append( this.form );
     };
-    Feed.prototype.init_form = function () {
+    Feed.prototype.init_form = function ()
+    {
         this.input_container.empty();
         this.el.removeClass('panel-disabled').addClass('panel-enabled');
         // this.target.empty();
         this.form.empty();
         this.load_inputs( this.form );
         var this_ = this;
-
         // var combo = $('<select>');
         //
         // $("form").submit(function (event) {
@@ -183,26 +165,21 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                         name: 'clear',
                         type: 'button',
                         class: "btn btn-default col-sm-3",
-                        click: function () {
+                        click: function()
+                        {
                             // Make text fields empty.
-                            $($(this).closest("form").find("input[type=text]")).each(function () {
-                                $(this).val('');
-                            });
+                            $($(this).closest("form").find("input[type=text]")).each(function () { $(this).val(''); });
                             // Set dropdowns to the first option.
-                            $($(this).closest("form").find("select")).each(function () {
-                                $(this).val($(this).children()[0].text)
-                            });
-                            $($(this).closest("form").find("button")).each(function () {
-                                $(this).attr('disabled', "disabled");
-                            });
+                            $($(this).closest("form").find("select")).each(function () { $(this).val($(this).children()[0].text) });
+                            $($(this).closest("form").find("button")).each(function () { $(this).attr('disabled', "disabled"); });
                             // $($(this).closest("form").find("button")).each(function () {
                             //     $(this).attr('disabled', "disabled");
                             // });
                         }
                     } );
-                buttons_div.append(clear);
+                buttons_div.append( clear );
             }
-            this.form.append(buttons_div);
+            this.form.append( buttons_div );
         }
         // var num = this.buttons.length;
         // form.append(combo).append("<br>");
@@ -211,29 +188,26 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.add_form();
         if( this.config.type == "start_stop" )
         {
-            this.target.append(this.form);
+            this.target.append( this.form );
         }
         else
         {
-            if( this.form_show_buttons) { this.input_container.append(this.form); }
-            else { this.input_container.append(this.form); }
+            //if( this.form_show_buttons ) { this.input_container.append( this.form ); } else { this.input_container.append( this.form ); }
+            this.input_container.append( this.form );
         }
         var size = Object.keys( this.fields ).length;
         if( size > 0 ) { this.target.width( this_.width ); }
         else { $( this.target ).css( "min-width", function () { return 200; } ); }
-
-
     };
-
-    Feed.prototype.button_enabled = function (name) {
+    Feed.prototype.button_enabled = function( name )
+    {
       // Checks if the particular button name is enabled. A button is enabled
       // when `form_show_buttons` is `true`, or when it is an array containing
       // the button `name`.
-      if( Array.isArray( this.form_show_buttons ) ) { return this.form_show_buttons.includes( name ); }
-      return this.form_show_buttons;
+      return Array.isArray( this.form_show_buttons ) ? this.form_show_buttons.includes( name ) : this.form_show_buttons;
     }
-
-    Feed.prototype.add_buttons = function (container) {
+    Feed.prototype.add_buttons = function( container )
+    {
         this.refresh_time = new Date();
         var this_ = this;
         if( this.button_enabled( "ok" ) )
@@ -242,11 +216,13 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                 {
                     value: "submit",
                     text: this.ok_label,
-                    class: "btn btn-primary col-sm-7",
-                    click: function (event) {
+                    class: "btn btn-primary col-sm-3",
+                    click: function( event )
+                    {
                         event.preventDefault();
                         var url = this_.get_url();
-                        if (url != undefined) {
+                        if( url != undefined )
+                        {
                             $.ajax({
                                 type: "GET",
                                 crossDomain: true,
@@ -255,91 +231,130 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                                 url: url
                                 // error: function (request, status, error) {
                                 // }
-                            }).done(function (data, textStatus, jqXHR) {
+                            }).done(function ( data, textStatus, jqXHR ) {
                                 // var json = $.parseJSON(data);
                                 // Feed.prototype.onload_(data);
                                 // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
                                 this_.onload( data );
                             }).fail( function ( jqXHR, textStatus, errorThrown ) {
                                 // console.log(jqXHR);
-                                if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused." }
+                                if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused" }
                                 this_.update_error( this_, errorThrown );
                             });
                         }
                     }
                 });
             container.append( submit );
-            // Add padding between buttons.
-            container.append($('<label/>', {class: "col-sm-2"}));
+            container.append($('<label/>', {class: "col-sm-1"}));
         }
         else
         {
-            // Left-pad so that close button aligns right.
-            container.append($('<label/>', {class: "col-sm-9"}));
+            container.append($('<label/>', {class: "col-sm-4"}));
         }
-    };
-    Feed.prototype.addListeners = function () {
-        // Re-enable submit button whenever an input element changes.
-        $($(this.form).find("input")).on("input", function () {
-            $($(this).closest("form").find("button")).each(function () {
-                $(this).removeAttr('disabled');
-            });
-        });
-        // Re-enable submit button whenever a select element changes.
-        $($(this.form).find("select")).on("change", function() {
-            $($(this).closest("form").find("button")).each(function () {
-                $(this).removeAttr('disabled');
-            });
-        });
-    };
-
-    var get_prefix = function (key, prefix) {
-        var p;
-        if( prefix.length > 0 )
+        if( Array.isArray( this.form_show_buttons ) ) // todo: add (reasonably) arbitrary list of buttons in the loop
         {
-            var type = typeof prefix;
-            if( isNaN( key ) ) { p = prefix + "/" + key; }
-            else { p = prefix + "[" + key + "]"; }
+            for( var i in this.form_show_buttons )
+            {
+                var button_name = this.form_show_buttons[i]
+                if( button_name == "ok" || button_name == "clear" ) { continue; } // todo: quick and dirty, generalise
+                var button = $('<button/>',
+                    {
+                        value: button_name,
+                        text: button_name.charAt(0).toUpperCase() + button_name.slice(1),
+                        class: "btn btn-primary col-sm-3", // todo: adjust button size based on number of buttons
+                        click: function( event )
+                        {
+                            event.preventDefault();
+                            var url = this_.get_url( encodeURIComponent( 'web/feeds/command' ) + '=' + encodeURIComponent( $(this).attr("value") ) );
+                            if( url != undefined )
+                            {
+                                $.ajax(
+                                {
+                                    type: "GET",
+                                    crossDomain: true,
+                                    context: this,
+                                    data: $(this).closest("form").serialize(),
+                                    url: url
+                                    // error: function (request, status, error) {
+                                    // }
+                                }).done(function ( data, textStatus, jqXHR )
+                                {
+                                    // var json = $.parseJSON(data);
+                                    // Feed.prototype.onload_(data);
+                                    // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
+                                    this_.onload( data );
+                                }).fail( function ( jqXHR, textStatus, errorThrown )
+                                {
+                                    // console.log(jqXHR);
+                                    if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused" }
+                                    this_.update_error( this_, errorThrown );
+                                });
+                            }
+                        }
+                    });
+                container.append( button );
+                container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
+            }
+            container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
         }
         else
         {
-            p = key;
+            container.append($('<label/>', {class: "col-sm-5"}));
         }
-        return p;
     };
-
-    Feed.prototype.set_interval = function () {
+    Feed.prototype.addListeners = function()
+    {
+        $($(this.form).find("input")).on( "input", function() // re-enable submit button whenever an input element changes
+        {
+            $($(this).closest("form").find("button")).each( function() { $(this).removeAttr( 'disabled' ); } );
+        } );
+        $($(this.form).find("select")).on( "change", function() // re-enable submit button whenever a select element changes
+        {
+            $($(this).closest("form").find("button")).each( function() { $(this).removeAttr( 'disabled' ); } );
+        } );
+    };
+    var get_prefix = function( key, prefix ) { return prefix.length == 0 ? key : ( isNaN( key ) ? prefix + "/" + key : prefix + "[" + key + "]" ); };
+    Feed.prototype.set_interval = function()
+    {
         this.interval = setInterval(this.preload.bind(this), this.config.refresh.interval * 1000);
         this.status.removeClass('text-muted glyphicon-stop').addClass('text-success glyphicon-refresh');
         this.el.removeClass('panel-disabled').addClass('panel-enabled');
         var gui_folder = $(gui.__folders[this.feed_path].__ul);
-        if (globals.isMobile) {
+        if( globals.isMobile )
+        {
             gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').first().removeClass('panel-disabled').addClass('panel-enabled');
-        } else {
+        }
+        else
+        {
             gui_folder.find('.title').first().removeClass('panel-disabled').addClass('panel-enabled');
         }
     };
-
-
-    Feed.prototype.clear_interval = function () {
+    Feed.prototype.clear_interval = function ()
+    {
         clearInterval(this.interval);
         delete pending[this.feed_name];
-        if (!(this.target.hasClass('form') || this.input_container.hasClass("form"))) {
+        if( !( this.target.hasClass( 'form' ) || this.input_container.hasClass( 'form' ) ) )
+        {
             this.status.removeClass('text-success glyphicon-refresh').addClass('text-muted glyphicon-stop');
             this.el.removeClass('panel-enabled').addClass('panel-disabled');
             var gui_folder = $(gui.__folders[this.feed_path].__ul);
-            if (globals.isMobile) {
+            if( globals.isMobile )
+            {
                 gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').removeClass('panel-enabled').addClass('panel-disabled');
-            } else {
+            }
+            else
+            {
                 gui_folder.find('.title').removeClass('panel-enabled').addClass('panel-disabled');
             }
         }
-        else {
+        else
+        {
             // this.el.removeClass('panel-enabled').addClass('panel-disabled');
         }
     };
-    Feed.prototype.refresh = function () {
-        if( !this.form_show_buttons || ( this.form_show_buttons && this.config.refresh.auto ) )
+    Feed.prototype.refresh = function ()
+    {
+        if( !this.form_show_buttons || this.config.refresh.auto )
         {
             this.clear_interval();
             this.preload();
@@ -355,7 +370,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             $(this.target).tooltip();
         }
     };
-    Feed.prototype.update_view = function () {
+    Feed.prototype.update_view = function ()
+    {
         if( this.config.view == 'show' )
         {
             this.el.show();
@@ -375,7 +391,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
     };
 
 
-    Feed.prototype.load_inputs = function (container) {
+    Feed.prototype.load_inputs = function( container )
+    {
         var is_disabled = false;
         if( this.config.refresh.auto ) { is_disabled = true; }
         for( var field in this.fields )
@@ -389,7 +406,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             var each = $( '<div>', { class: " col-sm-8" } );
             var input;
             var fieldValue = this.fields[field];
-            if (Array.isArray(fieldValue)) {
+            if( Array.isArray( fieldValue ) )
+            {
                 // Array values become a dropdown selector. These fields must have been
                 // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
                 // they'd already have been flattened to individual fields by
@@ -424,24 +442,26 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             // this.target.append(row);
         }
     };
-
-    Feed.prototype.preload = function () {
+    Feed.prototype.preload = function ()
+    {
         if( pending[this.feed_name] ) { return; }
         pending[this.feed_name] = true;
         this.refresh_time = new Date();
         this.status.fadeTo(1000, 0.4);
         this.load();
     };
-    Feed.prototype.is_add_form = function () {
+    Feed.prototype.is_add_form = function ()
+    {
         var size = Object.keys(this.fields).length;
         return size > 0 && ( this.config.type != "form" && this.config.type != 'stream' );
     };
-
-    Feed.prototype.is_feed_inputs = function () {
+    Feed.prototype.is_feed_inputs = function ()
+    {
         var size = Object.keys(this.fields).length;
         return size > 0 && ( this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream' );
     };
-    Feed.prototype.update_time = function () {
+    Feed.prototype.update_time = function ()
+    {
         var timestring = this.refresh_time.toString();
         //alert(timestring);
         var timezone = timestring.match(/\((.*)\)$/);
@@ -453,84 +473,75 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.timestring.text(timestring);
         this.timeago.attr('datetime', this.refresh_time.toISOString()).timeago('updateFromDOM');
     };
-    Feed.prototype.onload = function (data) {
-        if (this.form_show_buttons) { this.removeOldStatus(); }
+    Feed.prototype.onload = function (data)
+    {
+        if( this.form_show_buttons ) { this.removeOldStatus(); }
         this.update_time();
         this.status.finish().fadeTo(0, 1);
         if (this.config.alert) { this.alert(!data || !data.length); }
         this.onload_(data);
         delete pending[this.feed_name];
     };
-    Feed.prototype.onerror = function () {
+    Feed.prototype.onerror = function ()
+    {
         this.update_time();
         this.status.finish().fadeTo(0, 1);
         this.onload_();
         delete pending[this.feed_name];
         if (this.config.alert) { this.alert(true); }
     };
-    Feed.prototype.removeOldStatus = function () {
+    Feed.prototype.removeOldStatus = function ()
+    {
         $(this.form).find(".error-message").remove();
         this.el.removeClass('panel-disabled');
     };
-    Feed.prototype.update_error = function (this_, error) {
+    Feed.prototype.update_error = function( this_, error )
+    {
         this_.update_time();
-        if (error.trim().length == 0) {
-            error = "Please check configuration!! "
-        }
+        if( error.trim().length == 0 ) { error = "Please check configuration!"; }
         this.status.finish().fadeTo(0, 1);
         this.onload_();
         $(this.form).find(".error-message").remove();
         this.el.addClass('panel-disabled');
         $(this.form).append($('<label>', {
             class: "error-message col-sm-11 ",
-            text: (status.message ? status.message : "Error : " + error)
+            text: ( status.message ? status.message : "Error : " + error )
         }));
         $(this.form).append($('<div>', {class: "clear"}));
-
-
     };
-    Feed.prototype.get_url = function () {
+    Feed.prototype.get_url = function( params = undefined )
+    {
         var url = this.config.url;
         var timestamp = new Date().getTime();
-        url = url + (url.indexOf('?') < 0 ? '?_=' : '&_=') + timestamp;
-        if (this.is_feed_inputs()) {
-            var params = $(this.input_container).find("form").serialize();
-            if (params.length > 0) {
-                url = url + (url.indexOf('?') < 0 ? ' ' : '&') + params;
-            }
+        url += ( url.indexOf( '?' ) < 0 ? '?_=' : '&_=' ) + timestamp;
+        if( params != undefined ) { url += ( url.indexOf( '?' ) < 0 ? ' ' : '&' ) + params; }
+        if( this.is_feed_inputs() )
+        {
+            var form_params = $( this.input_container ).find( "form" ).serialize();
+            if( form_params.length > 0 ) { url += ( url.indexOf( '?' ) < 0 ? ' ' : '&' ) + form_params; }
         }
         return url;
     };
-    Feed.prototype.alert = function (on) {
+    Feed.prototype.alert = function (on)
+    {
         var gui_element = gui.__folders[this.feed_path];
         if (gui_element != undefined) {
             var gui_folder = $(gui_element.__ul);
-            if (on) {
+            if( on )
+            {
                 this.el.addClass('panel-alert');
-                if (globals.isMobile) {
-                    gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').first().addClass('panel-alert');
-                }
-                else {
-                    gui_folder.find('.title').first().addClass('panel-alert');
-                }
-
-                if (globals.alert_beep) {
-                    globals.beep();
-                }
-            } else {
-                if (globals.isMobile) {
-
-                    gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').removeClass('panel-alert');
-                }
-                else {
-                    gui_folder.find('.title').removeClass('panel-alert');
-                }
+                if (globals.isMobile) { gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').first().addClass('panel-alert'); }
+                else { gui_folder.find('.title').first().addClass('panel-alert'); }
+                if( globals.alert_beep ) { globals.beep(); }
+            }
+            else
+            {
+                if( globals.isMobile ) { gui_folder.closest('li').find('a.ui-collapsible-heading-toggle').removeClass('panel-alert'); }
+                else { gui_folder.find('.title').removeClass('panel-alert'); }
                 this.el.removeClass('panel-alert');
             }
         }
     };
     Feed.views = ['show', 'compact', 'hide'];
-
     return Feed;
-
 });
