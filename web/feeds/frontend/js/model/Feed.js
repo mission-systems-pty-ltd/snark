@@ -227,7 +227,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                                 type: "GET",
                                 crossDomain: true,
                                 context: this,
-                                data: $(this).closest("form").serialize(),
+                                data: $(this).closest('form').serialize(),
                                 url: url
                                 // error: function (request, status, error) {
                                 // }
@@ -273,15 +273,26 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
                                     type: "GET",
                                     crossDomain: true,
                                     context: this,
-                                    data: $(this).closest("form").serialize(),
+                                    data: $( this ).closest( "form" ).serialize(),
                                     url: url
                                     // error: function (request, status, error) {
                                     // }
-                                }).done(function ( data, textStatus, jqXHR )
+                                }).done( function ( data, textStatus, jqXHR )
                                 {
                                     // var json = $.parseJSON(data);
                                     // Feed.prototype.onload_(data);
                                     // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
+                                    if( $( this ).attr( 'value' ) == 'query' ) // // todo? accept json data? currently, path-value only; quick and dirty for now
+                                    {
+                                        var p = data.split( '\n' );
+                                        for( var i in p )
+                                        {
+                                            var k = p[i].split( '=' )[0];
+                                            if( k.trim().length == 0 ) { continue; }
+                                            var input = $( this.form ).find( 'input[name="' + k + '"]' );
+                                            if( input != undefined ) { input.val( p[i].slice( k.length + 1 ) ); }
+                                        }
+                                    }
                                     this_.onload( data );
                                 }).fail( function ( jqXHR, textStatus, errorThrown )
                                 {
@@ -389,8 +400,6 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             this.el.hide();
         }
     };
-
-
     Feed.prototype.load_inputs = function( container )
     {
         var is_disabled = false;
@@ -438,11 +447,10 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
             }
             each.append(input);
             row.append(label).append(each);
-            container.append(row).append($('<div>', {class: "clear"}));
-            // this.target.append(row);
+            container.append(row).append($('<div>', {class: "clear"})); // this.target.append(row);
         }
     };
-    Feed.prototype.preload = function ()
+    Feed.prototype.preload = function()
     {
         if( pending[this.feed_name] ) { return; }
         pending[this.feed_name] = true;
@@ -450,64 +458,65 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
         this.status.fadeTo(1000, 0.4);
         this.load();
     };
-    Feed.prototype.is_add_form = function ()
+    Feed.prototype.is_add_form = function()
     {
         var size = Object.keys(this.fields).length;
         return size > 0 && ( this.config.type != "form" && this.config.type != 'stream' );
     };
-    Feed.prototype.is_feed_inputs = function ()
+    Feed.prototype.is_feed_inputs = function()
     {
-        var size = Object.keys(this.fields).length;
+        var size = Object.keys( this.fields ).length;
         return size > 0 && ( this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream' );
     };
-    Feed.prototype.update_time = function ()
+    Feed.prototype.update_time = function()
     {
         var timestring = this.refresh_time.toString();
         //alert(timestring);
         var timezone = timestring.match(/\((.*)\)$/);
         if( timezone != undefined && timezone.length == 2 && timezone[1].match(/ /) )
         {
-            var short_timezone = timezone[1].split(' ').map(function (word, index) { return word[0]; }).join('');
+            var short_timezone = timezone[1].split(' ').map( function( word, index ) { return word[0]; }).join( '' );
             timestring = timestring.replace(/\(.*\)$/, '(' + short_timezone + ')');
         }
         this.timestring.text(timestring);
         this.timeago.attr('datetime', this.refresh_time.toISOString()).timeago('updateFromDOM');
     };
-    Feed.prototype.onload = function (data)
+    Feed.prototype.onload = function( data )
     {
         if( this.form_show_buttons ) { this.removeOldStatus(); }
         this.update_time();
-        this.status.finish().fadeTo(0, 1);
-        if (this.config.alert) { this.alert(!data || !data.length); }
-        this.onload_(data);
+        this.status.finish().fadeTo( 0, 1 );
+        if( this.config.alert ) { this.alert(!data || !data.length); }
+        this.onload_( data );
         delete pending[this.feed_name];
     };
-    Feed.prototype.onerror = function ()
+    Feed.prototype.onerror = function()
     {
         this.update_time();
-        this.status.finish().fadeTo(0, 1);
+        this.status.finish().fadeTo( 0, 1 );
         this.onload_();
         delete pending[this.feed_name];
-        if (this.config.alert) { this.alert(true); }
+        if( this.config.alert ) { this.alert( true ); }
     };
     Feed.prototype.removeOldStatus = function ()
     {
-        $(this.form).find(".error-message").remove();
-        this.el.removeClass('panel-disabled');
+        $( this.form ).find( '.error-message' ).remove();
+        this.el.removeClass( 'panel-disabled' );
     };
     Feed.prototype.update_error = function( this_, error )
     {
         this_.update_time();
-        if( error.trim().length == 0 ) { error = "Please check configuration!"; }
+        if( error.trim().length == 0 ) { error = "Please check configuration!"; } // todo: better error message
         this.status.finish().fadeTo(0, 1);
         this.onload_();
-        $(this.form).find(".error-message").remove();
-        this.el.addClass('panel-disabled');
-        $(this.form).append($('<label>', {
+        $( this.form ).find( ".error-message" ).remove();
+        this.el.addClass( 'panel-disabled' );
+        $( this.form ).append( $( '<label>',
+        {
             class: "error-message col-sm-11 ",
             text: ( status.message ? status.message : "Error : " + error )
         }));
-        $(this.form).append($('<div>', {class: "clear"}));
+        $( this.form ).append( $( '<div>', { class: "clear" } ) );
     };
     Feed.prototype.get_url = function( params = undefined )
     {
