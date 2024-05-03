@@ -40,13 +40,20 @@ xy_chart::xy_chart( const chart::config_t& config, QGraphicsItem *parent, Qt::Wi
     //setMargins( QMargins( 5, 5, 5, 5 ) ); // quick and dirty
     //QFont font( x_axis_->titleFont().family(), 1, 1 );
     x_axis_->setTitleFont( x_axis_->titleFont() ); // voodoo, this removes font boldness... whatever...
-    y_axis_->setTitleFont( y_axis_->titleFont() ); // voodoo, this removes font boldness... whatever...
     x_axis_->setTitleText( &config.axes.x.title[0] );
-    y_axis_->setTitleText( &config.axes.y.title[0] );
-    x_axis_->setTickCount( 1 ); // todo: make configurable
+    x_axis_->setTickAnchor( config.axes.x.tick.anchor );
+    x_axis_->setTickInterval( config.axes.x.tick.interval );
+    if( config.axes.x.tick.anchor != 0 || config.axes.x.tick.interval != 0 ) { x_axis_->setTickType( QValueAxis::TicksDynamic ); }
+    x_axis_->setTickCount( config.axes.x.tick.count ); // todo: make configurable
     double min_x = config.min.x ? *config.min.x : 0;
     double max_x = config.max.x ? *config.max.x : min_x + 10; // quick and dirty
     x_axis_->setRange( min_x, max_x );
+    y_axis_->setTitleText( &config.axes.y.title[0] );
+    y_axis_->setTitleFont( y_axis_->titleFont() ); // voodoo, this removes font boldness... whatever...
+    y_axis_->setTickAnchor( config.axes.y.tick.anchor );
+    y_axis_->setTickInterval( config.axes.y.tick.interval );
+    if( config.axes.y.tick.anchor != 0 || config.axes.y.tick.interval != 0 ) { y_axis_->setTickType( QValueAxis::TicksDynamic ); }
+    y_axis_->setTickCount( config.axes.y.tick.count ); // todo: make configurable
     double min_y = config.min.y ? *config.min.y : 0;
     double max_y = config.max.y ? *config.max.y : min_y + 10; // quick and dirty
     y_axis_->setRange( min_y, max_y );

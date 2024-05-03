@@ -68,8 +68,14 @@ static void usage( bool verbose = false )
     std::cerr << "    --chart=<name>,<properties>; semicolon-separated chart properties; multiple --chart options allowed" << std::endl;
     std::cerr << "        <properties>" << std::endl;
     std::cerr << "            animate; default: true" << std::endl;
-    std::cerr << "            axes/x=[<title>]" << std::endl;
-    std::cerr << "            axes/y=[<title>]" << std::endl;
+    std::cerr << "            axes/x/title=[<title>]" << std::endl;
+    std::cerr << "            axes/x/tick/anchor=[<anchor>]; default: use min/x if defined or auto if not" << std::endl;
+    std::cerr << "            axes/x/tick/count=[<n>]; desired number of ticks" << std::endl;
+    std::cerr << "            axes/x/tick/interval=[<interval>]; default: auto if not defined" << std::endl;
+    std::cerr << "            axes/y/title=[<title>]" << std::endl;
+    std::cerr << "            axes/y/tick/anchor=[<anchor>]; default: use min/y if defined or auto if not" << std::endl;
+    std::cerr << "            axes/Y/tick/count=[<n>]; desired number of ticks" << std::endl;
+    std::cerr << "            axes/y/tick/interval=[<interval>]; default: auto if not defined" << std::endl;
     std::cerr << "            legend; show legend; default: false" << std::endl;
     std::cerr << "            max/x=[<value>], max/y=[<value>]" << std::endl;
     std::cerr << "            min/x=[<value>], min/y=[<value>]" << std::endl;

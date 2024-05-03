@@ -29,7 +29,20 @@ class chart: public QChart
 {
     Q_OBJECT
     public:
-        struct axis { struct config { std::string title; }; };
+        struct axis
+        { 
+            struct tick
+            {
+                float anchor{0};
+                float interval{0};
+                float count{0};
+            };
+            struct config
+            {
+                std::string title;
+                axis::tick tick;
+            };
+        };
 
         struct axes { struct config { axis::config x; axis::config y; }; };
         

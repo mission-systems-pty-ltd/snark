@@ -94,11 +94,22 @@ template <> struct traits< snark::graphics::plotting::stream::config_t >
     }
 };
 
+template <> struct traits< snark::graphics::plotting::chart::axis::tick >
+{
+    template< typename K, typename V > static void visit( const K&, snark::graphics::plotting::chart::axis::tick& t, V& v )
+    {
+        v.apply( "anchor", t.anchor );
+        v.apply( "interval", t.interval );
+        v.apply( "count", t.count );
+    }
+};
+
 template <> struct traits< snark::graphics::plotting::chart::axis::config >
 {
     template< typename K, typename V > static void visit( const K&, snark::graphics::plotting::chart::axis::config& t, V& v )
     { 
         v.apply( "title", t.title );
+        v.apply( "tick", t.tick );
     }
 };
 
