@@ -185,6 +185,10 @@ static void usage( bool verbose = false )
         std::cerr << "        echo -e 1,10\\\\n2,5\\\\n3,8 > test.csv" << std::endl;
         std::cerr << "        csv-plot \"test.csv;color=red\" \"test.csv;color=blue;fields=y,x\"" << std::endl;
         std::cerr << std::endl;
+        std::cerr << "    specify tick properties for x axis (same for y axis)" << std::endl;
+        std::cerr << "        ( echo -1,10; echo 0.5,15; echo 2,3 ) \\" << std::endl;
+        std::cerr << "            | csv-plot --chart ';min/x=-2;max/x=2;axes/tick/anchor=0;axes/x/tick/interval=0.3'" << std::endl;
+        std::cerr << std::endl;
         std::cerr << "    point streams: show last 100 points" << std::endl;
         std::cerr << "        netcat localhost 12345 | csv-plot --size=100" << std::endl;
         std::cerr << std::endl;
