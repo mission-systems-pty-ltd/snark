@@ -83,6 +83,7 @@ static void usage( bool verbose = false )
     std::cerr << "            min/x=[<value>], min/y=[<value>]" << std::endl;
     std::cerr << "            scroll; \"scroll\" to the current chart extents" << std::endl;
     std::cerr << "            title=[<title>]; default: <name>" << std::endl;
+    std::cerr << "            theme=[<theme>]; default=light; choices: light, blue-cerulean, dark, brown-sand, blue-ncs, high-contrast, blue-icy, qt" << std::endl;
     std::cerr << "        example: todo" << std::endl;
     std::cerr << "    --scroll: if present, chart axes get adjusted to where the data is" << std::endl;
     std::cerr << std::endl;
@@ -196,6 +197,9 @@ static void usage( bool verbose = false )
         std::cerr << "            | csv-plot --chart ';min/x=0;max/x=10;axes/x/tick/interval=2;axes/y/tick/interval=1;axes/x/label/format=\%d pretzels;axes/y/label/format=$\%2.0f'" << std::endl;
         std::cerr << "    point streams: show last 100 points" << std::endl;
         std::cerr << "        netcat localhost 12345 | csv-plot --size=100" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << "    specify chart theme" << std::endl;
+        std::cerr << "        csv-paste line-number --head 1000 | csv-eval --fields=x 'y=8*sin(x/10)' | csv-plot '-;color=yellow' --chart ';theme=dark'" << std::endl;
         std::cerr << std::endl;
         std::cerr << "    several streams" << std::endl;
         std::cerr << "        csv-plot \"tcp:localhost:8888\" \"tcp:localhost:9999\"" << std::endl;

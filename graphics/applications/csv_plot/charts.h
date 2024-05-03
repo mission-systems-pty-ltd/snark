@@ -61,10 +61,13 @@ class chart: public QChart
             std::string name;
             bool scroll; // todo? a better name?
             std::string title;
+            std::string theme;
             
             config_t( const std::string& name = "", const std::string& title = "" );
             config_t( const comma::command_line_options& options );
             static config_t make( const std::string& s, const chart::config_t& defaults = chart::config_t() );
+            static QtCharts::QChart::ChartTheme theme_from_string( const std::string& t );
+            QtCharts::QChart::ChartTheme get_theme() const { return theme_from_string( theme ); }
         };
         
         chart( const config_t& c, QGraphicsItem *parent = nullptr, Qt::WindowFlags window_flags = {} );

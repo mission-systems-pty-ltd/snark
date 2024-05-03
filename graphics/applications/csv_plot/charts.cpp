@@ -18,6 +18,19 @@ chart::config_t::config_t( const comma::command_line_options& options ) : config
     scroll = options.exists( "--scroll" ); // todo? more options?
 }
 
+QtCharts::QChart::ChartTheme chart::config_t::theme_from_string( const std::string& t )
+{
+    if( t.empty() || t == "light" ) { return QChart::ChartThemeLight; }
+    if( t == "blue-cerulean" ) { return QChart::ChartThemeBlueCerulean; }
+    if( t == "dark" ) { return QChart::ChartThemeDark; }
+    if( t == "brown-sand" ) { return QChart::ChartThemeBrownSand; }
+    if( t == "blue-ncs" ) { return QChart::ChartThemeBlueNcs; }
+    if( t == "high-contrast" ) { return QChart::ChartThemeHighContrast; }
+    if( t == "blue-icy" ) { return QChart::ChartThemeBlueIcy; }
+    if( t == "qt" ) { return QChart::ChartThemeQt; }
+    COMMA_THROW_BRIEF( comma::exception, "expected chart theme, got: '" << t << "'" );
+}
+
 chart::chart( const chart::config_t& config, QGraphicsItem *parent, Qt::WindowFlags window_flags )
     : QChart( QChart::ChartTypeCartesian, parent, window_flags )
     , config_( config )
@@ -28,8 +41,9 @@ chart::chart( const chart::config_t& config, QGraphicsItem *parent, Qt::WindowFl
     setTitle( &config_.title[0] );
     if( !config_.legend ) { legend()->hide(); }
     if( config_.animate ) { setAnimationOptions( QChart::SeriesAnimations ); }
-    grabGesture(Qt::PanGesture);
-    grabGesture(Qt::PinchGesture);
+    grabGesture( Qt::PanGesture );
+    grabGesture( Qt::PinchGesture );
+    setTheme( config.get_theme() );
 }
             
 xy_chart::xy_chart( const chart::config_t& config, QGraphicsItem *parent, Qt::WindowFlags window_flags )

@@ -75,30 +75,31 @@ static std::string _colormap_at( const std::string& s, unsigned int i )
 
 void config::set_next_colour() // hyper-quick and dirty for now
 {
+    if( color_map.empty() ) { return; }
     static unsigned int number_of_series{0};
     color_name = _colormap_at( color_map, number_of_series++ );
     color = QColor( hex_color_( color_name ) );
 }
 
 config::config( const comma::command_line_options& options )
-    : color_map( options.value< std::string >( "--colors,--colours", "black" ) )
-    , color_name( options.value< std::string >( "--color,--colour", "black" ) ) //: color_name( options.value< std::string >( "--color,--colour", _colormap_at( options.value< std::string >( "--colors,--colours", "black" ), number_of_series ) ) )
-    , color( color_name.empty() ? QColor( 0, 0, 0 ) : QColor( hex_color_( color_name ) ) )
+    : color_map( options.value< std::string >( "--colors,--colours", "" ) )
+    , color_name( options.value< std::string >( "--color,--colour", "" ) ) //: color_name( options.value< std::string >( "--color,--colour", _colormap_at( options.value< std::string >( "--colors,--colours", "black" ), number_of_series ) ) )
     , scroll( options.exists( "--scroll" ) )
     , shape( options.value< std::string >( "--shape,--type", "line" ) )
     , style( options.value< std::string >( "--style", "" ) )
     , title( options.value< std::string >( "--title", "" ) )
     , weight( options.value( "--weight", 1.0 ) )
 {
+    if( !color_name.empty() ) { color = QColor( hex_color_( color_name ) ); }
 }
 
 xy::xy( QtCharts::QXYSeries* s, const series::config& c ): series_( s ), config_( c ), updated_( false )
 {
-    QPen pen( config_.color );
+    QPen pen = config_.color ? QPen( *config_.color ) : QPen();
     pen.setWidth( config_.weight );
     series_->setPen( pen );
     series_->setName( &config_.title[0] );
-    series_->setColor( config_.color );
+    if( config_.color ) { series_->setColor( *config_.color ); }
 }
 
 void xy::clear()
@@ -127,7 +128,7 @@ QtCharts::QXYSeries* make_series_( const series::config& c, QtCharts::QChart* ch
     {
         auto s = new QtCharts::QScatterSeries( chart );
         s->setMarkerSize( c.weight );
-        s->setBorderColor( c.color );
+        if( c.color ) { s->setBorderColor( *c.color ); }
         return s;
     }
     COMMA_THROW( comma::exception, "csv-plot: expected stream type as shape, got: \"" << c.shape << "\"" );

@@ -8,6 +8,7 @@
 #include <QColor>
 #include <QtCharts/QChart>
 #include <QtCharts/QXYSeries>
+#include <boost/optional.hpp>
 #include <comma/application/command_line_options.h>
 #include "record.h"
 
@@ -20,7 +21,7 @@ struct config
     std::string chart;
     std::string color_map; // quick and dirty
     std::string color_name;
-    QColor color;
+    boost::optional< QColor > color;
     std::string name;
     bool scroll; // todo! a better name! move to chart config
     std::string shape;

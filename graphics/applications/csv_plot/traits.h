@@ -58,7 +58,7 @@ template <> struct traits< snark::graphics::plotting::series::config >
     {
         v.apply( "chart", t.chart );
         v.apply( "color", t.color_name );
-        t.color = QColor( &t.color_name[0] );
+        if( !t.color_name.empty() ) { t.color = QColor( &t.color_name[0] ); }
         v.apply( "name", t.name );
         v.apply( "scroll", t.scroll );
         v.apply( "shape", t.shape );
@@ -68,7 +68,7 @@ template <> struct traits< snark::graphics::plotting::series::config >
     }
     template< typename K, typename V > static void visit( const K&, const snark::graphics::plotting::series::config& t, V& v )
     {
-        v.apply( "color", std::string( t.color.name() ) );
+        if( t.color ) { v.apply( "color", std::string( t.color->name() ) ); }
         v.apply( "name", t.name );
         v.apply( "scroll", t.scroll );
         v.apply( "shape", t.shape );
@@ -152,6 +152,7 @@ template <> struct traits< snark::graphics::plotting::chart::config_t >
         v.apply( "name", t.name );
         v.apply( "scroll", t.scroll );
         v.apply( "title", t.title );
+        v.apply( "theme", t.theme );
     }
 };
 
