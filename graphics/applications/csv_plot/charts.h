@@ -37,10 +37,15 @@ class chart: public QChart
                 float interval{0};
                 float count{0};
             };
+            struct label
+            {
+                std::string format;
+            };
             struct config
             {
                 std::string title;
                 axis::tick tick;
+                axis::label label;
             };
         };
 

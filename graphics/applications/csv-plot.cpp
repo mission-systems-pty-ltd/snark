@@ -68,14 +68,16 @@ static void usage( bool verbose = false )
     std::cerr << "    --chart=<name>,<properties>; semicolon-separated chart properties; multiple --chart options allowed" << std::endl;
     std::cerr << "        <properties>" << std::endl;
     std::cerr << "            animate; default: true" << std::endl;
-    std::cerr << "            axes/x/title=[<title>]" << std::endl;
+    std::cerr << "            axes/x/label/format=[<format>]; <format>: whatever format printf() takes (see examples)" << std::endl;
     std::cerr << "            axes/x/tick/anchor=[<anchor>]; default: use min/x if defined or auto if not" << std::endl;
     std::cerr << "            axes/x/tick/count=[<n>]; desired number of ticks" << std::endl;
     std::cerr << "            axes/x/tick/interval=[<interval>]; default: auto if not defined" << std::endl;
-    std::cerr << "            axes/y/title=[<title>]" << std::endl;
+    std::cerr << "            axes/x/title=[<title>]" << std::endl;
+    std::cerr << "            axes/y/label/format=[<format>]; <format>: whatever format printf() takes (see examples)" << std::endl;
     std::cerr << "            axes/y/tick/anchor=[<anchor>]; default: use min/y if defined or auto if not" << std::endl;
-    std::cerr << "            axes/Y/tick/count=[<n>]; desired number of ticks" << std::endl;
+    std::cerr << "            axes/y/tick/count=[<n>]; desired number of ticks" << std::endl;
     std::cerr << "            axes/y/tick/interval=[<interval>]; default: auto if not defined" << std::endl;
+    std::cerr << "            axes/y/title=[<title>]" << std::endl;
     std::cerr << "            legend; show legend; default: false" << std::endl;
     std::cerr << "            max/x=[<value>], max/y=[<value>]" << std::endl;
     std::cerr << "            min/x=[<value>], min/y=[<value>]" << std::endl;
@@ -189,6 +191,9 @@ static void usage( bool verbose = false )
         std::cerr << "        ( echo -1,10; echo 0.5,15; echo 2,3 ) \\" << std::endl;
         std::cerr << "            | csv-plot --chart ';min/x=-2;max/x=2;axes/tick/anchor=0;axes/x/tick/interval=0.3'" << std::endl;
         std::cerr << std::endl;
+        std::cerr << "    specify label format for x and y axes" << std::endl;
+        std::cerr << "        ( echo 0.1,0.3; echo 0.9,2.9; echo 4.85,7.1; echo 8.93,8.7 ) \\" << std::endl;
+        std::cerr << "            | csv-plot --chart ';min/x=0;max/x=10;axes/x/tick/interval=2;axes/y/tick/interval=1;axes/x/label/format=\%d pretzels;axes/y/label/format=$\%2.0f'" << std::endl;
         std::cerr << "    point streams: show last 100 points" << std::endl;
         std::cerr << "        netcat localhost 12345 | csv-plot --size=100" << std::endl;
         std::cerr << std::endl;
@@ -243,7 +248,6 @@ static void usage( bool verbose = false )
         std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1' -n 16 --colors=basic-16 --pass-through \\" << std::endl;
         std::cerr << "           | csv-plot '-;fields=series' --chart=';max/y=1' -n 16 --colors=red,blue,cyan,#F123456" << std::endl;
         std::cerr << "           " << std::endl;
-        std::cerr << std::endl;
     }
     else
     {

@@ -104,12 +104,21 @@ template <> struct traits< snark::graphics::plotting::chart::axis::tick >
     }
 };
 
+template <> struct traits< snark::graphics::plotting::chart::axis::label >
+{
+    template< typename K, typename V > static void visit( const K&, snark::graphics::plotting::chart::axis::label& t, V& v )
+    {
+        v.apply( "format", t.format );
+    }
+};
+
 template <> struct traits< snark::graphics::plotting::chart::axis::config >
 {
     template< typename K, typename V > static void visit( const K&, snark::graphics::plotting::chart::axis::config& t, V& v )
     { 
         v.apply( "title", t.title );
         v.apply( "tick", t.tick );
+        v.apply( "label", t.label );
     }
 };
 
