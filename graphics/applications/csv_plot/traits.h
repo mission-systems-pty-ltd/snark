@@ -109,6 +109,7 @@ template <> struct traits< snark::graphics::plotting::chart::axis::label >
     template< typename K, typename V > static void visit( const K&, snark::graphics::plotting::chart::axis::label& t, V& v )
     {
         v.apply( "format", t.format );
+        v.apply( "angle", t.angle );
     }
 };
 

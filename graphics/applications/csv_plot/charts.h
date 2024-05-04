@@ -40,6 +40,7 @@ class chart: public QChart
             struct label
             {
                 std::string format;
+                float angle{0};
             };
             struct config
             {

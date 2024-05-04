@@ -68,11 +68,13 @@ static void usage( bool verbose = false )
     std::cerr << "    --chart=<name>,<properties>; semicolon-separated chart properties; multiple --chart options allowed" << std::endl;
     std::cerr << "        <properties>" << std::endl;
     std::cerr << "            animate; default: true" << std::endl;
+    std::cerr << "            axes/x/label/angle=<degrees>; default=0" << std::endl;
     std::cerr << "            axes/x/label/format=[<format>]; <format>: whatever format printf() takes (see examples)" << std::endl;
     std::cerr << "            axes/x/tick/anchor=[<anchor>]; default: use min/x if defined or auto if not" << std::endl;
     std::cerr << "            axes/x/tick/count=[<n>]; desired number of ticks" << std::endl;
     std::cerr << "            axes/x/tick/interval=[<interval>]; default: auto if not defined" << std::endl;
     std::cerr << "            axes/x/title=[<title>]" << std::endl;
+    std::cerr << "            axes/y/label/angle=<degrees>; default=0" << std::endl;
     std::cerr << "            axes/y/label/format=[<format>]; <format>: whatever format printf() takes (see examples)" << std::endl;
     std::cerr << "            axes/y/tick/anchor=[<anchor>]; default: use min/y if defined or auto if not" << std::endl;
     std::cerr << "            axes/y/tick/count=[<n>]; desired number of ticks" << std::endl;
@@ -198,8 +200,8 @@ static void usage( bool verbose = false )
         std::cerr << "    point streams: show last 100 points" << std::endl;
         std::cerr << "        netcat localhost 12345 | csv-plot --size=100" << std::endl;
         std::cerr << std::endl;
-        std::cerr << "    specify chart theme" << std::endl;
-        std::cerr << "        csv-paste line-number --head 1000 | csv-eval --fields=x 'y=8*sin(x/10)' | csv-plot '-;color=yellow' --chart ';theme=dark'" << std::endl;
+        std::cerr << "    specify chart theme and label angle" << std::endl;
+        std::cerr << "        csv-paste line-number --head 1000 | csv-eval --fields=x 'y=8*sin(x/10)' | csv-plot '-;color=yellow' --chart ';theme=dark;axes/x/label/angle=-45'" << std::endl;
         std::cerr << std::endl;
         std::cerr << "    several streams" << std::endl;
         std::cerr << "        csv-plot \"tcp:localhost:8888\" \"tcp:localhost:9999\"" << std::endl;
