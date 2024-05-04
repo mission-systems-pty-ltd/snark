@@ -31,8 +31,15 @@ QtCharts::QChart::ChartTheme chart::config_t::theme_from_string( const std::stri
     COMMA_THROW_BRIEF( comma::exception, "expected chart theme, got: '" << t << "'" );
 }
 
+QtCharts::QChart::ChartType chart::config_t::type_from_string( const std::string& t )
+{
+    if( t.empty() || t == "cartesian" ) { return QChart::ChartTypeCartesian; }
+    if( t == "polar" ) { return QChart::ChartTypePolar; }
+    COMMA_THROW_BRIEF( comma::exception, "expected chart type, got: '" << t << "'" );
+}
+
 chart::chart( const chart::config_t& config, QGraphicsItem *parent, Qt::WindowFlags window_flags )
-    : QChart( QChart::ChartTypeCartesian, parent, window_flags )
+    : QChart( config.get_type(), parent, window_flags )
     , config_( config )
     , fixed_x_( config.min.x && config.max.x )
     , fixed_y_( config.min.y && config.max.y )

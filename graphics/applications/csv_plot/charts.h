@@ -63,12 +63,15 @@ class chart: public QChart
             bool scroll; // todo? a better name?
             std::string title;
             std::string theme;
+            std::string type{"cartesian"};
             
             config_t( const std::string& name = "", const std::string& title = "" );
             config_t( const comma::command_line_options& options );
             static config_t make( const std::string& s, const chart::config_t& defaults = chart::config_t() );
             static QtCharts::QChart::ChartTheme theme_from_string( const std::string& t );
             QtCharts::QChart::ChartTheme get_theme() const { return theme_from_string( theme ); }
+            static QtCharts::QChart::ChartType type_from_string( const std::string& t );
+            QtCharts::QChart::ChartType get_type() const { return type_from_string( type ); }
         };
         
         chart( const config_t& c, QGraphicsItem *parent = nullptr, Qt::WindowFlags window_flags = {} );

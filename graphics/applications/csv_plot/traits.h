@@ -154,6 +154,7 @@ template <> struct traits< snark::graphics::plotting::chart::config_t >
         v.apply( "scroll", t.scroll );
         v.apply( "title", t.title );
         v.apply( "theme", t.theme );
+        v.apply( "type", t.type );
     }
 };
 
