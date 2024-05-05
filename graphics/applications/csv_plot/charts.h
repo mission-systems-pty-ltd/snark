@@ -41,6 +41,7 @@ class chart: public QChart
             {
                 std::string format;
                 float angle{0};
+                bool nice{false};
             };
             struct config
             {
@@ -78,17 +79,17 @@ class chart: public QChart
         virtual ~chart() {}
         virtual void push_back( plotting::series::xy* r ) = 0;
         virtual void update() = 0;
-        void zooming( bool is_zooming ) { zooming_ = is_zooming; }
-        const std::vector< plotting::series::xy* >& series() const { return series_; }
-        const config_t& config() const { return config_; }
+        void zooming( bool is_zooming ) { _zooming = is_zooming; }
+        const std::vector< plotting::series::xy* >& series() const { return _series; }
+        const config_t& config() const { return _config; }
         
     protected:
-        std::vector< plotting::series::xy* > series_; // todo! implement and use series::base!
-        config_t config_;
-        bool fixed_x_; // quick and dirty
-        bool fixed_y_; // quick and dirty
-        bool zooming_;
-        virtual void update_() {}
+        std::vector< plotting::series::xy* > _series; // todo! implement and use series::base!
+        config_t _config;
+        bool _fixed_x; // quick and dirty
+        bool _fixed_y; // quick and dirty
+        bool _zooming;
+        virtual void _update() {}
         
     private:
         std::string title_;
@@ -103,9 +104,9 @@ class xy_chart: public chart
         void update();
     
     private:
-        boost::optional< std::pair< QPointF, QPointF > > extents_;
-        QtCharts::QValueAxis* x_axis_;
-        QtCharts::QValueAxis* y_axis_;
+        boost::optional< std::pair< QPointF, QPointF > > _extents;
+        QtCharts::QValueAxis* _x_axis;
+        QtCharts::QValueAxis* _y_axis;
 };
 
 } } } // namespace snark { namespace graphics { namespace plotting {

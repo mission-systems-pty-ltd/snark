@@ -110,6 +110,7 @@ template <> struct traits< snark::graphics::plotting::chart::axis::label >
     {
         v.apply( "format", t.format );
         v.apply( "angle", t.angle );
+        v.apply( "nice", t.nice );
     }
 };
 
