@@ -153,20 +153,20 @@ static void usage( bool verbose = false )
     std::cerr << "                   for now, find the desired window position by hand and use those window position values" << std::endl;
     std::cerr << "    --window-size=<x>,<y>: initial window size, same as <width>,<height> in --window-position; default=800,600" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "zooming and panning" << std::endl;
-    std::cerr << "    scroll wheel: zoom in and out about the mouse cursor" << std::endl;
-    std::cerr << "    left-click and drag: zoom into selected area" << std::endl;
-    std::cerr << "    right-click and drag: zoom out about the centre of the selected area" << std::endl;
-    std::cerr << "    +: zoom in about the centre of the plot" << std::endl;
-    std::cerr << "    -: zoom out about the centre of the plot" << std::endl;
-    std::cerr << "    r: reset the plot to its original zoom level" << std::endl;
-    std::cerr << "    arrow keys: pan" << std::endl;
-    std::cerr << "    middle-click and drag: pan" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "hot keys" << std::endl;
-    std::cerr << "    ctrl-g : print window geometry as <left>,<top>,<width>,<height> to stderr" << std::endl;
-    std::cerr << "    p      : capture current view to <timestamp>.png file" << std::endl;
-    std::cerr << "    <ESC>  : exit" << std::endl;
+    std::cerr << "hot keys and mouse events" << std::endl;
+    std::cerr << "    misc" << std::endl;
+    std::cerr << "        ctrl-g : print window geometry as <left>,<top>,<width>,<height> to stderr" << std::endl;
+    std::cerr << "        p      : capture current view to <timestamp>.png file" << std::endl;
+    std::cerr << "        <ESC>  : exit" << std::endl;
+    std::cerr << "    zooming and panning" << std::endl;
+    std::cerr << "        scroll wheel         : zoom in and out about the mouse cursor" << std::endl;
+    std::cerr << "        left-click and drag  : zoom into selected area" << std::endl;
+    std::cerr << "        right-click and drag : zoom out about the centre of the selected area" << std::endl;
+    std::cerr << "        middle-click and drag: pan" << std::endl;
+    std::cerr << "        +         : zoom in about the centre of the plot" << std::endl;
+    std::cerr << "        -         : zoom out about the centre of the plot" << std::endl;
+    std::cerr << "        r         : reset the plot to its original zoom level" << std::endl;
+    std::cerr << "        arrow keys: pan" << std::endl;
     std::cerr << std::endl;
     if( verbose )
     {
