@@ -1,3 +1,5 @@
+// Copyright (c) 2021 Vsevolod Vlaskine
+
 #include "chart_view.h"
 #include <QPointF>
 #include <QRectF>
@@ -150,16 +152,16 @@ void chart_view::wheelEvent( QWheelEvent* event )
 
 void chart_view::keyPressEvent( QKeyEvent* event )
 {
-    switch ( event->key() )
+    switch( event->key() )
     {
-        case Qt::Key_Plus:  chart_->zooming( true  ); chart()->zoomIn();       break;
-        case Qt::Key_Minus: chart_->zooming( true  ); chart()->zoomOut();      break;
-        case Qt::Key_Left:  chart_->zooming( true  ); chart()->scroll(-50, 0); break;
-        case Qt::Key_Right: chart_->zooming( true  ); chart()->scroll(50, 0);  break;
-        case Qt::Key_Up:    chart_->zooming( true  ); chart()->scroll(0, 50);  break;
-        case Qt::Key_Down:  chart_->zooming( true  ); chart()->scroll(0, -50); break;
-        case Qt::Key_R:     chart_->zooming( false ); chart()->zoomReset();    break;
-        default:            QGraphicsView::keyPressEvent(event);               break;
+        case Qt::Key_Plus:  chart_->zooming( true  ); chart()->zoomIn();            break;
+        case Qt::Key_Minus: chart_->zooming( true  ); chart()->zoomOut();           break;
+        case Qt::Key_Left:  chart_->zooming( true  ); chart()->scroll( -50,   0 );  break;
+        case Qt::Key_Right: chart_->zooming( true  ); chart()->scroll(  50,   0 );  break;
+        case Qt::Key_Up:    chart_->zooming( true  ); chart()->scroll(   0,  50 );  break;
+        case Qt::Key_Down:  chart_->zooming( true  ); chart()->scroll(   0, -50 );  break;
+        case Qt::Key_R:     chart_->zooming( false ); chart()->zoomReset();         break;
+        default:            QGraphicsView::keyPressEvent( event );                  break;
     }
 }
 

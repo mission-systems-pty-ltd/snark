@@ -13,9 +13,9 @@ chart::config_t::config_t( const std::string& name, const std::string& t )
 {
 }
 
-chart::config_t::config_t( const comma::command_line_options& options ) : config_t()
+chart::config_t::config_t( const comma::command_line_options& options )
+    : scroll( options.exists( "--scroll" ) )
 {
-    scroll = options.exists( "--scroll" ); // todo? more options?
 }
 
 QtCharts::QChart::ChartTheme chart::config_t::theme_from_string( const std::string& t )
