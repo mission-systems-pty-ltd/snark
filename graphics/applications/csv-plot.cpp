@@ -80,8 +80,8 @@ static void usage( bool verbose = false )
     std::cerr << "            max/x=[<value>], max/y=[<value>]; max x and y values" << std::endl;
     std::cerr << "            min/x=[<value>], min/y=[<value>]; min x and y values" << std::endl;
     std::cerr << "            scroll; \"scroll\" to the current chart extents" << std::endl;
-    std::cerr << "            title=[<title>]; default: <name>" << std::endl;
     std::cerr << "            theme=[<theme>]; default=light; choices: light, blue-cerulean, dark, brown-sand, blue-ncs, high-contrast, blue-icy, qt" << std::endl;
+    std::cerr << "            title=[<title>]; default: <name>" << std::endl;
     std::cerr << "            type=[<type>]; default: cartesian; choices: cartesian, polar" << std::endl;
     std::cerr << "        example: todo" << std::endl;
     std::cerr << "    --scroll: if present, chart axes get adjusted to where the data is" << std::endl;
