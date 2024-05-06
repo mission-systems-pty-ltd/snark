@@ -125,7 +125,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
         var StartStopFeed = function( feed_name, feed_path, config )
         {
             this.base = Feed;
-            this.form_show_buttons = [ "start", "stop", "clear" ];
+            this.form_show_buttons = config['form'] == undefined || config.form['fields'] == undefined ? [ "start", "stop" ] : [ "start", "stop", "clear" ];
             this.base( feed_name, feed_path, config );
             this.start_btn = undefined;
             this.stop_btn = undefined;
@@ -138,10 +138,12 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             // need to occupy 9 columns in total. So if a button isn't shown, we replace
             // it with equivalent padding.
             let pad_cols = 0;
+            if( this.button_enabled( "clear" ) ) { var start_size = 4; var stop_size = 3; var gap = 1; } // quick and dirty, for backward compatibility
+            else { var start_size = 5; var stop_size = 5; var gap = 2; }
             if( this.button_enabled( "start" ) )
             {
-                this.start_btn = add_button(this, "Start", "btn-primary col-sm-4", "start");
-                container.append(this.start_btn).append($('<label/>', {class: "col-sm-1"}));
+                this.start_btn = add_button(this, "Start", "btn-primary col-sm-" + start_size, "start");
+                container.append(this.start_btn).append($('<label/>', {class: "col-sm-" + gap}));
             }
             else
             {
@@ -149,14 +151,14 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             }
             if( this.button_enabled( "stop" ) )
             {
-                this.stop_btn = add_button(this, "Stop", "btn-danger col-sm-3", "stop");
+                this.stop_btn = add_button(this, "Stop", "btn-danger col-sm-" + stop_size, "stop");
                 container.append(this.stop_btn).append($('<label/>', {class: "col-sm-1"}));
             }
             else
             {
                 pad_cols += 4;
             }
-            if( pad_cols > 0 )
+            if( pad_cols > 0 && this.button_enabled( "clear" ) )
             {
                 container.append($('<label/>', {class: "col-sm-" + pad_cols}));
             }
@@ -260,12 +262,15 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             }
 
         };
-        StartStopFeed.prototype.onload_ = function (data) {
-            if (data != undefined && data != "") {
+        StartStopFeed.prototype.onload_ = function( data )
+        {
+            if (data != undefined && data != "")
+            {
                 var json = $.parseJSON(data);
-                if (json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0) {
-                    this.update_ui(json);
-                    this.update_output(json);
+                if( json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0 )
+                {
+                    this.update_ui( json );
+                    this.update_output( json );
                 }
             }
         };
@@ -311,16 +316,18 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                 });
             return btn;
         };
-
-        var update_ui_status = function (status, form) {
-            if (status == "1") {
+        var update_ui_status = function( status, form )
+        {
+            if( status == "1" )
+            {
                 $(form).find("input").attr("readonly", "readonly"); //[value!='']
                 $(form).find("input").attr("title", "readonly"); //[value!='']
                 $(form).find("button[name=start]").attr('disabled', "disabled");
                 $(form).find("button[name=clear]").attr('disabled', "disabled");
                 $(form).find("button[name=stop]").removeAttr('disabled');
             }
-            else {
+            else
+            {
                 $(form).find("button[name=stop]").attr('disabled', "disabled");
                 $(form).find("button[name=clear]").removeAttr('disabled');
                 $(form).find("button[name=start]").removeAttr('disabled');
@@ -328,20 +335,24 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                 $(form).find("input").removeAttr("title");
             }
         };
-        StartStopFeed.prototype.removeOldStatus = function () {
+        StartStopFeed.prototype.removeOldStatus = function()
+        {
             // $(this.form).find(".error-message").remove();
             // this.el.removeClass('panel-disabled');
         };
-        StartStopFeed.prototype.add_form = function () {
-            this.target.append(this.form);
-        };
-        StartStopFeed.prototype.update_ui = function (data) {
-            if (data.running != undefined && data.running.status != undefined) {
+        StartStopFeed.prototype.add_form = function () { this.target.append( this.form ); };
+        StartStopFeed.prototype.update_ui = function (data)
+        {
+            if (data.running != undefined && data.running.status != undefined)
+            {
                 update_ui_status(data.running.status, this.form);
-                if (data.running.status == "1") {
-                    if (data.fields != undefined) {
+                if (data.running.status == "1")
+                {
+                    if (data.fields != undefined)
+                    {
                         var keys = Object.keys(data.fields);
-                        for (index in keys) {
+                        for (index in keys)
+                        {
                             var key = keys[index];
                             var input = $(this.form).find("input[name=" + key + "]");
                             input.val(data.fields[key]);

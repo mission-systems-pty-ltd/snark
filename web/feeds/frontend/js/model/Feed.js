@@ -30,8 +30,10 @@
 /**
  * Created by vrushali on 15/10/15.
  */
-define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
-    var Feed = function (feed_name, feed_path, config) {
+define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
+{
+    var Feed = function (feed_name, feed_path, config)
+    {
         this.feed_name = feed_name;
         this.feed_path = feed_path;
         this.config = config;
@@ -461,7 +463,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($) {
     Feed.prototype.is_add_form = function()
     {
         var size = Object.keys(this.fields).length;
-        return size > 0 && ( this.config.type != "form" && this.config.type != 'stream' );
+        return ( size > 0 && ( this.config.type != "form" && this.config.type != 'stream' ) ) || this.config.type == "start_stop";
     };
     Feed.prototype.is_feed_inputs = function()
     {
