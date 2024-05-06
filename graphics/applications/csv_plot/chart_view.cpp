@@ -145,7 +145,8 @@ void chart_view::wheelEvent( QWheelEvent* event )
     else
     {
         QRectF plot_area = chart()->plotArea();
-        QPoint local_mouse_pos = QChartView::mapFromGlobal( event->globalPosition().toPoint() ); //QPoint local_mouse_pos = QChartView::mapFromGlobal( event->globalPos() );
+        QPoint local_mouse_pos = QChartView::mapFromGlobal( event->globalPos() ); // deprecated, but does not work in earlier versions of qtcharts
+        // QPoint local_mouse_pos = QChartView::mapFromGlobal( event->globalPosition().toPoint() );
         rectangle_zoom( scroll_angle, plot_area, local_mouse_pos );
     }
 }
