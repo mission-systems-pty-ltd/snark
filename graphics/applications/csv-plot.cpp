@@ -69,12 +69,14 @@ static void usage( bool verbose = false )
     std::cerr << "        <properties>" << std::endl;
     std::cerr << "            animate; default: true" << std::endl;
     std::cerr << "            axes options, paths: axes/x, axes/y; e.g. axes/x/label/angle=45:" << std::endl;
+    #if ( QT_CHARTS_VERSION >= QT_CHARTS_VERSION_CHECK( 5, 12, 0 ) )
     std::cerr << "                label/angle=<degrees>; default=0" << std::endl;
     std::cerr << "                label/format=[<format>]; <format>: whatever format printf() takes (see examples)" << std::endl;
     std::cerr << "                label/nice; if present, 'nice' ticks and ranges are applied, experimental, may not work..." << std::endl;
     std::cerr << "                tick/anchor=[<anchor>]; default=0" << std::endl;
     std::cerr << "                tick/count=[<n>]; desired number of ticks" << std::endl;
     std::cerr << "                tick/interval=[<interval>]; default: auto if not defined" << std::endl;
+    #endif
     std::cerr << "                title=[<title>]; axis title" << std::endl;
     std::cerr << "            legend; show legend; default: false" << std::endl;
     std::cerr << "            max/x=[<value>], max/y=[<value>]; max x and y values" << std::endl;

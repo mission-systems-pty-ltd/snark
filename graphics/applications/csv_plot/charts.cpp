@@ -62,28 +62,32 @@ xy_chart::xy_chart( const chart::config_t& config, QGraphicsItem *parent, Qt::Wi
     //QFont font( _x_axis->titleFont().family(), 1, 1 );
     _x_axis->setTitleFont( _x_axis->titleFont() ); // voodoo, this removes font boldness... whatever...
     _x_axis->setTitleText( &config.axes.x.title[0] );
-    _x_axis->setTickAnchor( config.axes.x.tick.anchor );
-    _x_axis->setTickInterval( config.axes.x.tick.interval );
-    if( config.axes.x.tick.anchor != 0 || config.axes.x.tick.interval != 0 ) { _x_axis->setTickType( QValueAxis::TicksDynamic ); }
-    _x_axis->setTickCount( config.axes.x.tick.count );
-    if( !config.axes.x.label.format.empty() ) { _x_axis->setLabelFormat( &config.axes.x.label.format[0] ); }
-    _x_axis->setLabelsAngle( config.axes.x.label.angle );
-    if( config.axes.x.label.nice ) { _x_axis->applyNiceNumbers(); }
     double min_x = config.min.x ? *config.min.x : 0;
     double max_x = config.max.x ? *config.max.x : min_x + 10; // quick and dirty
+    #if ( QT_CHARTS_VERSION >= QT_CHARTS_VERSION_CHECK( 5, 12, 0 ) )
+        _x_axis->setTickAnchor( config.axes.x.tick.anchor );
+        _x_axis->setTickInterval( config.axes.x.tick.interval );
+        if( config.axes.x.tick.anchor != 0 || config.axes.x.tick.interval != 0 ) { _x_axis->setTickType( QValueAxis::TicksDynamic ); }
+        _x_axis->setTickCount( config.axes.x.tick.count );
+        if( !config.axes.x.label.format.empty() ) { _x_axis->setLabelFormat( &config.axes.x.label.format[0] ); }
+        _x_axis->setLabelsAngle( config.axes.x.label.angle );
+        if( config.axes.x.label.nice ) { _x_axis->applyNiceNumbers(); }
+    #endif
     _x_axis->setRange( min_x, max_x );
     _y_axis->setTitleText( &config.axes.y.title[0] );
     _y_axis->setTitleFont( _y_axis->titleFont() ); // voodoo, this removes font boldness... whatever...
-    _y_axis->setTickAnchor( config.axes.y.tick.anchor );
-    _y_axis->setTickInterval( config.axes.y.tick.interval );
-    if( config.axes.y.tick.anchor != 0 || config.axes.y.tick.interval != 0 ) { _y_axis->setTickType( QValueAxis::TicksDynamic ); }
-    _y_axis->setTickCount( config.axes.y.tick.count );
-    if( !config.axes.y.label.format.empty() ) { _y_axis->setLabelFormat( &config.axes.y.label.format[0] ); }
-    _y_axis->setLabelsAngle( config.axes.y.label.angle );
-    if( config.axes.y.label.nice ) { _y_axis->applyNiceNumbers(); }
     double min_y = config.min.y ? *config.min.y : 0;
     double max_y = config.max.y ? *config.max.y : min_y + 10; // quick and dirty
     _y_axis->setRange( min_y, max_y );
+    #if ( QT_CHARTS_VERSION >= QT_CHARTS_VERSION_CHECK( 5, 12, 0 ) )
+        _y_axis->setTickAnchor( config.axes.y.tick.anchor );
+        _y_axis->setTickInterval( config.axes.y.tick.interval );
+        if( config.axes.y.tick.anchor != 0 || config.axes.y.tick.interval != 0 ) { _y_axis->setTickType( QValueAxis::TicksDynamic ); }
+        _y_axis->setTickCount( config.axes.y.tick.count );
+        if( !config.axes.y.label.format.empty() ) { _y_axis->setLabelFormat( &config.axes.y.label.format[0] ); }
+        _y_axis->setLabelsAngle( config.axes.y.label.angle );
+        if( config.axes.y.label.nice ) { _y_axis->applyNiceNumbers(); }
+    #endif    
     addAxis( _x_axis, Qt::AlignBottom ); // todo? make configurable
     addAxis( _y_axis, Qt::AlignLeft ); // todo? make configurable
 }
