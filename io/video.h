@@ -20,6 +20,7 @@ class stream
         void start();
         void stop();
         std::pair< unsigned int, const snark::timestamped< void* > > read();
+        const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:
         std::string _name;
