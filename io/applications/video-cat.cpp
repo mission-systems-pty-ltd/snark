@@ -89,6 +89,9 @@ int main( int ac, char** av )
         comma::signal_flag is_shutdown;
         typedef std::pair< unsigned int, const snark::timestamped< void* > > input_t;
         bool discard = options.exists( "--discard" );
+
+
+        // todo! ordering filter!!! or queue!!! or bursty non-discarding reader!!!
         snark::tbb::filter< void, input_t >::type read_filter( snark::tbb::filter_mode::serial_in_order
                                                              , [&]( ::tbb::flow_control& flow )->input_t
                                                                {
