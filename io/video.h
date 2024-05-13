@@ -19,7 +19,7 @@ class stream
         unsigned int count() const { return _count; }
         void start();
         void stop();
-        std::pair< unsigned int, const snark::timestamped< void* > > read();
+        std::pair< unsigned int, snark::timestamped< void* > > read();
         const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:

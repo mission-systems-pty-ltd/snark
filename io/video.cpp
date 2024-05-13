@@ -93,7 +93,7 @@ void stream::stop()
     COMMA_ASSERT( _ioctl( _fd, VIDIOC_STREAMOFF, &type ) != 0, "'" << _name << "': failed to stop streaming: ioctl error: VIDIOC_STREAMOFF" );
 }
 
-std::pair< unsigned int, const snark::timestamped< void* > > stream::read()
+std::pair< unsigned int, snark::timestamped< void* > > stream::read()
 {
     while( true )
     {

@@ -87,18 +87,14 @@ int main( int ac, char** av )
         header.height = options.value< unsigned int >( "--height" );
         snark::io::video::stream video( name, header.width, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
         comma::signal_flag is_shutdown;
-        typedef std::pair< unsigned int, const snark::timestamped< void* > > input_t;
+        typedef std::pair< unsigned int, snark::timestamped< void* > > input_t;
         bool discard = options.exists( "--discard" );
-
-
-        // todo! ordering filter!!! or queue!!! or bursty non-discarding reader!!!
-        snark::tbb::filter< void, input_t >::type read_filter( snark::tbb::filter_mode::serial_in_order
-                                                             , [&]( ::tbb::flow_control& flow )->input_t
-                                                               {
-                                                                   if( !is_shutdown ) { return video.read(); }
-                                                                   flow.stop();
-                                                                   return { 0, snark::timestamped< void* >( nullptr ) };
-                                                               } );
+        auto read_once = [&]()->input_t
+                         {
+                             if( !is_shutdown ) { return video.read(); }
+                             video.stop();
+                             return input_t();
+                         };
         snark::tbb::filter< input_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
                                                               , [&]( input_t input )
                                                                 {
@@ -111,21 +107,11 @@ int main( int ac, char** av )
                                                                     }
                                                                 } );
         video.start();
-        if( discard )
-        {
-            COMMA_THROW( comma::exception, "discard: todo" );
-        //     snark::tbb::bursty_reader< input_t > bursty_reader( std::bind( read_video, std::placeholders::_1 ) );
-        //     bursty_reader.reset( new snark::tbb::bursty_reader< block_t* >( &read_block_bursty_ ) );
-        //     snark::tbb::filter< void, void >::type filters = bursty_reader->filter() & partition_filter & write_filter;
-        //     ::tbb::parallel_pipeline( 3, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
-        //     bursty_reader->join();
-        }
-        else
-        {
-            snark::tbb::filter< void, void >::type filters = read_filter & write_filter;
-            ::tbb::parallel_pipeline( video.buffers().size() + 1, filters );
-        }
+        snark::tbb::bursty_reader< input_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
+        snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
+        ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
         video.stop();
+        bursty_reader.join();
         return 0;
     }
     catch( const std::exception& ex ) { comma::say() << ex.what() << std::endl; }
