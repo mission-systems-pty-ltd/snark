@@ -27,8 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SNARK_TIMING_TIMESTAMPED_H_
-#define SNARK_TIMING_TIMESTAMPED_H_
+#pragma once
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -45,10 +44,15 @@ struct timestamped
 
     timestamped( const T& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
 
-    timestamped( const boost::posix_time::ptime& t, const T& data ) : t( t ), data( data ) {}
+    timestamped( T&& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
+
+    timestamped( boost::posix_time::ptime t, const T& data ) : t( t ), data( data ) {}
+
+    timestamped( boost::posix_time::ptime t, T&& data ) : t( t ), data( data ) {}
 };
 
+template < typename T > inline timestamped< T > make_timestamped( T&& data ) { return timestamped< T >( data ); }
+
+template < typename T > inline timestamped< T > make_timestamped( boost::posix_time::ptime t, T&& data ) { return timestamped< T >( t, data ); }
+
 } // namespace snark {
-
-#endif // SNARK_TIMING_TIMESTAMPED_H_
-

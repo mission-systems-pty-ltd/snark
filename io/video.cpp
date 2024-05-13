@@ -93,7 +93,7 @@ void stream::stop()
     COMMA_ASSERT( _ioctl( _fd, VIDIOC_STREAMOFF, &type ) != 0, "'" << _name << "': failed to stop streaming: ioctl error: VIDIOC_STREAMOFF" );
 }
 
-void stream::read_once()
+std::pair< unsigned int, const snark::timestamped< void* > > stream::read()
 {
     while( true )
     {
@@ -117,8 +117,7 @@ void stream::read_once()
         COMMA_ASSERT( _ioctl( _fd, VIDIOC_QBUF, &buffer ) != -1, "'" << _name << "': ioctl error: VIDIOC_QBUF" );
         _index = buffer.index;
         _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
-        ++_count;
-        break;
+        return std::make_pair( ++_count, _buffers[_index] );
     }
 }
 

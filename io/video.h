@@ -16,11 +16,10 @@ class stream
         ~stream();
         const unsigned int width() const { return _width; }
         const unsigned int height() const { return _height; }
-        const snark::timestamped< void* >& current() const { return _buffers[_index]; }
         unsigned int count() const { return _count; }
         void start();
         void stop();
-        void read_once();
+        std::pair< unsigned int, const snark::timestamped< void* > > read();
 
     private:
         std::string _name;
