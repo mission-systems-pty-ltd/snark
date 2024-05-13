@@ -107,6 +107,9 @@ int main( int ac, char** av )
                                                                     }
                                                                 } );
         video.start();
+
+        // todo! handle exceptions in read_once() or make it no-throw
+
         snark::tbb::bursty_reader< input_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
