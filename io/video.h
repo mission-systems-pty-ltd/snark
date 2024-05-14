@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <comma/io/select.h>
 #include "../timing/timestamped.h"
 
 namespace snark { namespace io { namespace video {
@@ -37,6 +38,7 @@ class stream
         unsigned int _height{0};
         std::FILE* _file{nullptr};
         int _fd{0};
+        comma::io::select _select;
         std::vector< snark::timestamped< void* > > _buffers;
         unsigned int _size{0};
         unsigned int _index{0};

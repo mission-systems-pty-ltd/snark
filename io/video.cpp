@@ -25,6 +25,7 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     _file = std::fopen( &name[0], "r+" );
     COMMA_ASSERT( _file, "failed to open '" << name << "'" );
     _fd = ::fileno( _file );
+    _select.read().add( _fd );
     v4l2_capability capability{};
     v4l2_format format{};
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -89,18 +90,8 @@ stream::record stream::read()
 {
     while( true )
     {
-        fd_set fds{}; // todo? use comma::select?
-        FD_ZERO( &fds );
-        FD_SET( _fd, &fds );
-        timeval timeout{};
-        timeout.tv_sec = 2;
-        int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
-        if( r == -1 )
-        {
-            if( errno == EINTR ) { return record(); } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
-            COMMA_THROW( comma::exception, "'" << _name << ": select error: " << strerror( errno ) << "(" << errno << ")" );
-        }
-        COMMA_ASSERT( r != 0, "'" << _name << ": select timeout" );
+        _select.wait( boost::posix_time::seconds( 2 ) );
+        COMMA_ASSERT( _select.read().ready( _fd ), "'" << _name << ": select timeout" );
         v4l2_buffer buffer{};
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = V4L2_MEMORY_MMAP;

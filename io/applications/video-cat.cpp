@@ -18,7 +18,7 @@ usage: video-cat <path> <options>
 options
     <path>; video device path, e.g. "/dev/video0"
     --height=<rows>
-    --pixel-type=<type>; default=rggb; todo...
+    --pixel-type=<type>; default=rggb; todo
     --width=<bytes>
     --size,--number-of-buffers=<n>; default=32
 output options
@@ -27,7 +27,9 @@ output options
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
-
+examples
+    video-cat /dev/video0 --width 4000 --height 1000 --fields t,width,height,type \
+        | cv-cat 'bayer=1;view;null'
 )";
     exit( 0 );
 }
@@ -93,10 +95,11 @@ int main( int ac, char** av )
         csv.format( comma::csv::format::value< snark::io::video::header >( csv.fields, true ) );
         comma::csv::output_stream< snark::io::video::header > ostream( std::cout, csv );
         snark::io::video::header header;
-        header.width = options.value< unsigned int >( "--width" );
+        unsigned int pixel_size = 1; // rggb: ; todo: --pixel-type; currently hardcoded to V4L2_PIX_FMT_SRGGB8
+        header.width = options.value< unsigned int >( "--width" ) / pixel_size;
         header.height = options.value< unsigned int >( "--height" );
-        header.type = 24; // todo! image width!!!
-        snark::io::video::stream video( name, header.width, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
+        header.type = 0; //24; // 4ub; todo! todo: --pixel-type
+        snark::io::video::stream video( name, header.width * pixel_size, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
         comma::signal_flag is_shutdown;
         typedef snark::io::video::stream::record record_t;
         bool discard = options.exists( "--discard" );
@@ -106,8 +109,7 @@ int main( int ac, char** av )
                                                                , [&]( const record_t& record )
                                                                  {
                                                                      if( !record ) { return; }
-                                                                     // todo: check whether we keep up with reader
-                                                                     static unsigned int size = header.width * header.height;
+                                                                     static unsigned int size = header.width * header.height * pixel_size;
                                                                      if( !csv.fields.empty() )
                                                                      {
                                                                          header.t = record.buffer.t;
@@ -117,14 +119,9 @@ int main( int ac, char** av )
                                                                      if( !header_only ) { std::cout.write( reinterpret_cast< const char* >( record.buffer.data ), size ); }
                                                                      std::cout.flush();
                                                                  } );
-        video.start();
-
-        // todo! handle exceptions in read_once() or make it no-throw
-        // todo! handle errno eintr
-        // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
-
         snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
+        video.start();
         ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
         video.stop();
         bursty_reader.join();
