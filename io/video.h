@@ -12,6 +12,7 @@ namespace snark { namespace io { namespace video {
 class stream
 {
     public:
+        typedef std::pair< unsigned int, snark::timestamped< void* > > pair_t;
         stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers );
         ~stream();
         const unsigned int width() const { return _width; }
@@ -19,7 +20,7 @@ class stream
         unsigned int count() const { return _count; }
         void start();
         void stop();
-        std::pair< unsigned int, snark::timestamped< void* > > read();
+        pair_t read();
         const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:

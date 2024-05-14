@@ -69,6 +69,15 @@ template <> struct traits< snark::io::video::header >
 
 } } // namespace comma { namespace visiting {
 
+namespace snark { namespace tbb {
+
+template <> struct bursty_reader_traits< snark::io::video::stream::pair_t >
+{
+    static bool valid( const snark::io::video::stream::pair_t& t ) { std::cerr << "==> valid: t.second.data != nullptr: " << ( t.second.data != nullptr ) << std::endl; return t.second.data != nullptr; }
+};
+
+} } // namespace snark { namespace tbb {
+
 int main( int ac, char** av )
 {
     try
@@ -89,14 +98,14 @@ int main( int ac, char** av )
         header.type = 24; // todo! image width!!!
         snark::io::video::stream video( name, header.width, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
         comma::signal_flag is_shutdown;
-        typedef std::pair< unsigned int, snark::timestamped< void* > > input_t;
+        typedef snark::io::video::stream::pair_t input_t;
         bool discard = options.exists( "--discard" );
         bool header_only = options.exists( "--output-header-only,--header-only" );
         auto read_once = [&]()->input_t
                          {
                              if( !is_shutdown ) { return video.read(); }
                              video.stop();
-                             return input_t();
+                             return std::make_pair( 0u, snark::timestamped< void* >( ( void* )( nullptr ) ) );
                          };
         snark::tbb::filter< input_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
                                                               , [&]( input_t input )

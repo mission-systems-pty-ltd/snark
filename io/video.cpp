@@ -81,7 +81,7 @@ void stream::stop()
 {
     if( !_started ) { return; }
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    COMMA_ASSERT( xioctl( _fd, VIDIOC_STREAMOFF, &type ) != 0, "'" << _name << "': failed to stop streaming: ioctl error: VIDIOC_STREAMOFF" );
+    COMMA_ASSERT( xioctl( _fd, VIDIOC_STREAMOFF, &type ) != -1, "'" << _name << "': failed to stop streaming: ioctl error: VIDIOC_STREAMOFF" );
     _started = false;
 }
 
@@ -97,7 +97,7 @@ std::pair< unsigned int, snark::timestamped< void* > > stream::read()
         int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
         if( r == -1 )
         {
-            if( errno == EINTR ) { continue; } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
+            if( errno == EINTR ) { return std::make_pair( 0u, snark::timestamped( ( void* )( nullptr ) ) ); } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
             COMMA_THROW( comma::exception, "'" << _name << ": select error: " << strerror( errno ) << "(" << errno << ")" );
         }
         COMMA_ASSERT( r != 0, "'" << _name << ": select timeout" );
