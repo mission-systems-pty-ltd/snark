@@ -1,6 +1,5 @@
 // Copyright (c) 2024 Mission Systems
 
-#include <functional>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/csv/names.h>
@@ -87,6 +86,7 @@ int main( int ac, char** av )
         snark::io::video::header header;
         header.width = options.value< unsigned int >( "--width" );
         header.height = options.value< unsigned int >( "--height" );
+        header.type = 24; // todo! image width!!!
         snark::io::video::stream video( name, header.width, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
         comma::signal_flag is_shutdown;
         typedef std::pair< unsigned int, snark::timestamped< void* > > input_t;
