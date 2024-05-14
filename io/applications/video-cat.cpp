@@ -98,19 +98,24 @@ int main( int ac, char** av )
         snark::tbb::filter< input_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
                                                               , [&]( input_t input )
                                                                 {
+                                                                    if( !input.second.data ) { return; }
                                                                     // todo: check whether we keep up with reader
+                                                                    static unsigned int size = header.width * header.height;
                                                                     if( !csv.fields.empty() )
                                                                     {
                                                                         header.t = input.second.t;
                                                                         header.count = input.first;
                                                                         ostream.write( header );
                                                                     }
+                                                                    std::cout.write( reinterpret_cast< const char* >( input.second.data ), size );
+                                                                    std::cout.flush();
                                                                 } );
         video.start();
 
         // todo! handle exceptions in read_once() or make it no-throw
         // todo! handle errno eintr
         // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
+        // todo: --header-only
 
         snark::tbb::bursty_reader< input_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;

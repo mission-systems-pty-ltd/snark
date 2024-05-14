@@ -32,6 +32,7 @@ class stream
         unsigned int _size{0};
         unsigned int _index{0};
         unsigned int _count{0};
+        bool _started{false};
 
 };
 

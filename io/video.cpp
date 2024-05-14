@@ -16,8 +16,15 @@ static int _ioctl( int fd, int request, void* arg )
     return r;
 }
 
-static void _query_capabilities( int fd, const std::string& name, unsigned int width, unsigned int height )
+stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers )
+    : _name( name )
+    , _width( width )
+    , _height( height )
+    , _buffers( number_of_buffers )
 {
+    _file = std::fopen( &name[0], "r+" );
+    COMMA_ASSERT( _file, "failed to open '" << name << "'" );
+    _fd = ::fileno( _file );
     v4l2_capability capability{};
     v4l2_format format{};
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -25,28 +32,10 @@ static void _query_capabilities( int fd, const std::string& name, unsigned int w
     format.fmt.pix.height = height;
     format.fmt.pix.pixelformat = V4L2_PIX_FMT_SRGGB8;
     format.fmt.pix.field = V4L2_FIELD_NONE;
-    COMMA_ASSERT( _ioctl( fd, VIDIOC_QUERYCAP, &capability ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_QUERYCAP" ) );
+    COMMA_ASSERT( _ioctl( _fd, VIDIOC_QUERYCAP, &capability ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_QUERYCAP" ) );
     COMMA_ASSERT( capability.capabilities & V4L2_CAP_VIDEO_CAPTURE, "'" << name << "': is not a video capture device" );
     COMMA_ASSERT( capability.capabilities & V4L2_CAP_STREAMING, "'" << name << "': does not support streaming i/o" );
-    COMMA_ASSERT( _ioctl( fd, VIDIOC_S_FMT, &format ) != -1, "'" << name << "': ioctl error: VIDIOC_S_FMT" );
-}
-
-static std::FILE* _open( const std::string& name )
-{
-    std::FILE* f = std::fopen( &name[0], "r+" );
-    COMMA_ASSERT( f, "failed to open '" << name << "'" );
-    return f;
-}
-
-stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers )
-    : _name( name )
-    , _width( width )
-    , _height( height )
-    , _file( _open( name ) )
-    , _fd( ::fileno( _file ) )
-    , _buffers( number_of_buffers )
-{
-    _query_capabilities( _fd, name, width, height );
+    COMMA_ASSERT( _ioctl( _fd, VIDIOC_S_FMT, &format ) != -1, "'" << name << "': ioctl error: VIDIOC_S_FMT" );
     v4l2_requestbuffers request_buffers{};
     request_buffers.count = number_of_buffers;
     request_buffers.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -56,6 +45,7 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     for( unsigned int i = 0; i < number_of_buffers; ++i )
     {
         v4l2_buffer buffer{};
+	::memset( &buffer, 0, sizeof( v4l2_buffer ) );
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = V4L2_MEMORY_MMAP;
         buffer.index = i;
@@ -84,10 +74,12 @@ void stream::start()
     }
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     COMMA_ASSERT( _ioctl( _fd, VIDIOC_STREAMON, &type ) != -1, "'" << _name << "': ioctl error: VIDIOC_STREAMON" );
+    _started = true;
 }
 
 void stream::stop()
 {
+    if( !_started ) { return; }
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     COMMA_ASSERT( _ioctl( _fd, VIDIOC_STREAMOFF, &type ) != 0, "'" << _name << "': failed to stop streaming: ioctl error: VIDIOC_STREAMOFF" );
 }
