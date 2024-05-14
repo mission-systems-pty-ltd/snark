@@ -12,7 +12,15 @@ namespace snark { namespace io { namespace video {
 class stream
 {
     public:
-        typedef std::pair< unsigned int, snark::timestamped< void* > > pair_t;
+        struct record
+        {
+            std::uint32_t count{0};
+            snark::timestamped< void* > buffer{nullptr};
+
+            record( std::uint32_t count = 0, void* ptr = nullptr ): count( count ), buffer( ptr ) {}
+            record( std::uint32_t count, const snark::timestamped< void* >& buffer ): count( count ), buffer( buffer ) {}
+            operator bool() const { return buffer.data != nullptr; }
+        };
         stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers );
         ~stream();
         const unsigned int width() const { return _width; }
@@ -20,7 +28,7 @@ class stream
         unsigned int count() const { return _count; }
         void start();
         void stop();
-        pair_t read();
+        record read();
         const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:

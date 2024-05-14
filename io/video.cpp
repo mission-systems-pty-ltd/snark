@@ -85,7 +85,7 @@ void stream::stop()
     _started = false;
 }
 
-std::pair< unsigned int, snark::timestamped< void* > > stream::read()
+stream::record stream::read()
 {
     while( true )
     {
@@ -97,7 +97,7 @@ std::pair< unsigned int, snark::timestamped< void* > > stream::read()
         int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
         if( r == -1 )
         {
-            if( errno == EINTR ) { return std::make_pair( 0u, snark::timestamped( ( void* )( nullptr ) ) ); } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
+            if( errno == EINTR ) { return record(); } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
             COMMA_THROW( comma::exception, "'" << _name << ": select error: " << strerror( errno ) << "(" << errno << ")" );
         }
         COMMA_ASSERT( r != 0, "'" << _name << ": select timeout" );
@@ -109,7 +109,7 @@ std::pair< unsigned int, snark::timestamped< void* > > stream::read()
         COMMA_ASSERT( xioctl( _fd, VIDIOC_QBUF, &buffer ) != -1, "'" << _name << "': ioctl error: VIDIOC_QBUF" );
         _index = buffer.index;
         _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
-        return std::make_pair( ++_count, _buffers[_index] );
+        return stream::record( ++_count, _buffers[_index] );
     }
 }
 

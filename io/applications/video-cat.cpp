@@ -71,9 +71,9 @@ template <> struct traits< snark::io::video::header >
 
 namespace snark { namespace tbb {
 
-template <> struct bursty_reader_traits< snark::io::video::stream::pair_t >
+template <> struct bursty_reader_traits< snark::io::video::stream::record >
 {
-    static bool valid( const snark::io::video::stream::pair_t& t ) { std::cerr << "==> valid: t.second.data != nullptr: " << ( t.second.data != nullptr ) << std::endl; return t.second.data != nullptr; }
+    static bool valid( const snark::io::video::stream::record& r ) { return bool( r ); }
 };
 
 } } // namespace snark { namespace tbb {
@@ -98,37 +98,32 @@ int main( int ac, char** av )
         header.type = 24; // todo! image width!!!
         snark::io::video::stream video( name, header.width, header.height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
         comma::signal_flag is_shutdown;
-        typedef snark::io::video::stream::pair_t input_t;
+        typedef snark::io::video::stream::record record_t;
         bool discard = options.exists( "--discard" );
         bool header_only = options.exists( "--output-header-only,--header-only" );
-        auto read_once = [&]()->input_t
-                         {
-                             if( !is_shutdown ) { return video.read(); }
-                             video.stop();
-                             return std::make_pair( 0u, snark::timestamped< void* >( ( void* )( nullptr ) ) );
-                         };
-        snark::tbb::filter< input_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
-                                                              , [&]( input_t input )
-                                                                {
-                                                                    if( !input.second.data ) { return; }
-                                                                    // todo: check whether we keep up with reader
-                                                                    static unsigned int size = header.width * header.height;
-                                                                    if( !csv.fields.empty() )
-                                                                    {
-                                                                        header.t = input.second.t;
-                                                                        header.count = input.first;
-                                                                        ostream.write( header );
-                                                                    }
-                                                                    if( !header_only ) { std::cout.write( reinterpret_cast< const char* >( input.second.data ), size ); }
-                                                                    std::cout.flush();
-                                                                } );
+        auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { return video.read(); } };
+        snark::tbb::filter< record_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
+                                                               , [&]( const record_t& record )
+                                                                 {
+                                                                     if( !record ) { return; }
+                                                                     // todo: check whether we keep up with reader
+                                                                     static unsigned int size = header.width * header.height;
+                                                                     if( !csv.fields.empty() )
+                                                                     {
+                                                                         header.t = record.buffer.t;
+                                                                         header.count = record.count;
+                                                                         ostream.write( header );
+                                                                     }
+                                                                     if( !header_only ) { std::cout.write( reinterpret_cast< const char* >( record.buffer.data ), size ); }
+                                                                     std::cout.flush();
+                                                                 } );
         video.start();
 
         // todo! handle exceptions in read_once() or make it no-throw
         // todo! handle errno eintr
         // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
 
-        snark::tbb::bursty_reader< input_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
+        snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
         video.stop();
