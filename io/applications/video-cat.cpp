@@ -19,6 +19,7 @@ usage: video-cat <path> <options>
 options
     <path>; video device path, e.g. "/dev/video0"
     --height=<rows>
+    --pixel-type=<type>; default=rggb; todo...
     --width=<bytes>
     --size,--number-of-buffers=<n>; default=32
 output options
@@ -26,6 +27,7 @@ output options
                          default: no header
     --output-header-fields,--output-fields
     --output-header-format,--output-format
+    --output-header-only,--header-only; output header only, e.g. for debugging
 
 )";
     exit( 0 );
@@ -75,7 +77,7 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format", "-.*" );
+        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
@@ -89,6 +91,7 @@ int main( int ac, char** av )
         comma::signal_flag is_shutdown;
         typedef std::pair< unsigned int, snark::timestamped< void* > > input_t;
         bool discard = options.exists( "--discard" );
+        bool header_only = options.exists( "--output-header-only,--header-only" );
         auto read_once = [&]()->input_t
                          {
                              if( !is_shutdown ) { return video.read(); }
@@ -107,7 +110,7 @@ int main( int ac, char** av )
                                                                         header.count = input.first;
                                                                         ostream.write( header );
                                                                     }
-                                                                    std::cout.write( reinterpret_cast< const char* >( input.second.data ), size );
+                                                                    if( !header_only ) { std::cout.write( reinterpret_cast< const char* >( input.second.data ), size ); }
                                                                     std::cout.flush();
                                                                 } );
         video.start();
@@ -115,7 +118,6 @@ int main( int ac, char** av )
         // todo! handle exceptions in read_once() or make it no-throw
         // todo! handle errno eintr
         // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
-        // todo: --header-only
 
         snark::tbb::bursty_reader< input_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
