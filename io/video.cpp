@@ -4,7 +4,6 @@
 #include <linux/videodev2.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-// #include <comma/application/signal_flag.h>
 #include <comma/base/exception.h>
 #include "video.h"
 
@@ -13,7 +12,7 @@ namespace snark { namespace io { namespace video {
 static int _ioctl( int fd, int request, void* arg )
 {
     int r;
-    do { r = ioctl( fd, request, arg ); } while( r == -1 && errno == EINTR );
+    do { r = ::ioctl( fd, request, arg ); } while( r == -1 && errno == EINTR ); // todo? microsleep? select?
     return r;
 }
 
@@ -32,11 +31,10 @@ static void _query_capabilities( int fd, const std::string& name, unsigned int w
     COMMA_ASSERT( _ioctl( fd, VIDIOC_S_FMT, &format ) != -1, "'" << name << "': ioctl error: VIDIOC_S_FMT" );
 }
 
-static std::FILE* _open( const std::string& name, unsigned int width, unsigned int height )
+static std::FILE* _open( const std::string& name )
 {
     std::FILE* f = std::fopen( &name[0], "r+" );
     COMMA_ASSERT( f, "failed to open '" << name << "'" );
-    _query_capabilities( ::fileno( f ), name, width, height );
     return f;
 }
 
@@ -44,15 +42,16 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     : _name( name )
     , _width( width )
     , _height( height )
-    , _file( _open( name, width, height ) )
+    , _file( _open( name ) )
     , _fd( ::fileno( _file ) )
     , _buffers( number_of_buffers )
 {
+    _query_capabilities( _fd, name, width, height );
     v4l2_requestbuffers request_buffers{};
     request_buffers.count = number_of_buffers;
     request_buffers.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     request_buffers.memory = V4L2_MEMORY_MMAP;
-    COMMA_ASSERT( _ioctl( _fd, VIDIOC_REQBUFS, &number_of_buffers ) == -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_REQBUFS" ) );
+    COMMA_ASSERT( _ioctl( _fd, VIDIOC_REQBUFS, &request_buffers ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_REQBUFS" ) << "; " << ::strerror( errno ) << "(" << errno << ")" );
     COMMA_ASSERT( request_buffers.count == _buffers.size(), "'" << name << "': insufficient buffer memory for " << _buffers.size() << " buffers; maximum available " << request_buffers.count << " buffers" );
     for( unsigned int i = 0; i < number_of_buffers; ++i )
     {
@@ -60,9 +59,9 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = V4L2_MEMORY_MMAP;
         buffer.index = i;
-        COMMA_ASSERT( _ioctl( _fd, VIDIOC_QUERYBUF, &buffer ) != -1, "'" << name << "': ioctl error: VIDIOC_QUERYBUF" );
+        COMMA_ASSERT( _ioctl( _fd, VIDIOC_QUERYBUF, &buffer ) != -1, "'" << name << "': on buffer " << i << ": ioctl error: VIDIOC_QUERYBUF, " << ::strerror( errno ) << "(" << errno << ")" );
         _size = buffer.length;
-        _buffers[i].data = ::mmap( nullptr, buffer.length, PROT_READ | PROT_WRITE /* required */, MAP_SHARED /* recommended */, _fd, buffer.m.offset );
+        _buffers[i].data = ::mmap( nullptr, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, buffer.m.offset );
         COMMA_ASSERT( _buffers[i].data != MAP_FAILED, "'" << name << "': mmap failed on buffer index " << i );
     }
 }
@@ -105,7 +104,7 @@ std::pair< unsigned int, snark::timestamped< void* > > stream::read()
         int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
         if( r == -1 )
         {
-            if( errno == EINTR ) { continue; }
+            if( errno == EINTR ) { continue; } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
             COMMA_THROW( comma::exception, "'" << _name << ": select error: " << strerror( errno ) << "(" << errno << ")" );
         }
         COMMA_ASSERT( r != 0, "'" << _name << ": select timeout" );
