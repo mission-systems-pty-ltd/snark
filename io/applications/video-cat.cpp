@@ -101,8 +101,14 @@ int main( int ac, char** av )
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
         const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
-        COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
+        COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
+        auto output_options = unnamed.size() < 2 ? "-" : unnamed[1];
+        //std::unique_ptr< log = comma::csv::split< snark::io::video::header >::make( output_options );
+
+        // todo: io::stream vs split::stream
+        // todo: log: plug in
+
         comma::csv::options csv( options );
         csv.format( comma::csv::format::value< snark::io::video::header >( csv.fields, true ) );
         comma::csv::output_stream< snark::io::video::header > ostream( std::cout, csv );
