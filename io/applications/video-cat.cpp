@@ -3,7 +3,9 @@
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/csv/names.h>
+#include <comma/csv/split.h>
 #include <comma/csv/stream.h>
+#include <comma/io/stream.h>
 #include <comma/string/string.h>
 #include <comma/visiting/traits.h>
 #include "../../tbb/bursty_reader.h"
@@ -13,10 +15,16 @@
 void usage( bool verbose )
 {
     std::cerr << R"(
-usage: video-cat <path> <options>
-
-options
+usage: video-cat <path> <output> <options>
     <path>; video device path, e.g. "/dev/video0"
+)"
+    << ( verbose
+       ?   comma::io::ostream::usage( 4, true )
+         + comma::csv::splitting::usage( 8, true )
+         + "        default              : stdout"
+       : "    <output>: default: stdout; run --help --verbose for details" )
+    << R"(
+options
     --height=<rows>
     --pixel-type=<type>; default=rggb; todo...
     --size,--number-of-buffers=<n>; default=32
