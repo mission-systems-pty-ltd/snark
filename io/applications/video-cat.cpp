@@ -83,6 +83,17 @@ template <> struct traits< snark::io::video::header >
 
 } } // namespace comma { namespace visiting {
 
+namespace comma { namespace csv { namespace splitting {
+
+template <> struct type_traits< snark::io::video::header >
+{
+    static boost::posix_time::ptime time( const snark::io::video::header& t ) { return t.t; }
+    static unsigned int block( const snark::io::video::header& t ) { return 0; }
+    static unsigned int id( const snark::io::video::header& t ) { return 0; }
+};
+
+} } } // namespace comma { namespace csv { namespace splitting {
+
 namespace snark { namespace tbb {
 
 template <> struct bursty_reader_traits< snark::io::video::stream::record >
@@ -103,15 +114,24 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
-        auto output_options = unnamed.size() < 2 ? "-" : unnamed[1];
-        //std::unique_ptr< log = comma::csv::split< snark::io::video::header >::make( output_options );
-
-        // todo: io::stream vs split::stream
-        // todo: log: plug in
-
         comma::csv::options csv( options );
         csv.format( comma::csv::format::value< snark::io::video::header >( csv.fields, true ) );
-        comma::csv::output_stream< snark::io::video::header > ostream( std::cout, csv );
+        auto output_options = unnamed.size() < 2 ? "-" : unnamed[1];
+        typedef comma::csv::split< snark::io::video::header > log_t;
+        typedef comma::csv::output_stream< snark::io::video::header > csv_stream_t;
+        std::unique_ptr< log_t > log;
+        std::unique_ptr< comma::io::ostream > os;
+        std::unique_ptr< csv_stream_t > ostream;
+        if( output_options.substr( 0, 4 ) == "log:" )
+        {
+            COMMA_ASSERT_BRIEF( !csv.fields.empty(), "only logging with header is supported, please specify at least one field in --fields" );
+            log.reset( log_t::make( output_options, csv ) );
+        }
+        else
+        {
+            os = std::make_unique< comma::io::ostream >( output_options );
+            ostream = std::make_unique< csv_stream_t >( *( *os ), csv );
+        }
         snark::io::video::header header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
@@ -130,15 +150,19 @@ int main( int ac, char** av )
                                                                  {
                                                                      if( !record ) { return; }
                                                                      // todo: check whether we keep up with reader
+                                                                     header.t = record.buffer.t;
+                                                                     header.count = record.count;
                                                                      static unsigned int size = width * height;
+                                                                     auto data = reinterpret_cast< const char* >( record.buffer.data );
+                                                                     if( log ) { log->write( header, data, size ); return; }
                                                                      if( !csv.fields.empty() )
                                                                      {
                                                                          header.t = record.buffer.t;
                                                                          header.count = record.count;
-                                                                         ostream.write( header );
+                                                                         ostream->write( header );
                                                                      }
-                                                                     if( !header_only ) { std::cout.write( reinterpret_cast< const char* >( record.buffer.data ), size ); }
-                                                                     std::cout.flush();
+                                                                     if( !header_only ) { ( *os )->write( data, size ); }
+                                                                     ( *os )->flush();
                                                                  } );
         video.start();
 
