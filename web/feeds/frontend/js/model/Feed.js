@@ -48,7 +48,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         this.target = $(this.id + ' .target');
         this.input_container = $(this.id + ' .inputs-group');
         this.hint = this.config.hint != undefined ? this.config.hint : "";
-        this.width = this.config.width != undefined ? this.config.width : 400;
+        this.height = this.config.height == undefined ? 269 : this.config.height;
+        this.width = this.config.width == undefined ? 400 : this.config.width;
         this.interval = null;
         this.refresh_time = null;
         this.show = true;
@@ -56,7 +57,6 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         this.fields = [];
         this.form = $( '<form>', { onSubmit: "return false" } );
         if( this.form_show_buttons == undefined ) { this.form_show_buttons = false; }
-        this.width = this.config.width != undefined ? this.config.width : 400;
         if( config.form != undefined )
         {
             this.extract_fields( config.form );
