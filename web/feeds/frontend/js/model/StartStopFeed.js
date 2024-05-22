@@ -226,9 +226,9 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             this.el.removeClass('panel-disabled');
             // if( this.config.status.show == undefined || this.config.status.show == "false" || this.config.status.show )
             // {
-            //     $(this.form).find(".error-message").remove();
-            //     $(this.form).find(".success-message").remove();
-            //     $(this.form).find(".result-panel").remove();
+            $(this.form).find(".error-message").remove();
+            $(this.form).find(".success-message").remove();
+            $(this.form).find(".result-panel").remove();
             // }
             if( data.output != undefined )
             {
