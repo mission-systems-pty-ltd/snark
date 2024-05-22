@@ -536,8 +536,9 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     Feed.prototype.alert = function (on)
     {
         var gui_element = gui.__folders[this.feed_path];
-        if (gui_element != undefined) {
-            var gui_folder = $(gui_element.__ul);
+        if( gui_element != undefined )
+        {
+            var gui_folder = $( gui_element.__ul );
             if( on )
             {
                 this.el.addClass('panel-alert');
