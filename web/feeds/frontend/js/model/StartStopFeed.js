@@ -224,33 +224,40 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             // this.target.height(100);
             // data = data.replace(/\n/g, '<br/>');
             this.el.removeClass('panel-disabled');
-            $(this.form).find(".error-message").remove();
-            $(this.form).find(".success-message").remove();
-            $(this.form).find(".result-panel").remove();
-            if (data.output != undefined) {
+            // if( this.config.status.show == undefined || this.config.status.show == "false" || this.config.status.show )
+            // {
+            //     $(this.form).find(".error-message").remove();
+            //     $(this.form).find(".success-message").remove();
+            //     $(this.form).find(".result-panel").remove();
+            // }
+            if( data.output != undefined )
+            {
                 var output = data.output;
                 var panel = $('<div>', {class: "panel result-panel col-sm-12"});
                 panel.append($('<label>', {class: "", text: "Output"}));
                 var output_div = $('<div>', {class: "form-results"});
                 output_div.append($('<pre>', {text: output}));
                 panel.append(output_div); //JSON.stringify(output, null, 4)
-
                 panel.append($('<div>', {class: "clearfix"}));
                 $(this.form).append(panel);
                 $(this.form).append($('<div>', {class: "clear"}));
                 panel = $(this.form).find(".form-results");
                 $(panel).scrollTop($(panel)[0].scrollHeight);
             }
-            if (data.status != undefined) {
+            if( data.status != undefined )
+            {
                 var status = data.status;
-                if (status.code != undefined) {
-                    if (status.code == 0) {
+                if( status.code != undefined )
+                {
+                    if( status.code == 0 )
+                    {
                         $(this.form).append($('<label>', {
                             class: "success-message col-sm-11",
                             text: ( status.message ? status.message : "Success" )
                         }));
                     }
-                    else {
+                    else
+                    {
                         this.el.addClass('panel-disabled');
                         $(this.form).append($('<label>', {
                             class: "error-message col-sm-11",
@@ -260,7 +267,6 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                     $(this.form).append($('<div>', {class: "clear"}));
                 }
             }
-
         };
         StartStopFeed.prototype.onload_ = function( data )
         {
