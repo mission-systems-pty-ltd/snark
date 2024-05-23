@@ -139,7 +139,9 @@ int main( int ac, char** av )
         header.width = width / pixel_size;
         header.height = height;
         header.type = 24; // todo! --type,--pixel-type
+        comma::saymore() << name << ": video stream: creating..." << std::endl;
         snark::io::video::stream video( name, width, height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
+        comma::saymore() << name << ": video stream: created" << std::endl;
         comma::signal_flag is_shutdown;
         typedef snark::io::video::stream::record record_t;
         bool discard = options.exists( "--discard" );
@@ -164,17 +166,24 @@ int main( int ac, char** av )
                                                                      if( !header_only ) { ( *os )->write( data, size ); }
                                                                      ( *os )->flush();
                                                                  } );
-        video.start();
-
+        
         // todo! handle exceptions in read_once() or make it no-throw
         // todo! handle errno eintr
         // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
 
         snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
+        comma::saymore() << name << ": video stream: starting..." << std::endl;
+        video.start();
+        comma::saymore() << name << ": video stream: started" << std::endl;
+        comma::saymore() << name << ": processing pipeline: running..." << std::endl;
         ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
+        comma::saymore() << name << ": processing pipeline: stopped" << std::endl;
         video.stop();
+        comma::saymore() << name << ": video stream: stopped" << std::endl;
+        comma::saymore() << name << ": preparing to exit..." << std::endl;
         bursty_reader.join();
+        comma::saymore() << name << ": done" << std::endl;
         return 0;
     }
     catch( const std::exception& ex ) { comma::say() << ex.what() << std::endl; }
