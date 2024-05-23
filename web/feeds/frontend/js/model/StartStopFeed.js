@@ -270,18 +270,16 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
         };
         StartStopFeed.prototype.onload_ = function( data )
         {
-            if (data != undefined && data != "")
+            if( data == undefined || data == "" ) { return; }
+            var json = $.parseJSON(data);
+            if( json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0 )
             {
-                var json = $.parseJSON(data);
-                if( json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0 )
-                {
-                    this.update_ui( json );
-                    this.update_output( json );
-                }
+                this.update_ui( json );
+                this.update_output( json );
             }
         };
-        var add_button = function (this_, name, style, command) {
-
+        var add_button = function (this_, name, style, command)
+        {
             var btn = $('<button/>',
                 {
                     value: name,
@@ -291,7 +289,8 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                     click: function (event) {
                         event.preventDefault();
                         var url = this_.get_url();
-                        if (url != undefined) {
+                        if (url != undefined)
+                        {
                             url = url + "&" + $.param({'command': this.name});
                             $.ajax({
                                 context: this,
@@ -305,17 +304,19 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                                 if (json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0) {
                                     $(this).attr("disabled", "disabled");
                                     var btn_name = $(this).attr("name");
-                                    if (btn_name == "stop") {
+                                    if( btn_name == "stop" )
+                                    {
                                         $(this_.form).find("button[name=start]").removeAttr("disabled");
                                         $(this_.form).find("button[name=clear]").removeAttr("disabled");
                                     }
-                                    else {
+                                    else
+                                    {
                                         $(this_.form).find("button[name=stop]").removeAttr("disabled");
                                         $(this_.form).find("button[name=clear]").attr("disabled", "disabled");
                                     }
                                 }
                             }).fail(function (jqXHR, textStatus, errorThrown) {
-                                StartStopFeed.prototype.onerror();
+                                this_.onerror(); // StartStopFeed.prototype.onerror(); // the latter throws an exception in Feed (baseclass)
                             });
                         }
                     }
@@ -349,7 +350,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
         StartStopFeed.prototype.add_form = function () { this.target.append( this.form ); };
         StartStopFeed.prototype.update_ui = function (data)
         {
-            if (data.running != undefined && data.running.status != undefined)
+            if( data.running != undefined && data.running.status != undefined )
             {
                 update_ui_status(data.running.status, this.form);
                 if (data.running.status == "1")

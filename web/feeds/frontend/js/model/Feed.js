@@ -463,12 +463,12 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     Feed.prototype.is_add_form = function()
     {
         var size = Object.keys(this.fields).length;
-        return ( size > 0 && ( this.config.type != "form" && this.config.type != 'stream' ) ) || this.config.type == "start_stop";
+        return ( size > 0 && this.config.type != "form" && this.config.type != 'stream' ) || this.config.type == "start_stop";
     };
     Feed.prototype.is_feed_inputs = function()
     {
         var size = Object.keys( this.fields ).length;
-        return size > 0 && ( this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream' );
+        return size > 0 && this.config.type != "form" && this.config.type != "start_stop" && this.config.type != 'stream';
     };
     Feed.prototype.update_time = function()
     {
