@@ -140,7 +140,7 @@ int main( int ac, char** av )
         snark::io::video::header header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
-        double n = options.value< double >( "--thread,--number-of-threads", snark::tbb::default_concurrency() );
+        double n = options.value< double >( "--threads,--number-of-threads", snark::tbb::default_concurrency() );
         unsigned int number_of_threads = ( n >= 1 ? n : snark::tbb::default_concurrency() * n ) + 0.5; // quick and dirty
         COMMA_ASSERT( number_of_threads > 1, "expected number of threads greater than 1; got: " << number_of_threads << " for --number-of-threads=" << n );
         unsigned int pixel_size = 4;
