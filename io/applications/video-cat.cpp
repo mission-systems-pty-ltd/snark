@@ -29,6 +29,8 @@ options
     --pixel-type=<type>; default=rggb; todo...
     --size,--number-of-buffers=<n>; default=32
     --threads,-number-of-threads=<n>; default: run with --output-number-of-threads-default
+                                      if n > 1, then n
+                                      if 0 < n < 1, then default number of threads multiplied by n
     --width=<bytes>
 output options
     --fields=[<fields>]; header output fields: t,width,height,type,count
@@ -138,7 +140,9 @@ int main( int ac, char** av )
         snark::io::video::header header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
-        unsigned int number_of_threads = options.value( "--thread,--number-of-threads", snark::tbb::default_concurrency() );
+        double n = options.value< double >( "--thread,--number-of-threads", snark::tbb::default_concurrency() );
+        unsigned int number_of_threads = ( n >= 1 ? n : snark::tbb::default_concurrency() * n ) + 0.5; // quick and dirty
+        COMMA_ASSERT( number_of_threads > 1, "expected number of threads greater than 1; got: " << number_of_threads << " for --number-of-threads=" << n );
         unsigned int pixel_size = 4;
         header.width = width / pixel_size;
         header.height = height;
