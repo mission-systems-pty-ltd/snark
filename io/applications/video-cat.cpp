@@ -33,6 +33,8 @@ options
                                       if 0 < n < 1, then default number of threads multiplied by n
     --width=<bytes>
 output options
+    --discard; discard buffers when the output handler cannot keep up (due to
+               an either intermittently or permanently slow consumer)
     --fields=[<fields>]; header output fields: t,width,height,type,count
                          default: no header
                          t: buffer timestamp
@@ -183,7 +185,7 @@ int main( int ac, char** av )
         video.start();
         comma::saymore() << name << ": video stream: started" << std::endl;
         comma::saymore() << name << ": readers: creating..." << std::endl;
-        snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, video.buffers().size() );
+        snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, discard ? 0 : video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         comma::saymore() << name << ": readers: created" << std::endl;
         comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_threads << "..." << std::endl;
