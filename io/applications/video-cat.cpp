@@ -28,7 +28,7 @@ options
     --height=<rows>
     --pixel-type=<type>; default=rggb; todo...
     --size,--number-of-buffers=<n>; default=32
-    --threads,-number-of-threads=<n>; default: run with --output-number-of-thread-default
+    --threads,-number-of-threads=<n>; default: run with --output-number-of-threads-default
     --width=<bytes>
 output options
     --fields=[<fields>]; header output fields: t,width,height,type,count
@@ -42,7 +42,7 @@ output options
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
-    --output-number-of-thread-default
+    --output-number-of-threads-default
 
 )";
     exit( 0 );
@@ -112,8 +112,8 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        if( options.exists( "--output-number-of-thread-default" ) ) { std::cout << snark::tbb::default_concurrency() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--output-number-of-thread-default", "-.*" );
+        if( options.exists( "--output-number-of-threads-default" ) ) { std::cout << snark::tbb::default_concurrency() << std::endl; return 0; }
+        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--output-number-of-threads-default", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
