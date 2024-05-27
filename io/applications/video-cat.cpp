@@ -14,6 +14,9 @@
 
 void usage( bool verbose )
 {
+        // --threads,-number-of-threads=<n>; default: run with --output-number-of-threads-default
+        //                               if n > 1, then n
+        //                               if 0 < n < 1, then default number of threads multiplied by n
     std::cerr << R"(
 usage: video-cat <path> <output> <options>
     <path>; video device path, e.g. "/dev/video0"
@@ -28,9 +31,6 @@ options
     --height=<rows>
     --pixel-type=<type>; default=rggb; todo...
     --size,--number-of-buffers=<n>; default=32
-    --threads,-number-of-threads=<n>; default: run with --output-number-of-threads-default
-                                      if n > 1, then n
-                                      if 0 < n < 1, then default number of threads multiplied by n
     --width=<bytes>
 output options
     --discard; discard buffers when the output handler cannot keep up (due to
@@ -142,15 +142,16 @@ int main( int ac, char** av )
         snark::io::video::header header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
-        double n = options.value< double >( "--threads,--number-of-threads", snark::tbb::default_concurrency() );
-        unsigned int number_of_threads = ( n >= 1 ? n : snark::tbb::default_concurrency() * n ) + 0.5; // quick and dirty
-        COMMA_ASSERT( number_of_threads > 1, "expected number of threads greater than 1; got: " << number_of_threads << " for --number-of-threads=" << n );
+        //double n = options.value< double >( "--threads,--number-of-threads", snark::tbb::default_concurrency() );
+        //unsigned int number_of_threads = ( n >= 1 ? n : snark::tbb::default_concurrency() * n ) + 0.5; // quick and dirty
+        //COMMA_ASSERT( number_of_threads > 1, "expected number of threads greater than 1; got: " << number_of_threads << " for --number-of-threads=" << n );
+        unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
         unsigned int pixel_size = 4;
         header.width = width / pixel_size;
         header.height = height;
         header.type = 24; // todo! --type,--pixel-type
         comma::saymore() << name << ": video stream: creating..." << std::endl;
-        snark::io::video::stream video( name, width, height, options.value< unsigned int >( "--size,--number-of-buffers", 32 ) );
+        snark::io::video::stream video( name, width, height, number_of_buffers );
         comma::saymore() << name << ": video stream: created" << std::endl;
         comma::signal_flag is_shutdown;
         typedef snark::io::video::stream::record record_t;
@@ -188,8 +189,10 @@ int main( int ac, char** av )
         snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, discard ? 0 : video.buffers().size() );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         comma::saymore() << name << ": readers: created" << std::endl;
-        comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_threads << "..." << std::endl;
-        ::tbb::parallel_pipeline( number_of_threads, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
+        //comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_threads << "..." << std::endl;
+        //::tbb::parallel_pipeline( number_of_threads, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
+        comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_buffers << "..." << std::endl;
+        ::tbb::parallel_pipeline( number_of_buffers, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
         comma::saymore() << name << ": processing pipeline: stopped" << std::endl;
         video.stop();
         comma::saymore() << name << ": video stream: stopped" << std::endl;
