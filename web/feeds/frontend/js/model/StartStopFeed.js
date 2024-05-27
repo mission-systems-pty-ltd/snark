@@ -27,9 +27,8 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-/**
- * Created by vrushali on 15/10/15.
- */
+// @authors Vinny Do, Vrushali Satpute
+
 /*
   Creates a form with <n> text fields and three buttons marked Start, Stop and Clear
 
@@ -220,7 +219,9 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             .fail(function (jqXHR, textStatus, errorThrown) { this.onerror(); });
         };
 
-        StartStopFeed.prototype.update_output = function (data) {
+        StartStopFeed.prototype.update_output = function (data)
+        {
+            console.log( "==> StartStopFeed.update_output: " + this.feed_name + ": a" );
             // this.target.height(100);
             // data = data.replace(/\n/g, '<br/>');
             this.el.removeClass('panel-disabled');
@@ -230,6 +231,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
             $(this.form).find(".success-message").remove();
             $(this.form).find(".result-panel").remove();
             // }
+            console.log( "==> StartStopFeed.update_output: " + this.feed_name + ": b" );
             if( data.output != undefined )
             {
                 var output = data.output;
@@ -244,6 +246,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                 panel = $(this.form).find(".form-results");
                 $(panel).scrollTop($(panel)[0].scrollHeight);
             }
+            console.log( "==> StartStopFeed.update_output: " + this.feed_name + ": c" );
             if( data.status != undefined )
             {
                 var status = data.status;
@@ -267,6 +270,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                     $(this.form).append($('<div>', {class: "clear"}));
                 }
             }
+            console.log( "==> StartStopFeed.update_output: " + this.feed_name + ": d" );
         };
         StartStopFeed.prototype.onload_ = function( data )
         {
@@ -316,7 +320,11 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                                     }
                                 }
                             }).fail(function (jqXHR, textStatus, errorThrown) {
-                                this_.onerror(); // StartStopFeed.prototype.onerror(); // the latter throws an exception in Feed (baseclass)
+                                var s;
+                                s.status.code = 0;
+                                s.status.message = errorThrown;
+                                this_.update_output(s);
+                                this_.onerror(); // todo: pass json.status.code=0 json.status.message=errorThrown
                             });
                         }
                     }

@@ -27,6 +27,8 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// @authors Vinny Do, Vrushali Satpute
+
 define(['jquery', 'Feed', 'Grid'], function ($, Feed, Grid)
 {
     var ImageFeed = function (feed_name, feed_path, config) {
@@ -43,15 +45,15 @@ define(['jquery', 'Feed', 'Grid'], function ($, Feed, Grid)
         var _this = this;
         this.loader.onload = function ()
         {
-            clearTimeout(_this.timer);
-            _this.onload(this.src);
+            clearTimeout( _this.timer );
+            _this.onload( this.src );
         };
         this.loader.onerror = function ()
         {
             clearTimeout(_this.timer);
             _this.onerror();
-            this.target.width( this.width );
-            this.target.height( this.height );
+            _this.target.width( _this.width );
+            _this.target.height( _this.height );
         }
     };
     ImageFeed.prototype.load = function ()

@@ -27,9 +27,8 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-/**
- * Created by vrushali on 15/10/15.
- */
+// @authors Vinny Do, Vrushali Satpute
+ 
 define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
 {
     var Feed = function (feed_name, feed_path, config)
