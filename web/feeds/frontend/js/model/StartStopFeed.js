@@ -118,17 +118,21 @@
   placed in a text box above the status field.
 
  */
+
 define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
 {
         var Feed = require('Feed');
         var StartStopFeed = function( feed_name, feed_path, config )
         {
+            console.log( "==> StartStopFeed.define: a: name: " + feed_name );
             this.base = Feed;
-            this.form_show_buttons = config['form'] == undefined || config.form['fields'] == undefined ? [ "start", "stop" ] : [ "start", "stop", "clear" ];
+            this.form_buttons_names = config['form'] == undefined || config.form['fields'] == undefined ? [ "start", "stop" ] : [ "start", "stop", "clear" ]; // todo! make it more consistent: don't smuggle buttons into base class
+            this.form_buttons_show = true;
             this.base( feed_name, feed_path, config );
             this.start_btn = undefined;
             this.stop_btn = undefined;
             // this.buttons = [];
+            console.log( "==> StartStopFeed.define: z: name: " + feed_name );
         };
         StartStopFeed.prototype = Object.create( Feed.prototype );
         StartStopFeed.prototype.add_buttons = function( container )
@@ -274,13 +278,17 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
         };
         StartStopFeed.prototype.onload_ = function( data )
         {
+            console.log( "==> StartStopFeed.onload_: " + this.feed_name + ": a: data: " + data );
             if( data == undefined || data == "" ) { return; }
             var json = $.parseJSON(data);
+            console.log( "==> StartStopFeed.onload_: " + this.feed_name + ": b" );
             if( json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0 )
             {
+                console.log( "==> StartStopFeed.onload_: " + this.feed_name + ": c" );
                 this.update_ui( json );
                 this.update_output( json );
             }
+            console.log( "==> StartStopFeed.onload_: " + this.feed_name + ": d" );
         };
         var add_button = function (this_, name, style, command)
         {
@@ -303,6 +311,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                                 data: $(this).closest("form").serialize() + "&" + $.param({'command': this.name}),
                                 url: url
                             }).done(function (data, textStatus, jqXHR) {
+                                console.log( "==> StartStopFeed.done: " + this_.feed_name + ": a: data: " + data );
                                 var json = $.parseJSON(data);
                                 this_.update_output(json);
                                 if (json != undefined && json.status != undefined && json.status.code != undefined && json.status.code == 0) {
@@ -320,6 +329,7 @@ define( 'StartStopFeed', ["jquery", "Feed"], function( $ )
                                     }
                                 }
                             }).fail(function (jqXHR, textStatus, errorThrown) {
+                                console.log( "==> StartStopFeed.fail: " + this_.feed_name + ": a" );
                                 var s;
                                 s.status.code = 0;
                                 s.status.message = errorThrown;

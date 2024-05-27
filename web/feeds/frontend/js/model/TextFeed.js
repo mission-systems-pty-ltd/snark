@@ -26,10 +26,8 @@
 // WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-/**
- * Created by vrushali on 15/10/15.
- */
+ 
+// authors Vinny Do, Vrushali Satpute
 
 define( 'TextFeed', [ "jquery", "Feed" ], function ($)
 {
@@ -38,7 +36,7 @@ define( 'TextFeed', [ "jquery", "Feed" ], function ($)
     {
         this.base = Feed;        
         this.base( feed_name, feed_path, config );
-        if( this.form_show_buttons == "true" || ( typeof this.form_show_buttons == "boolean" && this.form_show_buttons ) ) { this.form_show_buttons = [ 'ok', 'clear' ]; } // backward compatibility...
+        if( this.form_buttons_names == undefined && ( this.form_buttons_show == "true" || ( typeof this.form_buttons_show == "boolean" && this.form_buttons_show ) ) ) { this.form_buttons_names = [ 'ok', 'clear' ]; this.form_buttons_show = true; }
         this.height = this.config.height == undefined ? 0 : this.config.height;
         this.width = this.config.width == undefined ? 0 : this.config.width; // todo: this.width = this.config.width == undefined ? 0 : this.config.width;
     };
@@ -63,7 +61,7 @@ define( 'TextFeed', [ "jquery", "Feed" ], function ($)
         if( data && data.length && data[data.length - 1] == '\n' ) { data = data.substring( 0, data.length - 1 ); }
         var orig_data = data;
         data = data ? data : '&nbsp;';
-        if( this.form_show_buttons )
+        if( this.form_buttons_show )
         {
             var panel = $( this.target ).find(".text-pre");
             if( panel.length > 0 )
