@@ -182,13 +182,13 @@ int main( int ac, char** av )
         // todo! handle errno eintr
         // todo! expose pixel type (V4L2_PIX_FMT_SRGGB8 etc)
 
+        comma::saymore() << name << ": video stream: starting..." << std::endl;
+        video.start();
+        comma::saymore() << name << ": video stream: started" << std::endl;
         comma::saymore() << name << ": readers: creating..." << std::endl;
         snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, discard ? 0 : video.buffers().size(), true );
         snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         comma::saymore() << name << ": readers: created" << std::endl;
-        comma::saymore() << name << ": video stream: starting..." << std::endl;
-        video.start();
-        comma::saymore() << name << ": video stream: started" << std::endl;
         //comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_threads << "..." << std::endl;
         //::tbb::parallel_pipeline( number_of_threads, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
         comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_buffers << "..." << std::endl;
