@@ -88,7 +88,7 @@ class queue
 
         void push( const T& t ) { queue_.push( t ); ++counter_; }
         
-        void pop( T& t ) { queue_.pop( t ); --counter_; }
+        void pop( T& t ) { queue_.try_pop( t ); --counter_; }
         
         unsigned int size() const { return queue_.size(); }
         
