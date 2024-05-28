@@ -30,7 +30,7 @@ class bursty_reader
         /// @param produce the user-provided functor to get data from the data source
         /// @param size maximum input queue size before discarding data, 0 means infinite
         /// @param capacity maximum input queue size before the reader thread blocks
-        bursty_reader( boost::function0< T > produce, unsigned int size = 0, unsigned int capacity = 0 );
+        bursty_reader( boost::function0< T > produce, unsigned int size = 0, unsigned int capacity = 0, bool on_demand = false );
 
         ~bursty_reader();
 
@@ -40,62 +40,49 @@ class bursty_reader
 
         typedef typename snark::tbb::template filter< void, T >::type filter_type;
 
-        filter_type& filter() { return filter_; }
+        filter_type& filter() { return _filter; }
 
     private:
-        T read_( ::tbb::flow_control& flow );
-        void produce_loop_();
+        T _read( ::tbb::flow_control& flow );
+        void _produce_loop();
 
-        ::tbb::concurrent_bounded_queue< T > queue_;
-        unsigned int size_;
-        bool running_;
-        boost::function0< T > produce_;
-        filter_type filter_;
-        boost::scoped_ptr< boost::thread > thread_;
+        ::tbb::concurrent_bounded_queue< T > _queue;
+        unsigned int _size;
+        bool _on_demand{false};
+        bool _running;
+        boost::function0< T > _produce;
+        filter_type _filter;
+        boost::scoped_ptr< boost::thread > _thread;
 };
 
-template< typename T >
-bursty_reader< T >::bursty_reader( boost::function0< T > produce, unsigned int size, unsigned int capacity )
-    : size_( size )
-    , running_( true )
-    , produce_( produce )
-    , filter_( tbb::filter_mode::serial_in_order, boost::bind( &bursty_reader< T >::read_, this, boost::placeholders::_1 ) )
+template< typename T > inline bursty_reader< T >::bursty_reader( boost::function0< T > produce, unsigned int size, unsigned int capacity, bool on_demand )
+    : _size( size )
+    , _on_demand( on_demand )
+    , _running( true )
+    , _produce( produce )
+    , _filter( tbb::filter_mode::serial_in_order, boost::bind( &bursty_reader< T >::_read, this, boost::placeholders::_1 ) )
 {
-    if( capacity > 0 ) { queue_.set_capacity( capacity ); }
-    thread_.reset( new boost::thread( boost::bind( &bursty_reader< T >::produce_loop_, this ) ) );
+    if( capacity > 0 ) { _queue.set_capacity( capacity ); }
+    if( !on_demand ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
 }
 
-template< typename T >
-inline bursty_reader< T >::~bursty_reader()
-{
-    join();
-}
+template< typename T > inline bursty_reader< T >::~bursty_reader() { join(); }
 
-template < typename T >
-inline void bursty_reader< T >::stop()
-{
-    running_ = false;
-    queue_.abort();
-}
+template < typename T > inline void bursty_reader< T >::stop() { _running = false; _queue.abort(); }
 
-template < typename T >
-inline void bursty_reader< T >::join()
-{
-    stop();
-    thread_->join();
-}
+template < typename T > inline void bursty_reader< T >::join() { stop(); _thread->join(); }
 
-template < typename T >
-inline T bursty_reader< T >::read_( ::tbb::flow_control& flow )
+template < typename T > inline T bursty_reader< T >::_read( ::tbb::flow_control& flow )
 {
+    if( _on_demand && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
     try
     {
         while( true )
         {
             T t = T();
-            queue_.pop( t );
+            _queue.pop( t );
             if( !bursty_reader_traits< T >::valid( t ) ) { flow.stop(); return T(); }
-            if( size_ == 0 || queue_.size() < size_ ) { return t; }
+            if( _size == 0 || _queue.size() < _size ) { return t; }
         }
     }
     catch( ::tbb::user_abort& ) {}
@@ -104,22 +91,21 @@ inline T bursty_reader< T >::read_( ::tbb::flow_control& flow )
     return T();
 }
 
-template < typename T >
-inline void bursty_reader< T >::produce_loop_()
+template < typename T > inline void bursty_reader< T >::_produce_loop()
 {
     try
     {
-        while( running_ )
+        while( _running )
         {
-            T t = produce_(); // attention: if produce is blocking, it may, well, block on join(), if no new data is coming... something to fix or parametrize (e.g. with timed wait)?
-            if( !running_ ) { queue_.push( T() ); break; }
-            queue_.push( t );
+            T t = _produce(); // attention: if produce is blocking, it may, well, block on join(), if no new data is coming... something to fix or parametrize (e.g. with timed wait)?
+            if( !_running ) { _queue.push( T() ); break; }
+            _queue.push( t );
             if( !bursty_reader_traits< T >::valid( t ) ) { break; }
         }
     }
     catch( ::tbb::user_abort& ) {}
-    catch( ... ) { queue_.push( T() ); throw; }
-    queue_.push( T() );
+    catch( ... ) { _queue.push( T() ); throw; }
+    _queue.push( T() );
 }
 
 } } // namespace snark { namespace tbb {
