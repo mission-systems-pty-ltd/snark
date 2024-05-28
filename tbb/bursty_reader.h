@@ -80,7 +80,7 @@ template < typename T > inline T bursty_reader< T >::_read( ::tbb::flow_control&
         while( true )
         {
             T t = T();
-            _queue.try_pop( t ); // _queue.pop( t );
+            _queue.pop( t );
             if( !bursty_reader_traits< T >::valid( t ) ) { flow.stop(); return T(); }
             if( _size == 0 || _queue.size() < _size ) { return t; }
         }
