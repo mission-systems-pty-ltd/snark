@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mission Systems
 
+#include <atomic>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/csv/names.h>
@@ -14,9 +15,6 @@
 
 void usage( bool verbose )
 {
-        // --threads,-number-of-threads=<n>; default: run with --output-number-of-threads-default
-        //                               if n > 1, then n
-        //                               if 0 < n < 1, then default number of threads multiplied by n
     std::cerr << R"(
 usage: video-cat <path> <output> <options>
     <path>; video device path, e.g. "/dev/video0"
@@ -46,7 +44,6 @@ output options
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
-    --output-number-of-threads-default
 
 )";
     exit( 0 );
@@ -113,11 +110,24 @@ int main( int ac, char** av )
 {
     try
     {
+        // {
+        //     int count{0};
+        //     const ::tbb::concurrent_bounded_queue< int >* queue{nullptr};
+        //     snark::tbb::bursty_reader< int > p( [&]()->int
+        //                                         {
+        //                                             ::usleep( 250000 );
+        //                                             std::cerr << "p: " << count << " queue.size(): " << queue->size() << std::endl;
+        //                                             return count++;
+        //                                         }, 4, 0, true );
+        //     snark::tbb::filter< int, void >::type c( snark::tbb::filter_mode::serial_in_order, [&]( int v ) { ::usleep( 1000000 ); std::cerr << "c: received: " << v << " current: " << count << std::endl; } );
+        //     queue = &p.queue();
+        //     ::tbb::parallel_pipeline( 1, p.filter() & c );
+        //     return 0;
+        // }
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        if( options.exists( "--output-number-of-threads-default" ) ) { std::cout << snark::tbb::default_concurrency() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--output-number-of-threads-default", "-.*" );
+        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
@@ -142,9 +152,6 @@ int main( int ac, char** av )
         snark::io::video::header header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
-        //double n = options.value< double >( "--threads,--number-of-threads", snark::tbb::default_concurrency() );
-        //unsigned int number_of_threads = ( n >= 1 ? n : snark::tbb::default_concurrency() * n ) + 0.5; // quick and dirty
-        //COMMA_ASSERT( number_of_threads > 1, "expected number of threads greater than 1; got: " << number_of_threads << " for --number-of-threads=" << n );
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
         unsigned int pixel_size = 4;
         header.width = width / pixel_size;
@@ -157,12 +164,20 @@ int main( int ac, char** av )
         typedef snark::io::video::stream::record record_t;
         bool discard = options.exists( "--discard" );
         bool header_only = options.exists( "--output-header-only,--header-only" );
-        auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { return video.read(); } };
+        std::atomic_uint count{0};
+        auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { ++count; return video.read(); } };
         snark::tbb::filter< record_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
                                                                , [&]( const record_t& record )
                                                                  {
                                                                      if( !record ) { return; }
-                                                                     // todo: check whether we keep up with reader
+                                                                     unsigned int c{count};
+                                                                     int d = c - record.count;
+                                                                     if( d >= int( number_of_buffers ) )
+                                                                     {
+                                                                         COMMA_ASSERT_BRIEF( discard, "asked to output record " << record.count << " but already have read record " << c << ", i.e. output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" );
+                                                                         comma::saymore() << "asked to output record " << record.count << " but already have read record " << c << "; discarded since output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" << std::endl;
+                                                                         return;
+                                                                     }
                                                                      header.t = record.buffer.t;
                                                                      header.count = record.count;
                                                                      static unsigned int size = width * height;
@@ -187,12 +202,9 @@ int main( int ac, char** av )
         comma::saymore() << name << ": video stream: started" << std::endl;
         comma::saymore() << name << ": readers: creating..." << std::endl;
         snark::tbb::bursty_reader< record_t > bursty_reader( read_once, discard ? video.buffers().size() : 0, discard ? 0 : video.buffers().size(), true );
-        snark::tbb::filter< void, void >::type filters = bursty_reader.filter() & write_filter;
         comma::saymore() << name << ": readers: created" << std::endl;
-        //comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_threads << "..." << std::endl;
-        //::tbb::parallel_pipeline( number_of_threads, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
-        comma::saymore() << name << ": processing pipeline: running with maximum number of active tokens " << number_of_buffers << "..." << std::endl;
-        ::tbb::parallel_pipeline( number_of_buffers, filters ); // ::tbb::parallel_pipeline( video.buffers().size() + 1, filters ); // while( bursty_reader->wait() ) { ::tbb::parallel_pipeline( 3, filters ); }
+        comma::saymore() << name << ": processing pipeline: running..." << std::endl;
+        ::tbb::parallel_pipeline( 1, bursty_reader.filter() & write_filter );
         comma::saymore() << name << ": processing pipeline: stopped" << std::endl;
         video.stop();
         comma::saymore() << name << ": video stream: stopped" << std::endl;

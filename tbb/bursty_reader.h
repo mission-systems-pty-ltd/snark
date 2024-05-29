@@ -42,6 +42,8 @@ class bursty_reader
 
         filter_type& filter() { return _filter; }
 
+        const ::tbb::concurrent_bounded_queue< T >& queue() { return _queue; }
+
     private:
         T _read( ::tbb::flow_control& flow );
         void _produce_loop();
@@ -95,7 +97,7 @@ template < typename T > inline void bursty_reader< T >::_produce_loop()
 {
     try
     {
-        while( _running )
+        for( bool done{false}; _running && !done; )
         {
             T t = _produce(); // attention: if produce is blocking, it may, well, block on join(), if no new data is coming... something to fix or parametrize (e.g. with timed wait)?
             if( !_running ) { _queue.push( T() ); break; }
