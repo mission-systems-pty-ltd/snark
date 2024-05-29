@@ -182,7 +182,7 @@ int main( int ac, char** av )
                                                                      header.count = record.count;
                                                                      static unsigned int size = width * height;
                                                                      auto data = reinterpret_cast< const char* >( record.buffer.data );
-                                                                     if( log ) { log->write( header, data, size, true ); return; }
+                                                                     if( log ) { log->write( header, data, size, csv.flush ); return; }
                                                                      if( !csv.fields.empty() )
                                                                      {
                                                                          header.t = record.buffer.t;
@@ -190,7 +190,7 @@ int main( int ac, char** av )
                                                                          ostream->write( header );
                                                                      }
                                                                      if( !header_only ) { ( *os )->write( data, size ); }
-                                                                     ( *os )->flush();
+                                                                     if( csv.flush ) { ( *os )->flush(); }
                                                                  } );
         
         // todo! handle exceptions in read_once() or make it no-throw
