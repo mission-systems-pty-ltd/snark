@@ -182,7 +182,7 @@ int main( int ac, char** av )
                                                                      header.count = record.count;
                                                                      static unsigned int size = width * height;
                                                                      auto data = reinterpret_cast< const char* >( record.buffer.data );
-                                                                     if( log ) { log->write( header, data, size ); return; }
+                                                                     if( log ) { log->write( header, data, size, true ); return; }
                                                                      if( !csv.fields.empty() )
                                                                      {
                                                                          header.t = record.buffer.t;
