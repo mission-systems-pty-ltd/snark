@@ -175,13 +175,19 @@ int main( int ac, char** av )
                                                                      if( !record ) { return; }
                                                                      unsigned int c{count};
                                                                      int d = c - record.count;
-                                                                     if( d >= int( number_of_buffers ) )
+                                                                     if( latest ) // todo? don't skip, just jump straight to the latest record
                                                                      {
-                                                                         COMMA_ASSERT_BRIEF( discard, "asked to output record " << record.count << " but already have read record " << c << ", i.e. output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" );
-                                                                         comma::saymore() << "asked to output record " << record.count << " but already have read record " << c << "; discarded since output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" << std::endl;
-                                                                         return;
+                                                                         if( d > 0 ) { comma::saymore() << "thus record " << record.count << " discarded since asked to output latest record (" << c << "); " << std::endl; return; }
                                                                      }
-                                                                     if( latest && d > 0 ) { comma::saymore() << "asked to output latest record (" << c << "); thus record " << record.count << " is discarded" << std::endl; return; }
+                                                                     else
+                                                                     {
+                                                                        if( d >= int( number_of_buffers ) )
+                                                                        {
+                                                                            COMMA_ASSERT_BRIEF( discard, "asked to output record " << record.count << " but already have read record " << c << ", i.e. output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" );
+                                                                            comma::saymore() << "asked to output record " << record.count << " but already have read record " << c << "; discarded since output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" << std::endl;
+                                                                            return;
+                                                                        }
+                                                                     }
                                                                      header.t = record.buffer.t;
                                                                      header.count = record.count;
                                                                      static unsigned int size = width * height;
