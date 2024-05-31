@@ -177,7 +177,7 @@ int main( int ac, char** av )
                                                                      int d = c - record.count;
                                                                      if( latest ) // todo? don't skip, just jump straight to the latest record
                                                                      {
-                                                                         if( d > 0 ) { comma::saymore() << "thus record " << record.count << " discarded since asked to output latest record (" << c << "); " << std::endl; return; }
+                                                                         if( d > 1 ) { comma::saymore() << "thus record " << record.count << " discarded since asked to output latest record (" << c << "); " << std::endl; return; }
                                                                      }
                                                                      else
                                                                      {
