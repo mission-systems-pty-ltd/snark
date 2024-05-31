@@ -41,6 +41,7 @@ output options
                          type: image type as in opencv, see e.g. cv-cat -h -v for details
                              rggb: 24 (CV_8UC4 or 4ub)
                              support for more types: todo
+    --latest; if --discard, always output the latest available video buffer and discard the rest
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
@@ -127,7 +128,7 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
+        const auto& unnamed = options.unnamed( "--discard,--latest,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
@@ -163,6 +164,8 @@ int main( int ac, char** av )
         comma::signal_flag is_shutdown;
         typedef snark::io::video::stream::record record_t;
         bool discard = options.exists( "--discard" );
+        bool latest = options.exists( "--latest" );
+        COMMA_ASSERT_BRIEF( !latest || discard, "if --latest, please specify --discard" );
         bool header_only = options.exists( "--output-header-only,--header-only" );
         std::atomic_uint count{0};
         auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { ++count; return video.read(); } };
@@ -178,6 +181,7 @@ int main( int ac, char** av )
                                                                          comma::saymore() << "asked to output record " << record.count << " but already have read record " << c << "; discarded since output is too slow and buffers get overwritten (number of buffers: " << number_of_buffers << ")" << std::endl;
                                                                          return;
                                                                      }
+                                                                     if( latest && d > 0 ) { comma::saymore() << "asked to output latest record (" << c << "); thus record " << record.count << " is discarded" << std::endl; return; }
                                                                      header.t = record.buffer.t;
                                                                      header.count = record.count;
                                                                      static unsigned int size = width * height;
