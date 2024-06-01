@@ -105,7 +105,7 @@ public:
     void clear();   //delete labels
     
 public:
-    std::vector< std::shared_ptr< mesh > > meshes;
+    std::vector< std::unique_ptr< mesh > > meshes; // std::vector< std::shared_ptr< mesh > > meshes;
     bool visible;
     
     void update_transform(const Eigen::Vector3d& position,const Eigen::Vector3d& orientation);

@@ -10,6 +10,9 @@ namespace snark { namespace graphics { namespace qopengl {
 
 model::model(): _scene( nullptr ) {}
 
+// todo? use qt3d
+// - https://stackoverflow.com/questions/72867062/how-can-i-mix-both-qt3d-and-qopengl
+// - https://www.linkedin.com/pulse/3d-visualisation-using-qt3d-part-1-guido-piasenza/
 void model::load( const std::string& file_name )
 {
 //         aiSetImportPropertyInteger(props,AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
@@ -21,7 +24,8 @@ void model::load( const std::string& file_name )
 
 void model::make_meshes( mesh_shader& shader )
 {
-    if( !_scene || !_scene->mMeshes ) { COMMA_THROW( comma::exception, "scene is null!"); }
+    COMMA_ASSERT( _scene, "scene is null" );
+    COMMA_ASSERT( _scene->mMeshes, "scene meshes pointer is null" );
     //std::cerr<<"model::make_meshes " << _scene->mNumMeshes << std::endl;
     node_make_meshes( _scene->mRootNode, shader );
     //std::cerr << "model::make_meshes" << std::endl;
@@ -29,15 +33,14 @@ void model::make_meshes( mesh_shader& shader )
 
 void model::node_make_meshes( aiNode* node, mesh_shader& shader )
 {
-    if( !node ) { COMMA_THROW( comma::exception,"node is null!" ); }
+    COMMA_ASSERT( node, "node is null" );
     for( unsigned int i = 0; i < node->mNumMeshes; ++i )
     {
         aiMesh* mm = _scene->mMeshes[ node->mMeshes[i] ];
-        if( !mm ) { COMMA_THROW( comma::exception,"mesh is null!" ); }
-        qopengl::mesh* mesh = new qopengl::mesh();
-        shader.meshes.push_back( std::shared_ptr< qopengl::mesh >( mesh ) );
-        if( !mm->mVertices ) { COMMA_THROW( comma::exception, "vertices is null!" ); }
-        mesh->update( mm->mVertices, mm->mNumVertices );
+        COMMA_ASSERT( mm,"mesh is null" );
+        COMMA_ASSERT( mm->mVertices, "mesh vertices pointer is null" );
+        shader.meshes.push_back( std::unique_ptr< qopengl::mesh >( new qopengl::mesh() ) );
+        shader.meshes.back()->update( mm->mVertices, mm->mNumVertices );
         //std::cout.write( ( const char* )( data ), size * sizeof( mesh_vertex_t ) );
         //std::cout.write( ( const char* )( data ), size * sizeof( mesh_vertex_t ) );
         // for( unsigned int i = 0; i < mm->mNumFaces; ++i )
@@ -46,7 +49,7 @@ void model::node_make_meshes( aiNode* node, mesh_shader& shader )
         //     COMMA_ASSERT( f.mNumIndices == 3, "face " << i << ": expected 3 indices; got: " << f.mNumIndices );
         //     std::cout.write( ( const char* )( f.mIndices ), f.mNumIndices * sizeof( int ) );
         // }
-        std::cout.flush();
+        //std::cout.flush();
     }
     for( unsigned int j = 0; j < node->mNumChildren; ++j ) { node_make_meshes( node->mChildren[j], shader ); }
 }
