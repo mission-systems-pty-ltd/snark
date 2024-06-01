@@ -2,9 +2,9 @@
 
 /// @author Navid Pirmarzdashti
 
-#include "mesh_shader.h"
-#include <QOpenGLPaintDevice>
 #include <iostream>
+#include <QOpenGLPaintDevice>
+#include "mesh_shader.h"
 #include "../../../math/rotation_matrix.h"
 
 namespace snark { namespace graphics { namespace qopengl {
@@ -107,20 +107,19 @@ void mesh_shader::update_transform( const Eigen::Vector3d& position, const Eigen
     model_transform.translate(QVector3D(position.x(),position.y(),position.z()));
 }
 
-mesh::mesh() : visible( true ), size( 0 ),initd( false ) {}
+mesh::mesh() : visible( true ), size( 0 ), _initialised( false ) {}
 
 mesh::~mesh() {}
 
 void mesh::init()
 {
-    if( initd ) { return; }
+    if( _initialised ) { return; }
 //     std::cerr<<"mesh::init"<<std::endl;
     initializeOpenGLFunctions();
-
     vao.create();
-    QOpenGLVertexArrayObject::Binder binder(&vao);
+    QOpenGLVertexArrayObject::Binder binder( &vao );
     vbo.create();
-    vbo.setUsagePattern(QOpenGLBuffer::StreamDraw);
+    vbo.setUsagePattern( QOpenGLBuffer::StreamDraw );
     vbo.bind();
     glEnableVertexAttribArray( 0 );
 //     glEnableVertexAttribArray( 1 );
@@ -128,7 +127,7 @@ void mesh::init()
 //     glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( mesh_vertex ), reinterpret_cast<void *>( offsetof( mesh_vertex, offset )));
     vbo.release();
 //     std::cerr<<"/mesh::init"<<std::endl;
-    initd = true;
+    _initialised = true;
 }
 // void mesh::update(const mesh_data& data)
 // void mesh::update(const vertex_t* data,unsigned sz)

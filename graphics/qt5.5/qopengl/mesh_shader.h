@@ -68,12 +68,7 @@ class mesh : protected QOpenGLFunctions
 public:
     mesh();
     virtual ~mesh();
-    
-    /// set to false to hide it
     bool visible;
-    
-    /// update data
-//     void update(const mesh_data& data);
     void update( const mesh_vertex_t* data, unsigned size );
     
 //     material m;
@@ -90,7 +85,7 @@ public:
     
 protected:
     friend class mesh_shader;
-    bool initd;
+    bool _initialised;
 //     std::unique_ptr<QOpenGLFramebufferObject> fbo;
 };
 
@@ -98,30 +93,26 @@ protected:
 /// each model will add several meshes to the mesh shader
 class mesh_shader : protected QOpenGLFunctions
 {
-    friend class widget;
 public:
     mesh_shader();
     virtual ~mesh_shader();
     void clear();   //delete labels
-    
-public:
     std::vector< std::unique_ptr< mesh > > meshes; // std::vector< std::shared_ptr< mesh > > meshes;
     bool visible;
-    
     void update_transform(const Eigen::Vector3d& position,const Eigen::Vector3d& orientation);
 
 protected:
-    //GL context should be set by caller (i.e. gl_widget)
-    virtual void init();    //create texture buffer
-    virtual void paint(const QMatrix4x4& transform_matrix, const QSize& size);
-    virtual void destroy();   //destroy buffer
-protected:
-    
+    friend class widget;
     QOpenGLShaderProgram program;
     int view_transform_location;
 //     int sampler_location;
     int model_transform_location;
     QMatrix4x4 model_transform;
+    
+    //GL context should be set by caller (i.e. gl_widget)
+    virtual void init();    //create texture buffer
+    virtual void paint(const QMatrix4x4& transform_matrix, const QSize& size);
+    virtual void destroy();   //destroy buffer
 };
 
 } } } // namespace snark { namespace graphics { namespace qopengl {
