@@ -96,14 +96,16 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             $(this.input_container).find("input").removeAttr("title");
         }
     };
-    Feed.prototype.extract_fields = function ( form_elements )
+    Feed.prototype.extract_fields = function( form_elements )
     {
         if( form_elements == undefined ) { return; }
         let dropdowns = [];
-        if( form_elements['dropdowns'] != undefined ) { dropdowns = form_elements['dropdowns']; }
+        if( form_elements['dropdowns'] != undefined ) { dropdowns = form_elements['dropdowns']; } // quick and dirty
+        let checkboxes = [];
+        if( form_elements['checkboxes'] != undefined ) { dropdowns = form_elements['checkboxes']; } // quick and dirty
         if( form_elements['fields'] != undefined )
         {
-            this.populate_path_values( form_elements['fields'], "", dropdowns );
+            this.populate_path_values( form_elements['fields'], "", dropdowns, checkboxes );
             // this.buttons = form_elements['buttons'];
         }
         if( form_elements['buttons'] != undefined )
@@ -115,21 +117,20 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             if( Array.isArray( names ) && names.length > 0 ) { this.form_buttons_show = true; this.form_buttons_names = names; }
             else if( Array.isArray( show ) && show.length > 0 ) { this.form_buttons_show = true; this.form_buttons_names = show; } // backward compatibility
             else if( show == "true" || ( typeof show == "boolean" && show ) ) { this.form_buttons_show = true; } // configs allow text or boolean i.e. "true"/true
-            //
             // this.buttons = form_elements['buttons'];
         }
         // else {
         //     this.populate_path_values(form_elements, "");
         // }
     };
-    Feed.prototype.populate_path_values = function (form_elements, prefix, dropdowns)
+    Feed.prototype.populate_path_values = function( form_elements, prefix, dropdowns, checkboxes )
     {
         for( var element in form_elements )
         {
             var value = form_elements[element];
             var type = typeof value;
-            var p = get_prefix(element, prefix);
-            if( type == "object" && !dropdowns.includes( p ) ) { this.populate_path_values(value, p, dropdowns); } // Flatten 'object' field unless it is configured as a dropdown.
+            var p = get_prefix( element, prefix );
+            if( type == "object" && !dropdowns.includes( p ) && !checkboxes.includes( p ) ) { this.populate_path_values( value, p, dropdowns, checkboxes ); } // Flatten 'object' field unless it is configured as a dropdown.
             else { this.fields[p] = value; }
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
         }
@@ -168,10 +169,9 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         class: "btn btn-default col-sm-3",
                         click: function()
                         {
-                            // Make text fields empty.
-                            $($(this).closest("form").find("input[type=text]")).each(function () { $(this).val(''); });
-                            // Set dropdowns to the first option.
-                            $($(this).closest("form").find("select")).each(function () { $(this).val($(this).children()[0].text) });
+                            $($(this).closest("form").find("input[type=text]")).each(function () { $(this).val(''); }); // clear text fields
+                            $($(this).closest("form").find("input[type=checkbox]")).each(function () { $(this).val(false); }); // clear checkboxes
+                            $($(this).closest("form").find("select")).each(function () { $(this).val($(this).children()[0].text) }); // set dropdowns to the first option
                             $($(this).closest("form").find("button")).each(function () { $(this).attr('disabled', "disabled"); });
                             // $($(this).closest("form").find("button")).each(function () {
                             //     $(this).attr('disabled', "disabled");
@@ -409,8 +409,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                 });
             var each = $( '<div>', { class: " col-sm-8" } );
             var input;
-            var fieldValue = this.fields[field];
-            if( Array.isArray( fieldValue ) )
+            var field_value = this.fields[field];
+            if( Array.isArray( field_value ) )
             {
                 // Array values become a dropdown selector. These fields must have been
                 // configured using the `"dropdown": ["field-name"]` syntax, or otherwise
@@ -420,19 +420,19 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                 {
                     class: "form-control ",
                     name: field,
-                    value: fieldValue[0]
+                    value: field_value[0]
                 });
-                fieldValue.forEach(f => { input.append($('<option>').append(f)); });
+                field_value.forEach( f => { input.append($('<option>').append(f)); } );
             }
             else
             {
-                var input_type = (typeof fieldValue == 'number' ? 'number' : 'text');
+                var input_type = typeof field_value == 'number' ? 'number' : typeof field_value == 'bool' ? 'checkbox' : 'text';
                 input = $('<input>',
                 {
                     type: input_type,
                     class: "form-control ",
                     name: field,
-                    value: fieldValue
+                    value: field_value
                 });
             }
             if( is_disabled )
