@@ -101,11 +101,9 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         if( form_elements == undefined ) { return; }
         let dropdowns = [];
         if( form_elements['dropdowns'] != undefined ) { dropdowns = form_elements['dropdowns']; } // quick and dirty
-        let checkboxes = [];
-        if( form_elements['checkboxes'] != undefined ) { dropdowns = form_elements['checkboxes']; } // quick and dirty
         if( form_elements['fields'] != undefined )
         {
-            this.populate_path_values( form_elements['fields'], "", dropdowns, checkboxes );
+            this.populate_path_values( form_elements['fields'], "", dropdowns );
             // this.buttons = form_elements['buttons'];
         }
         if( form_elements['buttons'] != undefined )
@@ -123,14 +121,14 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         //     this.populate_path_values(form_elements, "");
         // }
     };
-    Feed.prototype.populate_path_values = function( form_elements, prefix, dropdowns, checkboxes )
+    Feed.prototype.populate_path_values = function( form_elements, prefix, dropdowns )
     {
         for( var element in form_elements )
         {
             var value = form_elements[element];
             var type = typeof value;
             var p = get_prefix( element, prefix );
-            if( type == "object" && !dropdowns.includes( p ) && !checkboxes.includes( p ) ) { this.populate_path_values( value, p, dropdowns, checkboxes ); } // Flatten 'object' field unless it is configured as a dropdown.
+            if( type == "object" && !dropdowns.includes( p ) ) { this.populate_path_values( value, p, dropdowns ); } // Flatten 'object' field unless it is configured as a dropdown.
             else { this.fields[p] = value; }
             // console.log(element + " typeof " + (typeof element) + "   type= " + type);
         }
@@ -170,7 +168,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         click: function()
                         {
                             $($(this).closest("form").find("input[type=text]")).each(function () { $(this).val(''); }); // clear text fields
-                            $($(this).closest("form").find("input[type=checkbox]")).each(function () { $(this).val(false); }); // clear checkboxes
+                            $($(this).closest("form").find("input[type=checkbox]")).each(function () { $(this).prop( 'checked', false ); }); // clear checkboxes
                             $($(this).closest("form").find("select")).each(function () { $(this).val($(this).children()[0].text) }); // set dropdowns to the first option
                             $($(this).closest("form").find("button")).each(function () { $(this).attr('disabled', "disabled"); });
                             // $($(this).closest("form").find("button")).each(function () {
@@ -426,14 +424,27 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             }
             else
             {
-                var input_type = typeof field_value == 'number' ? 'number' : typeof field_value == 'bool' ? 'checkbox' : 'text';
-                input = $('<input>',
+                var input_type = typeof field_value == 'number' ? 'number' : typeof field_value == 'boolean' ? 'checkbox' : 'text';
+                if( input_type == 'checkbox' )
                 {
-                    type: input_type,
-                    class: "form-control ",
-                    name: field,
-                    value: field_value
-                });
+                    input = $('<input>',
+                    {
+                        type: 'checkbox',
+                        class: "form-control ",
+                        name: field,
+                        checked: field_value
+                    });
+                }
+                else
+                {
+                    input = $('<input>',
+                    {
+                        type: input_type,
+                        class: "form-control ",
+                        name: field,
+                        value: field_value
+                    });
+                }
             }
             if( is_disabled )
             {
