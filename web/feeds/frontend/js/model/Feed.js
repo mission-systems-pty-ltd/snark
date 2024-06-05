@@ -83,7 +83,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     };
     Feed.prototype.reset = function ()
     {
-        if( this.config.refresh.auto )
+        if( this.config.refresh.auto && !this.config.refresh.allow_input )
         {
             $(this.input_container).find("input").attr("readonly", "readonly");
             $(this.input_container).find("input").attr("title", "readonly");
@@ -396,7 +396,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     Feed.prototype.load_inputs = function( container )
     {
         var is_disabled = false;
-        if( this.config.refresh.auto ) { is_disabled = true; }
+        if( this.config.refresh.auto && !this.config.refresh.allow_input ) { is_disabled = true; }
         for( var field in this.fields )
         {
             var row = $( '<div>', { class: "form" } );
