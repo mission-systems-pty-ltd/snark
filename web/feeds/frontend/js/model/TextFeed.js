@@ -80,7 +80,7 @@ define( 'TextFeed', [ "jquery", "Feed" ], function ($)
             // todo: var width = this.width > 0 ? this.width : 150;
             $( panel ).css( "max-height", function () { return height; } );
             this.draw();
-            $( panel ).scrollTop( $(panel)[0].scrollHeight );
+            $( panel ).scrollTop( 0 ); // $( panel ).scrollTop( $(panel)[0].scrollHeight );
         }
         else
         {
