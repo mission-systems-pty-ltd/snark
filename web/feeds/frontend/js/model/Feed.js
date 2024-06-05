@@ -432,7 +432,8 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         type: 'checkbox',
                         class: "form-control ",
                         name: field,
-                        checked: field_value
+                        checked: field_value,
+                        value: true
                     });
                 }
                 else
