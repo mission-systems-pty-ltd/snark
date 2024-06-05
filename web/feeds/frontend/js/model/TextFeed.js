@@ -50,6 +50,8 @@ define( 'TextFeed', [ "jquery", "Feed" ], function ($)
             timeout: globals.timeout
         }).done(function (data, textStatus, jqXHR) {
             this.onload(data);
+            var panel = $( this.target ).find(".text-pre");
+            $( panel ).scrollTop( 0 );
         }).fail(function (jqXHR, textStatus, errorThrown) {
             this.onerror();
         });
