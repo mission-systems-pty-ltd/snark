@@ -29,27 +29,30 @@
 
 #pragma once
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <comma/timing/timestamped.h>
 
 namespace snark {
 
+// template < typename T >
+// struct timestamped
+// {
+//     boost::posix_time::ptime t;
+
+//     T data;
+
+//     timestamped() {}
+
+//     timestamped( const T& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
+
+//     timestamped( T&& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
+
+//     timestamped( boost::posix_time::ptime t, const T& data ) : t( t ), data( data ) {}
+
+//     timestamped( boost::posix_time::ptime t, T&& data ) : t( t ), data( data ) {}
+// };
+
 template < typename T >
-struct timestamped
-{
-    boost::posix_time::ptime t;
-
-    T data;
-
-    timestamped() {}
-
-    timestamped( const T& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
-
-    timestamped( T&& data ) : t( boost::posix_time::microsec_clock::universal_time() ), data( data ) {}
-
-    timestamped( boost::posix_time::ptime t, const T& data ) : t( t ), data( data ) {}
-
-    timestamped( boost::posix_time::ptime t, T&& data ) : t( t ), data( data ) {}
-};
+using timestamped = comma::timestamped< T >; // for backward compatibility
 
 template < typename T > inline timestamped< T > make_timestamped( T&& data ) { return timestamped< T >( data ); }
 
