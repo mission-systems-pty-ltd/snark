@@ -125,6 +125,8 @@ class index
 
         void write( const video::header& h ) { _ostream.write( h ); }
 
+        void flush() { _ofs.flush(); }
+
     private:
         std::string _filename;
         std::ofstream _ofs;
@@ -224,7 +226,7 @@ int main( int ac, char** av )
                                                                      if( log )
                                                                      {
                                                                         log->write( header, data, size, csv.flush );
-                                                                        if( index ) { index->write( header ); }
+                                                                        if( index ) { index->write( header ); index->flush(); }
                                                                         return;
                                                                      }
                                                                      if( !csv.fields.empty() ) { ostream->write( header ); }
