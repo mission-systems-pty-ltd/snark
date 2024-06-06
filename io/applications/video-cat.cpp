@@ -3,11 +3,14 @@
 #include <atomic>
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
+#include <comma/base/none.h>
 #include <comma/csv/names.h>
 #include <comma/csv/split.h>
 #include <comma/csv/stream.h>
 #include <comma/io/stream.h>
 #include <comma/string/string.h>
+#include <comma/timing/timestamped.h>
+#include <comma/timing/traits.h>
 #include <comma/visiting/traits.h>
 #include "../../tbb/bursty_reader.h"
 #include "../../tbb/types.h"
@@ -42,6 +45,9 @@ output options
                              rggb: 24 (CV_8UC4 or 4ub)
                              support for more types: todo
     --latest; if --discard, always output the latest available video buffer and discard the rest
+    --log-index; if logging, log index as binary <timestamp>,<fields>, where
+                             <timestamp> is as in <timestamp>.bin log file name
+    --log-index-file=<filename>; default=index.bin
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
@@ -107,6 +113,37 @@ template <> struct bursty_reader_traits< snark::io::video::stream::record >
 
 } } // namespace snark { namespace tbb {
 
+namespace snark { namespace io { namespace video {
+
+class index
+{
+    public:
+        index( const std::string& filename, const comma::csv::options& csv )
+            : _filename( filename )
+            , _ofs( filename )
+            , _ostream( _ofs, _make_csv( csv ) )
+        {
+            COMMA_ASSERT_BRIEF( _ofs.is_open(), "failed to create '" << filename << "'" );
+        }
+
+        void write( const comma::timestamped< video::header >& h ) { _ostream.write( h ); }
+
+    private:
+        std::string _filename;
+        std::ofstream _ofs;
+        comma::csv::output_stream< comma::timestamped< video::header > > _ostream;
+        comma::csv::options _make_csv( const comma::csv::options& csv )
+        {
+            comma::csv::options index_csv = csv;
+            index_csv.format( "t," + csv.format().string() ); // quick and dirty
+            index_csv.fields = "t";
+            for( const auto& f: comma::split( csv.fields, ',' ) ) { index_csv.fields += f.empty() ? "," : ",data/" + f; } // quick and dirty
+            return index_csv;
+        }
+};
+
+} } } // namespace snark { namespace io { namespace video {
+
 int main( int ac, char** av )
 {
     try
@@ -128,13 +165,14 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--latest,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only", "-.*" );
+        const auto& unnamed = options.unnamed( "--discard,--latest,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--log-index", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
         comma::csv::options csv( options );
         csv.format( comma::csv::format::value< snark::io::video::header >( csv.fields, true ) );
         auto output_options = unnamed.size() < 2 ? "-" : unnamed[1];
+        boost::optional< snark::io::video::index > index;
         typedef comma::csv::split< snark::io::video::header > log_t;
         typedef comma::csv::output_stream< snark::io::video::header > csv_stream_t;
         std::unique_ptr< log_t > log;
@@ -144,20 +182,22 @@ int main( int ac, char** av )
         {
             COMMA_ASSERT_BRIEF( !csv.fields.empty(), "only logging with header is supported, please specify at least one field in --fields" );
             log.reset( log_t::make( output_options, csv ) );
+            if( options.exists( "--log-index" ) ) { index.emplace( log->how().address() + "/" + options.value< std::string >( "--log-index-file", "index.bin" ), csv ); }
         }
         else
         {
+            COMMA_ASSERT_BRIEF( !options.exists( "--log-index" ), "--log-index makes sense only for 'log:...' outputs; got: '" << output_options << "'" );
             os = std::make_unique< comma::io::ostream >( output_options );
             ostream = std::make_unique< csv_stream_t >( *( *os ), csv );
         }
-        snark::io::video::header header;
+        snark::timestamped< snark::io::video::header > header;
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
         unsigned int pixel_size = 4;
-        header.width = width / pixel_size;
-        header.height = height;
-        header.type = 24; // todo! --type,--pixel-type
+        header.data.width = width / pixel_size;
+        header.data.height = height;
+        header.data.type = 24; // todo! --type,--pixel-type
         comma::saymore() << name << ": video stream: creating..." << std::endl;
         snark::io::video::stream video( name, width, height, number_of_buffers );
         comma::saymore() << name << ": video stream: created" << std::endl;
@@ -188,17 +228,17 @@ int main( int ac, char** av )
                                                                             return;
                                                                         }
                                                                      }
-                                                                     header.t = record.buffer.t;
-                                                                     header.count = record.count;
+                                                                     header.data.t = record.buffer.t;
+                                                                     header.data.count = record.count;
                                                                      static unsigned int size = width * height;
-                                                                     auto data = reinterpret_cast< const char* >( record.buffer.data );
-                                                                     if( log ) { log->write( header, data, size, csv.flush ); return; }
-                                                                     if( !csv.fields.empty() )
+                                                                     const char* data = reinterpret_cast< const char* >( record.buffer.data );
+                                                                     if( log )
                                                                      {
-                                                                         header.t = record.buffer.t;
-                                                                         header.count = record.count;
-                                                                         ostream->write( header );
+                                                                        log->write( header.data, data, size, csv.flush );
+                                                                        if( index ) { header.t = log->how().time(); index->write( header ); }
+                                                                        return;
                                                                      }
+                                                                     if( !csv.fields.empty() ) { ostream->write( header.data ); }
                                                                      if( !header_only ) { ( *os )->write( data, size ); }
                                                                      if( csv.flush ) { ( *os )->flush(); }
                                                                  } );
