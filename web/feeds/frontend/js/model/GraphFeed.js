@@ -48,16 +48,19 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
     {
         this.y_labels.empty();
         this.bars.empty();
-        this.bars.append('<div class="graph-bar-col"><span class="graph-bar-bottom"></span><span class="graph-bar-top"></span></div>');
+        var spans;
+        if( this.config.graph.how == undefined || this.config.graph.how == 'interlaced' ) { spans = '<span class="graph-bar-bottom"/><span class="graph-bar-top"/>'; }
+        else if( this.config.graph.how == 'stacked' ) { throw 'graph/how: stacked: todo'; }
+        else if( this.config.graph.how == 'overlayed' ) { throw 'graph/how: overlayed: todo'; }
+        else { throw 'graph/how: expected "interlaced", "stacked", or "overlayed"; got: "' + this.config.graph.how + '"'; }
+        var div='<div class="graph-bar-col">' + spans + '</div>';
+        this.bars.append( div );
         this.bars_width = Number($('.graph-bars').css('width').replace('px', ''));
         this.bar_width = Number($('.graph-bar-col').css('width').replace('px', ''));
         this.bar_height = Number($('.graph-bar-col').css('height').replace('px', ''));
         this.bar_count = Math.floor( this.bars_width / this.bar_width );
-        if (!isFinite(this.bar_count)) { throw 'invalid graph bar styles; calculated bar count: ' + this.bar_count; }
-        for( var i = 1; i < this.bar_count; ++i )
-        {
-            this.bars.append('<div class="graph-bar-col"><span class="graph-bar-bottom"></span><span class="graph-bar-top"></span></div>');
-        }
+        if( !isFinite( this.bar_count ) ) { throw 'invalid graph bar styles; calculated bar count: ' + this.bar_count; }
+        for( var i = 1; i < this.bar_count; ++i ) { this.bars.append( div ); }
         var _this = this;
         var got_max = false;
         this.config.graph.thresholds.forEach( function( threshold, index )
@@ -113,34 +116,32 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
         { 
             data.replace( "\n", '' );
             strings = data.split( ',' );
-            if( strings.length == 1 )
-            { 
-                text = this.config.graph.units ? data + ' ' + this.config.graph.units : data;
-            }
-            else
-            {
-                for( var i in strings ) { text = strings[i] + ' ';  } // todo!
-            }
+            text = this.config.graph.units ? strings[0] + this.config.graph.units : strings[0];
+            for( var i = 1; i < strings.length; ++i ) { text += ' ' + ( this.config.graph.units ? strings[i] + this.config.graph.units : strings[i] ); }
         }
         this.text.html( text );
         var default_value = this.config.graph.min < 0 && this.config.graph.max > 0 ? 0 : this.config.graph.max <= 0 ? this.config.graph.max : this.config.graph.min;
-        values = []
-        for( var i in strings ) { values.push( isNaN( strings[i] ) ? default_value : Number( strings[i] ) ); }
-        var bar = this.bars.children().first();
-        this.bars.append( bar );
-        var bottom_height = this.get_bar_bottom( values[0] );
-        var top_height = this.get_bar_top( values[0] );
-        var threshold = this.get_threshold( values[0] );
-        bar.find('.graph-bar-bottom').css('height', bottom_height).css('background', threshold.color);
-        bar.find('.graph-bar-top').css('height', top_height);
-        if( this.config.alert ) { this.alert( threshold.alert ); }
-        bar.data('bs.tooltip').options.title = text + ' @ ' + this.refresh_time;
-        bar.find('.graph-threshold').each( function( index, value )
+        for( var i in strings )
         {
-            var e = $( value );
-            var height = Number( e.css( 'height' ).replace( 'px', '' ) );
-            if( height > top_height && height < bottom_height ) { e.hide(); } else { e.show(); }
-        });
+            var bar = this.bars.children().first();
+            this.bars.append( bar );
+            var no_value = isNaN( strings[i] );
+            var value = no_value ? default_value : Number( strings[i] );
+            var bottom_height = this.get_bar_bottom( value );
+            var top_height = this.get_bar_top( value );
+            var threshold = this.get_threshold( value );
+            var color = no_value || this.config.graph.series == undefined || i >= this.config.graph.series || this.config.graph.series[i].color == undefined ? threshold.color : this.config.graph.series[i].color;
+            bar.find( '.graph-bar-bottom' ).css( 'height', bottom_height ).css( 'background', color );
+            bar.find( '.graph-bar-top' ).css( 'height', top_height );
+            if( this.config.alert ) { this.alert( threshold.alert ); }
+            bar.data( 'bs.tooltip' ).options.title = text + ' @ ' + this.refresh_time;
+            bar.find( '.graph-threshold' ).each( function( index, value )
+            {
+                var e = $( value );
+                var height = Number( e.css( 'height' ).replace( 'px', '' ) );
+                if( height > top_height && height < bottom_height ) { e.hide(); } else { e.show(); }
+            } );
+        }
     };
     GraphFeed.prototype.get_bar_height = function( value )
     {
