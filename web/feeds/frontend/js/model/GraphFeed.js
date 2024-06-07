@@ -149,7 +149,7 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
     GraphFeed.prototype.get_threshold = function (value)
     {
         if (!this.config.graph.thresholds.length) { return this.default_threshold; }
-        for (var i in this.config.graph.thresholds) { if (value <= this.config.graph.thresholds[i].value) { return threshold; } }
+        for (var i in this.config.graph.thresholds) { if (value <= this.config.graph.thresholds[i].value) { return this.config.graph.thresholds[i].value; } }
         return this.default_exceeded_threshold;
     };
     return GraphFeed;
