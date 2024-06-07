@@ -117,6 +117,8 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
         var bottom_height = this.get_bar_bottom( value );
         var top_height = this.get_bar_top( value );
         var threshold = this.get_threshold( value );
+        console.log( "==> graph.onload: threshold: " + threshold );
+        console.log( "==> graph.onload: threshold.color: " + threshold.color );
         bar.find('.graph-bar-bottom').css('height', bottom_height).css('background', threshold.color);
         bar.find('.graph-bar-top').css('height', top_height);
         if( this.config.alert ) { this.alert( threshold.alert ); }
@@ -149,7 +151,8 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
     GraphFeed.prototype.get_threshold = function (value)
     {
         if (!this.config.graph.thresholds.length) { return this.default_threshold; }
-        for (var i in this.config.graph.thresholds) { if (value <= this.config.graph.thresholds[i].value) { return this.config.graph.thresholds[i].value; } }
+        console.log( "==> graph.get_threshold: value: " + value );
+        for( var i in this.config.graph.thresholds ) { console.log( "==> graph.get_threshold: i: " + i ); if (value <= this.config.graph.thresholds[i].value) { return this.config.graph.thresholds[i]; } }
         return this.default_exceeded_threshold;
     };
     return GraphFeed;
