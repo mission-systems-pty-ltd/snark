@@ -32,12 +32,12 @@
 define('GraphFeed', ["jquery", "Feed"], function ($)
 {
     var Feed = require('Feed');
-    var GraphFeed = function (feed_name, feed_path, config)
+    var GraphFeed = function( feed_name, feed_path, config )
     {
         this.base = Feed;
-        this.base(feed_name, feed_path, config);
-        this.default_threshold = {value: this.config.graph.max, color: '#5cb85c'};
-        this.default_exceeded_threshold = {value: Number.MAX_VALUE, color: '#d9534f', alert: true};
+        this.base( feed_name, feed_path, config );
+        this.default_threshold = { value: this.config.graph.max, color: '#5cb85c' };
+        this.default_exceeded_threshold = { value: Number.MAX_VALUE, color: '#d9534f', alert: true };
         this.text = $(this.id + ' .graph-text');
         this.y_labels = $(this.id + ' .graph-y-labels');
         this.bars = $(this.id + ' .graph-bars');
@@ -52,22 +52,22 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
         this.bars_width = Number($('.graph-bars').css('width').replace('px', ''));
         this.bar_width = Number($('.graph-bar-col').css('width').replace('px', ''));
         this.bar_height = Number($('.graph-bar-col').css('height').replace('px', ''));
-        this.bar_count = Math.floor(this.bars_width / this.bar_width);
+        this.bar_count = Math.floor( this.bars_width / this.bar_width );
         if (!isFinite(this.bar_count)) { throw 'invalid graph bar styles; calculated bar count: ' + this.bar_count; }
-        for (var i = 1; i < this.bar_count; ++i)
+        for( var i = 1; i < this.bar_count; ++i )
         {
             this.bars.append('<div class="graph-bar-col"><span class="graph-bar-bottom"></span><span class="graph-bar-top"></span></div>');
         }
         var _this = this;
         var got_max = false;
-        this.config.graph.thresholds.forEach(function (threshold, index)
+        this.config.graph.thresholds.forEach( function( threshold, index )
         {
-            if (threshold.value < _this.config.graph.min || threshold.value > _this.config.graph.max) { return; }
-            if (threshold.value == _this.config.graph.max) { got_max = true; }
+            if( threshold.value < _this.config.graph.min || threshold.value > _this.config.graph.max ) { return; }
+            if( threshold.value == _this.config.graph.max ) { got_max = true; }
             var span = $('<span class="graph-y-label">' + threshold.value + _this.config.graph.units + '</span>');
             span.css('top', _this.get_bar_height(threshold.value) - 9);
             span.appendTo(_this.y_labels);
-        });
+        } );
         if( !got_max )
         {
             var span = $('<span class="graph-y-label">' + this.config.graph.max + _this.config.graph.units + '</span>');
@@ -107,18 +107,30 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
     };
     GraphFeed.prototype.onload_ = function( data )
     {
-        var text = data ? data.replace("\n", '') : 'N/A';
-        if( this.config.graph.units ) { text += ' ' + this.config.graph.units; }
-        this.text.html(text);
-        var value = this.config.graph.min < 0 && this.config.graph.max > 0 ? 0 : this.config.graph.max <= 0 ? this.config.graph.max : this.config.graph.min;
-        if( !isNaN( data ) ) { value = Number( data ); }
+        var strings = [];
+        var text = 'n/a'
+        if( data )
+        { 
+            data.replace( "\n", '' );
+            strings = data.split( ',' );
+            if( strings.length == 1 )
+            { 
+                text = this.config.graph.units ? data + ' ' + this.config.graph.units : data;
+            }
+            else
+            {
+                for( var i in strings ) { text = strings[i] + ' ';  } // todo!
+            }
+        }
+        this.text.html( text );
+        var default_value = this.config.graph.min < 0 && this.config.graph.max > 0 ? 0 : this.config.graph.max <= 0 ? this.config.graph.max : this.config.graph.min;
+        values = []
+        for( var i in strings ) { values.push( isNaN( strings[i] ) ? default_value : Number( strings[i] ) ); }
         var bar = this.bars.children().first();
         this.bars.append( bar );
-        var bottom_height = this.get_bar_bottom( value );
-        var top_height = this.get_bar_top( value );
-        var threshold = this.get_threshold( value );
-        console.log( "==> graph.onload: threshold: " + threshold );
-        console.log( "==> graph.onload: threshold.color: " + threshold.color );
+        var bottom_height = this.get_bar_bottom( values[0] );
+        var top_height = this.get_bar_top( values[0] );
+        var threshold = this.get_threshold( values[0] );
         bar.find('.graph-bar-bottom').css('height', bottom_height).css('background', threshold.color);
         bar.find('.graph-bar-top').css('height', top_height);
         if( this.config.alert ) { this.alert( threshold.alert ); }
@@ -130,29 +142,28 @@ define('GraphFeed', ["jquery", "Feed"], function ($)
             if( height > top_height && height < bottom_height ) { e.hide(); } else { e.show(); }
         });
     };
-    GraphFeed.prototype.get_bar_height = function (value)
+    GraphFeed.prototype.get_bar_height = function( value )
     {
-        var scale = (value - this.config.graph.min) / (this.config.graph.max - this.config.graph.min);
-        if (scale > 1) { scale = 1; } else if (scale < 0) { scale = 0; }
+        var scale = ( value - this.config.graph.min ) / ( this.config.graph.max - this.config.graph.min );
+        scale = scale > 1 ? 1 : scale < 0 ? 0 : scale;
         return this.bar_height - scale * this.bar_height;
     };
-    GraphFeed.prototype.get_bar_top = function (value)
+    GraphFeed.prototype.get_bar_top = function( value )
     {
         if (this.config.graph.max > 0 && this.config.graph.min < 0) { return this.get_bar_height( value < 0 ? 0 : value ); }
-        if (this.config.graph.max <= 0) { return this.get_bar_height(this.config.graph.max); }
-        return this.get_bar_height(value);
+        if (this.config.graph.max <= 0) { return this.get_bar_height( this.config.graph.max ); }
+        return this.get_bar_height( value );
     };
-    GraphFeed.prototype.get_bar_bottom = function (value)
+    GraphFeed.prototype.get_bar_bottom = function( value )
     {
         if (this.config.graph.max > 0 && this.config.graph.min < 0) { return this.get_bar_height( value >= 0 ? 0 : value ); }
-        if (this.config.graph.min >= 0) { return this.get_bar_height(this.config.graph.min); }
-        return this.get_bar_height(value);
+        if (this.config.graph.min >= 0) { return this.get_bar_height( this.config.graph.min ); }
+        return this.get_bar_height( value );
     };
-    GraphFeed.prototype.get_threshold = function (value)
+    GraphFeed.prototype.get_threshold = function ( value )
     {
-        if (!this.config.graph.thresholds.length) { return this.default_threshold; }
-        console.log( "==> graph.get_threshold: value: " + value );
-        for( var i in this.config.graph.thresholds ) { console.log( "==> graph.get_threshold: i: " + i ); if (value <= this.config.graph.thresholds[i].value) { return this.config.graph.thresholds[i]; } }
+        if( !this.config.graph.thresholds.length ) { return this.default_threshold; }
+        for( var i in this.config.graph.thresholds ) { if ( value <= this.config.graph.thresholds[i].value ) { return this.config.graph.thresholds[i]; } }
         return this.default_exceeded_threshold;
     };
     return GraphFeed;
