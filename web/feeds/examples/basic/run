@@ -1,0 +1,6 @@
+#!/bin/bash
+
+sudo cp frontend.json /var/www/html/feeds/config/frontend.examples.basic.json
+echo 0,80 > count.csv
+snark-webframes --config=web.backend.json --port=7000 --timeout=15 --verbose
+

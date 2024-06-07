@@ -1,0 +1,37 @@
+{
+    "host": "http://localhost:7000",
+    "feeds":
+    {
+        "cat":
+        {
+            "type": "text",
+            "form":
+            {
+                "fields": { "hello": "world", "n": 234, "flag": true },
+                "buttons": { "show": true }
+            }
+        },
+        "graph":
+        {
+            "type": "graph",
+            "refresh": { "interval": 1, "auto": true },
+            "graph":
+            {
+                "min": 0,
+                "max": 100,
+                "units": "",
+                "series":
+                [
+                    {
+                        "name": "x",
+                        "color": "#ff0000"
+                    },
+                    {
+                        "name": "y",
+                        "color": "#00ff00"
+                    }
+                ]
+            }
+        }
+    }
+}

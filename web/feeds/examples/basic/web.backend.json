@@ -1,0 +1,5 @@
+{
+    "cat": { "command": "cat" },
+
+    "graph": { "command": "csv-eval --fields a,b 'a+=1;b-=1' < count.csv | tail -n1 | tee -a count.csv" }
+}
