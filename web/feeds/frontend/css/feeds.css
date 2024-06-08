@@ -255,6 +255,26 @@ ul.target li {
     opacity: 0.6;
 }
 
+.graph-bar-1-bottom,
+.graph-bar-1-top {
+    width: 100%;
+    height: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #a133b7;
+}
+
+/* .graph-bar-2-bottom,
+.graph-bar-2-top {
+    width: 100%;
+    height: 30%;
+    position: absolute;
+    top: 20%;
+    left: 0;
+    background: #2a8b6b;
+} */
+
 .graph-bar-bottom,
 .graph-bar-top {
     width: 100%;
