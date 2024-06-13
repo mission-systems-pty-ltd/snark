@@ -211,7 +211,7 @@ define( 'base_controller'
         folder.add(globals, "clear_alerts").name("clear alerts");
         folder.add(globals, "alert_beep").name("alert beep");
     };
-    base_controller.prototype.load_feed_items = function (frontend_config, feeds, path)
+    base_controller.prototype.load_feed_items = function( frontend_config, feeds, path )
     {
         if( frontend_config.timeout ) { globals.timeout = frontend_config.timeout; }
         var is_host_specified = frontend_config.host != undefined;
@@ -230,7 +230,6 @@ define( 'base_controller'
         if( path.length != 0 ) { path = path + "/"; }
         for( var feed_name in feeds )
         {
-            //console.log( "==> feeds: " + feeds );
             var config = feeds[feed_name];
             if( Array.isArray( config ) ) { load_feed_array( frontend_config, config, path + feed_name ); }
             else { add_new_feed(frontend_config, config, path + feed_name); }
@@ -768,12 +767,9 @@ define( 'base_controller'
         if (grid_types.indexOf(config.type) >= 0) { add_gui_grid_options(folder, feed_obj.config.grid); }
         feeds[feed_name] = feed_obj;
     }
-    function load_feed_array(frontend_config, feeds, path)
+    function load_feed_array( frontend_config, feeds, path )
     {
-        for (var i = 0; i < feeds.length; i++)
-        {
-            base_controller.prototype.load_feed_items(frontend_config, feeds[i], path + "[" + i + "]");
-        }
+        for( var i = 0; i < feeds.length; ++i ) { base_controller.prototype.load_feed_items( frontend_config, feeds[i], path + "[" + i + "]" ); }
     }
     return base_controller;
 });
