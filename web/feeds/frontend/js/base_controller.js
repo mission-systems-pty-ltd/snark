@@ -232,7 +232,7 @@ define( 'base_controller'
         {
             var config = feeds[feed_name];
             if( Array.isArray( config ) ) { load_feed_array( frontend_config, config, path + feed_name ); }
-            else { add_new_feed(frontend_config, config, path + feed_name); }
+            else { add_new_feed( frontend_config, config, path + feed_name ); }
         }
     };
     base_controller.prototype.add_stream_body = function (feed_name, element)
@@ -576,9 +576,9 @@ define( 'base_controller'
         $(grid_folder.domElement).closest('li.folder').find('li.title').addClass('subfolder');
     }
 
-    function is_host_contains_port(uri) { return new RegExp(":([0-9]+)", 'g').test(uri); }
+    function has_port_number( uri ) { return new RegExp(":([0-9]+)", 'g').test(uri); }
 
-    function add_new_feed(frontend_config, config, feed_path)
+    function add_new_feed( frontend_config, config, feed_path )
     {
         var grid_types = ['image', 'stream', 'track'];
 //         var feed_name=feed_path.replace(/\[/g,"\\[").replace(/\]/g,"\\]").replace(/\//g,"\\/");
@@ -610,27 +610,27 @@ define( 'base_controller'
         else
         {
             config.view = Feed.views[0];
-            if (!('refresh' in config)) { config.refresh = {}; }
-            if (!('auto' in config.refresh)) { config.refresh.auto = 'interval' in config.refresh && config.refresh.interval > 0; }
-            if (!('interval' in config.refresh)) { config.refresh.interval = 2; }
-            if (!('url' in config))
+            if (!( 'refresh' in config ) ) { config.refresh = {}; }
+            if (!( 'auto' in config.refresh ) ) { config.refresh.auto = 'interval' in config.refresh && config.refresh.interval > 0; }
+            if (!( 'interval' in config.refresh ) ) { config.refresh.interval = 2; }
+            if( !( 'url' in config ) )
             {
                 var host;
-                if (globals.host[0] === '/')
+                if( globals.host[0] === '/' )
                 {
                     host = globals.host; // this is a relative path
                 }
                 else
                 {
-                    if (!globals.host.startsWith("http://")) { globals.host = "http://" + globals.host; }
-                    host = is_host_contains_port(globals.host) ? globals.host : ( globals.host + ":" + globals.port );
+                    if( !globals.host.startsWith( "http://" ) ) { globals.host = "http://" + globals.host; }
+                    host = has_port_number( globals.host ) ? globals.host : ( globals.host + ":" + globals.port );
                 }
                 // if (globals.host.indexOf(":") > 0) { host = globals.host; }
-                if (!host.endsWith("/")) { host = host + "/"; }
+                if( !host.endsWith( "/" ) ) { host = host + "/"; }
                 config.url = host + feed_path;
             }
         }
-        if (config.type == 'text')
+        if( config.type == 'text' )
         {
             if (!('text' in config)) { config.text = {}; }
             if (!('show_items' in config.text)) { config.text.show_items = 1; }
@@ -662,8 +662,8 @@ define( 'base_controller'
         {
             config.map = new MapOptions(config.map, frontend_config);
         }
-        if (!('alert' in config)) { config.alert = true; }
-        var feed_obj = create_feed_fn(config.type, feed_name, feed_path, config);
+        if( !( 'alert' in config ) ) { config.alert = true; }
+        var feed_obj = create_feed_fn( config.type, feed_name, feed_path, config );
         // if (config.type != 'form' && config.type != 'stream') {
         //     if (feed_obj.is_feed_inputs()) {
         //         feed_obj.input_container.empty();
