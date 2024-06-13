@@ -213,33 +213,26 @@ define( 'base_controller'
     };
     base_controller.prototype.load_feed_items = function (frontend_config, feeds, path)
     {
-        if (frontend_config.timeout) { globals.timeout = frontend_config.timeout; }
-        var is_host_specified = false;
-        if (frontend_config.host)
-        {
-            globals.host = frontend_config.host;
-            is_host_specified = true;
-        }
-        var is_port_specified = false;
-        if (frontend_config.port)
-        {
-            globals.port = frontend_config.port;
-            is_port_specified = true;
-        }
-        if (!is_host_specified && !is_port_specified)
+        if( frontend_config.timeout ) { globals.timeout = frontend_config.timeout; }
+        var is_host_specified = frontend_config.host != undefined;
+        if( is_host_specified ) { globals.host = frontend_config.host; }
+        var is_port_specified = frontend_config.port != undefined;
+        if( is_port_specified ) { globals.port = frontend_config.port; }
+        if( !is_host_specified && !is_port_specified )
         {
             $('#container').empty();
-            $('#container').append('<p>Please specify either Host or Port in frontend configuration.</p>');
+            $('#container').append('<p>Please specify either Host or Port in frontend configuration</p>');
             $('#container').append('<p>see: <a href="readme.txt">readme.txt</a></p>');
             $('#container').append('<p>see: <a href="examples/web.frontend.json">examples/web.frontend.json</a></p>');
             return;
         }
         // var feeds = frontend_config.feeds;
-        if (path.length != 0) { path = path + "/"; }
-        for (var feed_name in feeds)
+        if( path.length != 0 ) { path = path + "/"; }
+        for( var feed_name in feeds )
         {
+            //console.log( "==> feeds: " + feeds );
             var config = feeds[feed_name];
-            if (Array.isArray(config)) { load_feed_array(frontend_config, config, path + feed_name); }
+            if( Array.isArray( config ) ) { load_feed_array( frontend_config, config, path + feed_name ); }
             else { add_new_feed(frontend_config, config, path + feed_name); }
         }
     };
