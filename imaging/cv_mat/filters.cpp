@@ -2197,9 +2197,16 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     }
     if( e[0] == "cross" ) // todo: quick and dirty, move to filters/draw
     {
+
         boost::array< int, 9 > defaults = {{ 0, 0, 0, 0, 0, 1, 8, 0 }};
         const auto& p = comma::split_as< int >( e[1], ',', defaults );
         return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::cross, boost::placeholders::_1, filters::drawing::cross( cv::Point( p[0], p[1] ), cv::Scalar( p[4], p[3], p[2] ), p[5], p[6], p[7] ) ), true );
+    }
+    if( e[0] == "line" ) // todo: quick and dirty, move to filters/draw
+    {
+        boost::array< int, 11 > defaults = {{ 0, 0, 0, 0, 0, 0, 0, 1, 8, 0, 255 }};
+        const auto& p = comma::split_as< int >( e[1], ',', defaults );
+        return std::make_pair( boost::bind< value_type_t >( filters::draw< H >::line, boost::placeholders::_1, filters::drawing::line( cv::Point( p[0], p[1] ), cv::Point( p[2], p[3] ), cv::Scalar( p[6], p[5], p[4], p[10] ), p[7], p[8], p[9] ) ), true );
     }
     if( e[0] == "rectangle" ) // todo: quick and dirty, move to filters/draw
     {

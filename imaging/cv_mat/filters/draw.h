@@ -32,6 +32,15 @@ struct circle : public shape
     void draw( cv::Mat m ) const;
 };
 
+struct line : public shape
+{
+    cv::Point begin;
+    cv::Point end;
+    line() {};
+    line( const cv::Point& begin, const cv::Point& end, const cv::Scalar& color, int thickness = 1, int line_type = 8, int shift = 0 );
+    void draw( cv::Mat m ) const;
+};
+
 struct rectangle : public shape
 {
     cv::Point upper_left;
@@ -103,6 +112,8 @@ struct draw
                 unsigned int size{0};
                 cv::Scalar color;
                 bool vertical{false};
+                bool no_begin{false};
+                bool no_end{false};
             };
             static std::pair< functor_t, bool > make( const std::string& options, char delimiter = ',' );
             static std::string usage( unsigned int indent = 0 );
@@ -159,9 +170,11 @@ struct draw
 
     static typename std::pair< H, cv::Mat > circle( std::pair< H, cv::Mat > m, const drawing::circle& circle );
 
-    static typename std::pair< H, cv::Mat > rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle );
-
     static typename std::pair< H, cv::Mat > cross( std::pair< H, cv::Mat > m, const drawing::cross& cross );
+
+    static typename std::pair< H, cv::Mat > line( std::pair< H, cv::Mat > m, const drawing::line& line );
+
+    static typename std::pair< H, cv::Mat > rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle );
 };
 
 } } }  // namespace snark { namespace cv_mat { namespace filters {

@@ -34,6 +34,8 @@ template < typename H > struct _impl // quick and dirty
         COMMA_ASSERT_BRIEF( p.extents.first != p.extents.second, "expected non-zero length extents; got: '" << extents << "'" );
         v.apply( "step", p.step );
         v.apply( "steps", p.steps );
+        v.apply( "no-begin", p.no_begin );
+        v.apply( "no-end", p.no_end );
         std::string origin;
         v.apply( "origin", origin );
         const auto& s = comma::split_as< unsigned int >( origin, ',' );
@@ -58,6 +60,8 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "extents", extents.str() );
         v.apply( "step", p.step );
         v.apply( "steps", p.steps );
+        v.apply( "no-begin", p.no_begin );
+        v.apply( "no-end", p.no_end );
         std::ostringstream origin;
         extents << p.origin.x() << "," << p.origin.y();
         v.apply( "origin", origin.str() );
@@ -188,8 +192,9 @@ std::string draw< H >::usage( unsigned int indent )
     oss << "    circle=<x>,<y>,<radius>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>]: draw circle\n";
     oss << "        see cv::circle for details on parameters and defaults\n";
     oss << "        <alpha>: todo\n";
+    oss << "    line=<x>,<y>,<x>,<y>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>,<alpha>]: draw line\n";
     oss << "    rectangle=<x>,<y>,<x>,<y>[,<r>,<g>,<b>,<thickness>,<line_type>,<shift>,<alpha>]: draw rectangle\n";
-    oss << "        see cv::rectangle for details on parameters and defaults\n";
+    oss << "        see cv::rectangle() and cv::line() for details on parameters and defaults\n";
     oss << "        <alpha>: between 0 and 255, default: 255\n";
     return oss.str();
 }
@@ -321,7 +326,8 @@ std::string draw< H >::axis::usage( unsigned int indent )
     oss << i << "        [label:<text>]\n";
     oss << i << "        color:<r>,<g>,<b>: axis color; default: 0,0,0\n";
     oss << i << "        extents:<begin>,<end>: extents of values along the axis\n";
-    oss << i << "        no-end: do not draw the last label\n";
+    oss << i << "        no-begin: do not draw the first label\n";
+    //oss << i << "        no-end: do not draw the last label\n";
     oss << i << "        origin:<x>,<y>: axis origin in pixels\n";
     oss << i << "        size:<pixels>: axis size in pixels\n";
     oss << i << "        step:<value>: value step\n";
@@ -368,7 +374,12 @@ std::pair< H, cv::Mat > draw< H >::axis::operator()( std::pair< H, cv::Mat > m )
     cv::line( m.second, _properties.geometry.first, _properties.geometry.second, _properties.color );
     cv::Point a = _properties.geometry.first;
     float v = _properties.extents.first;
-    for( unsigned int o{0}, i{0}; o <= _properties.size && ( _properties.steps == 0 || i < _properties.steps ); o += _step, v += _properties.step, ++i )
+    if( _properties.no_begin )
+    {
+        ( _properties.vertical ? a.y : a.x ) += _step;
+        v += _properties.step;
+    }
+    for( unsigned int o{ _properties.no_begin ? _step : 0 }, i{ _properties.no_begin ? 1u : 0u }; o <= _properties.size && ( _properties.steps == 0 || i < _properties.steps ); o += _step, v += _properties.step, ++i )
     {
         cv::Point b{a};
         ( _properties.vertical ? b.x : b.y ) += 3;
@@ -479,13 +490,14 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
     // todo: count: check image size
     // todo: fps: check image size
     // todo: background transparency
+    float factor = _properties.font_size / 0.4;
     if( _properties.bg_color[3] > 0 ) { cv::rectangle( m.second, cv::Point( 0, origin.y - _text_size.height - 2 ), cv::Point( m.second.rows - 1, origin.x + 3 ), _properties.bg_color, impl::filled, impl::line_aa ); }
     if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa ); }
     cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), offset, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     {
         std::ostringstream oss;
         oss << "frames: " << ( _count + 1 );
-        cv::putText( m.second, oss.str(), cv::Point{offset.x + 246, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+        cv::putText( m.second, oss.str(), cv::Point{offset.x + int( 246 * factor ), offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     {
         auto t = _properties.system_time ? boost::posix_time::microsec_clock::universal_time() : _timestamp( m.first );
@@ -500,7 +512,7 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
         std::ostringstream oss;
         oss.precision( 4 );
         oss << "fps: " << ( 1. / _average_interval );
-        cv::putText( m.second, oss.str(), cv::Point{offset.x + 402, offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+        cv::putText( m.second, oss.str(), cv::Point{offset.x + int( 402 * factor ), offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     ++_count;
     return m;
@@ -512,6 +524,13 @@ drawing::rectangle::rectangle( const cv::Point& upper_left, const cv::Point& low
     : shape( color, thickness, line_type, shift )
     , upper_left( upper_left )
     , lower_right( lower_right )
+{
+}
+
+drawing::line::line( const cv::Point& begin, const cv::Point& end, const cv::Scalar& color, int thickness, int line_type, int shift )
+    : shape( color, thickness, line_type, shift )
+    , begin( begin )
+    , end( end )
 {
 }
 
@@ -530,21 +549,21 @@ void drawing::rectangle::draw( cv::Mat m ) const
     }
 }
 
+void drawing::line::draw( cv::Mat m ) const
+{
+    cv::line( m, begin, end, color, thickness, line_type, shift );
+}
+
 void drawing::cross::draw( cv::Mat m ) const
 {
     cv::line( m, cv::Point( centre.x, 0 ), cv::Point( centre.x, m.size().height ), color, thickness, line_type, shift );
     cv::line( m, cv::Point( 0, centre.y ), cv::Point( m.size().width, centre.y ), color, thickness, line_type, shift );
 }
 
-template < typename H >
-typename std::pair< H, cv::Mat > draw< H >::circle( std::pair< H, cv::Mat > m, const drawing::circle& circle ) { circle.draw( m.second ); return m; }
-
-template < typename H >
-typename std::pair< H, cv::Mat > draw< H >::rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle ) { rectangle.draw( m.second ); return m; }
-
-template < typename H >
-typename std::pair< H, cv::Mat > draw< H >::cross( std::pair< H, cv::Mat > m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
-
+template < typename H > typename std::pair< H, cv::Mat > draw< H >::circle( std::pair< H, cv::Mat > m, const drawing::circle& circle ) { circle.draw( m.second ); return m; }
+template < typename H > typename std::pair< H, cv::Mat > draw< H >::cross( std::pair< H, cv::Mat > m, const drawing::cross& cross ) { cross.draw( m.second ); return m; }
+template < typename H > typename std::pair< H, cv::Mat > draw< H >::line( std::pair< H, cv::Mat > m, const drawing::line& line ) { line.draw( m.second ); return m; }
+template < typename H > typename std::pair< H, cv::Mat > draw< H >::rectangle( std::pair< H, cv::Mat > m, const drawing::rectangle& rectangle ) { rectangle.draw( m.second ); return m; }
 template struct draw< boost::posix_time::ptime >;
 template struct draw< std::vector< char > >;
 
