@@ -234,9 +234,9 @@ std::pair< typename draw< H >::functor_t, bool > draw< H >::colorbar::make( cons
     bar.copyTo( c._bar( cv::Rect( 0, c._rectangle.height * 3 / 4, c._rectangle.width, c._rectangle.height / 4 ) ) );
     unsigned int h = c._rectangle.height / 2;
     unsigned int w = c._rectangle.width;
-    cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
-    cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
-    cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
+    cv::putText( c._bar, from, cv::Point( 10, h ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
+    cv::putText( c._bar, middle, cv::Point( w / 2 - 16, h ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
+    cv::putText( c._bar, to, cv::Point( w - 55, h ), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar( colour * 0.5 ), 1, impl::line_aa );
     if( vertical ) { cv::Mat transposed; cv::transpose( c._bar, transposed ); ; cv::flip( transposed, c._bar, 0 ); }
     return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( c, boost::placeholders::_1 ), true );
 }
