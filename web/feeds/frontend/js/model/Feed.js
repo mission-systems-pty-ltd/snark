@@ -153,7 +153,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         //     alert("Handler for .submit() called.");
         //     event.preventDefault();
         // });
-        if( this.form_buttons_show )
+        if( this.form_buttons_show || this.form_buttons_names != undefined && this.form_buttons_names.length > 0 )
         {
             var buttons_div = $('<div>', {class: "col-sm-12"});
             this.add_buttons( buttons_div );
@@ -203,53 +203,12 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     {
         this.refresh_time = new Date();
         var this_ = this;
-        if( this.button_enabled( "ok" ) )
-        {
-            var submit = $('<button/>',
-                {
-                    value: "submit",
-                    text: this.ok_label,
-                    class: "btn btn-primary col-sm-3",
-                    click: function( event )
-                    {
-                        event.preventDefault();
-                        var url = this_.get_url();
-                        if( url != undefined )
-                        {
-                            $.ajax({
-                                type: "GET",
-                                crossDomain: true,
-                                context: this,
-                                data: $(this).closest('form').serialize(),
-                                url: url
-                                // error: function (request, status, error) {
-                                // }
-                            }).done(function ( data, textStatus, jqXHR ) {
-                                // var json = $.parseJSON(data);
-                                // Feed.prototype.onload_(data);
-                                // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
-                                this_.onload( data );
-                            }).fail( function ( jqXHR, textStatus, errorThrown ) {
-                                // console.log(jqXHR);
-                                if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused" }
-                                this_.update_error( this_, errorThrown );
-                            });
-                        }
-                    }
-                });
-            container.append( submit );
-            container.append($('<label/>', {class: "col-sm-1"}));
-        }
-        else
-        {
-            container.append($('<label/>', {class: "col-sm-4"}));
-        }
         if( this.form_buttons_names != undefined && this.form_buttons_names.length > 0 ) // todo: add (reasonably) arbitrary list of buttons in the loop
         {
             for( var i in this.form_buttons_names )
             {
                 var button_name = this.form_buttons_names[i]
-                if( button_name == "ok" || button_name == "clear" ) { continue; } // todo: quick and dirty, generalise
+                if( button_name == "clear" ) { continue; } // todo: quick and dirty, generalise
                 var button = $('<button/>',
                     {
                         value: button_name,
@@ -299,10 +258,51 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                 container.append( button );
                 container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
             }
-            container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
+            //container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
         }
         else
         {
+            if( this.button_enabled( "ok" ) )
+            {
+                var submit = $('<button/>',
+                    {
+                        value: "submit",
+                        text: this.ok_label,
+                        class: "btn btn-primary col-sm-3",
+                        click: function( event )
+                        {
+                            event.preventDefault();
+                            var url = this_.get_url();
+                            if( url != undefined )
+                            {
+                                $.ajax({
+                                    type: "GET",
+                                    crossDomain: true,
+                                    context: this,
+                                    data: $(this).closest('form').serialize(),
+                                    url: url
+                                    // error: function (request, status, error) {
+                                    // }
+                                }).done(function ( data, textStatus, jqXHR ) {
+                                    // var json = $.parseJSON(data);
+                                    // Feed.prototype.onload_(data);
+                                    // data = JSON.parse('{"output" : {"message": "Done. success", "x": { "a": 0, "b": 1 } },"status" :{"code": 0 , "message": "Success. Added successfully."}}');
+                                    this_.onload( data );
+                                }).fail( function ( jqXHR, textStatus, errorThrown ) {
+                                    // console.log(jqXHR);
+                                    if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused" }
+                                    this_.update_error( this_, errorThrown );
+                                });
+                            }
+                        }
+                    });
+                container.append( submit );
+                container.append($('<label/>', {class: "col-sm-1"}));
+            }
+            else
+            {
+                container.append($('<label/>', {class: "col-sm-4"}));
+            }
             container.append($('<label/>', {class: "col-sm-5"}));
         }
     };
