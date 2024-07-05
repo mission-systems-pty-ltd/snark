@@ -403,9 +403,10 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             var label = $('<label>',
                 {
                     text: field,
-                    class: "col-sm-4 text-nowrap"
+                    style: "width: max-content; float: left;",
+                    class: "col-sm-8 text-nowrap"
                 });
-            var each = $( '<div>', { class: " col-sm-8" } );
+            var each = $( '<div>', { class: " col-sm-4", style: "float: right; padding-right: 0px; transform: translateX(-50%);" } );
             var input;
             var field_value = this.fields[field];
             if( Array.isArray( field_value ) )
@@ -433,6 +434,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         class: "form-control ",
                         name: field,
                         checked: field_value,
+                        style: "margin: 0 auto; ",
                         value: true
                     });
                 }
@@ -443,6 +445,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         type: input_type,
                         class: "form-control ",
                         name: field,
+                        style: "width: 280px; ",
                         value: field_value
                     });
                 }
