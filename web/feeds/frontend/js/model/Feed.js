@@ -208,6 +208,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             for( var i in this.form_buttons_names )
             {
                 var button_name = this.form_buttons_names[i]
+                if( i > 0 ) { container.append($('<label/>', {class: "col-sm-1"})); } // todo: adjust padding size based on number of buttons
                 if( button_name == "clear" ) { continue; } // todo: quick and dirty, generalise
                 var button = $('<button/>',
                     {
@@ -256,7 +257,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         }
                     });
                 container.append( button );
-                container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
+                // container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
             }
             //container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
         }
