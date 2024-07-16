@@ -422,9 +422,10 @@ form select {
     opacity: 1;
 }
 
-.form {
-    overflow: auto;
-}
+/* .form {
+    height: 30;
+    overflow: hidden;
+} */
 
 form label {
     color: #bcdefa;

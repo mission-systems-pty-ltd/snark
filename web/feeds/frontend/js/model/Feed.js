@@ -155,7 +155,11 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
         // });
         if( this.form_buttons_show || this.form_buttons_names != undefined && this.form_buttons_names.length > 0 )
         {
-            var buttons_div = $('<div>', {class: "col-sm-12"});
+            //var cols = this.form_buttons_names != undefined && this.form_buttons_names.length > 0 ? 11 : 12; // todo: check if it is start/stop
+            //var cols = 12;
+            // var buttons_div = $('<div>', {class: "col-11", style: "transform: translateX(2%);"});
+            var buttons_div = $('<div>', { class: "col-sm-12" });
+
             this.add_buttons( buttons_div );
             if( this.button_enabled( "clear" ) )
             {
@@ -214,7 +218,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                     {
                         value: button_name,
                         text: button_name.charAt(0).toUpperCase() + button_name.slice(1),
-                        class: "btn btn-primary col-sm-3", // todo: adjust button size based on number of buttons
+                        class: "btn btn-primary col-sm-3", // todo? adjust button size based on number of buttons
                         click: function( event )
                         {
                             event.preventDefault();
@@ -257,7 +261,6 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
                         }
                     });
                 container.append( button );
-                // container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
             }
             //container.append($('<label/>', {class: "col-sm-1"})); // todo: adjust padding size based on number of buttons
         }
@@ -398,17 +401,29 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
     {
         var is_disabled = false;
         if( this.config.refresh.auto && !this.config.refresh.allow_input ) { is_disabled = true; }
+        var all_checkboxes = true;
         for( var field in this.fields )
         {
-            var row = $( '<div>', { class: "form" } );
-            var label = $('<label>',
-                {
-                    text: field,
-                    class: "col-sm-4 text-nowrap"
-                });
-            var each = $( '<div>', { class: " col-sm-8" } );
+            if( typeof( this.fields[field] ) != 'boolean' ) { all_checkboxes = false; break; }
+        }
+        var label_width = all_checkboxes ? 10 : 6; // if all_checkboxes flag is true, then set label_width as 10, otherwise set it as 6
+        var field_width = all_checkboxes ?  2 : 6; // if all_checkboxes flag is true, then set field_width as 2, otherwise set it as 6
+        for( var field in this.fields )
+        {
             var input;
             var field_value = this.fields[field];
+            var input_type = typeof field_value == 'number' ? 'number' : typeof field_value == 'boolean' ? 'checkbox' : 'text';
+            
+            // Hardcode the conditions for aligning checkboxes based on previous input fields
+            label = $('<label>', { text: field, class: "col-sm-" + label_width + " text-nowrap" });
+            if (input_type === 'checkbox') {
+                var row = $( '<div>', { class: "form", style: "height: 25; overflow: hidden;" } );
+                each = all_checkboxes ? $('<div>', { class: "col-sm-2", style: "float: right;"}) : each = $('<div>', { class: "col-sm-6" });
+            }
+            else {
+                var row = $( '<div>', { class: "form", style: "overflow: hidden; " } );
+                each = $('<div>', { class: "col-sm-6" });
+            }
             if( Array.isArray( field_value ) )
             {
                 // Array values become a dropdown selector. These fields must have been
