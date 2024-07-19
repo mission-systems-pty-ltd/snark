@@ -417,7 +417,7 @@ define('Feed', ["jquery", "jquery_timeago", "utils"], function ($)
             // Hardcode the conditions for aligning checkboxes based on previous input fields
             label = $('<label>', { text: field, class: "col-sm-" + label_width + " text-nowrap" });
             if (input_type === 'checkbox') {
-                var row = $( '<div>', { class: "form", style: "height: 25; overflow: hidden;" } );
+                var row = $( '<div>', { class: "form", style: "height: 25px; overflow: hidden;" } );
                 each = all_checkboxes ? $('<div>', { class: "col-sm-2", style: "float: right;"}) : each = $('<div>', { class: "col-sm-6" });
             }
             else {
