@@ -89,7 +89,7 @@ require(['jquery', "jquery_ui",
         });
     };
     var add_panel = function (feed_name, feed_path) {
-        var class_str = globals.isMobile ? '' : ' transparent';
+        var class_str = globals.isMobile ? '' : ' transparent'; // todo? make it configurable in frontend.json
         $('#container').append(
             '<li id="' + feed_name + '" class="panel" data-name="' + feed_path + '" >' +
             '  <button type="button" class="panel-close hideable text-muted pull-right' + class_str + '" title="close"><span>&times;</span></button>' +
