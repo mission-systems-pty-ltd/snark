@@ -1,0 +1,116 @@
+{
+    "port": 7000,
+    "feeds":
+    {
+        "text-widget-mixed-default-buttons": {
+            "type": "text",
+            "form":
+            {
+                "fields":
+                {
+                    "some_field": 5,
+                    "some-field-with-a-long-long-name": "hello world",
+                    "my-checkbox": true
+                },
+                "buttons": { "names": [ "Start", "Restart", "Stop" ] }
+            }
+        },
+
+        "text-widget-mixed-custom-buttons": {
+            "type": "text",
+            "form":
+            {
+                "fields":
+                {
+                    "some_field": 5,
+                    "some-field-with-a-long-long-name": "hello world",
+                    "my-checkbox": true
+                },
+                "buttons": { "show": true }
+            }
+        },
+
+        "text-widget-checkboxes-only": {
+            "type": "text",
+            "form":
+            {
+                "width": 800,
+                "fields":
+                {
+                    "checkbox-1": false,
+                    "checkbox-2": false,
+                    "checkbox-3": false,
+                    "checkbox-4": false,
+                    "checkbox-5": false
+                },
+                "buttons": { "names": [ "Start", "Restart", "Stop" ] }
+            }
+        },
+
+        "text-widget-checkboxes-only-default-buttons": {
+            "type": "text",
+            "form":
+            {
+                "width": 800,
+                "fields":
+                {
+                    "checkbox-1": false,
+                    "checkbox-2": false,
+                    "checkbox-3": false,
+                    "checkbox-4": false,
+                    "checkbox-5": false
+                },
+                "buttons": { "show": true }
+            }
+        },
+
+        "text-widget-checkboxes-only-custom-buttons": {
+            "type": "text",
+            "form":
+            {
+                "width": 800,
+                "fields":
+                {
+                    "checkbox-1-with-custom-buttons": false,
+                    "checkbox-2-": false,
+                    "checkbox-3": false,
+                    "checkbox-4-with-custom-buttons": false,
+                    "checkbox-5": false
+                },
+                "buttons": { "names": [ "Start", "Restart", "Stop" ] }
+            }
+        },
+
+        "start-stop-widget-mixed": {
+            "type": "start_stop",
+            "width": 600,
+            "form":
+            {
+                "fields":
+                {
+                    "some_field": 5,
+                    "some-field-with-a-long-long-name": "hello world",
+                    "my-checkbox": true
+                },
+                "buttons": { "show": true }
+            }
+        },
+
+        "start-stop-widget-checkboxes-only": {
+            "type": "start_stop",
+            "width": 600,
+            "form":
+            {
+                "fields":
+                {
+                    "checkbox-1-with-start-stop-buttons": false,
+                    "checkbox-2": false,
+                    "checkbox-3": false,
+                    "checkbox-4-with-start-stop-buttons": false,
+                    "checkbox-5": false
+                },
+                "buttons": { "show": true }
+            }
+        }
+    }
+}

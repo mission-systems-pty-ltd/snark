@@ -1,0 +1,30 @@
+{
+    "text-widget-mixed-default-buttons":
+    {
+        "command": "cat"
+    },
+    "text-widget-mixed-custom-buttons":
+    {
+        "command": "cat"
+    },
+    "text-widget-checkboxes-only":
+    {
+        "command": "cat"
+    },
+    "text-widget-checkboxes-only-default-buttons":
+    {
+        "command": "cat"
+    },
+    "text-widget-checkboxes-only-custom-buttons":
+    {
+        "command": "cat"
+    },
+    "start-stop-widget-mixed":
+    {
+        "command": "cat"
+    },
+    "start-stop-widget-checkboxes-only":
+    {
+        "command": "cat"
+    }
+}
