@@ -1,4 +1,5 @@
 #!/bin/bash
 
 sudo cp frontend.json /var/www/html/feeds/config/examples.checkboxes.frontend.json
+firefox http://localhost/feeds &
 snark-webframes --config=backend.json --port=7000 --timeout=15 --verbose
