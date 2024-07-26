@@ -182,29 +182,29 @@ int main( int argc, char** argv )
         description.add_options()
             ( "help,h", boost::program_options::value< std::string >( &help_command )->implicit_value( "" ), "display help message; if '--help command' is specified, focus on the 'command'-specific help" )
             ( "verbose,v", "more output; --help --verbose: more help" )
+            ( "buffer", boost::program_options::value< unsigned int >( &discard )->default_value( 0 ), "maximum buffer size before discarding frames, default: unlimited" )
+            ( "camera", "use first available opencv-supported camera" )
+            ( "capacity", boost::program_options::value< unsigned int >( &capacity )->default_value( 16 ), "maximum input queue size before the reader thread blocks" )
+            ( "discard,d", "discard frames, if cannot keep up; same as --buffer=1" )
+            ( "file", boost::program_options::value< std::string >( &name ), "image or video file name" )
+            ( "files", boost::program_options::value< std::string >( &files ), "file with list of image filenames (videos not supported, yet)" )
+            ( "fps", boost::program_options::value< double >( &fps )->default_value( 0 ), "specify max fps ( useful for files, may block if used with cameras ) " )
+            ( "id", boost::program_options::value< int >( &device ), "specify specific device by id ( OpenCV-supported camera )" )
             ( "image-format", boost::program_options::value< comma::uint32 >(& image_type ), "get image format from type enumeration" )
             ( "image-type", boost::program_options::value< std::string >(& image_format ), "get image type enumeration from format or name" )
             ( "image-types", "get all image type enumerations" )
-            ( "discard,d", "discard frames, if cannot keep up; same as --buffer=1" )
-            ( "camera", "use first available opencv-supported camera" )
-            ( "file", boost::program_options::value< std::string >( &name ), "image or video file name" )
-            ( "files", boost::program_options::value< std::string >( &files ), "file with list of image filenames (videos not supported, yet)" )
-            ( "id", boost::program_options::value< int >( &device ), "specify specific device by id ( OpenCV-supported camera )" )
-            ( "buffer", boost::program_options::value< unsigned int >( &discard )->default_value( 0 ), "maximum buffer size before discarding frames, default: unlimited" )
-            ( "fps", boost::program_options::value< double >( &fps )->default_value( 0 ), "specify max fps ( useful for files, may block if used with cameras ) " )
             ( "input", boost::program_options::value< std::string >( &input_options_string ), "input options, when reading from stdin (see --help --verbose)" )
             ( "output", boost::program_options::value< std::string >( &output_options_string ), "output options (see --help --verbose); default: same as --input" )
-            ( "capacity", boost::program_options::value< unsigned int >( &capacity )->default_value( 16 ), "maximum input queue size before the reader thread blocks" )
-            ( "threads", boost::program_options::value< unsigned int >( &number_of_threads )->default_value( 0 ), "number of threads; default: 0 (auto)" )
             ( "skip", boost::program_options::value< unsigned int >( &number_of_frames_to_skip )->default_value( 0 ), "number of initial frames to skip; default: 0" )
             ( "stay", "do not close at end of stream" )
+            ( "threads", boost::program_options::value< unsigned int >( &number_of_threads )->default_value( 0 ), "number of threads; default: 0 (auto)" )
             ( "timestamped", "if --file present, use file name for timestamp, e.g. --file=images/20170101T012345.jpg, or 20170101T012345.123.jpg, or 20170101T012345.123.0.jpg where 0 is index (see 'index' property in 'files' filter for explanation)" )
             ( "video", "has effect in opencv versions 2.12(?) and above; explicitly specify that filename given by --file refers to a video; e.g. --file ABC_0001.jpg will read a single image, --file ABC_0001.jpg will read images ABC_0001.jpg, ABC_0002.jpg, etc, if present" );
         boost::program_options::variables_map vm;
         boost::program_options::store( boost::program_options::parse_command_line( argc, argv, description), vm );
         boost::program_options::parsed_options parsed = boost::program_options::command_line_parser(argc, argv).options( description ).allow_unregistered().run();
         boost::program_options::notify( vm );
-        comma::verbose.init(vm.count( "verbose" ), argv[0]);
+        comma::verbose.init( vm.count( "verbose" ), argv[0] );
         if( vm.count( "image-format" ) ) { std::cout << snark::cv_mat::format_from_type( image_type ) << std::endl; return 0; }
         if( vm.count( "image-type" ) ) { std::cout << snark::cv_mat::type_from_string( image_format ) << std::endl; return 0; }
         if( vm.count( "image-types" ) ) { std::cout << snark::cv_mat::all_image_types(); return 0; }
@@ -216,7 +216,7 @@ int main( int argc, char** argv )
             std::cerr << "read images from stdin or a camera supported by opencv, apply filters and output to stdout\n";
             if( !vm.count( "verbose" ) ) { std::cerr << "see --help --verbose for filters usage\n"; }
             std::cerr << "\n";
-            std::cerr << "usage: cv-cat [options] [<filters>]\n";
+            std::cerr << "usage: cv-cat [<options>] [<filters>] [<filters>]...\n";
             std::cerr << "\n";
             std::cerr << "using opencv version " << CV_VERSION << "\n";
             std::cerr << "some functionality may not be available depending on the version of your installed opencv\n";
@@ -271,14 +271,16 @@ int main( int argc, char** argv )
             std::cerr << "        create_ruler_svg > tmp/r.svg\n";
             std::cerr << "        convert -background transparent tmp/r.svg tmp/r.png\n";
             std::cerr << "        ...  | cv-cat \"overlay=tmp/r.png,10,10;view;null\" \n";
+            std::cerr << std::endl;
             if( vm.count( "verbose" ) )
             {
-                std::cerr << "\n";
-                std::cerr << snark::cv_mat::serialization::options::usage();
-                std::cerr << "\n";
-                std::cerr << snark::cv_mat::impl::filters<>::usage();
+                std::cerr << snark::cv_mat::serialization::options::usage() << std::endl;
+                std::cerr << snark::cv_mat::impl::filters<>::usage() << std::endl;
             }
-            std::cerr << std::endl;
+            else
+            {
+                std::cerr << "run --help --verbose for more details..." << std::endl;
+            }
             return 0;
         }
         if( vm.count( "file" ) + vm.count( "camera" ) + vm.count( "id" ) > 1 ) { std::cerr << "cv-cat: --file, --camera, and --id are mutually exclusive" << std::endl; return 1; }
@@ -303,10 +305,7 @@ int main( int argc, char** argv )
             std::cerr << "cv-cat: non default field detected in --input, please specify binary format for fields: " << input_options.fields << std::endl;
             return 1;
         }
-        const std::vector< std::string >& filter_strings = boost::program_options::collect_unrecognized( parsed.options, boost::program_options::include_positional );
-        std::string filters_string;
-        if( filter_strings.size() == 1 ) { filters_string = filter_strings[0]; }
-        if( filter_strings.size() > 1 ) { std::cerr << "expected filters as a single name-value string; got: " << comma::join( filter_strings, ' ' ) << std::endl; return 1; }
+        const std::string& filters_string = comma::join( boost::program_options::collect_unrecognized( parsed.options, boost::program_options::include_positional ), ';' );
         if( filters_string.find( "encode" ) != filters_string.npos && !output_options.no_header ) { std::cerr << "cv-cat: warning: encoding image and not using no-header, are you sure?" << std::endl; }
         if( vm.count( "camera" ) ) { device = 0; }
         rate_limit rate( fps );
