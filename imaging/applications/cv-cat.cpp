@@ -16,6 +16,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <comma/application/signal_flag.h>
+#include <comma/base/exception.h>
 #include <comma/name_value/parser.h>
 #include <comma/application/verbose.h>
 #include <comma/csv/binary.h>
@@ -321,18 +322,18 @@ int main( int argc, char** argv )
         {
             if( !vm.count( "video" ) )
             {
-                if( !boost::filesystem::exists( name ) ) { std::cerr << "cv-cat: file not found '" << name << "'" << std::endl; exit( 1 ); }
+                COMMA_ASSERT_BRIEF( boost::filesystem::exists( name ), "file not found '" << name << "'" );
                 auto extension = comma::split( name, '.' ).back();
                 if( extension == "bin" ) // quick and dirty, to keep --file semantics uniform
                 {
                     std::ifstream i( name );
-                    if( !i.is_open() ) { std::cerr << "cv-cat: failed to open '" << name << "'" << std::endl; exit( 1 ); }
+                    COMMA_ASSERT_BRIEF( i.is_open(), "failed to open '" << name << "'" );
                     p = input.read< boost::posix_time::ptime >( i );
                 }
                 else if( extension == "gz" )
                 {
                     std::ifstream i( name );
-                    if( !i.is_open() ) { std::cerr << "cv-cat: failed to open '" << name << "'" << std::endl; exit( 1 ); }
+                    COMMA_ASSERT_BRIEF( i.is_open(), "failed to open '" << name << "'" );
                     boost::iostreams::filtering_streambuf< boost::iostreams::input > zin;
                     zin.push( boost::iostreams::gzip_decompressor() );
                     zin.push( i );
@@ -380,8 +381,8 @@ int main( int argc, char** argv )
         }
         pipeline_with_header pipeline( output, filters, *reader, number_of_threads );
         pipeline.run();
-        if( !input.last_error().empty() ) { std::cerr << "cv-cat: " << input.last_error() << std::endl; return 1; }
-        if( !output.last_error().empty() ) { std::cerr << "cv-cat: " << output.last_error() << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( input.last_error().empty(), input.last_error() );
+        COMMA_ASSERT_BRIEF( output.last_error().empty(), output.last_error() );
         if( vm.count( "stay" ) )
         {
             std::cerr << "cv-cat: stopped; asked to --stay...; press any key to exit" << std::endl;
@@ -389,7 +390,7 @@ int main( int argc, char** argv )
         }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "cv-cat: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "cv-cat: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }
