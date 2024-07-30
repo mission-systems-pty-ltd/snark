@@ -67,7 +67,7 @@ static void usage( bool verbose )
               << "    --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)" << std::endl
               << "    --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered" << std::endl
               << "    --output-on-empty-input,--output-on-empty: output empty image on empty input" << std::endl
-              << "    --shape=<shape>; default=points" << std::endl
+              << "    --shape=<shape>; default=point" << std::endl
               << "                     <shape>" << std::endl
               << "                         point: each input point represents one pixel" << std::endl
               << "                         lines: connect with line subsequent points with the same id" << std::endl
@@ -96,45 +96,45 @@ static void usage( bool verbose )
     {
         std::cerr<< snark::cv_mat::serialization::options::usage() << std::endl << std::endl;
         std::cerr<< "input stream csv options" << std::endl << comma::csv::options::usage() << std::endl << std::endl;
-        std::cerr << "examples" << std::endl;
-        std::cerr << "    basics" << std::endl;
-        std::cerr << "        cat pixels.csv | image-from-csv --fields x,y,grey --output=\"rows=1200;cols=1000;type=ub\" | cv-cat --output no-header \"encode=png\" > test.bmp" << std::endl;
-        std::cerr << "    autoscale" << std::endl;
-        std::cerr << "        csv-random make --type 6f --range 0,1 \\" << std::endl;
-        std::cerr << "            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
-        std::cerr << "            | csv-paste 'line-number;size=10000' -  \\" << std::endl;
-        std::cerr << "            | image-from-csv --fields block,id,x,y,r,g,b \\" << std::endl;
-        std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
-        std::cerr << "                             --autoscale='once;proportional;centre'  \\" << std::endl;
-        std::cerr << "            | cv-cat 'view;null'" << std::endl;
-        std::cerr << "    autoscale: try to experiment by adding and removing --autoscaling properties" << std::endl;
-        std::cerr << "        csv-random make --type 6f --range 0,6.28 \\" << std::endl;
-        std::cerr << "            | csv-paste 'line-number;size=10000' - \\" << std::endl;
-        std::cerr << "            | csv-eval --fields block,i,x,y,r,g,b 'i=round(i*10);y=y*sin(x)*sin((block+1)*0.01);r=round(r*255/6.28);g=round(g*255/6.28);b=round(b*255/6.28)' \\" << std::endl;
-        std::cerr << "            | image-from-csv --fields block,id,x,y,r,g,b \\" << std::endl;
-        std::cerr << "                             --output 'rows=1000;cols=1000;type=3ub'  \\" << std::endl;
-        std::cerr << "                             --autoscale='grow;proportional;centre' \\" << std::endl;
-        std::cerr << "            | cv-cat 'view;null'" << std::endl;
-        std::cerr << "    shapes" << std::endl;
-        std::cerr << "        lines" << std::endl;
-        std::cerr << "            ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 )\\" << std::endl;
-        std::cerr << "                | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
-        std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
-        std::cerr << "            csv-random make --type 6f --range 0,1 \\" << std::endl;
-        std::cerr << "                | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)' \\" << std::endl;
-        std::cerr << "                | head -n100  \\" << std::endl;
-        std::cerr << "                | image-from-csv --fields id,x,y,r,g,b  \\" << std::endl;
-        std::cerr << "                                 --output 'rows=1000;cols=1000;type=3ub' \\" << std::endl;
-        std::cerr << "                                 --autoscale='once;proportional;centre'\\" << std::endl;
-        std::cerr << "                                 --shape=lines \\" << std::endl;
-        std::cerr << "                | cv-cat 'view=stay;null'" << std::endl;
+        std::cerr << R"(examples
+    basics
+        cat pixels.csv | image-from-csv --fields x,y,grey --output='rows=1200;cols=1000;type=ub' | cv-cat --output no-header 'encode=png' > test.bmp
+    autoscale
+        csv-random make --type 6f --range 0,1 \
+            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255)' \
+            | csv-paste 'line-number;size=10000' -  \
+            | image-from-csv --fields block,id,x,y,r,g,b \
+                             --output 'rows=1000;cols=1000;type=3ub' \
+                             --autoscale='once;proportional;centre'  \
+            | cv-cat 'view;null'
+    autoscale: try to experiment by adding and removing --autoscaling properties
+        csv-random make --type 6f --range 0,6.28 \
+            | csv-paste 'line-number;size=10000' - \
+            | csv-eval --fields block,i,x,y,r,g,b 'i=round(i*10);y=y*sin(x)*sin((block+1)*0.01);r=round(r*255/6.28);g=round(g*255/6.28);b=round(b*255/6.28)' \
+            | image-from-csv --fields block,id,x,y,r,g,b \
+                             --output 'rows=1000;cols=1000;type=3ub'  \
+                             --autoscale='grow;proportional;centre' \
+            | cv-cat 'view;null'
+    shapes
+        lines
+            ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 ) \
+                | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \
+                | cv-cat 'view=stay;null'
+            csv-random make --type 6f --range 0,1 \
+                | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)' \
+                | head -n100  \
+                | image-from-csv --fields id,x,y,r,g,b  \
+                                 --output 'rows=1000;cols=1000;type=3ub' \
+                                 --autoscale='once;proportional;centre'\
+                                 --shape=lines \
+                | cv-cat 'view=stay;null')" << std::endl;
     }
     else
     {
-        std::cerr << "input stream csv options..." << std::endl;
-        std::cerr << "image serialization output options..." << std::endl;
-        std::cerr << "examples..." << std::endl;
-        std::cerr << "    for details, run: image-from-csv --help --verbose" << std::endl;
+        std::cerr << R"(input stream csv options...
+image serialization output options...
+examples...
+    for details, run: image-from-csv --help --verbose)" << std::endl;
     }
     std::cerr << std::endl;
     exit( 0 );
@@ -322,7 +322,7 @@ private:
         if( s == "mean" || s == "average" ) { return mean; }
         if( s == "middle" ) { return middle; }
         if( s == "min" ) { return min; }
-        std::cerr << "image-from-csv: expected timestamping method, got: \"" << s << "\"" << std::endl;
+        std::cerr << "image-from-csv: expected timestamping method, got: '" << s << "'" << std::endl;
         exit( 1 );
     }
     values_ how_;
@@ -352,7 +352,7 @@ int main( int ac, char** av )
             else if( v[i] == "g" || v[i] == "channels[1]" ) { v[i] = "channels[1]"; is_greyscale = false; }
             else if( v[i] == "r" || v[i] == "channels[2]" ) { v[i] = "channels[2]"; is_greyscale = false; }
             else if( v[i] == "a" || v[i] == "channels[3]" ) { v[i] = "channels[3]"; is_greyscale = false; has_alpha = true; }
-            else if( v[i] == "channels" ) { std::cerr << "image-from-csv: please specify channels fields explicitly, e.g. as \"channels[0],channels[1]\", or \"r,g\"" << std::endl; return 1; }
+            else if( v[i] == "channels" ) { std::cerr << "image-from-csv: please specify channels fields explicitly, e.g. as 'channels[0],channels[1]', or 'r,g'" << std::endl; return 1; }
         }
         csv.fields = comma::join( v, ',' );
         std::string offset_string = options.value< std::string >( "--from,--begin,--origin", "0,0" );
@@ -360,7 +360,7 @@ int main( int ac, char** av )
         bool output_on_missing_blocks = options.exists( "--output-on-missing-blocks" );
         auto number_of_blocks = options.optional<unsigned int>("--number-of-blocks,--block-count");
         const auto& w = comma::split_as< double >( offset_string, ',' );
-        if( w.size() != 2 ) { std::cerr << "image-from-csv: --from: expected <x>,<y>; got: \"" << offset_string << "\"" << std::endl; return 1; }
+        if( w.size() != 2 ) { std::cerr << "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" << std::endl; return 1; }
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
         if( is_greyscale && has_alpha ) { std::cerr << "image-from-csv: warning: found alpha channel for a greyscale image; not implemented; ignored" << std::endl; }
