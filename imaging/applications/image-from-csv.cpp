@@ -46,56 +46,56 @@
 
 static void usage( bool verbose )
 {
-    std::cerr << std::endl;
-    std::cerr << "read pixel coordinates and values, output images in the format readable by cv-cat" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: image-from-csv <options>" << std::endl
-              << std::endl
-              << "options" << std::endl
-              << "    --help,-h: show help; --help --verbose: more help" << std::endl
-              << "    --autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset" << std::endl
-              << "        <properties>" << std::endl
-              << "            centre: if proportional (see below), centre the shorter dimension in the image" << std::endl
-              << "            grow: todo: on every block, change scale so that all input points fit into the image, never shrink" << std::endl
-              << "            once: make sure all pixel coordinates of the first block fit into the image" << std::endl
-              << "                  use the first block scaling factor for all subsequent blocks" << std::endl
-              << "            proportional: use the same scaling factor on x and y" << std::endl
-              << "            shrink: todo: on every block, shrink scale to fit points into the image, never grow" << std::endl
-              << "    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes" << std::endl
-              << "    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0" << std::endl
-              << "    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks" << std::endl
-              << "    --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)" << std::endl
-              << "    --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered" << std::endl
-              << "    --output-on-empty-input,--output-on-empty: output empty image on empty input" << std::endl
-              << "    --shape=<shape>; default=point" << std::endl
-              << "                     <shape>" << std::endl
-              << "                         point: each input point represents one pixel" << std::endl
-              << "                         lines: connect with line subsequent points with the same id" << std::endl
-              << "                                e.g. to draw a trajectory or plot a basic graph" << std::endl
-              << "    --timestamp=<how>: which image timestamp to output" << std::endl
-              << "          <how>" << std::endl
-              << "              first: timestamp of the first point of a block" << std::endl
-              << "              last: timestamp of the last point of a block" << std::endl
-              << "              max: maximum timestamp of a block" << std::endl
-              << "              mean,average: average timestamp across all points of a block" << std::endl
-              << "              middle: average of the first and last timestamp of a block" << std::endl
-              << "              min: minimum timestamp of a block" << std::endl
-              << "              default: first" << std::endl
-              << "    --verbose,-v: more output" << std::endl
-              << std::endl
-              << "fields: t,x,y,r,g,b,block or t,x,y,grey,block" << std::endl
-              << "    t: image timestamp, optional" << std::endl
-              << "    x,y: pixel coordinates, if double, will get rounded to the nearest integer" << std::endl
-              << "    r,g,b: red, green, blue values" << std::endl
-              << "    grey: greyscale value" << std::endl
-              << "    channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr" << std::endl
-              << "                                         if only channels[0] given, it is the same as specifying grey field" << std::endl
-              << "    block: image number, optional" << std::endl
-              << std::endl;
+    std::cerr << R"(
+read pixel coordinates and values, output images in the format readable by cv-cat
+
+usage: image-from-csv <options>
+
+options
+    --help,-h: show help; --help --verbose: more help
+    --autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset
+        <properties>
+            centre: if proportional (see below), centre the shorter dimension in the image
+            grow: todo: on every block, change scale so that all input points fit into the image, never shrink
+            once: make sure all pixel coordinates of the first block fit into the image
+                  use the first block scaling factor for all subsequent blocks
+            proportional: use the same scaling factor on x and y
+            shrink: todo: on every block, shrink scale to fit points into the image, never grow
+    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes
+    --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0
+    --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks
+    --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
+    --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
+    --output-on-empty-input,--output-on-empty: output empty image on empty input
+    --shape=<shape>; default=point
+                     <shape>
+                         point: each input point represents one pixel
+                         lines: connect with line subsequent points with the same id
+                                e.g. to draw a trajectory or plot a basic graph
+    --timestamp=<how>: which image timestamp to output
+          <how>
+              first: timestamp of the first point of a block
+              last: timestamp of the last point of a block
+              max: maximum timestamp of a block
+              mean,average: average timestamp across all points of a block
+              middle: average of the first and last timestamp of a block
+              min: minimum timestamp of a block
+              default: first
+    --verbose,-v: more output
+
+fields: t,x,y,r,g,b,block or t,x,y,grey,block
+    t: image timestamp, optional
+    x,y: pixel coordinates, if double, will get rounded to the nearest integer
+    r,g,b: red, green, blue values
+    grey: greyscale value
+    channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr
+                                         if only channels[0] given, it is the same as specifying grey field
+    block: image number, optional
+)" << std::endl;
     if( verbose )
     {
-        std::cerr<< snark::cv_mat::serialization::options::usage() << std::endl << std::endl;
-        std::cerr<< "input stream csv options" << std::endl << comma::csv::options::usage() << std::endl << std::endl;
+        std::cerr<< snark::cv_mat::serialization::options::usage() << std::endl;
+        std::cerr<< "input stream csv options" << std::endl << comma::csv::options::usage() << std::endl;
         std::cerr << R"(examples
     basics
         cat pixels.csv | image-from-csv --fields x,y,grey --output='rows=1200;cols=1000;type=ub' | cv-cat --output no-header 'encode=png' > test.bmp
