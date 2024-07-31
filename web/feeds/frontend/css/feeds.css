@@ -324,6 +324,22 @@ table.target {
     overflow-y: scroll;
 }
 
+.target text {
+    padding: 0;
+    margin: 0;
+    background: #181818;
+    color: #bcdefa;
+    border: none;
+    font-size: 14px;
+    font-family: monospace;
+    border-radius: 0;
+    word-wrap: normal;
+}
+
+.target text.text-text {
+    overflow-y: scroll;
+}
+
 .panel-placeholder {
     border: 3px dashed #6a6a6a;
 }
