@@ -1,6 +1,10 @@
 #!/bin/bash
 
 sudo cp frontend.json /var/www/html/feeds/config/frontend.examples.basic.json
-echo 0,80 > count.csv
-snark-webframes --config=web.backend.json --port=7000 --timeout=15 --verbose
 
+#!/bin/bash
+
+sudo cp frontend.json /var/www/html/feeds/config/snark.web.feeds.examples.basic.frontend.json
+firefox http://localhost/feeds/?config=config/snark.web.feeds.examples.basic.frontend.json &
+echo 0,80 > count.csv
+snark-webframes --config=backend.json --port=7000 --timeout=15 --verbose
