@@ -1,0 +1,20 @@
+{
+    "host": "http://localhost:7000",
+    "feeds":
+    {
+        "text":
+        {
+            "type": "text",
+            "refresh": { "interval": 1, "auto": true }
+        },
+        "csv":
+        {
+            "type": "csv",
+            "csv":
+            {
+                "fields": "name,link"
+            },
+            "refresh": { "interval": 5, "auto": true }
+        }
+    }
+}

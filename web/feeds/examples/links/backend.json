@@ -1,0 +1,4 @@
+{
+    "text": { "command": "echo '<a href=http://smh.com.au target=_blank>smh</a>'; echo '<a href=http://facebook.com target=_blank>facebook</a>'" },
+    "csv": { "command": "echo 'smh,<a href=http://smh.com.au target=_blank>click here</a>'; echo 'facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo 'clickable,<a onclick=style.color=red>blush</a>'" }
+}

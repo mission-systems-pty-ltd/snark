@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sudo cp frontend.json /var/www/html/feeds/config/snark.web.feeds.examples.links.frontend.json
+firefox http://localhost/feeds/?config=config/snark.web.feeds.examples.links.frontend.json &
+snark-webframes --config=backend.json --port=7000 --timeout=15 --verbose
