@@ -5,10 +5,11 @@ from __future__ import print_function
 
 import argparse, importlib, sys
 from signal import signal, SIGPIPE, SIG_DFL, SIG_IGN
-import rospy, rostopic
+# import rospy, rostopic
+import rclpy
 import comma.csv
 import comma.application
-from snark.ros import convert, detail
+from snark.ros2 import convert, detail
 
 help_description = """
 
@@ -87,6 +88,8 @@ def main():
         print( "ros-from-csv: please specify --topic", file=sys.stderr )
         sys.exit( 1 )
     if args.message_type is None:
+        print("rostopic: rclpy functions are not implemented yet ", file=sys.stderr)
+        sys.exit( 1 )
         message_type = rostopic.get_topic_class( args.topic )[0]
     else:
         package_str = args.package if args.package else '.'.join( args.message_type.split('.')[:-1] )
@@ -108,12 +111,16 @@ def main():
     if args.dry_run:
         if args.verbose: print( "ros-from-csv: dry run, printing messages to stdout", file=sys.stderr )
     else:
+        print("rclpy functions are not implemented yet ", file=sys.stderr)
+        exit(1)
         publisher = rospy.Publisher( args.topic, message_type, queue_size = args.ros_queue_size )
         rospy.init_node( 'ros_from_csv', anonymous = True )
         if args.verbose: print( "ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr )
     for records in istream:
         for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
             assign( record )
+            print("rclpy functions are not implemented yet ", file=sys.stderr)
+            exit(1)
             if args.dry_run: print( message )
             else: publisher.publish( message )
 
