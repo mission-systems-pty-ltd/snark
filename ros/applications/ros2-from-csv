@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+
+# allow this to run under Python 2, for ROS Melodic compatibility
+from __future__ import print_function
+
+import argparse, importlib, sys
+from signal import signal, SIGPIPE, SIG_DFL, SIG_IGN
+# import rospy, rostopic
+import rclpy
+import comma.csv
+import comma.application
+from snark.ros2 import convert, detail
+
+help_description = """
+
+take csv records on stdin, publish on a given ros topic
+
+todo: fix binary (currently only ascii mode works)
+
+todo: load message type from .msg file
+
+"""
+
+help_examples = """
+
+examples
+    forward ros messages (e.g. to illustrate the principle or debug), start with trying --dry-run
+        forward with buffering
+            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic
+        forward without buffering
+            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush
+        print to stdout
+            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush --dry-run
+
+    using message types offline, try it
+        imply package from message type
+            echo 1,2,3 | ros-from-csv --type geometry_msgs.msg.Point --format 3f --dry
+        explicitly specify package with message type definition
+            echo 1,2,3 | ros-from-csv --import geometry_msgs.msg --type geometry_msgs.msg.Point --format 3f --dry
+
+"""
+
+# Printing a message (used in --dry-run mode) fails for strings.
+#
+# The problem is that genpy.message.strify_message() uses yaml.dump() for
+# strings, which it defines as anything that isinstance( basestring ).
+# numpy.string_ satisfies this but when output by yaml.dump() embedded in the
+# rest of the yaml output from genpy.message.strify_message() the indentation is
+# incorrect, and so it's no longer well-formed yaml.
+#
+# We avoid all this by overriding genpy.message.isstring() and removing the
+# match for numpy.string_. This means that it falls back on outputting str(s),
+# which works.
+
+import genpy, numpy
+orig_isstring = genpy.message.isstring
+
+def isstring_unless_numpy(s):
+    if isinstance(s, numpy.string_): return False
+    return orig_isstring( s )
+
+genpy.message.isstring = isstring_unless_numpy
+
+def main():
+    parser = argparse.ArgumentParser( description = help_description, epilog = help_examples, formatter_class = argparse.RawDescriptionHelpFormatter, conflict_handler = 'resolve' )
+    parser.add_argument( '--index-output-fields', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
+    parser.add_argument( '--message-type', '--type', help = 'message type, useful for debugging', type = str )
+    parser.add_argument( '--output-fields', help = 'output input csv fields and exit', action = 'store_true' )
+    parser.add_argument( '--output-format', help='output format for input fields and exit', action='store_true' )
+    parser.add_argument( '--package', '--import', help = 'if --type specified, package to import', type = str )
+    parser.add_argument( '--topic', nargs='?', help='topic', type=str )
+    parser.add_argument( '--verbose', '-v', help = 'chat more', action = 'store_true' )
+    comma.csv.add_options( parser )
+    # to override format and binary
+    comma.application.remove_argparse_options( parser, [ '-b', '--binary', '--format' ] )
+    group_fmt = parser.add_mutually_exclusive_group()
+    group_fmt.add_argument( '--format', help='in ascii mode, format hint string containing the types of the input csv data', type=str )
+    group_fmt.add_argument( '-b', '--binary', help='in binary mode, format string containing the types of the input csv data', type=str )
+    group_dry = parser.add_mutually_exclusive_group()
+    group_dry.add_argument( '--dry-run', '--dry', help = 'output messages to stdout, do not send to topic', action = 'store_true' )
+    group_dry.add_argument( '--ros-queue-size', '--ros-queue', '--queue-size', '--queue', metavar = 'NUM', default = 1, help = 'length of ROS publisher queue', type = int )
+    args = parser.parse_args()
+    signal( SIGPIPE, SIG_IGN ) # do no want the IOError message trace
+    if args.dry_run:
+        import numpy
+        numpy.set_printoptions( linewidth=numpy.inf, threshold=numpy.inf, precision=args.precision and args.precision or numpy.get_printoptions()['precision'] )
+    if args.topic is None and not args.dry_run and args.message_type is None:
+        print( "ros-from-csv: please specify --topic", file=sys.stderr )
+        sys.exit( 1 )
+    if args.message_type is None:
+        print("rostopic: rclpy functions are not implemented yet ", file=sys.stderr)
+        sys.exit( 1 )
+        message_type = rostopic.get_topic_class( args.topic )[0]
+    else:
+        package_str = args.package if args.package else '.'.join( args.message_type.split('.')[:-1] )
+        module = importlib.import_module( package_str )
+        message_type = getattr( module, args.message_type.split('.')[-1] )
+    message = message_type()
+    record_type, record_ctor = convert.ros_message_to_csv_record( message_type() )
+    if args.format or args.binary:
+        formats = args.format if args.format else args.binary
+        fields = args.fields if args.fields else detail.command_line.fields_of_record( record_type, args.index_output_fields )
+        lengths = detail.command_line.lengths_of_strings( fields, comma.csv.format.expand( formats ))
+        record_type, record_ctor = convert.ros_message_to_csv_record( message_type(), lengths )
+    if args.output_fields: print( ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields ))); sys.exit( 0 )
+    if args.output_format: print( ','.join( [ comma.csv.format.from_numpy( f ) for f in record_type.format.split(',') ] )); sys.exit( 0 )
+    format = ','.join( comma.csv.format.to_numpy( args.binary and args.binary or args.format, compress=True ) )
+    binary = not not args.binary
+    istream = comma.csv.stream( record_type, delimiter = args.delimiter, fields = args.fields, format = format, binary = binary, default_values = None, flush = args.flush )
+    assign = record_type.assign( message, convert.from_csv_supported_types )
+    if args.dry_run:
+        if args.verbose: print( "ros-from-csv: dry run, printing messages to stdout", file=sys.stderr )
+    else:
+        print("rclpy functions are not implemented yet ", file=sys.stderr)
+        exit(1)
+        publisher = rospy.Publisher( args.topic, message_type, queue_size = args.ros_queue_size )
+        rospy.init_node( 'ros_from_csv', anonymous = True )
+        if args.verbose: print( "ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr )
+    for records in istream:
+        for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
+            assign( record )
+            print("rclpy functions are not implemented yet ", file=sys.stderr)
+            exit(1)
+            if args.dry_run: print( message )
+            else: publisher.publish( message )
+
+if __name__ == '__main__': main()

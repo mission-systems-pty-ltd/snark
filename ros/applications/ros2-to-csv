@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+
+# allow this to run under Python 2, for ROS Melodic compatibility
+from __future__ import print_function
+
+import argparse, datetime, numpy, sys
+from signal import signal, SIGPIPE, SIG_DFL
+# import rosbag, rospy, rostopic
+import rclpy
+import comma.csv
+import comma.application
+from snark.ros2 import convert, detail
+
+try:
+    import rclpy_message_converter
+    # import rospy_message_converter
+except ImportError:
+    msg = """
+cannot import rclpy_message_converter module; usually you can install it as
+    sudo apt-get install ros-humble-rospy-message-converter
+(use your ROS distro name in place of humble). If the module is not available
+in your package manager, build and install the module manually.
+"""
+    raise ImportError(msg)
+
+help_description="output ROS messages on a given topic (todo) or ROS bag files of arbitrary content as csv streams"
+help_examples="""
+examples
+    rosbag to csv
+        ros2-to-csv --bag input.bag
+        ros2-to-csv --bag input.bag --topic /mavros/global_position/raw/fix
+        ros2-to-csv --bag input.bag --topic /mavros/global_position/raw/fix --output-format
+        ros2-to-csv --bag input.bag --topic /mavros/global_position/raw/fix --output-fields
+        ros2-to-csv --bag input.bag --topic /mavros/global_position/raw/fix --binary=guess | csv-from-bin ui,t,s[3],b,uw,12d,ub
+        ros2-to-csv --bag input.bag --topic /mavros/global_position/raw/fix --binary=ui,t,s[5],b,uw,12d,ub | csv-from-bin ui,t,s[5],b,uw,12d,ub
+        ros2-to-csv --bag a.bag b.bag c.bag --topic /mavros/global_position/raw/fix
+
+general ROS bag hints
+    get list of topics inside a bag:
+        rostopic list -b <bag>
+    get info about a topic:
+        rostopic echo <topic> -b <file> | less -S
+        rostopic echo /mavros/global_position/global -b input.bag | head -n 32
+"""
+
+class message_handler:
+    """create a csv output stream from a sample message, write messages to it"""
+
+    def __init__( self, msg, args ):
+        self.record_type, self.record_ctor = convert.ros_message_to_csv_record( msg )
+        self.output_format = ''
+        if args.output_fields:
+            print( ','.join( detail.command_line.fields_of_record( self.record_type, args.index_output_fields )))
+            sys.exit(0)
+        if args.binary:
+            if args.binary == "guess":
+                self.output_format = self._output_format()
+                if args.verbose:
+                    print( "ros2-to-csv: set the binary format to '%s'" % self.output_format, file=sys.stderr )
+            else:
+                lengths = self._set_lengths_from_format( args )
+                self.record_type, self.record_ctor = convert.ros_message_to_csv_record( msg, lengths )
+                self.output_format = self._output_format()
+        if args.output_format:
+            if not self.output_format:
+                self.output_format = self._output_format()
+            print( self.output_format )
+            sys.exit( 0 )
+        self.flush = args.flush
+        self.binary = not not self.output_format
+        # TODO: do support custom format and fields in the output stream
+        self.ostream = comma.csv.stream( self.record_type, flush = args.flush, delimiter = args.delimiter, binary = self.binary, fields = args.fields )
+
+    def write( self, msg ):
+        self.ostream.write( self.record_ctor( msg ) )
+        if self.flush: sys.stdout.flush()
+
+    def _output_format( self ):
+        return ','.join( [ comma.csv.format.from_numpy( f ) for f in self.record_type.format.split(',') ] )
+
+    def _set_lengths_from_format( self, args ):
+        fields = args.fields and args.fields or self.record_type.fields
+        return detail.command_line.lengths_of_strings( fields, args.binary )
+    
+class rostopic_subscriber:
+    """subscribe to a topic, output messages as csv in callback"""
+
+    def __init__( self, args ):
+        self.args = args
+        print("rclpy functions are not implemented yet ", file=sys.stderr)    
+        exit(1)        
+        rospy.init_node( 'listener', anonymous = True )
+        rospy.Subscriber( args.topic, rostopic.get_topic_class( args.topic )[0], self.callback )
+        self.handler = message_handler( rostopic.get_topic_class( args.topic )[0](), self.args )
+
+    def callback( self, msg ): self.handler.write( msg )
+def main():
+    parser = argparse.ArgumentParser( description=help_description, epilog=help_examples, formatter_class=argparse.RawDescriptionHelpFormatter, conflict_handler='resolve' )
+    parser.add_argument( '--bag', help='input bag file', type=str, nargs='*' )
+    parser.add_argument( '--flush', help='flush stdout after each message' )
+    parser.add_argument( '--index-output-fields', '--index-fields', '--index', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
+    parser.add_argument( '--output-fields', help='print output fields and exit', action='store_true' )
+    parser.add_argument( '--output-format', '--output-types', help='print output format for binary and exit', action='store_true' )
+    parser.add_argument( '--topic', nargs='?', help='topic', type=str )
+    parser.add_argument( '-v', '--verbose', help='chat more', action='store_true' )
+    comma.csv.add_options( parser )
+    # override to fix the help
+    comma.application.remove_argparse_options( parser, [ '-b', '--binary' ] )
+    parser.add_argument( '-b', '--binary', help='produce binary output in the given format; if argument is "guess", figure out format from the message itself', type=str )
+    args = parser.parse_args()
+    if not args.fields is None and args.fields != '': print( "ros2-to-csv: warning: customized --fields support not implemented yet; todo", file=sys.stderr )
+
+    signal( SIGPIPE, SIG_DFL ) # do no want the IOError message trace
+    if args.bag is None:
+        if args.topic is None: print( "ros2-to-csv: please specify --topic", file=sys.stderr ); sys.exit( 1 )
+        if args.verbose: print( "ros2-to-csv: listening to topic '%s'..." % args.topic, file=sys.stderr )
+        subscriber = rostopic_subscriber( args )
+        print("rclpy functions are not implemented yet ", file=sys.stderr)    
+        exit(1)
+        # rospy.spin()
+    else:
+        try:
+            print("Reading bagfiles are not implemented yet ", file=sys.stderr)    
+            exit(1)
+            for bagfile in args.bag:
+                with rosbag.Bag( bagfile ) as bag:
+                    topics = bag.get_type_and_topic_info()[1].keys()
+                    if not args.topic:
+                        if len( topics ) != 1: print( "ros2-to-csv: bag '%s' contains '%d' topics; please specify --topic explicitly" % ( args.bag, len( topics )), file=sys.stderr ); sys.exit( 1 )
+                        if args.verbose: print( "%s: warning: topic not specified, use '%s' as the only topic in the bag" % ( sys.argv[0], topics[0] ), file=sys.stderr )
+                        args.topic = topics[0]
+                    else:
+                        if not args.topic in topics: print( "ros2-to-csv: topic '%s' not found in the bag '%s'" % ( args.topic, args.bag ), file=sys.stderr ); sys.exit( 1 )
+                    generator = bag.read_messages( topics=[ args.topic ] )
+                    for topic, msg, t in generator:
+                        try: handler
+                        except NameError: handler = message_handler( msg, args )
+                        handler.write( msg )
+        except IOError as e:
+            print( "ros2-to-csv: failed to open bag file '%s' for reading" % args.bag, file=sys.stderr )
+            sys.exit( 1 )
+    sys.exit(0)
+
+if __name__ == '__main__': main()
