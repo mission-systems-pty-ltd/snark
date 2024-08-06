@@ -163,7 +163,7 @@ by_scalar::by_scalar( double from, double to, const color_t& from_color, const c
     if( alpha_by_scalar ) { this->from_color.rgba[3] = 0; }
 }
 
-by_scalar::by_scalar( double from, double to, const snark::render::colour_map::values& map, bool alpha_by_scalar, bool cyclic )
+by_scalar::by_scalar( double from, double to, const snark::render::colours::map::values& map, bool alpha_by_scalar, bool cyclic )
     : from( from )
     , to( to )
     , diff( to - from )
@@ -317,7 +317,7 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
         color_t from_color, to_color;
         double from = 0;
         double to = 0;
-        boost::optional< snark::render::colour_map::values > map;
+        boost::optional< snark::render::colours::map::values > map;
         bool alpha_by_scalar{false};
         bool cyclic{false};
         std::vector< std::string > v = comma::split( s, ',' );
@@ -329,13 +329,13 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
                 switch( w.size() )
                 {
                     case 1:
-                        if( w[0] == "green" ) { map = snark::render::colour_map::constant( 0, 255, 0 ); }
-                        else if( w[0] == "red" ) { map = snark::render::colour_map::constant( 255, 0, 0 ); }
-                        else if( w[0] == "hot" ) { map = snark::render::colour_map::temperature( 96, 96 ); }
-                        else if( w[0] == "jet" ) { map = snark::render::colour_map::jet(); }
-                        else if( w[0] == "magma" ) { map = snark::render::colour_map::magma(); }
-                        else if( w[0] == "viridis" ) { map = snark::render::colour_map::viridis(); }
-                        else if( w[0] == "twilight" ) { map = snark::render::colour_map::twilight(); }
+                        if( w[0] == "green" ) { map = snark::render::colours::map::constant( 0, 255, 0 ); }
+                        else if( w[0] == "red" ) { map = snark::render::colours::map::constant( 255, 0, 0 ); }
+                        else if( w[0] == "hot" ) { map = snark::render::colours::map::temperature( 96, 96 ); }
+                        else if( w[0] == "jet" ) { map = snark::render::colours::map::jet(); }
+                        else if( w[0] == "magma" ) { map = snark::render::colours::map::magma(); }
+                        else if( w[0] == "viridis" ) { map = snark::render::colours::map::viridis(); }
+                        else if( w[0] == "twilight" ) { map = snark::render::colours::map::twilight(); }
                         else { COMMA_THROW( comma::exception, "expected colour map, got: " << s ); }
                         break;
                     case 2:
@@ -367,13 +367,13 @@ colored* color_from_string( const std::string& t, const std::string& fields, con
                 switch( w.size() )
                 {
                     case 1:
-                        if( w[0] == "green" ) { map = snark::render::colour_map::constant( 0, 255, 0 ); }
-                        else if( w[0] == "red" ) { map = snark::render::colour_map::constant( 255, 0, 0 ); }
-                        else if( w[0] == "hot" ) { map = snark::render::colour_map::temperature( 96, 96 ); }
-                        else if( w[0] == "jet" ) { map = snark::render::colour_map::jet(); }
-                        else if( w[0] == "magma" ) { map = snark::render::colour_map::magma(); }
-                        else if( w[0] == "viridis" ) { map = snark::render::colour_map::viridis(); }
-                        else if( w[0] == "twilight" ) { map = snark::render::colour_map::twilight(); }
+                        if( w[0] == "green" ) { map = snark::render::colours::map::constant( 0, 255, 0 ); }
+                        else if( w[0] == "red" ) { map = snark::render::colours::map::constant( 255, 0, 0 ); }
+                        else if( w[0] == "hot" ) { map = snark::render::colours::map::temperature( 96, 96 ); }
+                        else if( w[0] == "jet" ) { map = snark::render::colours::map::jet(); }
+                        else if( w[0] == "magma" ) { map = snark::render::colours::map::magma(); }
+                        else if( w[0] == "viridis" ) { map = snark::render::colours::map::viridis(); }
+                        else if( w[0] == "twilight" ) { map = snark::render::colours::map::twilight(); }
                         else { COMMA_THROW( comma::exception, "expected colour map, got: " << s ); }
                         break;
                     case 2:

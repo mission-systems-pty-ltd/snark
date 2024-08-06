@@ -31,8 +31,8 @@
 #include <sstream>
 #include <comma/application/command_line_options.h>
 #include <comma/csv/stream.h>
-#include "../../colour_map.h"
-#include "../../colours.h"
+#include "../../colours/map.h"
+#include "../../colours/named.h"
 #include "../svg.h"
 #include "../traits.h"
 
@@ -169,13 +169,13 @@ std::string make_style( const comma::command_line_options& options, const std::s
     return style;
 }
 
-snark::render::colour_map parse_colour_map( const std::string& colour )
+snark::render::colours::map parse_colour_map( const std::string& colour )
 {
     double from = 0;
     double to = 1;
-    snark::render::colour< unsigned char > from_colour = snark::render::colours< unsigned char >::magenta();
-    snark::render::colour< unsigned char > to_colour = snark::render::colours< unsigned char >::cyan();
-    boost::optional< snark::render::colour_map::values > map;
+    snark::render::colour< unsigned char > from_colour = snark::render::colours::named< unsigned char >::magenta();
+    snark::render::colour< unsigned char > to_colour = snark::render::colours::named< unsigned char >::cyan();
+    boost::optional< snark::render::colours::map::values > map;
     std::vector< std::string > v = comma::split( colour, ',' );
     switch( v.size() )
     {
@@ -188,13 +188,13 @@ snark::render::colour_map parse_colour_map( const std::string& colour )
                 switch( w.size() )
                 {
                     case 1:
-                        if( w[0] == "jet" ) { map = snark::render::colour_map::jet(); }
-                        else if( w[0] == "hot" ) { map = snark::render::colour_map::temperature( 96, 96 ); }
+                        if( w[0] == "jet" ) { map = snark::render::colours::map::jet(); }
+                        else if( w[0] == "hot" ) { map = snark::render::colours::map::temperature( 96, 96 ); }
                         else { COMMA_THROW( comma::exception, "unknown colourmap: " << w[0] ); }
                         break;
                     case 2:
-                        from_colour = snark::render::colours< unsigned char >::from_string( w[0] );
-                        to_colour = snark::render::colours< unsigned char >::from_string( w[1] );
+                        from_colour = snark::render::colours::named< unsigned char >::from_string( w[0] );
+                        to_colour = snark::render::colours::named< unsigned char >::from_string( w[1] );
                         break;
                 }
             }
@@ -209,8 +209,8 @@ snark::render::colour_map parse_colour_map( const std::string& colour )
             break;
         default: COMMA_THROW( comma::exception, "invalid '--colour'; got " << colour );
     }
-    if( map ) { return snark::render::colour_map( from, to, *map ); }
-    return snark::render::colour_map( from, to, from_colour, to_colour );
+    if( map ) { return snark::render::colours::map( from, to, *map ); }
+    return snark::render::colours::map( from, to, from_colour, to_colour );
 }
 
 int main( int ac, char** av )
@@ -225,7 +225,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         csv.full_xpath = false;
         std::cout.precision( csv.precision );
-        snark::render::colour_map colour_map;
+        snark::render::colours::map colour_map;
         bool parse_colour = true;
         if( csv.has_field( "scalar" ) && ( what == "point" || what == "circle" || what == "line" || what == "lines" || what == "triangle" ) )
         {

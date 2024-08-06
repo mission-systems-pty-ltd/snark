@@ -57,7 +57,7 @@
 #include <comma/visiting/traits.h>
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
-#include "../../render/colour_map.h"
+#include "../../render/colours/map.h"
 
 void usage()
 {
@@ -317,18 +317,18 @@ class channel
             , angle_step_( ( M_PI * 2 ) / block_size )
             , options_( options )
         {
-            if( options.colourmap == "green" ) { colourmap_ = snark::render::colour_map::constant( 0, 255, 0 ); }
-            else if( options.colourmap == "red" ) { colourmap_ = snark::render::colour_map::constant( 255, 0, 0 ); }
-            else if( options.colourmap == "hot" ) { colourmap_ = snark::render::colour_map::temperature( 96, 96 ); }
-            else if( options.colourmap == "jet" ) { colourmap_ = snark::render::colour_map::jet(); }
-            else if( options.colourmap == "magma" ) { colourmap_ = snark::render::colour_map::magma(); }
-            else if( options.colourmap == "viridis" ) { colourmap_ = snark::render::colour_map::viridis(); }
-            else if( options.colourmap == "twilight" ) { colourmap_ = snark::render::colour_map::twilight(); }
+            if( options.colourmap == "green" ) { colour_map = snark::render::colours::map::constant( 0, 255, 0 ); }
+            else if( options.colourmap == "red" ) { colour_map = snark::render::colours::map::constant( 255, 0, 0 ); }
+            else if( options.colourmap == "hot" ) { colour_map = snark::render::colours::map::temperature( 96, 96 ); }
+            else if( options.colourmap == "jet" ) { colour_map = snark::render::colours::map::jet(); }
+            else if( options.colourmap == "magma" ) { colour_map = snark::render::colours::map::magma(); }
+            else if( options.colourmap == "viridis" ) { colour_map = snark::render::colours::map::viridis(); }
+            else if( options.colourmap == "twilight" ) { colour_map = snark::render::colours::map::twilight(); }
             else
             { 
                 std::vector< std::string > v = comma::split( options.colourmap, ',' );
                 if( v.size() != 3 ) { COMMA_THROW( comma::exception, "image-accumulate: expected colourmap, got '" << options.colourmap << "'" ); }
-                colourmap_ = snark::render::colour_map::constant( boost::lexical_cast< unsigned int >( v[0] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ) );
+                colour_map = snark::render::colours::map::constant( boost::lexical_cast< unsigned int >( v[0] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[2] ) );
             }
             if( options.dial_colour == "white" ) { dial_colour_ = cv::Scalar( 255, 255, 255 ); }
             else if( options.dial_colour == "white" ) { dial_colour_ = cv::Scalar( 255, 255, 255 ); }
@@ -343,14 +343,7 @@ class channel
                 if( v.size() != 3 ) { COMMA_THROW( comma::exception, "image-accumulate: expected colour, got '" << options.dial_colour << "'" ); }
                 dial_colour_ = cv::Scalar( boost::lexical_cast< unsigned int >( v[2] ), boost::lexical_cast< unsigned int >( v[1] ), boost::lexical_cast< unsigned int >( v[0] ) );
             }
-
-            // shuffle the channels
-            auto colourmap_temp = colourmap_;
-            for( unsigned int i = 0; i < 256; ++i ) { 
-                colourmap_[i][0] = colourmap_temp[i][2]; 
-                colourmap_[i][1] = colourmap_temp[i][1]; 
-                colourmap_[i][2] = colourmap_temp[i][0]; 
-            }
+            for( auto& colour: colour_map ) { std::swap( colour[0], colour[2] ); }
         }
 
         bool draw( const input* p )
@@ -403,7 +396,7 @@ class channel
     private:
         unsigned int index_;
         scaled< unsigned char > scaled_;
-        snark::render::colour_map::values colourmap_;
+        snark::render::colours::map::values colour_map;
         cv::Scalar dial_colour_;
         boost::posix_time::ptime timestamp_;
         boost::optional< unsigned int > block_;
@@ -447,7 +440,7 @@ class channel
             {
                 for( unsigned int i = 0; i < row_size; ++i )
                 {
-                    const boost::array< unsigned char, 3 >& colour = colourmap_[ scaled_( p->values[i] ) ];
+                    const boost::array< unsigned char, 3 >& colour = colour_map[ scaled_( p->values[i] ) ];
                     ::memcpy( const_cast< unsigned char* >( image.datastart ) + offset + i * 3, &colour[0], 3 );   
                 }
             }

@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 #include "types.h"
 #ifndef Q_MOC_RUN
-#include "../../../render/colour_map.h"
+#include "../../../render/colours/map.h"
 #include "point_with_id.h"
 #endif
 #include <comma/base/types.h>
@@ -72,7 +72,7 @@ class by_scalar : public colored
 
         by_scalar( double from
                  , double to
-                 , const snark::render::colour_map::values& map
+                 , const snark::render::colours::map::values& map
                  , bool alpha_by_scalar
                  , bool cyclic = false );
 
@@ -85,7 +85,7 @@ class by_scalar : public colored
 
     protected:
         double from, to, diff;
-        boost::optional< snark::render::colour_map::values > map;
+        boost::optional< snark::render::colours::map::values > map;
         color_t from_color;
         color_t to_color;
         bool _alpha_by_scalar;

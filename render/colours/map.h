@@ -28,17 +28,15 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#ifndef SNARK_RENDER_COLOUR_MAP_H_
-#define SNARK_RENDER_COLOUR_MAP_H_
+#pragma once
 
 #include <boost/array.hpp>
 #include <boost/optional/optional.hpp>
-#include <comma/math/cyclic.h>
-#include "colour.h"
+#include "../colour.h"
 
-namespace snark { namespace render {
+namespace snark { namespace render { namespace colours {
 
-class colour_map // quick and dirty
+class map // quick and dirty
 {
     public:
         typedef boost::array< unsigned char, 3 > pixel;
@@ -54,12 +52,12 @@ class colour_map // quick and dirty
         static values twilight();
         static pixel contrast_to( const values& v );
 
-        colour_map() { }
-        colour_map( const double from, const double to, const colour< unsigned char >& from_colour, const colour< unsigned char >& to_colour );
-        colour_map( const double from, const double to, const values& v );
+        map() = default;
+        map( double from, double to, const colour< unsigned char >& from_colour, const colour< unsigned char >& to_colour );
+        map( double from, double to, const values& v );
 
-        colour< unsigned char > map( const double scalar ) const;
-        colour< unsigned char > operator()( const double scalar ) const { return map( scalar ); }
+        colour< unsigned char > mapped( const double scalar ) const;
+        colour< unsigned char > operator()( const double scalar ) const { return mapped( scalar ); }
 
     private:
         double from;
@@ -70,6 +68,4 @@ class colour_map // quick and dirty
         colour< unsigned char > to_colour;
 };
 
-} } // namespace snark { namespace render {
-
-#endif //SNARK_RENDER_COLOUR_MAP_H_
+} } } // namespace snark { namespace render { namespace colours {
