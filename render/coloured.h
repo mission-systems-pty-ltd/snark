@@ -44,27 +44,3 @@ struct coloured // real quick and dirty
 };
 
 } } // namespace snark { namespace render {
-
-namespace snark { namespace Visiting { 
-
-/// visiting traits
-template < typename T, typename S > struct traits< snark::render::coloured< T, S > >
-{
-    /// const visiting
-    template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::render::coloured< T, S >& p, Visitor& v )
-    {
-        v.apply( "value", p.value );
-        v.apply( "colour", p.colour );
-    }
-    
-    /// const visiting
-    template < typename Key, class Visitor >
-    static void visit( const Key&, snark::render::coloured< T, S >& p, Visitor& v )
-    {
-        v.apply( "value", p.value );
-        v.apply( "colour", p.colour );
-    }    
-};
-
-} } // namespace snark { namespace Visiting {

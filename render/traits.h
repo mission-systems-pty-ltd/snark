@@ -4,6 +4,7 @@
 
 #include <comma/visiting/traits.h>
 #include "colour.h"
+#include "coloured.h"
 
 namespace comma { namespace visiting {
 
@@ -33,6 +34,21 @@ template < typename T > struct traits< snark::render::colour< T > >
         v.apply( "a", a );
         p = snark::render::colour< T >( r, g, b, a );
     }
+};
+
+template < typename T, typename S > struct traits< snark::render::coloured< T, S > >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::render::coloured< T, S >& p, Visitor& v )
+    {
+        v.apply( "value", p.value );
+        v.apply( "colour", p.colour );
+    }
+
+    template < typename Key, class Visitor > static void visit( const Key&, snark::render::coloured< T, S >& p, Visitor& v )
+    {
+        v.apply( "value", p.value );
+        v.apply( "colour", p.colour );
+    }    
 };
 
 } } // namespace comma { namespace visiting {
