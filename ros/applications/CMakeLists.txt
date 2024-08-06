@@ -47,4 +47,8 @@ if( snark_build_ros_version_2 )
     target_link_libraries( ros2-points ${all_ros2_libs} ${snark_ALL_EXTERNAL_LIBRARIES} )
     install( TARGETS ros2-points
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
+    install( PROGRAMS ros2-to-csv
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )            
+            
 endif( snark_build_ros_version_2 )
