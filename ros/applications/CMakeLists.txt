@@ -48,7 +48,7 @@ if( snark_build_ros_version_2 )
     install( TARGETS ros2-points
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
-    install( PROGRAMS ros2-to-csv
+    install( PROGRAMS ros2-to-csv ros2-from-csv
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )            
             
 endif( snark_build_ros_version_2 )
