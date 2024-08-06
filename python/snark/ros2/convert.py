@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 
 import numpy
-import rosbag, rospy, rostopic
+# import rosbag, rospy, rostopic
+import rclpy
 import comma
 import datetime
 import re
+import sys
 
 try:
-    import rospy_message_converter
+    import rclpy_message_converter
 except ImportError:
     msg = """
-cannot import rospy_message_converter module; usually you can install it as
-    sudo apt-get install ros-melodic-rospy-message-converter
-(use your ROS distro name in place of melodic). If the module is not available
+cannot import rclpy_message_converter module; usually you can install it as
+    sudo apt-get install ros-humble-rospy-message-converter
+(use your ROS distro name in place of humble). If the module is not available
 in your package manager, build and install the module manually.
 
 you can install it from source as:
-> git clone https://github.com/baalexander/rospy_message_converter.git
+> git clone https://github.com/DFKI-NI/rospy_message_converter.git
 > cd rospy_message_converter
+> git checkout humble # or any other branch
 > python setup.bash build
 > python setup.bash install
 """
@@ -40,6 +43,8 @@ def ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays 
     return ( record_t, record_ctor )
 
 def from_csv_supported_types( v ):
+    print("Time from ros conversion not implemented yet ", file=sys.stderr)    
+    exit(1)
     if type( v ) != numpy.datetime64: return v
     microseconds = numpy.int64( v )
     return rospy.Time( microseconds // 1000000, ( microseconds % 1000000 ) * 1000 )
@@ -50,6 +55,11 @@ def is_binary_type( field_type ):
     https://github.com/uos/rospy_message_converter/commit/6385e1a5254e6ad984d7f93f7a4c05cc8b6a090b
     is_binary_type() will handle both before and after variations.
 """
+    print("rclpy_message_converter not implemented yet ", file=sys.stderr)    
+    print("import rospy_message_converter - ros1", file=sys.stderr)
+    print("import rclpy_message_converter - ros2", file=sys.stderr)
+    exit(1)
+
     from rospy_message_converter import message_converter as mc
     try:
         return mc._is_ros_binary_type( field_type )
@@ -60,6 +70,11 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
     """
     Private implementation of ros_message_to_csv_record. Called recursively.
 """
+    print("rclpy_message_converter not implemented yet ", file=sys.stderr)    
+    print("import rospy_message_converter - ros1", file=sys.stderr)
+    print("import rclpy_message_converter - ros2", file=sys.stderr)
+    exit(1)
+
     from rospy_message_converter import message_converter as mc
 
     full_path = lambda name: prefix and prefix + "/" + name or name
