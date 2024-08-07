@@ -69,6 +69,7 @@ options
     --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
     --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
     --output-on-empty-input,--output-on-empty: output empty image on empty input
+    --scale-factor,--zoom=<factor>; default=1; extra scale factor
     --shape=<shape>; default=point
                      <shape>
                          point: each input point represents one pixel
@@ -141,13 +142,14 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                 | cv-cat view=stay null
         animated
             for angle in $( seq 0 0.01 6.28 ); do \
-                points-make box --width 50 \
-                    | points-frame --fields x,y,z --from "25,25,25,$angle,$angle,$angle"; \
+                points-make box --width 50 --origin -25,-25,-25 \
+                    | points-frame --fields x,y,z --from "0,0,0,$angle,$angle,$angle"; \
             done \
                 | csv-paste "line-number;"size=$( points-make box --width 50 | wc -l ) - \
                 | image-from-csv --fields block,x,y \
                                 --colors=yellow \
-                                --autoscale 'centre;proportional' \
+                                --autoscale once \
+                                --zoom 0.5 \
                                 --output='rows=800;cols=800;type=3ub' \
                 | cv-cat view null
     graph, colours, and sliding window
@@ -277,10 +279,11 @@ class shape_t // todo: quick and dirty, make polymorphic
 
         void clear() { _previous.clear(); }
 
-        void draw( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale ) // quick and dirty; reimplement as templates
+        void draw( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale, double factor ) // quick and dirty; reimplement as templates
         {
-            int x = std::floor( ( v.x - offset.first ) * scale.first + 0.5 );
-            int y = std::floor( ( v.y - offset.second ) * scale.second + 0.5 );
+            std::pair< int, int > extra_offset{ m.cols * ( 1 - factor ) / 2, m.rows * ( 1 - factor ) / 2 };
+            int x = std::floor( ( v.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
+            int y = std::floor( ( v.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
             switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
             {
                 case types::point:
@@ -295,8 +298,8 @@ class shape_t // todo: quick and dirty, make polymorphic
                     }
                     else
                     {
-                        int x0 = std::floor( ( i->second.x - offset.first ) * scale.first + 0.5 ); // todo: quick and dirty, save previous
-                        int y0 = std::floor( ( i->second.y - offset.second ) * scale.second + 0.5 ); // todo: quick and dirty, save previous
+                        int x0 = std::floor( ( i->second.x - offset.first ) * scale.first + 0.5 ) + extra_offset.first; // todo: quick and dirty, save previous
+                        int y0 = std::floor( ( i->second.y - offset.second ) * scale.second + 0.5 ) + extra_offset.second; // todo: quick and dirty, save previous
                         cv::Scalar c0, c; for( unsigned int j = 0; j < v.channels.size(); ++j ) { c0[j] = i->second.channels[j]; c[j] = v.channels[j]; }
                         cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( c0 + c ) / 2, 1, cv::LINE_AA );
                     }
@@ -413,6 +416,7 @@ int main( int ac, char** av )
         auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
+        double scale_factor = options.value( "--scale-factor,--zoom", 1. );
         snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value<std::string>("--output" ) );
         snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
         comma::csv::input_stream< input_t > is( std::cin, csv, sample );
@@ -498,7 +502,8 @@ int main( int ac, char** av )
                         offset = new_offset;
                         comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << " grown: " << grown << " shrunk: " << shrunk << std::endl;
                     }
-                    for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
+                    //for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
+                    for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale, scale_factor ); }
                     inputs.clear();
                     first_block = false;
                     if( autoscale->once ) { autoscale.reset(); }
@@ -536,7 +541,7 @@ int main( int ac, char** av )
                 if( q.channels.size() > 3 ) { q.channels[3] = c[3]; }
             }
             if( autoscale ) { inputs.push_back( q ); } // todo! watch performance
-            else { shape.draw( pair.second, q, offset, scale ); }
+            else { shape.draw( pair.second, q, offset, scale, scale_factor ); }
             last = q;
         }
         if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, pair ); }
