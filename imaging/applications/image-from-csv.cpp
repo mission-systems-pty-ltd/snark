@@ -43,6 +43,7 @@
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
 #include "../cv_mat/type_traits.h"
+#include "../../render/colours/named.h"
 
 static void usage( bool verbose )
 {
@@ -62,6 +63,7 @@ options
             proportional: use the same scaling factor on x and y
             shrink: todo: on every block, shrink scale to fit points into the image, never grow
     --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes
+    --colours,--colors=<colours>; default colours; e.g. --colours=red;0,255,0;blue: colour points with id 0 red, etc
     --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0
     --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks
     --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
@@ -268,66 +270,66 @@ class shape_t // todo: quick and dirty, make polymorphic
 
 class timestamping
 {
-public:
-    timestamping( const std::string& s ) : how_( from_string_( s ) ), count_( 0 ) {}
-    
-    void reset() { t_.reset(); count_ = 0; }
-    
-    boost::posix_time::ptime value() const { return t_ ? *t_ : boost::posix_time::not_a_date_time; }
-    
-    void update( const boost::posix_time::ptime& t, bool commit = false )
-    {
-        //std::cerr << "--> a: t_: " << ( t_ ? boost::posix_time::to_iso_string( *t_ ) : "none" ) << " t: " << boost::posix_time::to_iso_string( t ) << " commit: " << commit << std::endl;
-        switch( how_ )
+    public:
+        timestamping( const std::string& s ) : how_( from_string_( s ) ), count_( 0 ) {}
+        
+        void reset() { t_.reset(); count_ = 0; }
+        
+        boost::posix_time::ptime value() const { return t_ ? *t_ : boost::posix_time::not_a_date_time; }
+        
+        void update( const boost::posix_time::ptime& t, bool commit = false )
         {
-            case first:
-                if( !t_ ) { t_ = t; }
-                break;
-            case last:
-                if( commit ) { t_ = t; }
-                break;
-            case max:
-                if( !t_ ) { t_ = t; }
-                if( t_->is_not_a_date_time() ) { break; }
-                if( t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; } else if( *t_ < t ) { t_ = t; }
-                break;
-            case mean:
-                if( t.is_special() || t.is_not_a_date_time() ) { break; }
-                if( t_ && t_->is_not_a_date_time() ) { break; }
-                if( t_ ) { ++count_; t_ = *t_ + ( t - *t_ ) / count_; }
-                else { count_ = 1; t_ = t; }
-                break;
-            case middle:
-                if( !t_ ) { t_ = t; }
-                if( !commit ) { break; }
-                if( t.is_special() || t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; }
-                if( !t_->is_not_a_date_time() ) { t_ = *t_ + ( t - *t_ ) / 2; }
-                break;
-            case min:
-                if( !t_ ) { t_ = t; }
-                if( t_->is_not_a_date_time() ) { break; }
-                if( t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; } else if( *t_ > t ) { t_ = t; }
-                break;
+            //std::cerr << "--> a: t_: " << ( t_ ? boost::posix_time::to_iso_string( *t_ ) : "none" ) << " t: " << boost::posix_time::to_iso_string( t ) << " commit: " << commit << std::endl;
+            switch( how_ )
+            {
+                case first:
+                    if( !t_ ) { t_ = t; }
+                    break;
+                case last:
+                    if( commit ) { t_ = t; }
+                    break;
+                case max:
+                    if( !t_ ) { t_ = t; }
+                    if( t_->is_not_a_date_time() ) { break; }
+                    if( t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; } else if( *t_ < t ) { t_ = t; }
+                    break;
+                case mean:
+                    if( t.is_special() || t.is_not_a_date_time() ) { break; }
+                    if( t_ && t_->is_not_a_date_time() ) { break; }
+                    if( t_ ) { ++count_; t_ = *t_ + ( t - *t_ ) / count_; }
+                    else { count_ = 1; t_ = t; }
+                    break;
+                case middle:
+                    if( !t_ ) { t_ = t; }
+                    if( !commit ) { break; }
+                    if( t.is_special() || t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; }
+                    if( !t_->is_not_a_date_time() ) { t_ = *t_ + ( t - *t_ ) / 2; }
+                    break;
+                case min:
+                    if( !t_ ) { t_ = t; }
+                    if( t_->is_not_a_date_time() ) { break; }
+                    if( t.is_not_a_date_time() ) { t_ = boost::posix_time::not_a_date_time; } else if( *t_ > t ) { t_ = t; }
+                    break;
+            }
+            //std::cerr << "--> b: t_: " << ( t_ ? boost::posix_time::to_iso_string( *t_ ) : "none" ) << std::endl << std::endl;
         }
-        //std::cerr << "--> b: t_: " << ( t_ ? boost::posix_time::to_iso_string( *t_ ) : "none" ) << std::endl << std::endl;
-    }
-    
-private:
-    enum values_ { first, last, max, mean, middle, min };
-    values_ from_string_( const std::string& s )
-    {
-        if( s == "first" ) { return first; }
-        if( s == "last" ) { return last; }
-        if( s == "max" ) { return max; }
-        if( s == "mean" || s == "average" ) { return mean; }
-        if( s == "middle" ) { return middle; }
-        if( s == "min" ) { return min; }
-        std::cerr << "image-from-csv: expected timestamping method, got: '" << s << "'" << std::endl;
-        exit( 1 );
-    }
-    values_ how_;
-    boost::optional< boost::posix_time::ptime > t_;
-    unsigned int count_;
+        
+    private:
+        enum values_ { first, last, max, mean, middle, min };
+        values_ from_string_( const std::string& s )
+        {
+            if( s == "first" ) { return first; }
+            if( s == "last" ) { return last; }
+            if( s == "max" ) { return max; }
+            if( s == "mean" || s == "average" ) { return mean; }
+            if( s == "middle" ) { return middle; }
+            if( s == "min" ) { return min; }
+            comma::say() << "expected timestamping method, got: '" << s << "'" << std::endl;
+            exit( 1 );
+        }
+        values_ how_;
+        boost::optional< boost::posix_time::ptime > t_;
+        unsigned int count_;
 };
 
 int main( int ac, char** av )
@@ -337,14 +339,16 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         comma::csv::options csv( options );
         COMMA_ASSERT_BRIEF( !csv.fields.empty(), "please specify --fields" );
-        std::vector< std::string > v = comma::split( csv.fields, ',' );
-        input_t sample;
-        bool is_greyscale = true;
-        bool has_alpha = false;
         options.assert_mutually_exclusive( "--offset", "--autoscale" );
         boost::optional< autoscale_t > autoscale = comma::silent_none< autoscale_t >();
         if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< autoscale_t >( options.value< std::string >("--autoscale" ) ); autoscale->validate(); }
-        auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
+        const auto& c = comma::split( options.value< std::string >( "--colours,--colors", "" ), ';', true );
+        std::vector< snark::render::colour< unsigned char > > colours( c.size() );
+        for( unsigned int i = 0; i < colours.size(); ++i ) { colours[i] = snark::render::colours::named< unsigned char >::from_string( c[i] ); }
+        input_t sample;
+        bool is_greyscale = colours.empty();
+        bool has_alpha = false;
+        std::vector< std::string > v = comma::split( csv.fields, ',' );
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {
             if( v[i] == "grey" ) { v[i] = "channels[0]"; }
@@ -352,19 +356,20 @@ int main( int ac, char** av )
             else if( v[i] == "g" || v[i] == "channels[1]" ) { v[i] = "channels[1]"; is_greyscale = false; }
             else if( v[i] == "r" || v[i] == "channels[2]" ) { v[i] = "channels[2]"; is_greyscale = false; }
             else if( v[i] == "a" || v[i] == "channels[3]" ) { v[i] = "channels[3]"; is_greyscale = false; has_alpha = true; }
-            else if( v[i] == "channels" ) { std::cerr << "image-from-csv: please specify channels fields explicitly, e.g. as 'channels[0],channels[1]', or 'r,g'" << std::endl; return 1; }
+            else if( v[i] == "channels" ) { comma::say() << "please specify channels fields explicitly, e.g. as 'channels[0],channels[1]', or 'r,g'" << std::endl; return 1; }
         }
         csv.fields = comma::join( v, ',' );
+        if( is_greyscale && has_alpha ) { comma::say() << "warning: found alpha channel for a greyscale image; not implemented; ignored" << std::endl; }
+        sample.channels.resize( is_greyscale ? 1 : has_alpha ? 4 : 3 );
         std::string offset_string = options.value< std::string >( "--from,--begin,--origin", "0,0" );
         bool output_on_empty_input = options.exists( "--output-on-empty-input,--output-on-empty" );
         bool output_on_missing_blocks = options.exists( "--output-on-missing-blocks" );
-        auto number_of_blocks = options.optional<unsigned int>("--number-of-blocks,--block-count");
+        auto number_of_blocks = options.optional< unsigned int >( "--number-of-blocks,--block-count" );
         const auto& w = comma::split_as< double >( offset_string, ',' );
-        if( w.size() != 2 ) { std::cerr << "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( w.size() == 2, "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" );
+        auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
-        if( is_greyscale && has_alpha ) { std::cerr << "image-from-csv: warning: found alpha channel for a greyscale image; not implemented; ignored" << std::endl; }
-        sample.channels.resize( is_greyscale ? 1 : has_alpha ? 4 : 3 );
         snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value<std::string>("--output" ) );
         snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
         comma::csv::input_stream< input_t > is( std::cin, csv, sample );
@@ -372,17 +377,18 @@ int main( int ac, char** av )
         int type = output_options.get_header().type;
         timestamping t( options.value< std::string >( "--timestamp", "first" ) );
         cv::Mat background = cv::Mat::zeros( output_options.rows, output_options.cols, type );
+        COMMA_ASSERT_BRIEF( colours.empty() || background.depth() == CV_8U, "currently --colours only supported for unsigned char images" );
         if( options.exists( "--background" ) )
         {
             const auto& v = comma::split( options.value< std::string >( "--background" ), ',' );
-            if( int( v.size() ) != background.channels() ) { std::cerr << "image-from-csv: expected --background for " << background.channels() << "; got: '" << options.value< std::string >( "--background" ) << "'" << std::endl; return 1; }
+            COMMA_ASSERT_BRIEF( int( v.size() ) == background.channels(), "image-from-csv: expected --background for " << background.channels() << "; got: '" << options.value< std::string >( "--background" ) << "'" );
             std::vector< cv::Mat > channels( background.channels() );
             for( int i = 0; i < background.channels(); ++i )
             {
                 channels[i] = cv::Mat::zeros( output_options.rows, output_options.cols, snark::cv_mat::single_channel_type( background.type() ) );
                 try { channels[i].setTo( boost::lexical_cast< float >( v[i] ) ); }
-                catch( std::exception& ex ) { std::cerr << "image-from-csv: --background: invalid value: '" << v[i] << "' (" << ex.what() << ")" << std::endl; return 1; }
-                catch( ... ) { std::cerr << "image-from-csv: --background: invalid value: '" << v[i] << "'" << std::endl; return 1; }
+                catch( std::exception& ex ) { comma::say() << "--background: invalid value: '" << v[i] << "' (" << ex.what() << ")" << std::endl; return 1; }
+                catch( ... ) { comma::say() << "--background: invalid value: '" << v[i] << "'" << std::endl; return 1; }
             }
             cv::merge( channels, background );
         }
@@ -469,21 +475,23 @@ int main( int ac, char** av )
                     if( p ) { gap = last ? p->block - last->block - 1 : p->block; } 
                     else if ( number_of_blocks ) { gap = last ? *number_of_blocks - last->block - 1: *number_of_blocks; } 
                     else { gap = 0; }
-                    if( gap < 0 ) { std::cerr << "image-from-csv: expected incrementing block numbers, got: " << p->block << " after " << last->block << std::endl; exit( 1 ); }
-                    if( number_of_blocks && p && p->block >= *number_of_blocks ) { std::cerr << "image-from-csv: expecting block number less than number-of-blocks (" << *number_of_blocks << "), got: " << p->block << std::endl; exit( 1 ); }
+                    COMMA_ASSERT_BRIEF( gap >= 0, "expected incrementing block numbers, got: " << p->block << " after " << last->block );
+                    if( number_of_blocks && p && p->block >= *number_of_blocks ) { comma::say() << "expecting block number less than number-of-blocks (" << *number_of_blocks << "), got: " << p->block << std::endl; exit( 1 ); }
                     for( int i = 0; i < gap; ++i ) { output.write( std::cout, pair ); }
                     std::cout.flush();
                 }
             }
             if( !p ) { break; }
-            if( autoscale ) { inputs.push_back( *p ); } // todo: watch performance
-            else { shape.draw( pair.second, *p, offset, scale ); }
-            last = *p;
+            input_t q = *p; // todo! watch performance!
+            for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; } // todo! watch performance! handle non-unsigned char channel types!
+            if( autoscale ) { inputs.push_back( q ); } // todo! watch performance
+            else { shape.draw( pair.second, q, offset, scale ); }
+            last = q;
         }
         if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, pair ); }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "image-from-csv: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "image-from-csv: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << "" << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }

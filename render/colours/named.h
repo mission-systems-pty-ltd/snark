@@ -31,6 +31,7 @@
 
 #include <comma/base/exception.h>
 #include <comma/math/compare.h>
+#include <comma/string/split.h>
 #include "../colour.h"
 
 namespace snark { namespace render { namespace colours {
@@ -50,14 +51,21 @@ struct named
     static colour< T > from_string( const std::string& name )
     {
         if( name == "red" ) { return red(); }
-        else if( name == "green" ) { return green(); }
-        else if( name == "blue" ) { return blue(); }
-        else if( name == "white" ) { return white(); }
-        else if( name == "black" ) { return black(); }
-        else if( name == "cyan" ) { return cyan(); }
-        else if( name == "yellow" ) { return yellow(); }
-        else if( name == "magenta" ) { return magenta(); }
-        else { COMMA_THROW( comma::exception, "unknown colour: " << name ); }
+        if( name == "green" ) { return green(); }
+        if( name == "blue" ) { return blue(); }
+        if( name == "white" ) { return white(); }
+        if( name == "black" ) { return black(); }
+        if( name == "cyan" ) { return cyan(); }
+        if( name == "yellow" ) { return yellow(); }
+        if( name == "magenta" ) { return magenta(); }
+        try
+        {
+            const auto& v = comma::split_as< double >( name, ',' ); // because boost::lexical_cast< unsigned char >( 0 ) throws
+            COMMA_ASSERT( v.size() == 3 || v.size() == 4, "expected 3- or 4-channel colour, got: '" << name << "'" );
+            return colour< T >( v[0], v[1], v[2], v.size() == 4 ? v[3] : colour_traits< T >::max() );
+        }
+        catch( std::exception& ex ) { COMMA_THROW( comma::exception, "unsupported or invalid colour: '" << name << "': " << ex.what() ); }
+        catch( ... ) { COMMA_THROW( comma::exception, "unsupported or invalid colour: '" << name << "': unknown exception" ); }
     }
 };
 

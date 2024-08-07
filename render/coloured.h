@@ -29,8 +29,8 @@
 
 #pragma once
 
-#include <boost/array.hpp>
-#include <comma/visiting/traits.h>
+#include "colours/named.h"
+#include "colour.h"
 
 namespace snark { namespace render {
 
@@ -38,9 +38,9 @@ template < typename T, typename S >
 struct coloured // real quick and dirty
 {
     T value;
-    colour< S > colour;
+    render::colour< S > colour;
     coloured() {}
-    coloured( const T& value, const colour< S > = colours< S >::black() ) : value( value ), colour( colour ) {}
+    coloured( const T& value, const render::colour< S > = colours::named< S >::black() ) : value( value ), colour( colour ) {}
 };
 
 } } // namespace snark { namespace render {
