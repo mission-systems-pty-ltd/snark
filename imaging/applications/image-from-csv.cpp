@@ -168,7 +168,7 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                          'view=,example: flying tetrahedron' \
                          null \
                          --fps 25
-    graphs
+    plots
         colours, and sliding window
             csv-random make --type f --range 120,240 \
                 | csv-repeat --pace --period 0.02 \
