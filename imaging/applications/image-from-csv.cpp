@@ -168,29 +168,51 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                          'view=,example: flying tetrahedron' \
                          null \
                          --fps 25
-    graph, colours, and sliding window
-        csv-random make --type f --range 120,240 \
-            | csv-repeat --pace --period 0.02 \
-            | csv-paste 'line-number;size=4;index' - \
-            | csv-shape sliding-window --size 400 --step 4 --incremental --block \
-            | csv-blocks index --fields block \
-            | image-from-csv --fields block,id,y,x \
-                             --shape lines \
-                             --output 'rows=380;cols=400;type=3ub' \
-                             --colours="magenta;cyan;yellow;red" \
-            | cv-cat 'canvas=420,400,10,10' \
-                     'draw=grid,10,10,100,60,400,360,100,100,100,1' \
-                     'text=0,10,390,light-grey,scale:0.4' \
-                     'text=100,380,390,light-grey,scale:0.4' \
-                     'rectangle=110,378,160,394,0,255,255,-1,-1,0,128' \
-                     'rectangle=160,378,210,394,255,,255,-1,-1,0,128' \
-                     'rectangle=210,378,260,394,255,255,0,-1,-1,0,128' \
-                     'rectangle=260,378,310,394,255,0,0,-1,-1,0,128' \
-                     'text=A,130,390,light-grey,scale:0.4' \
-                     'text=B,180,390,light-grey,scale:0.4' \
-                     'text=C,230,390,light-grey,scale:0.4' \
-                     'text=D,280,390,light-grey,scale:0.4' \
-                     'view=,sliding window example;null')" << std::endl;
+    graphs
+        colours, and sliding window
+            csv-random make --type f --range 120,240 \
+                | csv-repeat --pace --period 0.02 \
+                | csv-paste 'line-number;size=4;index' - \
+                | csv-shape sliding-window --size 400 --step 4 --incremental --block \
+                | csv-blocks index --fields block \
+                | image-from-csv --fields block,id,y,x \
+                                --shape lines \
+                                --output 'rows=380;cols=400;type=3ub' \
+                                --colours="magenta;cyan;yellow;red" \
+                | cv-cat 'canvas=420,400,10,10' \
+                        'draw=grid,10,10,100,60,400,360,100,100,100,1' \
+                        'text=0,10,390,light-grey,scale:0.4' \
+                        'text=100,380,390,light-grey,scale:0.4' \
+                        'rectangle=110,378,160,394,0,255,255,-1,-1,0,128' \
+                        'rectangle=160,378,210,394,255,,255,-1,-1,0,128' \
+                        'rectangle=210,378,260,394,255,255,0,-1,-1,0,128' \
+                        'rectangle=260,378,310,394,255,0,0,-1,-1,0,128' \
+                        'text=A,130,390,light-grey,scale:0.4' \
+                        'text=B,180,390,light-grey,scale:0.4' \
+                        'text=C,230,390,light-grey,scale:0.4' \
+                        'text=D,280,390,light-grey,scale:0.4' \
+                        'view=,sliding window example;null'
+        polar
+            csv-random make --type f --range 1,2 \
+                | csv-paste "line-number;"size=$(( 360 * 3 )) \
+                            "line-number;size=3;index" \
+                            "line-number;index;"size=360 \
+                            - \
+                | csv-eval --fields ,id,,range 'range=(id+1)*range*50' --flush \
+                | math-deg2rad --fields ,,angle \
+                | points-to-cartesian --fields ,,bearing,range \
+                | image-from-csv --fields block,id,y,x \
+                                 --colours="green;yellow;magenta" \
+                                 --shape lines \
+                                 --output 'rows=800;cols=800;type=3ub' \
+                                 --origin=-400,-400 \
+                | cv-cat 'draw=grid,0,0,100,100,800,800,80,80,80' \
+                         'draw=axis,label:values|step:100|steps:4|size:400|origin:400,400|extents:0,400|color:255,255,255' \
+                         'draw=status,label:polar graph|origin:120,-12|color:180,180,180|font-size:0.4|alpha:0.01|no-begin|spin-up:10|system-time' \
+                         view=",example: polar graph" \
+                         null \
+                         --fps 5
+            )" << std::endl;
     }
     else
     {
