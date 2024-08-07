@@ -131,16 +131,25 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                                  --shape=lines \
                 | cv-cat 'view=stay;null'
     3D projections, binary feeds, autoscaling
-        for angle in $( seq 0 0.01 6.28 ); do \
-            points-make box --width 100 \
-                | points-frame --fields x,y,z --from "25,25,25,$angle,$angle,$angle"; \
-        done \
-            | csv-paste "line-number;"size=$( points-make box --width 100 | wc -l ) - \
-            | image-from-csv --fields block,x,y \
-                             --colors=white \
-                             --autoscale 'centre;proportional' \
-                             --output='rows=1000;cols=1000;type=3ub' \
-            | cv-cat view null
+        basic
+            points-make box --width 50 \
+                | points-frame --fields x,y,z --from 0,0,0,1,1,1 \
+                | image-from-csv --fields x,y \
+                                 --colors yellow \
+                                 --autoscale once \
+                                 --output 'rows=800;cols=800;type=3ub' \
+                | cv-cat view=stay null
+        animated
+            for angle in $( seq 0 0.01 6.28 ); do \
+                points-make box --width 50 \
+                    | points-frame --fields x,y,z --from "25,25,25,$angle,$angle,$angle"; \
+            done \
+                | csv-paste "line-number;"size=$( points-make box --width 50 | wc -l ) - \
+                | image-from-csv --fields block,x,y \
+                                --colors=yellow \
+                                --autoscale 'centre;proportional' \
+                                --output='rows=800;cols=800;type=3ub' \
+                | cv-cat view null
     graph, colours, and sliding window
         csv-random make --type f --range 120,240 \
             | csv-repeat --pace --period 0.02 \
@@ -517,7 +526,15 @@ int main( int ac, char** av )
             }
             if( !p ) { break; }
             input_t q = *p; // todo! watch performance!
-            for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; } // todo! watch performance! handle non-unsigned char channel types!
+            for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; }
+            if( !colours.empty() ) // // todo! watch performance! handle non-unsigned char channel types!
+            {
+                const auto& c = colours[ q.id % colours.size() ];
+                q.channels[0] = c[2]; // bgra; opencv, sigh...
+                q.channels[1] = c[1];
+                q.channels[2] = c[0]; // bgra; opencv, sigh...
+                if( q.channels.size() > 3 ) { q.channels[3] = c[3]; }
+            }
             if( autoscale ) { inputs.push_back( q ); } // todo! watch performance
             else { shape.draw( pair.second, q, offset, scale ); }
             last = q;
