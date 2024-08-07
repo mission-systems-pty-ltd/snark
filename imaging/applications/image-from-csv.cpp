@@ -130,6 +130,17 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                                  --autoscale='once;proportional;centre'\
                                  --shape=lines \
                 | cv-cat 'view=stay;null'
+    3D projections, binary feeds, autoscaling
+        for angle in $( seq 0 0.01 6.28 ); do \
+            points-make box --width 100 \
+                | points-frame --fields x,y,z --from "25,25,25,$angle,$angle,$angle"; \
+        done \
+            | csv-paste "line-number;"size=$( points-make box --width 100 | wc -l ) - \
+            | image-from-csv --fields block,x,y \
+                             --colors=white \
+                             --autoscale 'centre;proportional' \
+                             --output='rows=1000;cols=1000;type=3ub' \
+            | cv-cat view null
     graph, colours, and sliding window
         csv-random make --type f --range 120,240 \
             | csv-repeat --pace --period 0.02 \
