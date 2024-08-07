@@ -152,6 +152,22 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                                 --zoom 0.5 \
                                 --output='rows=800;cols=800;type=3ub' \
                 | cv-cat view null
+        animated lines
+            yes 1,1,1,0,0,1,1,1,1,0,1,0,1,1,1,1,0,0,1,0,0,0,1,0,1,0,0,0,0,1,0,1,0,0,0,1 \
+                | csv-shape split -n 3 --repeat \
+                | csv-paste 'line-number;size=12' 'line-number;size=2' - \
+                | csv-eval --fields block 'roll,pitch,yaw=0.01*block,0.01*block,0.01*block' \
+                | points-frame --fields ,,x,y,z,frame/roll,frame/pitch,frame/yaw --emplace \
+                | image-from-csv --fields block,id,x,y \
+                                 --colors="red;green;blue;cyan;magenta;yellow" \
+                                 --autoscale once \
+                                 --zoom 0.34 \
+                                 --shape lines \
+                                 --output='rows=800;cols=800;type=3ub' \
+                | cv-cat "draw=status,label:flying tetrahedron|origin:36,-12|color:180,180,180|font-size:0.4|alpha:0.01|spin-up:10|system-time" \
+                         'view=,example: flying tetrahedron' \
+                         null \
+                         --fps 25
     graph, colours, and sliding window
         csv-random make --type f --range 120,240 \
             | csv-repeat --pace --period 0.02 \
@@ -298,8 +314,8 @@ class shape_t // todo: quick and dirty, make polymorphic
                     }
                     else
                     {
-                        int x0 = std::floor( ( i->second.x - offset.first ) * scale.first + 0.5 ) + extra_offset.first; // todo: quick and dirty, save previous
-                        int y0 = std::floor( ( i->second.y - offset.second ) * scale.second + 0.5 ) + extra_offset.second; // todo: quick and dirty, save previous
+                        int x0 = std::floor( ( i->second.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first; // todo: quick and dirty, save previous
+                        int y0 = std::floor( ( i->second.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second; // todo: quick and dirty, save previous
                         cv::Scalar c0, c; for( unsigned int j = 0; j < v.channels.size(); ++j ) { c0[j] = i->second.channels[j]; c[j] = v.channels[j]; }
                         cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( c0 + c ) / 2, 1, cv::LINE_AA );
                     }

@@ -137,7 +137,7 @@ struct draw
                 std::string label;
                 cv::Point origin{20, 20};
                 cv::Scalar color{0, 0, 0};
-                cv::Scalar bg_color{220, 220, 220, 255};
+                cv::Scalar bg_color{0, 0, 0, 0}; //cv::Scalar bg_color{220, 220, 220, 255};
                 float font_size{0.5};
                 float alpha{0.5};
                 float spin_up{1};

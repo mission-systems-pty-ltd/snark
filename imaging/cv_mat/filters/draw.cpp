@@ -91,7 +91,7 @@ template < typename H > struct _impl // quick and dirty
         v.apply( "bg-color", bg_color );
         const auto& bc = comma::split_as< unsigned int >( bg_color, ',' );
         COMMA_ASSERT_BRIEF( bc.empty() || bc.size() == 3 || bc.size() == 4, "expected color; got: '" << bg_color << "'" );
-        if( !bc.empty() ) { p.bg_color = c.size() == 4 ? cv::Scalar( bc[2], bc[1], bc[0], bc[3] ) : cv::Scalar( bc[2], bc[1], bc[0] ); }
+        if( !bc.empty() ) { p.bg_color = cv::Scalar( bc[2], bc[1], bc[0], c.size() == 4 ? bc[3] : 0 ); }
         v.apply( "font-size", p.font_size );
         v.apply( "alpha", p.alpha );
         v.apply( "spin-up", p.spin_up );
@@ -493,14 +493,14 @@ std::pair< H, cv::Mat > draw< H >::status::operator()( std::pair< H, cv::Mat > m
     float factor = _properties.font_size / 0.4;
     if( _properties.bg_color[3] > 0 ) { cv::rectangle( m.second, cv::Point( 0, origin.y - _text_size.height - 2 ), cv::Point( m.second.rows - 1, origin.x + 3 ), _properties.bg_color, impl::filled, impl::line_aa ); }
     if( !_properties.label.empty() ) { cv::putText( m.second, _properties.label, origin, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa ); }
-    cv::putText( m.second, boost::posix_time::to_iso_string( _timestamp( m.first ) ), offset, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
+    auto t = _properties.system_time ? boost::posix_time::microsec_clock::universal_time() : _timestamp( m.first );
+    cv::putText( m.second, boost::posix_time::to_iso_string( t ), offset, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     {
         std::ostringstream oss;
         oss << "frames: " << ( _count + 1 );
         cv::putText( m.second, oss.str(), cv::Point{offset.x + int( 246 * factor ), offset.y}, cv::FONT_HERSHEY_SIMPLEX, _properties.font_size, _properties.color, 1, impl::line_aa );
     }
     {
-        auto t = _properties.system_time ? boost::posix_time::microsec_clock::universal_time() : _timestamp( m.first );
         COMMA_ASSERT( !t.is_not_a_date_time(), "frame-rate: asked to use timestamp from image, but input image has no timestamp" );
         if( !_previous.is_not_a_date_time() )
         {
