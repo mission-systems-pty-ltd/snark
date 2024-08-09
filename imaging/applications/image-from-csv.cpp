@@ -202,6 +202,34 @@ fields: t,x,y,r,g,b,block or t,x,y,grey,block
                         'text=C,230,390,light-grey,scale:0.4' \
                         'text=D,280,390,light-grey,scale:0.4' \
                         'view=,sliding window example;null'
+        colours, and sliding window, but load background from image file
+            cv-calc blank --output 'rows=380;cols=400;type=3ub' \
+                | cv-cat 'canvas=420,400,10,10' \
+                         'draw=grid,10,10,100,60,400,360,100,100,100,1' \
+                         'text=0,10,390,light-grey,scale:0.4' \
+                         'text=100,380,390,light-grey,scale:0.4' \
+                         'rectangle=110,378,160,394,0,255,255,-1,-1,0,128' \
+                         'rectangle=160,378,210,394,255,,255,-1,-1,0,128' \
+                         'rectangle=210,378,260,394,255,255,0,-1,-1,0,128' \
+                         'rectangle=260,378,310,394,255,0,0,-1,-1,0,128' \
+                         'text=A,130,390,light-grey,scale:0.4' \
+                         'text=B,180,390,light-grey,scale:0.4' \
+                         'text=C,230,390,light-grey,scale:0.4' \
+                         'text=D,280,390,light-grey,scale:0.4' \
+                         'encode=png' \
+                         --output no-header \
+                         > background.png
+            csv-random make --type f --range 120,240 \
+                | csv-repeat --pace --period 0.02 \
+                | csv-paste 'line-number;size=4;index' - \
+                | csv-shape sliding-window --size 400 --step 4 --incremental --block \
+                | csv-blocks index --fields block \
+                | image-from-csv --fields block,id,y,x \
+                                 --shape lines \
+                                 --output 'rows=380;cols=400;type=3ub' \
+                                 --colours="magenta;cyan;yellow;red" \
+                                 --background background.png \
+                | cv-cat view null
         polar
             csv-random make --type f --range 1,2 \
                 | csv-paste "line-number;"size=$(( 360 * 3 )) \
