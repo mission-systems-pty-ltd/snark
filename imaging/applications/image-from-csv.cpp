@@ -45,6 +45,7 @@
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
 #include "../cv_mat/type_traits.h"
+#include "../cv_mat/utils.h"
 #include "../../render/colours/named.h"
 
 static void usage( bool verbose )
@@ -435,17 +436,16 @@ class stream // todo: move to cv_mat
 {
     public:
         typedef std::pair< boost::posix_time::ptime, cv::Mat > pair_t;
-        stream( const std::string& name = "" );
+        stream( const std::string& name );
         stream( const std::string& colour, const snark::cv_mat::serialization::options& options );
-        operator bool() { return !_is_set; }
-        const snark::cv_mat::serialization& input() const { return *_input; } // todo
+        const snark::cv_mat::serialization::options& options() const { return _options; }
         pair_t operator()() const { return _pair; }
         pair_t operator++();
     private:
-        bool _is_set{false};
         bool _eof{false};
         pair_t _pair;
-        boost::optional< snark::cv_mat::serialization > _input;
+        snark::cv_mat::serialization::options _options;
+        snark::cv_mat::serialization _input;
         std::unique_ptr< comma::io::istream > _istream;
 
 };
@@ -456,12 +456,25 @@ stream::stream( const std::string& name )
     if( s.size() == 1 )
     {
         _pair.second = cv::imread( s[0], cv::IMREAD_UNCHANGED );
-        if( _pair.second.data ) { return; }
+        if( _pair.second.data )
+        {
+            _options.rows = _pair.second.rows;
+            _options.cols = _pair.second.cols;
+            _options.type = snark::cv_mat::type_as_string( _pair.second.type() );
+            return;
+        }
     }
-    _input = s.size() == 1
-           ? snark::cv_mat::serialization()
-           : snark::cv_mat::serialization( comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( s[1] ) );
-    _istream.reset( new comma::io::istream( s[0] ) );
+    if( s.size() == 2 )
+    {
+        _options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( s[1] );
+        _input = snark::cv_mat::serialization( _options );
+    }
+    _istream.reset( new comma::io::istream( s[0], comma::io::mode::binary, comma::io::mode::blocking ) );
+    operator++();
+    COMMA_ASSERT_BRIEF( _options.rows > 0 && _options.cols > 0, "failed to read image from '" << _istream->name() << "'" );
+    _options.rows = _pair.second.rows;
+    _options.cols = _pair.second.cols;
+    _options.type = snark::cv_mat::type_as_string( _pair.second.type() );
 }
 
 stream::stream( const std::string& colour_string, const snark::cv_mat::serialization::options& options ) // quick and dirty
@@ -482,10 +495,11 @@ stream::stream( const std::string& colour_string, const snark::cv_mat::serializa
 
 stream::pair_t stream::operator++()
 {
-    if( _input && !_eof )
+    if( _istream && !_eof )
     {
-        auto p = _input->read< boost::posix_time::ptime >( *( *_istream )() );
+        auto p = _input.read< boost::posix_time::ptime >( *( *_istream )() );
         _pair.first = p.first;
+        //std::cerr << "==> c: " << ( p.second.data == nullptr ) << " p.second.rows: " << p.second.rows << " p.second.cols: " << p.second.cols << std::endl;
         if( p.second.data ) { _pair.second = p.second; } else { _eof = true; }
     }
     return _pair;
@@ -532,22 +546,29 @@ int main( int ac, char** av )
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
         double scale_factor = options.value( "--scale-factor,--zoom", 1. );
-        snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >("--output" ) );
-        snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
         comma::csv::input_stream< snark::imaging::applications::image_from_csv::input > is( std::cin, csv, sample );
         boost::optional< snark::imaging::applications::image_from_csv::input > last;
         snark::imaging::applications::image_from_csv::timestamping t( options.value< std::string >( "--timestamp", "first" ) );
         std::unique_ptr< snark::imaging::applications::image_from_csv::stream > background;
-        if( options.exists( "--background-colour,--background-color" ) )
+        options.assert_mutually_exclusive( "--background-colour,--background-color", "--background" );
+        snark::cv_mat::serialization::options output_options;
+        if( options.exists( "--background" ) )
         {
-            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background-colour,--background-color" ), output_options ) );
+            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background" ) ) );
+            output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--output", "" ) );
+            output_options.rows = background->options().rows;
+            output_options.cols = background->options().cols;
+            output_options.type = background->options().type;
+            std::cerr << "==> output_options.rows: " << output_options.rows << " output_options.cols: " << output_options.cols << " output_options.type: " << output_options.type << std::endl;
         }
         else
         {
-            background.reset( new snark::imaging::applications::image_from_csv::stream( "0,0,0", output_options ) );
+            output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--output" ) );
+            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background-colour,--background-color", "0,0,0" ), output_options ) );
         }
+        snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
-        std::vector< snark::imaging::applications::image_from_csv::input > inputs;
+        std::vector< snark::imaging::applications::image_from_csv::input > inputs;        
         bool first_block{true};
         while( is.ready() || std::cin.good() )
         {
@@ -580,11 +601,11 @@ int main( int ac, char** av )
                             min_y = std::floor( ( min.second - offset.second ) * scale.second + 0.5 );
                             max_x = std::floor( ( max.first - offset.first ) * scale.first + 0.5 );
                             max_y = std::floor( ( max.second - offset.second ) * scale.second + 0.5 );
-                            grown =     min_x < 0 || min_x >= pair.second.cols // quick and dirty for now
+                            grown =    min_x < 0 || min_x >= pair.second.cols // quick and dirty for now
                                     || min_y < 0 || min_y >= pair.second.rows
                                     || max_x < 0 || max_x >= pair.second.cols
                                     || max_y < 0 || max_y >= pair.second.rows;
-                            shrunk =    ( min_x > 0 && min_x < pair.second.cols )
+                            shrunk =   ( min_x > 0 && min_x < pair.second.cols )
                                     || ( max_x > 0 && max_x < size.first )
                                     || ( min_y > 0 && min_y < pair.second.rows )
                                     || ( max_y > 0 && max_y < size.second );
@@ -627,6 +648,7 @@ int main( int ac, char** av )
                 }
                 shape.clear();
                 ( *background )().second.copyTo( pair.second );
+                ++( *background );
                 if( output_on_missing_blocks )
                 {
                     int gap;
