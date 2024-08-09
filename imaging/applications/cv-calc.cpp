@@ -274,6 +274,7 @@ static void usage( bool verbose=false )
         std::cerr << "        a combination of parameters producing fairly long-living colony:" << std::endl;
         std::cerr << "        cv-cat --file ~/tmp/some-image.jpg | cv-calc life --procreation 3 --stability 5.255 --step 0.02 | cv-cat \"count;view;null\"" << std::endl;
         std::cerr << "        cv-calc blank --output 'rows=480;cols=480;type=3ub' | cv-cat draw=grid,12,12,9,9,458,458,100,100,100,1 invert | cv-calc life --procreation 2.8 --stability 5.25 --step 0.02 | cv-cat resize=2.5,nearest view null" << std::endl;
+        std::cerr << "        cv-calc blank --output 'rows=480;cols=480;type=3ub' | cv-cat draw=grid,12,12,15,9,458,458,255,255,0,1 draw=grid,13,13,9,13,458,458,0,255,0,1 draw=grid,14,14,9,9,458,458,0,255,255,1 invert | cv-calc life --procreation 3 --stability 5.255 --step 0.02 | cv-cat resize=2.5,nearest view null" << std::endl;
         std::cerr << std::endl;
         std::cerr << "    roi" << std::endl;
         std::cerr << "        Setting everything but the roi rectangle to 0 for all images" << std::endl;
