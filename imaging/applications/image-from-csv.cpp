@@ -497,53 +497,56 @@ int main( int ac, char** av )
                         if( i.x < min.first ) { min.first = i.x; } else if( i.x > max.first ) { max.first = i.x; }
                         if( i.y < min.second ) { min.second = i.y; } else if( i.y > max.second ) { max.second = i.y; }
                     }
-                    COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                    COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                    std::pair< double, double > range{ max.first - min.first, max.second - min.second };
-                    std::pair< double, double > size{ pair.second.cols - 1, pair.second.rows - 1 };
-                    int min_x, min_y, max_x, max_y;
-                    bool grown{first_block}, shrunk{first_block};
-                    if( !first_block )
+                    // COMMA_ASSERT_BRIEF( max.first != min.first, "--autoscale: all x values are the same (" << min.first << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
+                    // COMMA_ASSERT_BRIEF( max.second != min.second, "--autoscale: all y values are the same (" << min.second << ") in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
+                    if( max.first != min.first && max.second != min.second )
                     {
-                        min_x = std::floor( ( min.first - offset.first ) * scale.first + 0.5 );
-                        min_y = std::floor( ( min.second - offset.second ) * scale.second + 0.5 );
-                        max_x = std::floor( ( max.first - offset.first ) * scale.first + 0.5 );
-                        max_y = std::floor( ( max.second - offset.second ) * scale.second + 0.5 );
-                        grown =     min_x < 0 || min_x >= pair.second.cols // quick and dirty for now
-                                 || min_y < 0 || min_y >= pair.second.rows
-                                 || max_x < 0 || max_x >= pair.second.cols
-                                 || max_y < 0 || max_y >= pair.second.rows;
-                        shrunk =    ( min_x > 0 && min_x < pair.second.cols )
-                                 || ( max_x > 0 && max_x < size.first )
-                                 || ( min_y > 0 && min_y < pair.second.rows )
-                                 || ( max_y > 0 && max_y < size.second );
-                        //std::cerr << "==> a: min: " << min_x << "," << min_y << " max: " << max_x << "," << max_y << std::endl;
-                    }
-                    auto new_offset = min;
-                    std::pair< double, double > new_scale = { size.first / range.first, size.second / range.second }; // todo: check for zeroes
-                    if( autoscale->proportional )
-                    {
-                        if( new_scale.first < new_scale.second )
+                        std::pair< double, double > range{ max.first - min.first, max.second - min.second };
+                        std::pair< double, double > size{ pair.second.cols - 1, pair.second.rows - 1 };
+                        int min_x, min_y, max_x, max_y;
+                        bool grown{first_block}, shrunk{first_block};
+                        if( !first_block )
                         {
-                            new_offset.second -= autoscale->centre ? ( size.second / new_scale.first - range.second ) * 0.5 : 0;
-                            new_scale.second = new_scale.first;
+                            min_x = std::floor( ( min.first - offset.first ) * scale.first + 0.5 );
+                            min_y = std::floor( ( min.second - offset.second ) * scale.second + 0.5 );
+                            max_x = std::floor( ( max.first - offset.first ) * scale.first + 0.5 );
+                            max_y = std::floor( ( max.second - offset.second ) * scale.second + 0.5 );
+                            grown =     min_x < 0 || min_x >= pair.second.cols // quick and dirty for now
+                                    || min_y < 0 || min_y >= pair.second.rows
+                                    || max_x < 0 || max_x >= pair.second.cols
+                                    || max_y < 0 || max_y >= pair.second.rows;
+                            shrunk =    ( min_x > 0 && min_x < pair.second.cols )
+                                    || ( max_x > 0 && max_x < size.first )
+                                    || ( min_y > 0 && min_y < pair.second.rows )
+                                    || ( max_y > 0 && max_y < size.second );
+                            //std::cerr << "==> a: min: " << min_x << "," << min_y << " max: " << max_x << "," << max_y << std::endl;
                         }
-                        else
+                        auto new_offset = min;
+                        std::pair< double, double > new_scale = { size.first / range.first, size.second / range.second }; // todo: check for zeroes
+                        if( autoscale->proportional )
                         {
-                            new_offset.first -= autoscale->centre ? ( size.first / new_scale.second - range.first ) * 0.5 : 0;
-                            new_scale.first = new_scale.second;
+                            if( new_scale.first < new_scale.second )
+                            {
+                                new_offset.second -= autoscale->centre ? ( size.second / new_scale.first - range.second ) * 0.5 : 0;
+                                new_scale.second = new_scale.first;
+                            }
+                            else
+                            {
+                                new_offset.first -= autoscale->centre ? ( size.first / new_scale.second - range.first ) * 0.5 : 0;
+                                new_scale.first = new_scale.second;
+                            }
                         }
-                    }
-                    if( first_block || ( grown && !autoscale->shrink ) || ( shrunk && !autoscale->grow ) )
-                    {
-                        scale = new_scale;
-                        offset = new_offset;
-                        comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << " grown: " << grown << " shrunk: " << shrunk << std::endl;
+                        if( first_block || ( grown && !autoscale->shrink ) || ( shrunk && !autoscale->grow ) )
+                        {
+                            scale = new_scale;
+                            offset = new_offset;
+                            comma::saymore() << "offset: " << offset.first << "," << offset.second << " scale: " << scale.first << "," << scale.second << " grown: " << grown << " shrunk: " << shrunk << std::endl;
+                        }
+                        first_block = false;
                     }
                     //for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale, scale_factor ); }
                     inputs.clear();
-                    first_block = false;
                     if( autoscale->once ) { autoscale.reset(); }
                 }
                 if( last )
