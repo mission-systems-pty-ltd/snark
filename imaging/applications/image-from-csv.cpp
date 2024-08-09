@@ -469,6 +469,7 @@ class stream // todo: move to cv_mat
         const snark::cv_mat::serialization::options& options() const { return _options; }
         pair_t operator()() const { return _pair; }
         pair_t operator++();
+        bool eof() const { return _eof; }
     private:
         bool _eof{false};
         pair_t _pair;
@@ -498,8 +499,9 @@ stream::stream( const std::string& name )
         _input = snark::cv_mat::serialization( _options );
     }
     _istream.reset( new comma::io::istream( s[0], comma::io::mode::binary, comma::io::mode::blocking ) );
+    //std::cerr << "==> a: ( *_istream )->eof(): " << ( *_istream )->eof() << std::endl;
     operator++();
-    COMMA_ASSERT_BRIEF( _options.rows > 0 && _options.cols > 0, "failed to read image from '" << _istream->name() << "'" );
+    COMMA_ASSERT_BRIEF( _pair.second.rows > 0 && _pair.second.cols > 0, "failed to read image from '" << s[0] << "'" );
     _options.rows = _pair.second.rows;
     _options.cols = _pair.second.cols;
     _options.type = snark::cv_mat::type_as_string( _pair.second.type() );
@@ -587,7 +589,7 @@ int main( int ac, char** av )
             output_options.rows = background->options().rows;
             output_options.cols = background->options().cols;
             output_options.type = background->options().type;
-            std::cerr << "==> output_options.rows: " << output_options.rows << " output_options.cols: " << output_options.cols << " output_options.type: " << output_options.type << std::endl;
+            //std::cerr << "==> output_options.rows: " << output_options.rows << " output_options.cols: " << output_options.cols << " output_options.type: " << output_options.type << std::endl;
         }
         else
         {
