@@ -31,6 +31,7 @@
 /// @author vsevolod vlaskine
 
 #include <limits>
+#include <memory>
 #include <boost/optional.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -39,6 +40,7 @@
 #include <comma/csv/stream.h>
 #include <comma/name_value/parser.h>
 #include <comma/csv/options.h>
+#include <comma/io/stream.h>
 #include "../cv_mat/filters.h"
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
@@ -62,11 +64,18 @@ options
                   use the first block scaling factor for all subsequent blocks
             proportional: use the same scaling factor on x and y
             shrink: todo: on every block, shrink scale to fit points into the image, never grow
-    --background=<colour>; e.g. --background=0, --background=0,-1,-1, etc; default: zeroes
+    --background=[<image(s)>]; single image or cv-cat-style image stream, if stream, new csv block will read new image
+        <image(s)>
+            <image> : e.g. --background=my-image.png
+            <stream>: e.g. --background <( cv-cat --file movie.mp4 )
+                           --background <( cv-cat images.bin )';rows=600;cols=800;no-header;type=3ub'
+    --background-colour,--background-color=<colour>; e.g. --background-colour=0, --background-colour=0,-1,-1, etc; default: zeroes
     --colours,--colors=<colours>; default colours; e.g. --colours=red;0,255,0;blue: colour points with id 0 red, etc
     --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0
     --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks
-    --output: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
+    --output=[<properties>]: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
+                             if --output not present and --background given, properties will be taken from
+                             background image
     --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
     --output-on-empty-input,--output-on-empty: output empty image on empty input
     --scale-factor,--zoom=<factor>; default=1; extra scale factor
@@ -225,7 +234,9 @@ examples...
     exit( 0 );
 }
 
-struct input_t
+namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
+
+struct input
 {
     boost::posix_time::ptime t;
     double x{0};
@@ -234,10 +245,10 @@ struct input_t
     comma::uint32 block{0};
     comma::uint32 id{0};
     
-    input_t() : x( 0 ), y( 0 ), block( 0 ) {}
+    input() : x( 0 ), y( 0 ), block( 0 ) {}
 };
 
-struct autoscale_t
+struct autoscale
 {
     bool once{false};
     bool proportional{false};
@@ -248,10 +259,13 @@ struct autoscale_t
     void validate() const { COMMA_ASSERT( !grow || !shrink, "autoscale: 'grow' and 'shrink' are mutually exclusive" ); }
 };
 
+} } } } // namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
+
 namespace comma { namespace visiting {
 
-template <> struct traits< input_t >
+template <> struct traits< snark::imaging::applications::image_from_csv::input >
 {
+    typedef snark::imaging::applications::image_from_csv::input input_t;
     template < typename K, typename V > static void visit( const K&, input_t& r, V& v )
     {
         v.apply( "t", r.t );
@@ -261,7 +275,6 @@ template <> struct traits< input_t >
         v.apply( "block", r.block );
         v.apply( "id", r.id );
     }
-    
     template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
     {
         v.apply( "t", r.t );
@@ -273,8 +286,9 @@ template <> struct traits< input_t >
     }
 };
 
-template <> struct traits< autoscale_t >
+template <> struct traits< snark::imaging::applications::image_from_csv::autoscale >
 {
+    typedef snark::imaging::applications::image_from_csv::autoscale autoscale_t;
     template < typename K, typename V > static void visit( const K&, autoscale_t& r, V& v )
     {
         v.apply( "once", r.once );
@@ -283,7 +297,6 @@ template <> struct traits< autoscale_t >
         v.apply( "grow", r.grow );
         v.apply( "shrink", r.shrink );
     }
-    
     template < typename K, typename V > static void visit( const K&, const autoscale_t& r, V& v )
     {
         v.apply( "once", r.once );
@@ -296,7 +309,9 @@ template <> struct traits< autoscale_t >
 
 } } // namespace comma { namespace visiting {
 
-class shape_t // todo: quick and dirty, make polymorphic
+namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
+
+class shape // todo: quick and dirty, make polymorphic
 {
     public:
         struct types
@@ -311,13 +326,13 @@ class shape_t // todo: quick and dirty, make polymorphic
             }
         };
 
-        shape_t( types::values t = types::point ): _type( t ) {}
+        shape( types::values t = types::point ): _type( t ) {}
 
-        static shape_t make( const std::string& s ) { return shape_t( types::from_string( s ) ); }
+        static shape make( const std::string& s ) { return shape( types::from_string( s ) ); }
 
         void clear() { _previous.clear(); }
 
-        void draw( cv::Mat& m, const input_t& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale, double factor ) // quick and dirty; reimplement as templates
+        void draw( cv::Mat& m, const input& v, const std::pair< double, double >& offset, const std::pair< double, double >& scale, double factor ) // quick and dirty; reimplement as templates
         {
             std::pair< int, int > extra_offset{ m.cols * ( 1 - factor ) / 2, m.rows * ( 1 - factor ) / 2 };
             int x = std::floor( ( v.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
@@ -349,7 +364,7 @@ class shape_t // todo: quick and dirty, make polymorphic
 
     private:
         types::values _type{types::point};
-        std::unordered_map< std::uint32_t, input_t > _previous;
+        std::unordered_map< std::uint32_t, input > _previous;
 };
 
 class timestamping
@@ -416,6 +431,68 @@ class timestamping
         unsigned int count_;
 };
 
+class stream // todo: move to cv_mat
+{
+    public:
+        typedef std::pair< boost::posix_time::ptime, cv::Mat > pair_t;
+        stream( const std::string& name = "" );
+        stream( const std::string& colour, const snark::cv_mat::serialization::options& options );
+        operator bool() { return !_is_set; }
+        const snark::cv_mat::serialization& input() const { return *_input; } // todo
+        pair_t operator()() const { return _pair; }
+        pair_t operator++();
+    private:
+        bool _is_set{false};
+        bool _eof{false};
+        pair_t _pair;
+        boost::optional< snark::cv_mat::serialization > _input;
+        std::unique_ptr< comma::io::istream > _istream;
+
+};
+
+stream::stream( const std::string& name )
+{
+    const auto& s = comma::split_head( name, 2, ',' );
+    if( s.size() == 1 )
+    {
+        _pair.second = cv::imread( s[0], cv::IMREAD_UNCHANGED );
+        if( _pair.second.data ) { return; }
+    }
+    _input = s.size() == 1
+           ? snark::cv_mat::serialization()
+           : snark::cv_mat::serialization( comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( s[1] ) );
+    _istream.reset( new comma::io::istream( s[0] ) );
+}
+
+stream::stream( const std::string& colour_string, const snark::cv_mat::serialization::options& options ) // quick and dirty
+{
+    auto colour = snark::render::colours::named< unsigned char >::from_string( colour_string ); // todo! quick and dirty: resolve on options.get_header().type
+    _pair.second = cv::Mat::zeros( options.rows, options.cols, options.get_header().type );
+    std::swap( colour[0], colour[2] ); // bgr... sigh...
+    std::vector< cv::Mat > channels( _pair.second.channels() );
+    for( int i = 0; i < _pair.second.channels(); ++i )
+    {
+        channels[i] = cv::Mat::zeros( options.rows, options.cols, snark::cv_mat::single_channel_type( _pair.second.type() ) );
+        try { channels[i].setTo( float( colour[i] ) ); }
+        catch( std::exception& ex ) { COMMA_THROW_BRIEF( comma::exception, "colour: channel " << i << ": invalid value: '" << double( colour[i] ) << "' (" << ex.what() << ")" ); }
+        catch( ... ) { COMMA_THROW_BRIEF( comma::exception, "colour:  channel " << i << ": invalid value: '" << double( colour[i] ) << "'" ); }
+    }
+    cv::merge( channels, _pair.second );
+}
+
+stream::pair_t stream::operator++()
+{
+    if( _input && !_eof )
+    {
+        auto p = _input->read< boost::posix_time::ptime >( *( *_istream )() );
+        _pair.first = p.first;
+        if( p.second.data ) { _pair.second = p.second; } else { _eof = true; }
+    }
+    return _pair;
+}
+
+} } } } // namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
+
 int main( int ac, char** av )
 {
     try
@@ -424,12 +501,12 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         COMMA_ASSERT_BRIEF( !csv.fields.empty(), "please specify --fields" );
         options.assert_mutually_exclusive( "--offset", "--autoscale" );
-        boost::optional< autoscale_t > autoscale = comma::silent_none< autoscale_t >();
-        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< autoscale_t >( options.value< std::string >("--autoscale" ) ); autoscale->validate(); }
+        auto autoscale = comma::silent_none< snark::imaging::applications::image_from_csv::autoscale >();
+        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< snark::imaging::applications::image_from_csv::autoscale >( options.value< std::string >("--autoscale" ) ); autoscale->validate(); }
         const auto& c = comma::split( options.value< std::string >( "--colours,--colors", "" ), ';', true );
         std::vector< snark::render::colour< unsigned char > > colours( c.size() );
         for( unsigned int i = 0; i < colours.size(); ++i ) { colours[i] = snark::render::colours::named< unsigned char >::from_string( c[i] ); }
-        input_t sample;
+        snark::imaging::applications::image_from_csv::input sample;
         bool is_greyscale = colours.empty();
         bool has_alpha = false;
         std::vector< std::string > v = comma::split( csv.fields, ',' );
@@ -451,44 +528,36 @@ int main( int ac, char** av )
         auto number_of_blocks = options.optional< unsigned int >( "--number-of-blocks,--block-count" );
         const auto& w = comma::split_as< double >( offset_string, ',' );
         COMMA_ASSERT_BRIEF( w.size() == 2, "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" );
-        auto shape = shape_t::make( options.value< std::string >( "--shape", "point" ) );
+        auto shape = snark::imaging::applications::image_from_csv::shape::make( options.value< std::string >( "--shape", "point" ) );
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         std::pair< double, double > scale{1, 1};
         double scale_factor = options.value( "--scale-factor,--zoom", 1. );
-        snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value<std::string>("--output" ) );
+        snark::cv_mat::serialization::options output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >("--output" ) );
         snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
-        comma::csv::input_stream< input_t > is( std::cin, csv, sample );
-        boost::optional< input_t > last;
-        int type = output_options.get_header().type;
-        timestamping t( options.value< std::string >( "--timestamp", "first" ) );
-        cv::Mat background = cv::Mat::zeros( output_options.rows, output_options.cols, type );
-        COMMA_ASSERT_BRIEF( colours.empty() || background.depth() == CV_8U, "currently --colours only supported for unsigned char images" );
-        if( options.exists( "--background" ) )
+        comma::csv::input_stream< snark::imaging::applications::image_from_csv::input > is( std::cin, csv, sample );
+        boost::optional< snark::imaging::applications::image_from_csv::input > last;
+        snark::imaging::applications::image_from_csv::timestamping t( options.value< std::string >( "--timestamp", "first" ) );
+        std::unique_ptr< snark::imaging::applications::image_from_csv::stream > background;
+        if( options.exists( "--background-colour,--background-color" ) )
         {
-            const auto& v = comma::split( options.value< std::string >( "--background" ), ',' );
-            COMMA_ASSERT_BRIEF( int( v.size() ) == background.channels(), "image-from-csv: expected --background for " << background.channels() << "; got: '" << options.value< std::string >( "--background" ) << "'" );
-            std::vector< cv::Mat > channels( background.channels() );
-            for( int i = 0; i < background.channels(); ++i )
-            {
-                channels[i] = cv::Mat::zeros( output_options.rows, output_options.cols, snark::cv_mat::single_channel_type( background.type() ) );
-                try { channels[i].setTo( boost::lexical_cast< float >( v[i] ) ); }
-                catch( std::exception& ex ) { comma::say() << "--background: invalid value: '" << v[i] << "' (" << ex.what() << ")" << std::endl; return 1; }
-                catch( ... ) { comma::say() << "--background: invalid value: '" << v[i] << "'" << std::endl; return 1; }
-            }
-            cv::merge( channels, background );
+            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background-colour,--background-color" ), output_options ) );
+        }
+        else
+        {
+            background.reset( new snark::imaging::applications::image_from_csv::stream( "0,0,0", output_options ) );
         }
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
-        std::vector< input_t > inputs;
+        std::vector< snark::imaging::applications::image_from_csv::input > inputs;
         bool first_block{true};
         while( is.ready() || std::cin.good() )
         {
-            const input_t* p = is.read();
+            const snark::imaging::applications::image_from_csv::input* p = is.read();
             bool block_done = !p || ( last && p->block != last->block );
             if( last ) { t.update( last->t, block_done ); }
             if( !last || block_done )
             {
                 COMMA_ASSERT_BRIEF( inputs.size() != 1, "--autoscale: got only 1 point in block " << inputs[0].block << "; not supported; something like --permissive with discard: todo, just ask" );
-                if( autoscale && inputs.size() > 1 ) // todo!!! move to autoscale_t method
+                if( autoscale && inputs.size() > 1 ) // todo!!! move to autoscale class method
                 {
                     std::pair< double, double > min{ inputs[0].x, inputs[0].y };
                     std::pair< double, double > max{ inputs[0].x, inputs[0].y };
@@ -557,7 +626,7 @@ int main( int ac, char** av )
                     std::cout.flush();
                 }
                 shape.clear();
-                background.copyTo( pair.second );
+                ( *background )().second.copyTo( pair.second );
                 if( output_on_missing_blocks )
                 {
                     int gap;
@@ -571,7 +640,7 @@ int main( int ac, char** av )
                 }
             }
             if( !p ) { break; }
-            input_t q = *p; // todo! watch performance!
+            snark::imaging::applications::image_from_csv::input q = *p; // todo! watch performance!
             for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; }
             if( !colours.empty() ) // // todo! watch performance! handle non-unsigned char channel types!
             {
