@@ -6,3 +6,5 @@ types[4]="( echo 0,0,10,11; echo 0,1,20,21 ) | image-from-csv --fields=x,y,chann
 types[5]="( echo 0,0,10,11,12,13; echo 0,1,20,21,22,23 ) | image-from-csv --fields=x,y,b,g,r,a --output 'no-header;rows=2;cols=2;type=4ub' | csv-from-bin 16ub"
 types[6]="( echo 0,0,10,11,12,13; echo 0,1,20,21,22,23 ) | image-from-csv --fields=x,y,channels[0],channels[1],channels[2],channels[3] --output 'no-header;rows=2;cols=2;type=4ub' | csv-from-bin 16ub"
 types[7]="( echo 0,0,10,11,12,13; echo 0,1,20,21,22,23 ) | image-from-csv --fields=x,y,b,g,r,a --output 'no-header;rows=2;cols=2;type=4i' | csv-from-bin 16i"
+types[8]="( echo 0,0,10,11,12,13; echo 0,1,20,21,22,23 ) | image-from-csv --fields=x,y,b,g,r,a --background-colour 1,2,3 --output 'no-header;rows=2;cols=2;type=4ub' | csv-from-bin 16ub"
+types[9]="( echo 0,0,10,11,12,13; echo 0,1,20,21,22,23 ) | image-from-csv --fields=x,y,b,g,r,a --background-colour 1,2,3,4 --output 'no-header;rows=2;cols=2;type=4ub' | csv-from-bin 16ub"

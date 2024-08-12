@@ -62,7 +62,7 @@ struct named
         {
             const auto& v = comma::split_as< double >( name, ',' ); // because boost::lexical_cast< unsigned char >( 0 ) throws
             COMMA_ASSERT( v.size() == 3 || v.size() == 4, "expected 3- or 4-channel colour, got: '" << name << "'" );
-            return colour< T >( v[0], v[1], v[1], v.size() == 4 ? v[3] : colour_traits< T >::max() );
+            return colour< T >( v[0], v[1], v[2], v.size() == 4 ? v[3] : colour_traits< T >::max() );
         }
         catch( std::exception& ex ) { COMMA_THROW( comma::exception, "unsupported or invalid colour: '" << name << "': " << ex.what() ); }
         catch( ... ) { COMMA_THROW( comma::exception, "unsupported or invalid colour: '" << name << "': unknown exception" ); }
