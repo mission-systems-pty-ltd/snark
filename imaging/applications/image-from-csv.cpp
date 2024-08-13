@@ -79,6 +79,7 @@ options
                              background image
     --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
     --output-on-empty-input,--output-on-empty: output empty image on empty input
+    --scale=<factor>; default=1; extra scale factor
     --scale-factor,--zoom=<factor>; default=1; extra scale factor
     --shape=<shape>; default=point
                      <shape>
@@ -366,6 +367,7 @@ class shape // todo: quick and dirty, make polymorphic
             std::pair< int, int > extra_offset{ m.cols * ( 1 - factor ) / 2, m.rows * ( 1 - factor ) / 2 };
             int x = std::floor( ( v.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
             int y = std::floor( ( v.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
+            //std::cerr << "==> x,y: " << x << "," << y << " v: " << v.x << "," << v.y << " scale: " << scale.first << "," << scale.second << " offset: " << offset.first << "," << offset.second << " factor: " << factor << "," << factor << " extra offset: " << extra_offset.first << "," << extra_offset.second << std::endl;
             switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
             {
                 case types::point:
@@ -574,7 +576,8 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( w.size() == 2, "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" );
         auto shape = snark::imaging::applications::image_from_csv::shape::make( options.value< std::string >( "--shape", "point" ) );
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
-        std::pair< double, double > scale{1, 1};
+        const auto& s = comma::split( options.value< std::string >( "--scale", "1" ), ',' );
+        std::pair< double, double > scale{ boost::lexical_cast< double >( s[0] ), boost::lexical_cast< double >( s[ s.size() == 1 ? 0 : 1 ] ) };
         double scale_factor = options.value( "--scale-factor,--zoom", 1. );
         comma::csv::input_stream< snark::imaging::applications::image_from_csv::input > is( std::cin, csv, sample );
         boost::optional< snark::imaging::applications::image_from_csv::input > last;
