@@ -57,14 +57,6 @@ usage: image-from-csv <options>
 
 options
     --help,-h: show help; --help --verbose: more help
-    --autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset
-        <properties>
-            centre: if proportional (see below), centre the shorter dimension in the image
-            grow: todo: on every block, change scale so that all input points fit into the image, never shrink
-            once: make sure all pixel coordinates of the first block fit into the image
-                  use the first block scaling factor for all subsequent blocks
-            proportional: use the same scaling factor on x and y
-            shrink: todo: on every block, shrink scale to fit points into the image, never grow
     --background=[<image(s)>]; single image or cv-cat-style image stream, if stream, new csv block will read new image
         <image(s)>
             <image> : e.g. --background=my-image.png
@@ -80,6 +72,14 @@ options
     --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
     --output-on-empty-input,--output-on-empty: output empty image on empty input
     --scale=<factor>; default=1; extra scale factor
+    --scale-auto,--autoscale=[<properties>]; make sure all pixel coordinates fit into the image after applying offset
+        <properties>
+            centre: if proportional (see below), centre the shorter dimension in the image
+            grow: todo: on every block, change scale so that all input points fit into the image, never shrink
+            once: make sure all pixel coordinates of the first block fit into the image
+                  use the first block scaling factor for all subsequent blocks
+            proportional: use the same scaling factor on x and y
+            shrink: todo: on every block, shrink scale to fit points into the image, never grow
     --scale-factor,--zoom=<factor>; default=1; extra scale factor
     --shape=<shape>; default=point
                      <shape>
@@ -546,9 +546,9 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         comma::csv::options csv( options );
         COMMA_ASSERT_BRIEF( !csv.fields.empty(), "please specify --fields" );
-        options.assert_mutually_exclusive( "--offset", "--autoscale" );
+        options.assert_mutually_exclusive( "--offset", "--scale-auto,--autoscale" );
         auto autoscale = comma::silent_none< snark::imaging::applications::image_from_csv::autoscale >();
-        if( options.exists( "--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< snark::imaging::applications::image_from_csv::autoscale >( options.value< std::string >("--autoscale" ) ); autoscale->validate(); }
+        if( options.exists( "--scale-auto,--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< snark::imaging::applications::image_from_csv::autoscale >( options.value< std::string >( "--scale-auto,--autoscale" ) ); autoscale->validate(); }
         const auto& c = comma::split( options.value< std::string >( "--colours,--colors", "" ), ';', true );
         std::vector< snark::render::colour< unsigned char > > colours( c.size() );
         for( unsigned int i = 0; i < colours.size(); ++i ) { colours[i] = snark::render::colours::named< unsigned char >::from_string( c[i] ); }
