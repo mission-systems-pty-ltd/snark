@@ -64,9 +64,13 @@ check_python_module( comma )
 check_python_module( numpy )
 check_python_module( cv2 )
 if( snark_build_ros )
-    check_python_module( rosbag )
-    check_python_module( rospy )
-    check_python_module( rostopic )
+    if( snark_build_ros_version_1 )
+        check_python_module( rosbag )
+        check_python_module( rospy )
+        check_python_module( rostopic )
+    else() # version 2
+        check_python_module( rclpy )
+    endif( snark_build_ros_version_1 )
     # check_python_module( ros-kinetic-rospy-message-converter ) # todo: uncomment? or it is too exotic to stipulate?
 endif( snark_build_ros )
 

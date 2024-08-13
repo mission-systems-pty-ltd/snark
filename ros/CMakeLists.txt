@@ -32,12 +32,14 @@ endif( snark_build_ros_version_1 )
 
 if( snark_build_ros_version_2 )
     cmake_minimum_required(VERSION 3.10) # 3.10 is required for rclcpp packages.
-    find_package(rclcpp REQUIRED)
-    find_package(rmw REQUIRED)
-    find_package(rosidl_generator_cpp REQUIRED )
-    find_package(rosidl_typesupport_interface REQUIRED )
-    find_package(rcl_interfaces REQUIRED)
-    find_package(rosbag2_cpp REQUIRED)
+    set( snark_ros_path "/opt/ros/${ROS_DISTRO}" ) # todo: review with Dave
+    set( snark_ros_cmake_pack "/opt/ros/${ROS_DISTRO}/cmake" ) # todo: review with Dave
+    find_package(rclcpp REQUIRED PATHS ${snark_ros_cmake_path} )
+    find_package(rmw REQUIRED PATHS ${snark_ros_cmake_path})
+    find_package(rosidl_generator_cpp REQUIRED PATHS ${snark_ros_cmake_path})
+    find_package(rosidl_typesupport_interface REQUIRED PATHS ${snark_ros_cmake_path})
+    find_package(rcl_interfaces REQUIRED PATHS ${snark_ros_cmake_path})
+    find_package(rosbag2_cpp REQUIRED PATHS ${snark_ros_cmake_path})
 
     set( ros2_core_include_dirs ${rclcpp_INCLUDE_DIRS}  ${rmw_INCLUDE_DIRS}  ${rosidl_generator_cpp_INCLUDE_DIRS}  ${rosidl_typesupport_interface_INCLUDE_DIRS}  ${rcl_interfaces_INCLUDE_DIRS} )
     set( ros2_extra_include_dirs ${rosbag2_cpp_INCLUDE_DIRS} )
