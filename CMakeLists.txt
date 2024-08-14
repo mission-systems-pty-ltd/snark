@@ -363,52 +363,47 @@ IF( snark_build_imaging )
 ENDIF( snark_build_imaging )
 
 if( snark_build_graphics )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_graphics_qt3d-d
-                             optimized snark_graphics_qt3d )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_graphics_qt3d-d optimized snark_graphics_qt3d )
 endif( snark_build_graphics )
 
 if( snark_build_math_geometry )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_math_geometry-d
-                             optimized snark_math_geometry )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_math_geometry-d optimized snark_math_geometry )
 endif( snark_build_math_geometry )
+
+if( snark_build_io )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_io-d optimized snark_io )
+endif( snark_build_io )
 
 if( snark_build_point_cloud )
     if( NOT snark_build_math_geometry )
         message( FATAL_ERROR  "please turn on snark_build_math_geometry, since snark_build_point_cloud depends on it" )
     endif( NOT snark_build_math_geometry )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_point_cloud-d
-                             optimized snark_point_cloud )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_point_cloud-d optimized snark_point_cloud )
 endif( snark_build_point_cloud )
 
 if( snark_build_imaging )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_imaging-d
-                             optimized snark_imaging )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_imaging-d optimized snark_imaging )
 endif( snark_build_imaging )
 
 # todo: uncomment, once implemented
 # if( snark_build_navigation )
-#     set( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_navigation_trimble-d
-#                              optimized snark_navigation_trimble )
+#     set( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_navigation_trimble-d optimized snark_navigation_trimble )
 # endif( snark_build_navigation )
 
 IF( snark_build_sensors_echodyne )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_echodyne-d
-                             optimized snark_echodyne )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_echodyne-d optimized snark_echodyne )
 ENDIF( snark_build_sensors_echodyne )
 
 IF( snark_build_sensors_velodyne )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_velodyne-d
-                             optimized snark_velodyne )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_velodyne-d optimized snark_velodyne )
 ENDIF( snark_build_sensors_velodyne )
 
 IF( snark_build_sensors_hokuyo )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_hokuyo-d
-                             optimized snark_hokuyo )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_hokuyo-d optimized snark_hokuyo )
 ENDIF( snark_build_sensors_hokuyo )
 
 IF( snark_build_sensors_asd )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_asd-d
-                             optimized snark_asd )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_asd-d optimized snark_asd )
 ENDIF( snark_build_sensors_asd )
 
 if( snark_build_sensors_kinect )
@@ -423,30 +418,27 @@ if( snark_build_sensors_kinect )
   find_package( freenect2 REQUIRED )
 endif( snark_build_sensors_kinect )
 
-SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_math-d
+SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES}
+                         debug snark_math-d
                          optimized snark_math
                          debug snark_math_spherical_geometry-d
                          optimized snark_math_spherical_geometry
                          debug snark_timing-d
                          optimized snark_timing )
 IF( snark_build_actuators_quickset )
-  SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_quickset_ptcr-d
-                         optimized snark_quickset_ptcr )
+  SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_quickset_ptcr-d optimized snark_quickset_ptcr )
 ENDIF( snark_build_actuators_quickset )
 
 if( snark_build_actuators_wheels )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_wheels-d
-                                                    optimized snark_wheels )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_wheels-d optimized snark_wheels )
 endif( snark_build_actuators_wheels )
 
 if( snark_build_batteries_ocean )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_ocean-d
-                             optimized snark_ocean )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_ocean-d optimized snark_ocean )
 endif( snark_build_batteries_ocean )
 
 if( snark_build_control )
-    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_control-d
-                             optimized snark_control )
+    SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_control-d optimized snark_control )
 endif( snark_build_control )
 
 IF(WIN32)
