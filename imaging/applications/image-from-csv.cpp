@@ -57,6 +57,14 @@ usage: image-from-csv <options>
 
 options
     --help,-h: show help; --help --verbose: more help
+    --axes-x=<properties>; todo: if present, draw x axes
+    --axes-y=<properties>; todo: if present, draw y axes
+        <properties>
+            label/format=[<format>]; <format>: whatever format printf() takes (see examples)
+            tick/anchor=[<anchor>]; default=0
+            tick/count=[<n>]; desired number of ticks
+            tick/interval=[<interval>]; default: auto if not defined
+            title=[<title>]; axis title
     --background=[<image(s)>]; single image or cv-cat-style image stream, if stream, new csv block will read new image
         <image(s)>
             <image> : e.g. --background=my-image.png
@@ -64,6 +72,7 @@ options
                            --background <( cv-cat images.bin )';rows=600;cols=800;no-header;type=3ub'
     --background-colour,--background-color=<colour>; e.g. --background-colour=0, --background-colour=0,-1,-1, etc; default: zeroes
     --colours,--colors=<colours>; default colours; e.g. --colours=red;0,255,0;blue: colour points with id 0 red, etc
+    --flip-y,--flip; convenience option for 2D graph plotting: multiply y by -1
     --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0
     --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks
     --output=[<properties>]: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
@@ -289,6 +298,56 @@ struct autoscale
     void validate() const { COMMA_ASSERT( !grow || !shrink, "autoscale: 'grow' and 'shrink' are mutually exclusive" ); }
 };
 
+class axis // keeping consistent with csv-plot
+{
+    public:
+        struct tick
+        {
+            float anchor{0};
+            float interval{0};
+            std::uint32_t count{0};
+            operator bool() const { return count > 0 || interval > 0; }
+        };
+        struct label
+        {
+            std::string format;
+        };
+        struct config
+        {
+            std::string title;
+            axis::tick tick;
+            axis::label label;
+            operator bool() const { return bool( tick ); }
+        };
+        axis( const config& c, bool vertical = false ): _config( c ), _vertical( vertical ) {}
+        operator bool() const { return bool( _config ); }
+        void draw( cv::Mat& m, const std::pair< double, double >& offset, const std::pair< double, double >& scale, double factor ) // quick and dirty; reimplement as templates
+        {
+            if( ! *this || m.rows < 60 || m.cols < 60 ) { return; }
+            // todo: for now allow only ub or 3ub
+            cv::Point begin( cv::Point( 40, m.rows - 40 ) ); // todo: precompute
+            cv::Point end = _vertical ? cv::Point( 40, 20 ) : cv::Point( m.cols - 20, m.rows - 40 ); // todo: precompute
+            cv::line( m, begin, end, _colour, 1, cv::LINE_AA );
+            // todo! y_sign
+            std::pair< int, int > extra_offset{ m.cols * ( 1 - factor ) / 2, m.rows * ( 1 - factor ) / 2 };
+            auto range = _vertical ? std::pair< double, double >( ( begin.y - extra_offset.second ) / ( scale.second * factor ) + offset.second
+                                                                , ( end.y   - extra_offset.second ) / ( scale.second * factor ) + offset.second )
+                                   : std::pair< double, double >( ( begin.x - extra_offset.first  ) / ( scale.first  * factor ) + offset.first
+                                                                , ( end.x   - extra_offset.first  ) / ( scale.first  * factor ) + offset.first );
+            ( void )range;
+            // todo: first notch coordinates
+            // todo: first notch value
+            // todo: draw notches
+            // todo: format text
+            // todo: draw text
+            // todo: draw label
+        }
+    private:
+        config _config;
+        bool _vertical{false};
+        cv::Scalar _colour{100, 100, 100};
+};
+
 } } } } // namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
 
 namespace comma { namespace visiting {
@@ -334,6 +393,34 @@ template <> struct traits< snark::imaging::applications::image_from_csv::autosca
         v.apply( "centre", r.centre );
         v.apply( "grow", r.grow );
         v.apply( "shrink", r.shrink );
+    }
+};
+
+template <> struct traits< snark::imaging::applications::image_from_csv::axis::tick >
+{
+    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::tick& t, V& v )
+    {
+        v.apply( "anchor", t.anchor );
+        v.apply( "interval", t.interval );
+        v.apply( "count", t.count );
+    }
+};
+
+template <> struct traits< snark::imaging::applications::image_from_csv::axis::label >
+{
+    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::label& t, V& v )
+    {
+        v.apply( "format", t.format );
+    }
+};
+
+template <> struct traits< snark::imaging::applications::image_from_csv::axis::config >
+{
+    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::config& t, V& v )
+    { 
+        v.apply( "title", t.title );
+        v.apply( "tick", t.tick );
+        v.apply( "label", t.label );
     }
 };
 
@@ -550,6 +637,7 @@ int main( int ac, char** av )
         auto autoscale = comma::silent_none< snark::imaging::applications::image_from_csv::autoscale >();
         if( options.exists( "--scale-auto,--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< snark::imaging::applications::image_from_csv::autoscale >( options.value< std::string >( "--scale-auto,--autoscale" ) ); autoscale->validate(); }
         const auto& c = comma::split( options.value< std::string >( "--colours,--colors", "" ), ';', true );
+        float y_sign = options.exists( "--flip-y,--flip" ) ? -1 : 1;
         std::vector< snark::render::colour< unsigned char > > colours( c.size() );
         for( unsigned int i = 0; i < colours.size(); ++i ) { colours[i] = snark::render::colours::named< unsigned char >::from_string( c[i] ); }
         snark::imaging::applications::image_from_csv::input sample;
@@ -600,6 +688,9 @@ int main( int ac, char** av )
             background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background-colour,--background-color", "0,0,0" ), output_options ) );
         }
         snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
+        typedef snark::imaging::applications::image_from_csv::axis axis_t;
+        std::pair< axis_t, axis_t > axes{ axis_t( comma::name_value::parser( ';', '=' ).get< axis_t::config >( options.value< std::string >( "--axis-x", "" ) ), false )
+                                        , axis_t( comma::name_value::parser( ';', '=' ).get< axis_t::config >( options.value< std::string >( "--axis-y", "" ) ), true  ) };
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
         std::vector< snark::imaging::applications::image_from_csv::input > inputs;        
         bool first_block{true};
@@ -667,6 +758,8 @@ int main( int ac, char** av )
                         }
                         first_block = false;
                     }
+                    axes.first.draw( pair.second, offset, scale, scale_factor );
+                    axes.second.draw( pair.second, offset, scale, scale_factor );
                     //for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale ); }
                     for( const auto& i: inputs ) { shape.draw( pair.second, i, offset, scale, scale_factor ); }
                     inputs.clear();
@@ -681,6 +774,11 @@ int main( int ac, char** av )
                 }
                 shape.clear();
                 ( *background )().second.copyTo( pair.second );
+                if( !autoscale )
+                {
+                    axes.first.draw( pair.second, offset, scale, scale_factor );
+                    axes.second.draw( pair.second, offset, scale, scale_factor );
+                }
                 ++( *background );
                 if( output_on_missing_blocks )
                 {
@@ -696,6 +794,7 @@ int main( int ac, char** av )
             }
             if( !p ) { break; }
             snark::imaging::applications::image_from_csv::input q = *p; // todo! watch performance!
+            q.y *= y_sign; // quick and dirty
             for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; }
             if( !colours.empty() ) // // todo! watch performance! handle non-unsigned char channel types!
             {
