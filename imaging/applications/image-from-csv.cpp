@@ -41,6 +41,7 @@
 #include <comma/name_value/parser.h>
 #include <comma/csv/options.h>
 #include <comma/io/stream.h>
+#include <comma/math/compare.h>
 #include "../cv_mat/filters.h"
 #include "../cv_mat/serialization.h"
 #include "../cv_mat/traits.h"
@@ -307,6 +308,7 @@ class axis // keeping consistent with csv-plot
             float interval{0};
             std::uint32_t count{0};
             operator bool() const { return count > 0 || interval > 0; }
+            bool valid() const { return interval == 0 || count == 0; }
         };
         struct label
         {
@@ -318,23 +320,47 @@ class axis // keeping consistent with csv-plot
             axis::tick tick;
             axis::label label;
             operator bool() const { return bool( tick ); }
+            bool valid() const { return tick.valid(); }
         };
-        axis( const config& c, bool vertical = false ): _config( c ), _vertical( vertical ) {}
+        axis( const config& c, bool vertical = false ): _config( c ), _vertical( vertical ) { COMMA_ASSERT_BRIEF( _config.valid(), ( _vertical ? "vertical" : "horizontal" ) << " axis is invalid" ); }
         operator bool() const { return bool( _config ); }
         void draw( cv::Mat& m, const std::pair< double, double >& offset, const std::pair< double, double >& scale, double factor ) // quick and dirty; reimplement as templates
         {
             if( ! *this || m.rows < 60 || m.cols < 60 ) { return; }
             // todo: for now allow only ub or 3ub
-            cv::Point begin( cv::Point( 40, m.rows - 40 ) ); // todo: precompute
-            cv::Point end = _vertical ? cv::Point( 40, 20 ) : cv::Point( m.cols - 20, m.rows - 40 ); // todo: precompute
-            cv::line( m, begin, end, _colour, 1, cv::LINE_AA );
-            // todo! y_sign
             std::pair< int, int > extra_offset{ m.cols * ( 1 - factor ) / 2, m.rows * ( 1 - factor ) / 2 };
-            auto range = _vertical ? std::pair< double, double >( ( begin.y - extra_offset.second ) / ( scale.second * factor ) + offset.second
-                                                                , ( end.y   - extra_offset.second ) / ( scale.second * factor ) + offset.second )
-                                   : std::pair< double, double >( ( begin.x - extra_offset.first  ) / ( scale.first  * factor ) + offset.first
-                                                                , ( end.x   - extra_offset.first  ) / ( scale.first  * factor ) + offset.first );
-            ( void )range;
+            cv::Point begin( cv::Point( 40, m.rows - 40 ) ), end, diff, notch_offset; // todo: precompute
+            std::pair< double, double > range;
+            int step{0};
+            // todo! y_sign
+            if( _vertical )
+            {
+                end = cv::Point( 40, 20 );
+                notch_offset = cv::Point( -3, 0 );
+                range = std::pair< double, double >( ( begin.y - extra_offset.second ) / ( scale.second * factor ) + offset.second
+                                                   , ( end.y   - extra_offset.second ) / ( scale.second * factor ) + offset.second );                
+            }
+            else
+            {
+                end = cv::Point( m.cols - 20, m.rows - 40 ); // todo: precompute
+                notch_offset = cv::Point( 0, 3 );
+                range = std::pair< double, double >( ( begin.x - extra_offset.first  ) / ( scale.first  * factor ) + offset.first
+                                                   , ( end.x   - extra_offset.first  ) / ( scale.first  * factor ) + offset.first );                
+            }
+            double diameter = range.second - range.first;
+            double interval = _config.tick.count > 0 ? diameter / _config.tick.count : _config.tick.interval;
+            diff = end - begin;
+            step = ( _vertical ? diff.y : diff.x ) * interval / diameter; // todo!
+            double mod = std::fmod( range.first - _config.tick.anchor, interval );
+            double d = range.first + comma::math::equal( mod, 0 ) ? 0 : ( interval - mod );
+            cv::line( m, begin, end, _colour, 1, cv::LINE_AA );
+            for( cv::Point p = begin; d < range.second; ( _vertical ? p.y : p.x ) += step, d += interval )
+            {
+                cv::line( m, p, p + notch_offset, _colour, 1, cv::LINE_AA );
+                // todo: correct begin
+                // todo: text
+            }
+            // todo: y sign
             // todo: first notch coordinates
             // todo: first notch value
             // todo: draw notches
