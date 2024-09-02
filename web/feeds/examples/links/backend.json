@@ -1,6 +1,30 @@
 {
-    "text": { "command": "echo '<a href=http://smh.com.au target=_blank>smh</a>'; echo '<a href=http://facebook.com target=_blank>facebook</a>'" },
-    "csv": { "command": "echo '0,smh,<a href=http://smh.com.au target=_blank>click here</a>'; echo '1,facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo '2,clickable,<a onclick=style.color=red>blush</a>'" },
-    "csv-table": { "command": "echo '0,smh,<a href=http://smh.com.au target=_blank>click here</a>'; echo '1,facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo '2,clickable,<a onclick=style.color=red>blush</a>'" },
-    "csv-table-plain": { "command": "echo 0,2,3; echo 0,5,6; echo 1,8,9; echo 2,A,B" }
+    "text":
+    {
+        "command": "echo '<a href=http://smh.com.au target=_blank>smh</a>'; echo '<a href=http://facebook.com target=_blank>facebook</a>'"
+    },
+    "csv":
+    {
+        "command": "echo '0,smh,<a href=http://smh.com.au target=_blank>Click here</a>'; echo '1,facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo '2,clickable,<a onclick=style.color=red>blush</a>'" 
+    },
+    "csv-table-plain":
+    {
+        "command": "echo 0,2,3; echo 0,5,6; echo 1,8,9; echo 2,A,B"
+    },
+    "csv-table-plain-2":
+    {
+        "command": "echo 0,2,3; echo 1,4,7; echo 5,6,8; echo 9,A,B"
+    },
+    "csv-table":
+    {
+        "command": "echo '0,smh,<a href=http://smh.com.au target=_blank>click here</a>'; echo '1,facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo '2,clickable,<a onclick=style.color=red>blush</a>'"
+    },
+    "csv-table2":
+    { 
+        "command": "echo '0,smh,<a href=http://smh.com.au target=_blank>click here</a>'; echo '1,facebook,<a href=http://facebook.com target=_blank>click here</a>'; echo '2,clickable,<a onclick=style.color=red>blush</a>'"
+    },
+    "services-csv-table-without-ID":
+    {
+        "command": "echo 'advanced-nav-publish,simple,enabled,active'; echo 'alvium_1800_C-camera,simple,enabled,activating'; echo 'innovusion-publish,simple,enabled,inactive'"
+    }
 }

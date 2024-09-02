@@ -1,0 +1,166 @@
+#!/bin/bash
+
+# Todo: Add a mechanism to run a specific file such as:
+# /var/www/html/feeds/config/examples/checkboxes/frontend.json
+# /var/www/html/feeds/config/vulcan/sensors/frontend.json
+# /var/www/html/feeds/config/vulcan/imaging/frontend.json
+# /var/www/html/feeds/config/tinysar/radars/.../frontend.json
+# /var/www/html/feeds/config/tinysar/radars/.../frontend.json
+# /var/www/html/feeds/config/tinysar/radars/.../frontend.json
+
+# Possible approach:
+# - can set an operation and named options
+# - can set arguments to be passed to variable
+# - can have help() function regarding and/or (verbose) option
+
+###
+#
+# Name:            Snark web-feeds script runner
+# Description:     Script automation for running snark web-feeds in Firefox browser
+# Copyright (C):   2024 Mission Systems Pty Ltd
+#
+###
+
+#################################################################################
+
+# sudo cp frontend.json /var/www/html/feeds/config/snark.web.feeds.examples.checkboxes.frontend.json
+# firefox http://localhost/feeds/?config=config/snark.web.feeds.examples.checkboxes.frontend.json &
+# snark-webframes --config=backend.json --port=7000 --timeout=15 --verbose
+
+####################################### Option --services ###################################
+# --services=[<services>];default=$services runs the user-specified service of a machine
+# 
+
+#################################################################################
+scriptname=$( basename $0 )
+
+# # Source Argument Parser
+source $( type -p ms-bash-util ) || { echo "$scriptname: cannot source ms-bash-util" >&2; exit 1; }
+source $( type -p comma-process-util ) || { echo "$scriptname: cannot source comma-process-util" >&2; exit 1; }
+
+# ################################################################################
+# ################################### Constants ##################################
+# ################################################################################
+
+# Global Constants
+PORT=7000
+services=0
+
+function general_options()
+{
+    cat <<END
+--help,-h;           shows helpful information about the program
+--verbose,-v;        provides extra information for the specified options
+END
+}
+
+# function service_options()
+# {
+#     echo "Not yet implemented"
+# }
+
+function get_help() {
+    cat <<EOF >&2
+Usage: $scriptname <operation> [<options>]
+
+This script is used for running the examples of each web-feeds interface concepts
+such as 'checkboxes' for Feeds.js widget layout, 'links' for CsvFeeds.js, and more.
+It displays to users the examples of how each key feature was configured
+and displays to them the interactive dashboard of the information of commands
+and services running through snark.
+
+Information about the available options and their arguments are described below
+
+where <operation> is one of:
+   basic         - run the basic example of web-feeds interface
+   checkboxes    - run the examples/checkboxes web-feeds interface
+   links         - run the CsvFeeds web-feeds interface example
+
+The basic, checkboxes and links example display the web-feeds interface 
+
+General options:
+EOF
+    general_options | sed 's/^/   /g' >&2
+        cat <<EOF >&2
+
+
+EOF
+}
+
+(( $(comma_options_has "--verbose" "$@") || $(comma_options_has "-v" "$@") )) && { option_verbose=1; }
+(( $(comma_options_has "--help" "$@") || $(comma_options_has "-h" "$@") )) && { get_help; exit 0; }
+(( $(comma_options_has "--bash-completion" "$@") )) && { bash_completion; exit 0; }
+
+[[ -f $defaults_file ]] && comma_path_value_to_var --prefix=default < <( sed 's/#.*//;s/[\t ]*//g' $defaults_file )
+
+options="$( { general_options; } | comma-options-to-name-value "$@" )" # ie. makes --fields to just options_fields
+comma_path_value_to_var --prefix=options < <( echo "$options" | grep '=' ) #
+
+unnamed_options=( $( echo "$options" | grep -v '=' | sed 's/^"//g; s/"$//g' | tr '\n' ' ' ) )
+
+operation=${unnamed_options[0]} # handles any operations and verifies if any is not
+
+[[ $operation ]] || die "<operation> required"
+
+################################################################################
+################################ Bash Completion ###############################
+################################################################################
+
+# For autocompleting the operations / options
+#   $1  = Position
+#   $2  = Current position
+#   $3  = Previous position
+#   $4  = Operation
+function bash_completion() {
+
+    # Redefine input(s)
+    local pos=$1
+    local cur=$2
+    local prev=$3
+    local operation=$4
+
+    # Define available options
+    local operations="--host --record --query --output-fields --command"
+    local host_options="self all assess accessible open"
+    local record_options="self accessible stdin"
+    local query_options="self all stdin"
+
+    # Autocomplete
+    if (( pos == 2 )); then
+        echo $operations | tr ',' '\n'
+    else
+        case $operation in
+            --host)   echo "$host_options" ;;
+            --record) echo "$record_options" ;;
+            --query)  echo "$query_options" ;;
+        esac
+    fi
+}
+
+# Check if the port is already in use
+if lsof -i :$PORT &> /dev/null
+then # Get the process ID using the port and kill it
+    PID=$(lsof -t -i :$PORT)
+    echo "Port $PORT is in use by process id $PID, Stopping it now..."
+    kill -9 $PID
+fi
+
+function handle_operation() {
+    local operation=$1
+    local user=$(who | cut -f1 -d" " | sort | uniq | paste -s -d:)
+    sudo cp $operation/frontend.json /var/www/html/feeds/config/snark.web.feeds.examples.$operation.frontend.json
+    firefox http://localhost/feeds/?config=config/snark.web.feeds.examples.$operation.frontend.json &
+    snark-webframes --config=/home/$user/src/tmp/snark/web/feeds/examples/$operation/backend.json --port=7000 --timeout=15 --verbose
+}
+
+################################################################################
+############################## Operation Handling ##############################
+################################################################################
+case $operation in
+    basic) handle_operation $operation ;;
+    checkboxes) handle_operation $operation ;;
+    links) handle_operation $operation ;;
+
+    *) die "unknown operation \"$operation\""
+esac
+

@@ -57,7 +57,7 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
             if( this.config.type == 'csv-table' )
             {
                 var fields = this.config.csv.fields.split(',');
-                console.log( "==> fields: " + fields );
+                console.log( "===> Fields are: " + fields);
                 for( var i in fields ) { $('<th class="text-center">').text( fields[i] ).appendTo( tr ); }
             }
             else
@@ -87,6 +87,7 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
         var data_color;
         var column_has_space;
         var tbody = $('<tbody>');
+        var fields = this.config.csv.fields.split(',');
         if (data)
         {
             data = data.split('\n').map(function (value, index) { return value.split(','); });
@@ -172,14 +173,59 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
                         {
                             //value = '<div style="text-align:right">' + value + '</div>'
                         }
+
+                        // Storing the current row and column index in the cell's data attribute
+                        // Store using jQuery's .data() method:
+                        td.data('rowIndex', i); // Store the row Index
+                        td.data('colIndex', j); // Store the column Index
+                        td.data('rowData', data[i]); // Store the entire row data
+
                         tr.append( td.append( value ) );
+
+                        // Click handler
+                        td.on('click', function () {
+                            // Retrieve stored data from the clicked cell
+                            var rowIndex = String($(this).data('rowIndex'));
+                            var colIndex = $(this).data('colIndex');
+                            var rowData = $(this).data('rowData');
+
+                            // Retrieve the corresponding field name
+                            var fieldName = fields[colIndex];
+
+                            // Output to the console
+                            console.log("Clicked Cell Info:");
+                            console.log("Row ID: ", rowIndex);
+                            console.log("Column ID: ", fieldName);
+                            console.log("Full Row Data: ", {
+                                id: rowData[0], // as 'id' is always the 1st field
+                                a: rowData[1], // 'a' field
+                                b: rowData[2] // 'b' field
+                            });
+
+                            // Optional alert for debugging
+                            
+                            alert("You clicked on cell: " + $(this).text() + "\nRow ID: " + rowIndex + "\nField Name: " + fieldName + "\nFull Row Data: " + JSON.stringify({
+                                id: rowData[0],
+                                a: rowData[1],
+                                b: rowData[2]
+                            }));
+                            
+
+                            // alert("You clicked on cell: " + $(this).text());
+                            // Additional click handling logic can go here
+                            // console.log("User clicked on cell: " + $(this).text() + " whose Row ID is " + data[i] + " and whose Field name is " + data[j]);
+                            // console.log("User clicked on cell: " + $(this).text() + " whose Row number is " + (i-1) + " with Row ID data value being " + $(data[i-1][0]).text() + 
+                            //         " and whose Column number is " + parseInt(j) + " with data in cell being " + $(j+1).text());
+                            // (i-1) because the script treats the column headers as a row# 1 which we wanna eliminate
+                            // console.log("User clicked on cell: " + $(this).text() + " whose Row number is " + data[5][1]);
+                        });
                     }
                     tbody.append(tr);
                 }
             }
             else
             {
-                tbody.append('<tr><td colspan="' + this.target.find('thead th').length + '">' + ( this.config.csv.html ? data : ( '<pre>' + data + '</pre>' ) ) + '</td></tr>');
+                tbody.append('<tr><td colspan="' + this.target.find('thead th').length + '">' + ( this.config.csv.html ? data : ( '<a href="www.google.com"><pre>' + data + '</pre>' ) ) + '</td></tr>');
             }
         }
         else
@@ -207,3 +253,22 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
     };
     return CsvFeed;
 });
+
+
+
+/*
+Q1:
+What is the difference between network monitoring and system monitoring in Software Development and DevOps? 
+What are some examples of network monitoring open-source tools such as Nagios, Zabbix, etc?
+List the purpose of each tool, some characteristics of the tools, their advantages & disadvantages, 
+and in which situation to use each of the tool (when to use each of the tool)?
+
+Summmary: Nagios: Comprehensive tool for both network and system monitoring, ideal for organizations with custom monitoring needs.
+Zabbix: Enterprise-grade tool for scalable, centralized monitoring with advanced analysis and reporting.
+Icinga: Modern, scalable solution suitable for distributed monitoring setups, especially in large environments.
+Cacti: Best for visualizing network performance through graphing, focused on SNMP polling.
+Netdata: Lightweight, real-time monitoring tool with excellent visualizations, suitable for smaller setups or supplementary monitoring.
+
+Q2:
+Briefly, what are some use cases of Zabbix, Nagios, Cacti, Icinga, Netdata, and Observium in terms of network monitoring tool?
+*/
