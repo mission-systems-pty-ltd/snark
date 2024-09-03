@@ -66,6 +66,7 @@ inline std::vector< typename boost::graph_traits< Graph >::vertex_descriptor > b
     typedef typename Graph::vertex_bundled node_t;
     #endif // BOOST_GRAPH_NO_BUNDLED_PROPERTIES
     std::vector< typename traits_t::vertex_descriptor > best;
+    COMMA_ASSERT( graph.m_vertices.find( goal ) != graph.m_vertices.end(), "goal vertex not found in the graph" );
     best.push_back( goal );
     for( typename traits_t::vertex_descriptor target = goal; target != start; )
     {
@@ -77,7 +78,7 @@ inline std::vector< typename boost::graph_traits< Graph >::vertex_descriptor > b
             target = boost::source( *it.first, graph );
             if( graph[target].id == *node.best_parent ) { best.push_back( target ); break; } // todo: quick and dirty, may be suboptimal
         }
-        if( it.first == it.second ) { COMMA_THROW( comma::exception, "node with " << graph[target].id << " has best parent with id " << *node.best_parent << ", but the edge from the best parent to the node not found" ); }
+        COMMA_ASSERT( it.first != it.second, "node with " << graph[target].id << " has best parent with id " << *node.best_parent << ", but the edge from the best parent to the node not found" );
     }
     std::reverse( best.begin(), best.end() );
     return best;
