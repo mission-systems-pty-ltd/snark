@@ -147,10 +147,10 @@ fi
 
 function handle_operation() {
     local operation=$1
-    local user=$(who | cut -f1 -d" " | sort | uniq | paste -s -d:)
+    # local user=$(who | cut -f1 -d" " | sort | uniq | paste -s -d:)
     sudo cp $operation/frontend.json /var/www/html/feeds/config/snark.web.feeds.examples.$operation.frontend.json
     firefox http://localhost/feeds/?config=config/snark.web.feeds.examples.$operation.frontend.json &
-    snark-webframes --config=/home/$user/src/tmp/snark/web/feeds/examples/$operation/backend.json --port=7000 --timeout=15 --verbose
+    snark-webframes --config=/home/$USER/src/tmp/snark/web/feeds/examples/$operation/backend.json --port=7000 --timeout=15 --verbose
 }
 
 ################################################################################
@@ -163,4 +163,3 @@ case $operation in
 
     *) die "unknown operation \"$operation\""
 esac
-
