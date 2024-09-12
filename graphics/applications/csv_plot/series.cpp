@@ -44,10 +44,11 @@ std::unordered_map< std::string, std::vector< std::string > > default_colourmaps
 {
     static std::unordered_map< std::string, std::vector< std::string > > m =
     {
-        { "black", { "black" } },
-        { "rgb", { "red", "green", "blue" } },
-        { "cmyk", { "cyan", "magenta", "yellow", "black" } },
-        { "basic-8", { "red", "green", "blue", "cyan", "magenta", "yellow", "black", "grey" } },
+        { "black",    { "black" } },
+        { "rgb",      { "red", "green", "blue" } },
+        { "cmyk",     { "cyan", "magenta", "yellow", "black" } },
+        { "basic-4",  { "#FF0000","#00FFFF","#00FF00","#FF00FF" } },
+        { "basic-8",  { "#FF0000","#00FFFF","#00FF00","#FF00FF","#0000FF","#FFA500","#800080","#008080" } },
         { "basic-16", { "#FF0000","#00FFFF","#00FF00","#FF00FF","#0000FF","#FFA500","#800080","#008080","#8B0000","#00FF00","#008B8B","#4B0082","#006400","#FF00FF","#1E90FF","#FF8C00" } }
         // todo: more nice maps
     };
