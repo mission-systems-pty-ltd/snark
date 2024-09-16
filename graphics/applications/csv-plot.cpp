@@ -429,7 +429,7 @@ int main( int ac, char** av )
             if( !main_window.pass_through_stream_name().empty() ) { comma::say() << "stream '" << main_window.pass_through_stream_name() << "' will be passed through" << std::endl; }
         }
         main_window.start();
-        options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
+        options.exists( "--full-screen,--maximize" ) ? main_window.showFullScreen() : main_window.show();
         comma::saymore() << "started" << std::endl;
         comma::saymore() << "hotkeys" << std::endl;
         comma::saymore() << "    ctrl+g : print window geometry to stderr" << std::endl;

@@ -890,7 +890,7 @@ int main( int argc, char** argv )
                                                      , comma::split_as< int >( options.value< std::string >( "--window-geometry", ",,," ), ',', -1 )
                                                      , options.exists( "--hide-file-panel" )
                                                      , !options.exists( "--hide-file-panel-fields,--hide-fields" ) );
-        options.exists( "--full-screen,--maximize" ) ? main_window.showMaximized() : main_window.show();
+        options.exists( "--full-screen,--maximize" ) ? main_window.showFullScreen() : main_window.show();
         QApplication::exec();
         return 0;       // We never actually reach this line because we raise SIGINT when closing
 
