@@ -222,7 +222,7 @@ template < unsigned int I > static int read_points( const snark::las::header& he
         std::cin.read( reinterpret_cast< char* >( &p ), snark::las::point< I >::size ); // todo: watch performance
         int count = std::cin.gcount();
         if( count == 0 ) { break; }
-        if( count < snark::las::point< I >::size ) { std::cerr << "las-to-csv: expected las point record format " << I << " of " << snark::las::point< I >::size << " bytes, got only: " << count << std::endl; return 1; }
+        if( count < int( snark::las::point< I >::size ) ) { std::cerr << "las-to-csv: expected las point record format " << I << " of " << snark::las::point< I >::size << " bytes, got only: " << count << std::endl; return 1; }
         os.write( point< I >( p, factor, offset ) );
     }
     return 0;
