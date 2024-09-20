@@ -39,10 +39,8 @@ typedef std::pair< Eigen::Vector3d, Eigen::Vector3d > point_pair_t;
 
 struct input_points
 {
-    point_pair_t points;
-    comma::uint32 block;
-
-    input_points() : block( 0 ) {}
+    point_pair_t points{ Eigen::Vector3d( 0, 0, 0 ), Eigen::Vector3d( 0, 0, 0 ) };
+    comma::uint32 block{0};
 };
 
 struct output_t
