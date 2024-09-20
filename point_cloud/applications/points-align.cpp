@@ -137,57 +137,57 @@ static void bash_completion( unsigned int const ac, char const * const * av )
 
 static void usage( bool verbose = false )
 {
-    std::cerr << std::endl;
-    std::cerr << "give the transform that will align a point cloud with a reference point cloud" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: " << comma::verbose.app_name() << " [<options>]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "default input fields: " << default_fields << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "The input data is assumed to consist of matched points from the reference" << std::endl;
-    std::cerr << "point cloud and the point cloud to be aligned. The output is a transform" << std::endl;
-    std::cerr << "in the form " << standard_output_fields << " (angles in radians) that can be given to" << std::endl;
-    std::cerr << "points-frame to align the data." << std::endl;
-    std::cerr << std::endl;
+    std::cerr << R"(
+give the transform that will align a point cloud with a reference point cloud
+
+usage: points-align [<options>]
+
+default input fields: " << default_fields << std::endl;
+
+The input data is assumed to consist of matched points from the reference
+point cloud and the point cloud to be aligned. The output is a transform
+in the form " << standard_output_fields << " (angles in radians) that can be given to
+points-frame to align the data.
+
+csv options)" << std::endl;
+    std::cerr << comma::csv::options::usage( verbose ) << std::endl;
+    std::cerr << R"(options
+    --verbose,-v:    more output
+    --initial-error: don't run alignment, just output initial error
+    --input-fields:  print input fields to stdout and exit
+    --output-fields: print output fields to stdout and exit
+    --output-format: print output format to stdout and exit
+    --output-error:  include the error estimate in output
+    --with-scaling:  allow Umeyama algorithm to use scaling
+
+examples
+    - output the " << standard_output_fields << " transform
+        cat combined-points.csv | points-align
+
+    - align the point cloud to the reference point cloud
+    frame=$( cat combined-points.csv | points-align )
+        cat points.csv | points-frame --from $frame --fields=x,y,z
+)" << std::endl;
+    std::cerr << "algorithm" << std::endl;
     if( verbose )
     {
-        std::cerr << "csv stream options: " << std::endl;
-        std::cerr << comma::csv::options::usage() << std::endl;
-        std::cerr << std::endl;
+        std::cerr << R"(    points-align uses the Umeyama algorithm as implemented by Eigen::umeyama().
+
+    "Least-squares estimation of transformation parameters between two point
+    patterns", Shinji Umeyama, PAMI 1991, DOI: 10.1109/34.88573
+
+    See http://eigen.tuxfamily.org/dox/group__Geometry__Module.html
+    for implementation details.
+
+    Note that the --with-scaling option sets the with_scaling argument of
+    Eigen::umeyama() to true. By default we set it to false.
+)";
     }
-    std::cerr << "options: " << std::endl;
-    std::cerr << "    --help,-h:       show this help; --help --verbose for more help" << std::endl;
-    std::cerr << "    --verbose,-v:    more output" << std::endl;
-    std::cerr << "    --initial-error: don't run alignment, just output initial error" << std::endl;
-    std::cerr << "    --input-fields:  print input fields to stdout and exit" << std::endl;
-    std::cerr << "    --output-fields: print output fields to stdout and exit" << std::endl;
-    std::cerr << "    --output-format: print output format to stdout and exit" << std::endl;
-    std::cerr << "    --output-error:  include the error estimate in output" << std::endl;
-    std::cerr << "    --with-scaling:  allow Umeyama algorithm to use scaling" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "examples: " << std::endl;
-    std::cerr << "    -- output the " << standard_output_fields << " transform --" << std::endl;
-    std::cerr << "    cat combined-points.csv | points-align" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    -- align the point cloud to the reference point cloud --" << std::endl;
-    std::cerr << "    frame=$( cat combined-points.csv | points-align )" << std::endl;
-    std::cerr << "    cat points.csv | points-frame --from $frame --fields=x,y,z" << std::endl;
-    std::cerr << std::endl;
-    if( verbose )
+    else
     {
-        std::cerr << "algorithm: " << std::endl;
-        std::cerr << "    " << comma::verbose.app_name() << " uses the Umeyama algorithm as implemented by Eigen::umeyama()." << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    \"Least-squares estimation of transformation parameters between two point" << std::endl;
-        std::cerr << "    patterns\", Shinji Umeyama, PAMI 1991, DOI: 10.1109/34.88573" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    See http://eigen.tuxfamily.org/dox/group__Geometry__Module.html" << std::endl;
-        std::cerr << "    for implementation details." << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    Note that the --with-scaling option sets the with_scaling argument of" << std::endl;
-        std::cerr << "    Eigen::umeyama() to true. By default we set it to false." << std::endl;
-        std::cerr << std::endl;
+        std::cerr << "    for more details, run points-align --help --verbose" << std::endl;
     }
+    std::cerr << std::endl;
     exit( 0 );
 }
 
@@ -228,30 +228,25 @@ void output_transform( Eigen::MatrixXd source
                      , comma::uint32 block
                      , comma::csv::options output_csv )
 {
-    comma::verbose << "loaded " << target.cols() << " pairs of points" << std::endl;
-    comma::verbose << "computing Umeyama estimate " << ( with_scaling ? "with" : "without" ) << " scaling" << std::endl;
-
+    comma::saymore() << "loaded " << target.cols() << " pairs of points" << std::endl;
+    comma::saymore() << "computing Umeyama estimate " << ( with_scaling ? "with" : "without" ) << " scaling" << std::endl;
     Eigen::Matrix4d estimate = Eigen::umeyama( source, target, with_scaling );
-
-    comma::verbose << "umeyama estimate\n" << estimate << std::endl;
-
+    comma::saymore() << "umeyama estimate\n" << estimate << std::endl;
     Eigen::Matrix3d rotation( estimate.block< 3, 3 >( 0, 0 ));
     Eigen::Vector3d translation( estimate.block< 3, 1 >( 0, 3 ));
     double scale = 1.0f;
-
     if( with_scaling )
     {
         scale = cbrt( rotation.determinant() );
         rotation /= scale;
     }
-
     Eigen::Vector3d orientation( snark::rotation_matrix::roll_pitch_yaw( rotation ));
 
-    comma::verbose << "rotation matrix\n" << rotation << std::endl;
-    comma::verbose << "translation ( " << comma::join( translation, ',' ) << " )" << std::endl;
-    comma::verbose << "orientation (rad) ( " << comma::join( orientation, ',' ) << " )" << std::endl;
-    comma::verbose << "orientation (deg) ( " << comma::join( orientation * 180 / M_PI, ',' ) << " )" << std::endl;
-    comma::verbose << "scale=" << scale << std::endl;
+    comma::saymore() << "rotation matrix\n" << rotation << std::endl;
+    comma::saymore() << "translation ( " << comma::join( translation, ',' ) << " )" << std::endl;
+    comma::saymore() << "orientation (rad) ( " << comma::join( orientation, ',' ) << " )" << std::endl;
+    comma::saymore() << "orientation (deg) ( " << comma::join( orientation * 180 / M_PI, ',' ) << " )" << std::endl;
+    comma::saymore() << "scale=" << scale << std::endl;
 
     comma::csv::output_stream< output_t > ostream( std::cout, output_csv );
     ostream.write( output_t( block
@@ -269,7 +264,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         csv.full_xpath = true;
         if( csv.fields.empty() ) { csv.fields = default_fields; }
-        comma::verbose << "csv.fields=" << csv.fields << std::endl;
+        comma::saymore() << "csv.fields=" << csv.fields << std::endl;
         bool output_error = options.exists( "--output-error" );
         bool initial_error = options.exists( "--initial-error" );
 
@@ -282,7 +277,7 @@ int main( int ac, char** av )
 
         comma::csv::options output_csv;
         output_csv.fields = output_fields;
-        comma::verbose << "output fields=" << output_fields << std::endl;
+        comma::saymore() << "output fields=" << output_fields << std::endl;
 
         Eigen::MatrixXd source( 3, 0 );
         Eigen::MatrixXd target( 3, 0 );
@@ -322,12 +317,12 @@ int main( int ac, char** av )
                 source(i, source.cols()-1) = p->points.second(i);
             }
         }
-        if( discarded_records > 0 ) { std::cerr << comma::verbose.app_name() << ": discarded " << discarded_records << " out of " << ( target.cols() + discarded_records ) << " records" << std::endl; }
+        if( discarded_records > 0 ) { comma::saymore() << "discarded " << discarded_records << " out of " << ( target.cols() + discarded_records ) << " records" << std::endl; }
         if( initial_error ) { std::cout << error( source, target ) << std::endl; }
         else { output_transform( source, target, with_scaling, block, output_csv ); }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << ": unknown exception" << std::endl; }
     return 1;
 }
