@@ -19,23 +19,23 @@ namespace snark { namespace las {
 
 struct version : public comma::packed::packed_struct< version, 2 >
 {
-    comma::packed::byte major;
-    comma::packed::byte minor;
+    comma::packed::byte major{0};
+    comma::packed::byte minor{0};
 };
 
 template < typename T >
 struct xyz : public comma::packed::packed_struct< xyz< T >, sizeof( T ) * 3 >
 {
-    T x;
-    T y;
-    T z;
+    T x{0};
+    T y{0};
+    T z{0};
 };
 
 /// version 1.3-R11, see http://www.asprs.org/a/society/committees/standards/LAS_1_3_r11.pdf
 // version 1.4-R15: see e.g. http://www.asprs.org/wp-content/uploads/2019/07/LAS_1_4_r15.pdf
 struct header: public comma::packed::packed_struct< header, 227 >
 {
-    struct global_encoding_t { comma::uint16 gps_time_type: 1, waveform_data_packets_internal: 1, waveform_data_packets_external: 1, syntetic_return_numbers: 1, wkt: 1, reserved: 11; };
+    struct global_encoding_t { comma::uint16 gps_time_type: 1, waveform_data_packets_internal: 1, waveform_data_packets_external: 1, syntetic_return_numbers: 1, wkt: 1, reserved: 11; global_encoding_t() { std::memset( ( char* )( this ), 0, sizeof( global_encoding_t ) ); } };
     comma::packed::string< 4 > signature;
     comma::packed::little_endian::uint16 source_id;
     comma::packed::bits< global_encoding_t > global_encoding; // todo: do bit decoding
@@ -128,7 +128,7 @@ template < unsigned int I > struct point;
 
 template <> struct point< 0 > : public comma::packed::packed_struct< point< 0 >, 20 >
 {
-    struct returns_t { unsigned char number: 3, size: 3, scan_direction: 1, edge_of_flight_line: 1; };
+    struct returns_t { unsigned char number: 3, size: 3, scan_direction: 1, edge_of_flight_line: 1; returns_t() { std::memset( ( char* )( this ), 0, sizeof( returns_t ) ); } };
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
@@ -187,7 +187,7 @@ template <> struct point< 3 > : public comma::packed::packed_struct< point< 3 >,
 
 template <> struct point< 6 > : public comma::packed::packed_struct< point< 6 >, 60 >
 {
-    struct returns_t { comma::uint16 number: 4, size: 4; unsigned char classification: 4, channel: 2, scan_direction: 1, edge_of_flight_line: 1; };
+    struct returns_t { comma::uint16 number: 4, size: 4; unsigned char classification: 4, channel: 2, scan_direction: 1, edge_of_flight_line: 1; returns_t() { std::memset( ( char* )( this ), 0, sizeof( returns_t ) ); } };
     las::xyz< comma::packed::little_endian32 > coordinates;
     comma::packed::little_endian::uint16 intensity;
     comma::packed::bits< returns_t > returns;
