@@ -180,6 +180,7 @@ int main( int ac, char** av )
         sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
         sample.data.quality = options.value( "--quality", 0 );
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
+        comma::csv::ascii< snark::nmea::messages::gga > gga;
         while( is.ready() && std::cin.good() )
         {
             const input::type* p = is.read();
@@ -196,6 +197,13 @@ int main( int ac, char** av )
                 if( t == "gga" )
                 {
                     // todo: output gga
+                    snark::nmea::messages::gga m;
+                    m.coordinates.latitude.value = p->data.position.latitude;
+                    m.coordinates.longitude.value = p->data.position.longitude;
+                    // todo: fill the remaining fields
+                    std::string line;
+                    gga.put( m, line );
+                    std::cout << line << std::endl;
                     continue;
                 }
                 if( t == "gsa" )

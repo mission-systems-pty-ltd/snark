@@ -164,6 +164,7 @@ template <> struct traits< snark::nmea::messages::gga >
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::nmea::messages::gga& p, Visitor& v ) // hyper-quick and monster-dirty
     {
+        //std::cerr << "==> visit gga: coordinates: " << p.coordinates.latitude.value << "," << p.coordinates.longitude.value << std::endl;
         v.apply( "", static_cast< const snark::nmea::message& >( p ) );
         v.apply( "time", p.time );
         v.apply( "coordinates", p.coordinates );

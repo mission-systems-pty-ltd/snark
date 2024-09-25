@@ -29,8 +29,7 @@
 
 /// @author vsevolod vlaskine
 
-#ifndef SNARK_NAVIGATION_NMEA_MESSAGES_H_
-#define SNARK_NAVIGATION_NMEA_MESSAGES_H_
+#pragma once
 
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -65,6 +64,7 @@ struct date { boost::gregorian::date value; };
 struct angle { double value; };
     
 // http://www.gpsinformation.org/dale/nmea.htm#GGA
+// todo: the website above does not exist anymore; find another one
 struct gga : message
 {
     static const std::string type;
@@ -74,13 +74,13 @@ struct gga : message
     nmea::messages::time time;
     nmea::messages::coordinates coordinates;
     quality_t::values quality;
-    unsigned int satellites_in_use;
-    double hdop;
-    double orthometric_height;
+    unsigned int satellites_in_use{0};
+    double hdop{0};
+    double orthometric_height{0};
     std::string height_unit;
-    double geoid_separation;
+    double geoid_separation{0};
     std::string geoid_separation_unit;
-    double age_of_differential_gps_data_record;
+    double age_of_differential_gps_data_record{0};
     std::string reference_station_id;
 };
 
@@ -91,10 +91,10 @@ struct rmc : message
     nmea::messages::time time;
     std::string validity;
     nmea::messages::coordinates coordinates;
-    double speed_in_knots;
-    double true_course;
+    double speed_in_knots{0};
+    double true_course{0};
     nmea::messages::date date;
-    double variation;
+    double variation{0};
     std::string east_west;
 };
 
@@ -140,10 +140,10 @@ struct avr : message
     std::string tilt_string;
     nmea::messages::angle roll;
     std::string roll_string;
-    double range;
+    double range{0};
     quality_t::values quality;
-    double pdop;
-    unsigned int satellites_in_use;
+    double pdop{0};
+    unsigned int satellites_in_use{0};
 };
 
 }; // namespace trimble {
@@ -156,5 +156,3 @@ const std::string trimble::avr::type = "AVR";
 } // namespace messages {
 
 } } // namespace snark { namespace nmea {
-
-#endif // SNARK_NAVIGATION_NMEA_MESSAGES_H_
