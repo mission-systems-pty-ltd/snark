@@ -163,7 +163,8 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input::type >( false ), ',' ) << std::endl; return 0; }
         const auto& output_types = comma::split( options.value< std::string >( "--output", "gga,gsa,gsv,rmc" ), ',', true );
-        for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "gsa" || t == "gsv" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
+        //for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "gsa" || t == "gsv" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
+        for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         bool permissive = options.exists( "--permissive" );
         comma::csv::options csv( options, "t,latitude,longitude,z" );
         std::vector< std::string > v = comma::split( csv.fields, ',', true );
@@ -186,7 +187,7 @@ int main( int ac, char** av )
             COMMA_ASSERT_BRIEF( p->data.number_of_satellites > 0 || permissive, "got 0 satellites, use --permissive to override" );
             COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
 
-            //std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
+            std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
 
             for( const auto& t: output_types )
             {
