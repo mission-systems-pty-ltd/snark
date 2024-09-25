@@ -76,19 +76,19 @@ static void usage( bool verbose )
 struct position
 {
     snark::spherical::coordinates coordinates;
-    double z;
+    double z{0};
 
-    position() : z( 0 ) {}
+    position() = default;
     position( const snark::spherical::coordinates& coordinates, double z ) : coordinates( coordinates ), z( z ) {}
 };
 
 struct orientation
 {
-    double roll;
-    double pitch;
-    double yaw;
+    double roll{0};
+    double pitch{0};
+    double yaw{0};
 
-    orientation() : roll( 0 ), pitch( 0 ), yaw( 0 ) {}
+    orientation() = default;
     orientation( double roll, double pitch, double yaw ) : roll( roll ), pitch( pitch ), yaw( yaw ) {}
 };
 
@@ -98,10 +98,8 @@ struct output
     {
         ::position position; // todo: make optional? or simply check for zeroes?
         ::orientation orientation; // todo: make optional? or simply check for zeroes?
-        comma::uint32 number_of_satellites;
-        comma::int32 quality;
-
-        data() : number_of_satellites( 0 ), quality( 0 ) {}
+        comma::uint32 number_of_satellites{0};
+        comma::int32 quality{0};
     };
 
     typedef snark::timestamped< data > type;

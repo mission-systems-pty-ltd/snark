@@ -30,14 +30,13 @@
 
 #include <iostream>
 #include <comma/application/command_line_options.h>
+#include <comma/base/exception.h>
 #include <comma/csv/impl/fieldwise.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
-#include <comma/application/verbose.h>
-#include "../../../math/spherical_geometry/coordinates.h"
-#include "../../../math/spherical_geometry/traits.h"
-#include "../../../timing/timestamped.h"
-#include "../../../timing/traits.h"
+#include <comma/string/string.h>
+#include <comma/timing/timestamped.h>
+#include <comma/timing/traits.h>
 #include "../messages.h"
 #include "../string.h"
 #include "../traits.h"
@@ -46,64 +45,56 @@ bool zda_only=true;
 
 static void usage( bool verbose )
 {
-    std::cerr << std::endl;
-    std::cerr << "convert nmea data to csv" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: netcat localhost 12345 | nmea-to-csv [<options>]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --help,-h: output help; --help --verbose: more help" << std::endl;
-    std::cerr << "    --fields,-f=<fields>: select output fields" << std::endl;
-    std::cerr << "    --permissive: skip the record, if checksum invalid" << std::endl;
-    std::cerr << "    --output-all,--all: if present, output records on every gps update," << std::endl;
-    std::cerr << "                        even if values of output fields have not changed" << std::endl;
-    std::cerr << "    --output-on-gga-only: output on every GGA message only" << std::endl;
-    std::cerr << "    --output-fields: print output fields and exit" << std::endl;
-    std::cerr << "    --output-format: print output format and exit" << std::endl;
-    std::cerr << "    --verbose,-v: more output to stderr" << std::endl;
-    std::cerr << "    --no-zda; (WARNING: for backward compatibility only) updates time from any message, used when input has no ZDA message"<< std::endl;
-    std::cerr << "        when not specified, time field is only updated from ZDA messages"<< std::endl;
-    std::cerr << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "fields" << std::endl;
-    std::cerr << "    default: t,latitude,longitude,z,roll,pitch,yaw,number_of_satellites,quality" << std::endl;
-    std::cerr << std::endl;
-    if( verbose ) { std::cerr << std::endl << "binary options" << std::endl << comma::csv::options::usage() << std::endl; }
+    std::cerr << R"(
+
+read csv data on stdin, output nmea strings to stdout
+
+options
+    --input-fields; print input fields to stdout and exit
+    --number-of-satellites,--satellites=[<n>]; default number of satellites
+    --quality=[<n>]; default quality
+    --output=<what>; default=gga,gsa,gsv,rmc; <what>: <type>[,<type>]..., what to
+                     output in a given order
+                     <type>: gga,gsa,gsv,rmc
+    --permissive,--force; errors will tell you when to use --force
+    --verbose,-v: more output to stderr
+
+fields
+    default: t,latitude,longitude,z
+
+)" << std::endl;
+    std::cerr << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
 }
 
 struct position
 {
-    snark::spherical::coordinates coordinates;
-    double z;
-
-    position() : z( 0 ) {}
-    position( const snark::spherical::coordinates& coordinates, double z ) : coordinates( coordinates ), z( z ) {}
+    double latitude{0};
+    double longitude{0};
+    double z{0};
 };
 
 struct orientation
 {
-    double roll;
-    double pitch;
-    double yaw;
+    double roll{0};
+    double pitch{0};
+    double yaw{0};
 
-    orientation() : roll( 0 ), pitch( 0 ), yaw( 0 ) {}
+    orientation() = default;
     orientation( double roll, double pitch, double yaw ) : roll( roll ), pitch( pitch ), yaw( yaw ) {}
 };
 
-struct output
+struct input
 {
     struct data
     {
         ::position position; // todo: make optional? or simply check for zeroes?
         ::orientation orientation; // todo: make optional? or simply check for zeroes?
-        comma::uint32 number_of_satellites;
-        comma::int32 quality;
-
-        data() : number_of_satellites( 0 ), quality( 0 ) {}
+        comma::uint32 number_of_satellites{0};
+        comma::int32 quality{0};
     };
 
-    typedef snark::timestamped< data > type;
+    typedef comma::timestamped< data > type;
 };
 
 namespace comma { namespace visiting {
@@ -112,13 +103,15 @@ template <> struct traits< position >
 {
     template < typename Key, class Visitor > static void visit( const Key&, position& p, Visitor& v )
     {
-        v.apply( "coordinates", p.coordinates );
+        v.apply( "latitude", p.latitude );
+        v.apply( "longitude", p.longitude );
         v.apply( "z", p.z );
     }
 
     template < typename Key, class Visitor > static void visit( const Key&, const position& p, Visitor& v )
     {
-        v.apply( "coordinates", p.coordinates );
+        v.apply( "latitude", p.latitude );
+        v.apply( "longitude", p.longitude );
         v.apply( "z", p.z );
     }
 };
@@ -140,9 +133,9 @@ template <> struct traits< orientation >
     }
 };
 
-template <> struct traits< output::data >
+template <> struct traits< input::data >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, output::data& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, input::data& p, Visitor& v )
     {
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
@@ -150,7 +143,7 @@ template <> struct traits< output::data >
         v.apply( "quality", p.quality );
     }
 
-    template < typename Key, class Visitor > static void visit( const Key&, const output::data& p, Visitor& v )
+    template < typename Key, class Visitor > static void visit( const Key&, const input::data& p, Visitor& v )
     {
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
@@ -161,172 +154,69 @@ template <> struct traits< output::data >
 
 } } // namespace comma { namespace visiting {
 
-static output::type output_;
-
-static comma::csv::fieldwise make_fieldwise( const comma::csv::options& csv )
-{
-    std::vector< std::string > v = comma::split( csv.fields, ',' );
-    for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "t" ) { v[i] = ""; } }
-    comma::csv::options c = csv;
-    c.fields = comma::join( v, ',' );
-    return comma::csv::fieldwise( output::type(), c );
-}
-
-static void output( const comma::csv::fieldwise& fieldwise, const output::type& v, comma::csv::output_stream< output::type >& os )
-{
-    static std::string last;
-    std::string current;
-    if( os.is_binary() )
-    {
-        current.resize( os.binary().binary().format().size() );
-        os.binary().binary().put( v, &current[0] );
-        if( !fieldwise.binary().equal( &last[0], &current[0] ) ) { std::cout.write( &current[0], os.binary().binary().format().size() ); std::cout.flush(); }
-    }
-    else
-    {
-        os.ascii().ascii().put( v, current );
-        if( !fieldwise.ascii().equal( last, current ) ) { std::cout << current << std::endl; }
-    }
-    last = current;
-}
-
-bool handle( const snark::nmea::messages::zda& zda )
-{
-    output_.t = zda.time;
-    return true;
-}
-
-bool handle( const snark::nmea::messages::gga& v )
-{
-    if( v.quality == snark::nmea::messages::gga::quality_t::fix_not_valid ) { return false; }
-    // GGA message contains only time_of_day, so need to have loaded the actual date from
-    // a different message already.
-    const bool valid_time = !output_.t.is_not_a_date_time();
-    if(!zda_only && valid_time)
-    {
-        output_.t = boost::posix_time::ptime(output_.t.date(), v.time.value.time_of_day());
-    }
-    output_.data.position.coordinates = v.coordinates();
-    output_.data.position.z = v.orthometric_height;
-    output_.data.number_of_satellites = v.satellites_in_use;
-    output_.data.quality = v.quality;
-    return valid_time;
-}
-
-bool handle( const snark::nmea::messages::rmc& v )
-{
-    if(!zda_only && v.validity == "A")
-    {
-        output_.t = boost::posix_time::ptime(v.date.value, v.time.value.time_of_day());
-    }
-    output_.data.position.coordinates = v.coordinates();
-    return true;
-}
-
-bool handle( const snark::nmea::messages::trimble::avr& m )
-{
-    if(m.quality==snark::nmea::messages::trimble::avr::quality_t::fix_not_valid) { return false; }
-    // GGA message contains only time_of_day, so need to have loaded the actual date from
-    // a different message already.
-    const bool valid_time = !output_.t.is_not_a_date_time();
-    if(!zda_only && valid_time)
-    {
-        output_.t = boost::posix_time::ptime(output_.t.date(), m.time.value.time_of_day());
-    }
-    output_.data.orientation.roll = m.roll.value;
-    output_.data.orientation.pitch = m.tilt.value;
-    output_.data.orientation.yaw = m.yaw.value;
-    //output_.data.number_of_satellites = m.value.satellites_in_use;
-    return valid_time;
-}
-
-template < typename T > bool handle( const snark::nmea::string& s )
-{
-    static comma::csv::ascii< T > ascii;
-    return handle( ascii.get( s.values() ) );
-}
+static input::type input_;
 
 int main( int ac, char** av )
 {
     try
     {
         comma::command_line_options options( ac, av, usage );
-        comma::say() << "implementing..." << std::endl; return 1;
-        if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output::type >( false ), ',' ) << std::endl; return 0; }
-        if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format::value< output::type >( options.value< std::string >( "--fields,-f", "" ), false ) << std::endl; return 0; }
-        bool output_all = options.exists( "--output-all,--all" );
-        bool output_on_gga_only = options.exists( "--output-on-gga-only" );
-        bool verbose = options.exists( "--verbose,-v" );
+        if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input::type >( false ), ',' ) << std::endl; return 0; }
+        const auto& output_types = comma::split( options.value< std::string >( "--output", "gga,gsa,gsv,rmc" ), ',', true );
+        for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "gsa" || t == "gsv" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         bool permissive = options.exists( "--permissive" );
-        if( options.exists( "--ignore-parsing-errors" ) ) { std::cerr << "nmea-to-csv: --ignore-parsing-errors: deprecated; use --permissive" << std::endl; return 1; }
-        zda_only=!options.exists("--no-zda");
-        comma::csv::options csv( options );
-        csv.full_xpath = true; // for future, e.g. to plug in errors
-        if( csv.fields.empty() ) { csv.fields = comma::join( comma::csv::names< output::type >( csv.full_xpath ), ',' ); }
-        else if( csv.full_xpath )
+        comma::csv::options csv( options, "t,latitude,longitude,z" );
+        std::vector< std::string > v = comma::split( csv.fields, ',', true );
+        for( unsigned int i = 0; i < v.size(); ++i ) // todo: use alias map in csv::options constructor
         {
-            std::vector< std::string > v = comma::split( csv.fields, ',' );
-            for( unsigned int i = 0; i < v.size(); ++i )
-            {
-                if( v[i] == "latitude" || v[i] == "longitude" ) { v[i] = "data/position/coordinates/" + v[i]; }
-                else if( v[i] == "z" ) { v[i] = "data/position/" + v[i]; }
-                if( v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "data/orientation/" + v[i]; }
-                else if( v[i] == "number_of_satellites" || v[i] == "quality" ) { v[i] = "data/" + v[i]; }
-            }
-            csv.fields = comma::join( v, ',' );
+            if( v[i] == "latitude" || v[i] == "longitude" ) { v[i] = "data/position/" + v[i]; }
+            else if( v[i] == "z" ) { v[i] = "data/position/" + v[i]; }
+            if( v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "data/orientation/" + v[i]; }
+            else if( v[i] == "number_of_satellites" || v[i] == "quality" ) { v[i] = "data/" + v[i]; }
         }
-        if( options.exists( "--binary" ) ) { csv.format( comma::csv::format::value< output::type >( csv.fields, csv.full_xpath ) ); }
-        comma::csv::fieldwise fieldwise = make_fieldwise( csv ); // todo: plug in
-        comma::csv::output_stream< output::type > os( std::cout, csv );
-        while( std::cin.good() )
+        csv.fields = comma::join( v, ',' );
+        input::type sample;
+        sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
+        sample.data.quality = options.value( "--quality", 0 );
+        comma::csv::input_stream< input::type > is( std::cin, csv, sample );
+        while( is.ready() && std::cin.good() )
         {
-            std::string line;
-            std::getline( std::cin, line );
-            if( line.empty() ) { continue; }
-            snark::nmea::string s( line );
-            if( !s.valid() )
+            const input::type* p = is.read();
+            if( !p ) { break; }
+            COMMA_ASSERT_BRIEF( p->data.number_of_satellites > 0 || permissive, "got 0 satellites, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
+
+            //std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
+
+            for( const auto& t: output_types )
             {
-                std::cerr << "nmea-to-csv: " << ( permissive ? "skipped": "got" ) << " invalid nmea string: \"" << line << "\"" << std::endl;
-                if( permissive ) { continue; }
-                return 1;
-            }
-            try
-            {
-                if( s.is_proprietary() )
+                // todo: convert input into nmea strings, write to stdout
+                //if( t == "gga,gsa,gsv,rmc" )
+                if( t == "gga" )
                 {
-                    if( s.manufacturer_code() == snark::nmea::messages::trimble::manufacturer_code )
-                    {
-                        if( static_cast< const snark::nmea::messages::trimble::string& >( s ).message_type() == snark::nmea::messages::trimble::avr::type ) { if( !handle< snark::nmea::messages::trimble::avr >( s ) ) { continue; } }
-                        else { if( verbose ) { std::cerr << "nmea-to-csv: discarded unimplemented trimble message: \"" << line << "\"" << std::endl; } continue; }
-                    }
-                    else
-                    {
-                        if( verbose ) { std::cerr << "nmea-to-csv: discarded unimplemented proprietary nmea message: \"" << line << "\"" << std::endl; }
-                        continue;
-                    }
+                    // todo: output gga
+                    continue;
                 }
-                else if( s.message_type() == snark::nmea::messages::gga::type ) { if( !handle< snark::nmea::messages::gga >( s ) ) { continue; } }
-                else if( s.message_type() == snark::nmea::messages::rmc::type ) { if( !handle< snark::nmea::messages::rmc>( s ) ) { continue; } }
-                else if( s.message_type() == snark::nmea::messages::zda::type ) { if( !handle(snark::nmea::messages::zda( s ) ) ) { continue; } }
-                else { if( verbose ) { std::cerr << "nmea-to-csv: discarded unimplemented string: \"" << line << "\"" << std::endl; } continue; }
-                if( output_on_gga_only ) { if( s.message_type() == snark::nmea::messages::gga::type ) { os.write( output_ ); } }
-                else if( output_all ) { os.write( output_ ); }
-                else { output( fieldwise, output_, os ); }
-            }
-            catch( std::exception& ex )
-            {
-                std::cerr << "nmea-to-csv: " << ex.what() << " on nmea string: \"" << comma::join( s.values(), ',' ) << "\"" << std::endl;
-                if( !permissive ) { return 1; }
-            }
-            catch( ... )
-            {
-                std::cerr << "nmea-to-csv: unknown exception on nmea string: \"" <<  comma::join( s.values(), ',' ) << "\"" << std::endl;
-                if( !permissive ) { return 1; }
+                if( t == "gsa" )
+                {
+                    // todo: output gga
+                    continue;
+                }
+                if( t == "gsv" )
+                {
+                    // todo: output gga
+                    continue;
+                }
+                if( t == "rmc" )
+                {
+                    // todo: output gga
+                    continue;
+                }
             }
         }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "nmea-to-csv: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "nmea-to-csv: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }
