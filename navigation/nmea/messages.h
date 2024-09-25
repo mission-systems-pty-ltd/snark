@@ -49,7 +49,7 @@ struct message
     
 namespace messages {
 
-struct coordinate { double value; };
+struct coordinate { double value{0}; };
 
 struct coordinates
 {
