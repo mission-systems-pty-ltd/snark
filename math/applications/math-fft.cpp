@@ -29,59 +29,80 @@ static std::size_t bin_size=0;
 static boost::optional<double> bin_overlap;
 static bool tied=true;
 
-static void usage( bool detail )
+static void usage( bool verbose )
 {
-    std::cerr<<"    perform fft on input data" << std::endl;
-    std::cerr << std::endl;
-    std::cerr<< "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr<< "    input fields: data; an array of double or interleaved complex double, length of sequence is specified with --size"  << std::endl;
-    std::cerr<< "    output: array of pair (real, imaginary) of double; use --output-size to get size of array of doubles with the specified options"  << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --help,-h: show help" << std::endl;
-    std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    --bin-overlap=[<overlap>]: if specified, each bin will contain this portion of the last bin's data, range: 0 (no overlap) to 1"<<std::endl;
-    std::cerr << "    --bin-size=[<size>]: cut data into several bins of this size and perform fft on each bin, when not speificed calculates fft on the whole data" << std::endl;
-    std::cerr << "    --complex-input,--complex: when not specified, expect real-valued input, ala rfft" << std::endl;
-    std::cerr << "    --decibels,--dB,--db: scale output to 20*log10 for magnitude (phase is not affected)" << std::endl;
-    std::cerr << "    --filter: when specified, filters input using a cut window to get limited output" << std::endl;
-    std::cerr << "    --logarithmic,--log: scale output to logarithm of 10 for magnitude (phase is not affected)" << std::endl;
-    std::cerr << "    --samples,--size=<samples>: number of samples; for complex input each sample is represented by comma-separated" << std::endl;
-    std::cerr << "                                real and imaginary parts; for real input each sample is just the real part" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "  output options:" << std::endl;
-    std::cerr << "    --imaginary: output imaginary part only" << std::endl;
-    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
-    std::cerr << "    --magnitude: output magnitude only" << std::endl;
-    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
-    std::cerr << "    --phase: output phase only" << std::endl;
-    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
-    std::cerr << "    --polar: output in complex polar form; (magnitude, phase)" << std::endl;
-    std::cerr << "    --real: output real part only" << std::endl;
-    std::cerr<< "        output is binary array of double with half the size of input"  << std::endl;
-    std::cerr << "    --split: output array of real/magnitude followed by array of imaginary/phase part; when not specified real/magnitude and imaginary/phase parts are interleaved" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    --shuffle,--shuffle-fields,--shuffled-fields=[<csv_fields>]: comma separated list of input fields to be written to stdout; if not specified prepend all input fields to the output" << std::endl;
-    std::cerr << "    --untied,--discard-input: only write output (doesn't write input to stdout)" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "  utility options:" << std::endl;
-    std::cerr << "    --output-fields: print output fields and exit; depends on input fields and size" << std::endl;
-    std::cerr << "    --output-format: print binary format of output and exit; depends on input fields and size" << std::endl;
-    std::cerr << "    --output-size: print size of output data array and exit; e.g. if output format is t,ui,256d, then output size is 256" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "csv options:" << std::endl;
-    std::cerr << comma::csv::options::usage( detail ) << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "examples (try first few)" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied --split" << std::endl;
-    std::cerr << "    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex" << std::endl;
-    std::cerr << "    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000" << std::endl;
-    std::cerr << std::endl;
-    exit(0);
+    std::cerr << R"(
+perform fft on input data
+
+usage:  cat input.csv | fft-math <options> > converted.csv
+
+input:  an array of double or interleaved complex double, length
+        of sequence is specified with --size
+output: array of pair (real, imaginary) of double; use --output-size
+        to get size of array of doubles with the specified options
+
+options
+    --bin-overlap=[<overlap>]:  if specified, each bin will contain 
+                                this portion of the last bin's data,
+                                range: 0 (no overlap) to 1
+    --bin-size=[<size>]:        cut data into several bins of this size
+                                and perform fft on each bin, when not
+                                specified calculates fft on the whole data
+    --complex-input,--complex:  when not specified, expect real-valued
+                                input, ala rfft
+    --decibels,--dB,--db:       scale output to 20*log10 for magnitude
+                                (phase is not affected)
+    --filter:                   when specified, filters input using a cut
+                                window to get limited output
+    --logarithmic,--log:        scale output to logarithm of 10 for
+                                magnitude (phase is not affected)
+    --output-fields:            print output fields to stdout and exit
+                                depends on input fields and size
+    --output-format:            print binary format of output to stdout
+                                and exit depends on input fields and size
+    --output-size:              print size of output data array and exit
+                                e.g. if output format is t,ui,256d, then
+                                output size is 256
+    --samples,--size=<samples>: number of samples; for complex input
+                                each sample is represented by comma-separated
+                                real and imaginary parts; for real input
+                                each sample is just the real part
+    --verbose,-v:               more verbose output
+
+output options
+    --imaginary: output imaginary part only output is binary array of doubles
+                 with half the size of input
+    --magnitude: output magnitude only output is binary array of double with
+                 half the size of input
+    --phase:     output phase only output is binary array of double with half
+                 the size of input
+    --polar:     output in complex polar form; (magnitude, phase)
+    --real:      output real part only output is binary array of double with half
+                 the size of input
+    --shuffle,--shuffle-fields,--shuffled-fields=[<csv_fields>]: comma separated
+                 list of input fields to be written to stdout; if not specified
+                 prepend all input fields to the output
+    --split:     output array of real/magnitude followed by array of imaginary/phase
+                 part; when not specified real/magnitude and imaginary/phase parts
+                 are interleaved
+    --untied,--discard-input: only write output to stdout, if unspecified,
+                 write input to stdout and append output (see examples)
+)" << std::endl;
+    std::cerr << "csv options" << std::endl;
+    std::cerr << comma::csv::options::usage( verbose ) << std::endl;
+    std::cerr << R"(examples
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied --split
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex --untied
+    echo 0,1,2,3,4,5,6,7 \
+        | csv-to-bin 8f \
+        | math-fft --samples=4 --binary 8f --complex --untied \
+        | csv-to-bin 8d
+    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000
+)" << std::endl;
+    exit( 0 );
 }
 
 // math-fft --fields ,,data --format t,ui,16000f
@@ -206,19 +227,11 @@ public:
         }
         else 
         { 
-            if (real_input) 
-            {
-                memcpy(fft.input, data, samples * sizeof(double) ); 
-            }
-            else 
-            {
-                memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); 
-            }
+            if (real_input) { ::memcpy(fft.input, data, samples * sizeof(double) ); }
+            else { memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); }
             // memcpy(fft.input, data, size * sizeof(double) ); 
-        }
-        
+        }        
         fft.execute();
-        
         if(magnitude)
         {
             if(fft.output_size()>output.size()) { COMMA_THROW(comma::exception, "size mismatch, output "<<output.size()<<" fft output "<<fft.output_size()); }
@@ -305,17 +318,19 @@ struct app
     {
         if(bin_overlap && int(bin_size*(1-*bin_overlap)) <= 0) { COMMA_THROW( comma::exception, "bin size and overlap don't work" ); }
         input_t sample;
-        comma::csv::input_stream<input_t> is(std::cin, csv, sample);
-        comma::csv::output_stream<output_t> os(std::cout, csv.binary(), true);
-        std::string array_sizes="data=";
-        array_sizes+=boost::lexical_cast<std::string>(sample.data.size());
-        ::shuffle_tied<input_t,output_t> shuffle_tied(is, os, csv, shuffle_fields,array_sizes);
+        comma::csv::input_stream< input_t > is( std::cin, csv, sample );
+        comma::csv::output_stream< output_t > os( std::cout, csv.binary(), true );
+        ::shuffle_tied< input_t, output_t > shuffle_tied( is
+                                                        , os
+                                                        , csv
+                                                        , shuffle_fields
+                                                        , "data=" + boost::lexical_cast< std::string >( sample.data.size() ) );
         output_t output;
-        while(std::cin.good())
+        while( std::cin.good() )
         {
             const input_t* input=is.read();
             if(!input) { break; }
-            for(std::size_t bin_offset=0;bin_offset<input_size;bin_offset+=(bin_overlap ? bin_size*(1-*bin_overlap) : bin_size))
+            for( std::size_t bin_offset = 0; bin_offset< input_size; bin_offset += bin_overlap ? bin_size * ( 1 - *bin_overlap ) : bin_size )
             {
                 output.reset();
                 fft::calculate(&input->data[bin_offset], std::min(bin_size,input_size-bin_offset), output.data);
@@ -366,9 +381,8 @@ int main( int argc, char** argv )
         options.assert_mutually_exclusive( "--magnitude,--phase", "--real,--imaginary" );
         options.assert_mutually_exclusive( "--logarithmic,--log,--dB,--decibels,--db", "--real,--imaginary,--phase" );
         options.assert_mutually_exclusive( "--logarithmic,--log", "--dB,--decibels,--db" );
-        std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--output-size,--output-format,--output-fields,--filter,--complex-input,--complex,--logarithmic,--log,--dB,--decibels,--db,--polar,--magnitude,--phase,--real,--imaginary,--split,--untied,--discard-input"
-                                                            , "--binary,-b,--fields,-f,--delimiter,-d,--size,--samples,--bin-size,--bin-overlap,--shuffle,--shuffle-fields,--shuffled-fields" );
-        if( unnamed.size() > 0 ) { comma::say() << "invalid option(s): " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
+        std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--output-size,--output-format,--output-fields,--filter,--complex-input,--complex,--logarithmic,--log,--dB,--decibels,--db,--polar,--magnitude,--phase,--real,--imaginary,--split,--untied,--discard-input" , "-.*" );
+        COMMA_ASSERT_BRIEF( unnamed.empty(), "invalid option(s): " << comma::join( unnamed, ' ' ) );
         app app;
         if(options.exists("--output-size")) { std::cout<< app.get_output_size() << std::endl; return 0; }
         if(options.exists("--output-format")) { app.output_format(); return 0; }
