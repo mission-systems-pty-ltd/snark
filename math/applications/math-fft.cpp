@@ -99,7 +99,7 @@ output options
     echo 0,1,2,3,4,5,6,7 \
         | csv-to-bin 8f \
         | math-fft --samples=4 --binary 8f --complex --untied \
-        | csv-to-bin 8d
+        | csv-from-bin 8d
     cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000
 )" << std::endl;
     exit( 0 );
