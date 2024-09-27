@@ -7,9 +7,7 @@
 namespace snark { namespace ros { namespace time {
 
 boost::posix_time::ptime to_boost( const rclcpp::Time& time ){
-    rclcpp::Time now = rclcpp::Clock().now();
-
-    int64_t nanoseconds = now.nanoseconds();
+    int64_t nanoseconds = time.nanoseconds();
     // Convert nanoseconds to seconds and remainder microseconds
     int64_t seconds = nanoseconds / 1000000000;
     int64_t microseconds = (nanoseconds % 1000000000) / 1000;
