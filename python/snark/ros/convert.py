@@ -40,6 +40,7 @@ def ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays 
     return ( record_t, record_ctor )
 
 def from_csv_supported_types( v ):
+    if isinstance( v, numpy.bytes_ ): return str( v )
     if type( v ) != numpy.datetime64: return v
     microseconds = numpy.int64( v )
     return rospy.Time( microseconds // 1000000, ( microseconds % 1000000 ) * 1000 )
