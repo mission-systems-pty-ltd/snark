@@ -58,8 +58,12 @@ template <> struct traits< snark::nmea::messages::coordinate >
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::nmea::messages::coordinate& p, Visitor& v ) // hyper-quick and dirty
     {
-        double c = 0; // todo, if needed: set from p
-        std::string d; // todo, if needed: set from p
+        double degrees = std::abs( p.value ) * 180.0 / M_PI;
+        int int_degrees = static_cast<int>(degrees);
+        double minutes = (degrees - int_degrees) * 60.0;
+        double c = int_degrees * 100 + minutes;
+        std::string d = ( p.value >= 0 ) ? "N" : "S"; 
+        
         v.apply( "value", c );
         v.apply( "direction", d );
     }

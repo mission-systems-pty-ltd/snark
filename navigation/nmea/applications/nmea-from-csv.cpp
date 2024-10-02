@@ -91,7 +91,19 @@ struct input
         ::position position; // todo: make optional? or simply check for zeroes?
         ::orientation orientation; // todo: make optional? or simply check for zeroes?
         comma::uint32 number_of_satellites{0};
-        comma::int32 quality{0};
+        //comma::int32 quality{0};
+        //snark::nmea::messages::gga::quality_t::values quality;
+        comma::uint32 height_unit{0}; //incorrect
+        comma::uint32 hdop{0};
+        comma::uint32 height_of_geoid{0};
+        comma::uint32 geoid_separation_unit{0};
+        comma::uint32 age_of_differential_gps_data_record{0};
+        comma::uint32 reference_station_id{0};
+        comma::uint32 speed_in_knots{0};
+        comma::uint32 variation{0};
+        comma::uint32 east_west{0};
+        comma::uint32 validity{0};
+        comma::uint32 true_course{0};
     };
 
     typedef comma::timestamped< data > type;
@@ -134,13 +146,24 @@ template <> struct traits< orientation >
 };
 
 template <> struct traits< input::data >
-{
+{   
     template < typename Key, class Visitor > static void visit( const Key&, input::data& p, Visitor& v )
     {
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
         v.apply( "number_of_satellites", p.number_of_satellites );
-        v.apply( "quality", p.quality );
+        //v.apply( "quality", p.quality );
+        v.apply( "height_unit", p.height_unit );
+        v.apply( "hdop", p.hdop );
+        v.apply( "height_of_geoid", p.height_of_geoid );
+        v.apply( "geoid_separation_unit", p.geoid_separation_unit );
+        v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
+        v.apply( "reference_station_id", p.reference_station_id );
+        v.apply( "speed_in_knots", p.speed_in_knots );
+        v.apply( "variation", p.variation );
+        v.apply( "east_west", p.east_west );
+        v.apply( "validity", p.validity );
+        v.apply( "true_course", p.true_course );
     }
 
     template < typename Key, class Visitor > static void visit( const Key&, const input::data& p, Visitor& v )
@@ -148,7 +171,18 @@ template <> struct traits< input::data >
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
         v.apply( "number_of_satellites", p.number_of_satellites );
-        v.apply( "quality", p.quality );
+        //v.apply( "quality", p.quality );
+        v.apply( "height_unit", p.height_unit );
+        v.apply( "hdop", p.hdop );
+        v.apply( "height_of_geoid", p.height_of_geoid );
+        v.apply( "geoid_separation_unit", p.geoid_separation_unit );
+        v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
+        v.apply( "reference_station_id", p.reference_station_id );
+        v.apply( "speed_in_knots", p.speed_in_knots );
+        v.apply( "variation", p.variation );
+        v.apply( "east_west", p.east_west );
+        v.apply( "validity", p.validity );
+        v.apply( "true_course", p.true_course );
     }
 };
 
@@ -178,15 +212,43 @@ int main( int ac, char** av )
         csv.fields = comma::join( v, ',' );
         input::type sample;
         sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
-        sample.data.quality = options.value( "--quality", 0 );
+        sample.data.height_unit = options.value( "--height_unit", 0 );
+        //sample.data.quality = options.value( "--quality", 0 );
+        //sample.data.quality = static_cast<snark::nmea::messages::gga::quality_t::values>(options.value( "--quality", 0 ));
+        sample.data.hdop = options.value( "--hdop", 0 );
+        sample.data.height_of_geoid = options.value( "--height_of_geoid", 0 );
+        sample.data.geoid_separation_unit = options.value( "--geoid_separation_unit", 0 );
+        sample.data.age_of_differential_gps_data_record = options.value( "--age_of_differential_gps_data_record", 0 );
+        sample.data.reference_station_id = options.value( "--reference_station_id", 0 );
+
+        sample.data.speed_in_knots = options.value( "--speed_in_knots", 0 );
+        sample.data.variation = options.value( "--variation", 0 );
+        sample.data.east_west = options.value( "--east_west", 0 );
+        sample.data.validity = options.value( "--validity", 0 );
+        sample.data.true_course = options.value( "--true_course", 0 );
+        
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
         comma::csv::ascii< snark::nmea::messages::gga > gga;
         while( is.ready() && std::cin.good() )
         {
             const input::type* p = is.read();
             if( !p ) { break; }
+            // gga stuff
             COMMA_ASSERT_BRIEF( p->data.number_of_satellites > 0 || permissive, "got 0 satellites, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
+            //COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.height_unit > 0 || permissive, "got height_unit 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.hdop > 0 || permissive, "got hdop 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.height_of_geoid > 0 || permissive, "got height_of_geoid 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.geoid_separation_unit > 0 || permissive, "got geoid_separation_unit 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.age_of_differential_gps_data_record > 0 || permissive, "got age_of_differential_gps_data_record 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.reference_station_id > 0 || permissive, "got reference_station_id 0, use --permissive to override" );
+
+            // rmc stuff
+            COMMA_ASSERT_BRIEF( p->data.speed_in_knots > 0 || permissive, "got speed_in_knots 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.variation > 0 || permissive, "got variation 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.east_west > 0 || permissive, "got east_west 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.validity > 0 || permissive, "got validity 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.true_course > 0 || permissive, "got true_course 0, use --permissive to override" );
 
             std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
 
@@ -201,6 +263,16 @@ int main( int ac, char** av )
                     m.coordinates.latitude.value = p->data.position.latitude;
                     m.coordinates.longitude.value = p->data.position.longitude;
                     // todo: fill the remaining fields
+                    m.satellites_in_use = p->data.number_of_satellites;
+                    //m.quality = p->data.quality;
+                    m.hdop = p->data.hdop;
+                    m.orthometric_height = p->data.position.z;
+                    m.height_unit = p->data.height_unit;
+                    m.geoid_separation = p->data.height_of_geoid;
+                    m.geoid_separation_unit = p->data.geoid_separation_unit;
+                    m.age_of_differential_gps_data_record = p->data.age_of_differential_gps_data_record;
+                    m.reference_station_id = p->data.reference_station_id;
+
                     std::string line;
                     gga.put( m, line );
                     std::cout << line << std::endl;
@@ -208,17 +280,25 @@ int main( int ac, char** av )
                 }
                 if( t == "gsa" )
                 {
-                    // todo: output gga
+                    // todo: not needed for sagetech so on hold till someone else needs this
                     continue;
                 }
                 if( t == "gsv" )
                 {
-                    // todo: output gga
+                    // todo: not needed for sagetech so on hold till someone else needs this
                     continue;
                 }
                 if( t == "rmc" )
                 {
-                    // todo: output gga
+                    snark::nmea::messages::rmc r;
+                    r.validity = p->data.validity;
+                    r.coordinates.latitude.value = p->data.position.latitude;
+                    r.coordinates.longitude.value = p->data.position.longitude;
+                    r.speed_in_knots = p->data.speed_in_knots;
+                    r.true_course = p->data.true_course;
+                    r.variation = p->data.variation;
+                    r.east_west = p->data.east_west;
+                    // todo: output rmc
                     continue;
                 }
             }
