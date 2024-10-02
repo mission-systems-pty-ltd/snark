@@ -51,10 +51,8 @@ def is_binary_type( field_type ):
     is_binary_type() will handle both before and after variations.
 """
     from rospy_message_converter import message_converter as mc
-    try:
-        return mc._is_ros_binary_type( field_type )
-    except AttributeError:
-        return mc.is_ros_binary_type( field_type, None )
+    try: return mc._is_ros_binary_type( field_type )
+    except AttributeError: return mc.is_ros_binary_type( field_type, None )
 
 def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """

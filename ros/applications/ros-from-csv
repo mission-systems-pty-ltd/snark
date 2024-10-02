@@ -62,6 +62,7 @@ genpy.message.isstring = isstring_unless_numpy
 
 def main():
     parser = argparse.ArgumentParser( description = help_description, epilog = help_examples, formatter_class = argparse.RawDescriptionHelpFormatter, conflict_handler = 'resolve' )
+    parser.add_argument( '--bag', help = 'save to a bagfile', type = str )
     parser.add_argument( '--index-output-fields', help='output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true' )
     parser.add_argument( '--message-type', '--type', help = 'message type, useful for debugging', type = str )
     parser.add_argument( '--output-fields', help = 'output input csv fields and exit', action = 'store_true' )
@@ -111,10 +112,24 @@ def main():
         publisher = rospy.Publisher( args.topic, message_type, queue_size = args.ros_queue_size )
         rospy.init_node( 'ros_from_csv', anonymous = True )
         if args.verbose: print( "ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr )
-    for records in istream:
-        for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
-            assign( record )
-            if args.dry_run: print( message )
-            else: publisher.publish( message )
+
+    if args.dry_run: 
+        for records in istream:
+            for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
+                assign( record )        
+                print( message )
+    elif args.bag:
+        import rosbag
+        bag = rosbag.Bag( args.bag, 'w' )
+        for records in istream:
+            for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
+                assign( record )
+                bag.write( args.topic, message )
+        bag.close()
+    else: 
+        for records in istream:
+            for record in records: # todo? try assigning the whole array at once? should be a better performance? but we may need to expand comma.csv.struct.assign() to make it working
+                assign( record )
+                publisher.publish( message )
 
 if __name__ == '__main__': main()
