@@ -196,7 +196,7 @@ int main( int ac, char** av )
     {
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input::type >( false ), ',' ) << std::endl; return 0; }
-        const auto& output_types = comma::split( options.value< std::string >( "--output", "gga,gsa,gsv,rmc" ), ',', true );
+        const auto& output_types = comma::split( options.value< std::string >( "--output", "gga,rmc" ), ',', true );
         //for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "gsa" || t == "gsv" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         bool permissive = options.exists( "--permissive" );
@@ -278,16 +278,16 @@ int main( int ac, char** av )
                     std::cout << line << std::endl;
                     continue;
                 }
-                if( t == "gsa" )
-                {
-                    // todo: not needed for sagetech so on hold till someone else needs this
-                    continue;
-                }
-                if( t == "gsv" )
-                {
-                    // todo: not needed for sagetech so on hold till someone else needs this
-                    continue;
-                }
+                // if( t == "gsa" )
+                // {
+                //     // todo: not needed for sagetech so on hold till someone else needs this
+                //     continue;
+                // }
+                // if( t == "gsv" )
+                // {
+                //     // todo: not needed for sagetech so on hold till someone else needs this
+                //     continue;
+                // }
                 if( t == "rmc" )
                 {
                     snark::nmea::messages::rmc r;
