@@ -42,19 +42,22 @@ static unsigned int hex_to_int( char c )
     COMMA_THROW( comma::exception, "expected a hexadecimal digit, got: " << c );
 }
 
-string::string( const std::string& s ): valid_( false ), complete_( false )
+string::string( const std::string& s, bool ignore_checksum ): valid_( false ), complete_( false )
 {
     if( s[0] != '$' ) { return; }
     bool has_cr = s[ s.size() - 1 ] == '\r';
     std::string::size_type p = s.find_last_of( '*' );
     if( p == std::string::npos ) { return; }
     if( p + 3 + has_cr != s.size() ) { return; }
-    unsigned char sum = 0;
-    unsigned char checksum;
-    try { checksum = 16 * hex_to_int( s[ p + 1 ] ) + hex_to_int( s[ p + 2 ] ); }
-    catch( ... ) { return; }
-    for( unsigned int i = 1; i < p; sum ^= s[i++] );
-    if( sum != checksum ) { return; }
+    if( !ignore_checksum )
+    {
+        unsigned char sum = 0;
+        unsigned char checksum;
+        try { checksum = 16 * hex_to_int( s[ p + 1 ] ) + hex_to_int( s[ p + 2 ] ); }
+        catch( ... ) { return; }
+        for( unsigned int i = 1; i < p; sum ^= s[i++] );
+        if( sum != checksum ) { return; }
+    }
     valid_ = true;
     values_ = comma::split( s.substr( 1, p - 1 ), ',' );
     complete_ = true;

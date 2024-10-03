@@ -42,7 +42,7 @@ namespace snark { namespace nmea {
 class string
 {
     public:
-        string( const std::string& s );
+        string( const std::string& s, bool ignore_checksum = false );
         
         bool valid() const;
         

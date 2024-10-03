@@ -55,12 +55,13 @@ static void usage( bool verbose )
     std::cerr << "options" << std::endl;
     std::cerr << "    --help,-h: output help; --help --verbose: more help" << std::endl;
     std::cerr << "    --fields,-f=<fields>: select output fields" << std::endl;
-    std::cerr << "    --permissive: skip the record, if checksum invalid" << std::endl;
+    std::cerr << "    --ignore-checksum: handle record, even if checksum invalid" << std::endl;
     std::cerr << "    --output-all,--all: if present, output records on every gps update," << std::endl;
     std::cerr << "                        even if values of output fields have not changed" << std::endl;
     std::cerr << "    --output-on-gga-only: output on every GGA message only" << std::endl;
     std::cerr << "    --output-fields: print output fields and exit" << std::endl;
     std::cerr << "    --output-format: print output format and exit" << std::endl;
+    std::cerr << "    --permissive: skip record, if checksum invalid" << std::endl;
     std::cerr << "    --verbose,-v: more output to stderr" << std::endl;
     std::cerr << "    --no-zda; (WARNING: for backward compatibility only) updates time from any message, used when input has no ZDA message"<< std::endl;
     std::cerr << "        when not specified, time field is only updated from ZDA messages"<< std::endl;
@@ -199,14 +200,11 @@ bool handle( const nmea::messages::zda& zda )
 
 bool handle( const nmea::messages::gga& v )
 {
-    if(v.quality==snark::nmea::messages::gga::quality_t::fix_not_valid) { return false; }
+    if( v.quality==snark::nmea::messages::gga::quality_t::fix_not_valid ) { return false; }
     // GGA message contains only time_of_day, so need to have loaded the actual date from
     // a different message already.
     const bool valid_time = !output_.t.is_not_a_date_time();
-    if(!zda_only && valid_time)
-    {
-        output_.t = boost::posix_time::ptime(output_.t.date(), v.time.value.time_of_day());
-    }
+    if( !zda_only && valid_time ) { output_.t = boost::posix_time::ptime( output_.t.date(), v.time.value.time_of_day() ); }
     output_.data.position.coordinates = v.coordinates();
     output_.data.position.z = v.orthometric_height;
     output_.data.number_of_satellites = v.satellites_in_use;
@@ -258,6 +256,7 @@ int main( int ac, char** av )
         bool output_on_gga_only = options.exists( "--output-on-gga-only" );
         bool verbose = options.exists( "--verbose,-v" );
         bool permissive = options.exists( "--permissive" );
+        bool ignore_checksum = options.exists( "--ignore-checksum" );
         if( options.exists( "--ignore-parsing-errors" ) ) { std::cerr << "nmea-to-csv: --ignore-parsing-errors: deprecated; use --permissive" << std::endl; return 1; }
         zda_only=!options.exists("--no-zda");
         comma::csv::options csv( options );
@@ -283,7 +282,7 @@ int main( int ac, char** av )
             std::string line;
             std::getline( std::cin, line );
             if( line.empty() ) { continue; }
-            nmea::string s( line );
+            nmea::string s( line, ignore_checksum );
             if( !s.valid() )
             {
                 std::cerr << "nmea-to-csv: " << ( permissive ? "skipped": "got" ) << " invalid nmea string: \"" << line << "\"" << std::endl;
