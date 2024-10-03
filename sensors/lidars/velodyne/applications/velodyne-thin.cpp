@@ -41,7 +41,7 @@
 #include <comma/base/exception.h>
 #include <comma/base/types.h>
 #include <comma/csv/ascii.h>
-#include <comma/io/publisher.h>
+#include <comma/io/server.h>
 #include <comma/math/compare.h>
 #include <comma/name_value/parser.h>
 #include <comma/string/string.h>
@@ -106,7 +106,7 @@ static boost::optional< double > angularSpeed_;
 static boost::optional< velodyne::hdl64::db > db;
 static boost::scoped_ptr< velodyne::thin::focus > focus;
 static velodyne::thin::scan scan;
-static boost::scoped_ptr< comma::io::publisher > publisher;
+static boost::scoped_ptr< comma::io::oserver > publisher;
 
 // todo: quick and dirty
 #if (BOOST_VERSION >= 106600)
@@ -249,7 +249,7 @@ int main( int ac, char** av )
             }
             else
             {
-                publisher.reset( new comma::io::publisher( how, comma::io::mode::binary ) );
+                publisher.reset( new comma::io::oserver( how, comma::io::mode::binary ) );
             }
         }
         options.assert_mutually_exclusive( "--focus,--region,--subtract-by-age,--subtract-max-range,--subtract" );
