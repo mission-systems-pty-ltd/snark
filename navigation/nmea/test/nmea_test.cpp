@@ -92,8 +92,7 @@ TEST( nmea, GNRMC ) {
     EXPECT_NEAR( 0.05, rmc.speed_in_knots, 1e-9 );
     EXPECT_NEAR( 0.0, rmc.true_course, 1e-9 );
     EXPECT_EQ( boost::gregorian::date(2019, 12, 6), rmc.date.value );
-    EXPECT_NEAR( 0.0, rmc.variation, 1e-9 );
-    EXPECT_TRUE(  rmc.east_west.empty() );
+    EXPECT_NEAR( 0.0, rmc.magnetic_variation.value, 1e-9 );
 }
 
 TEST( nmea, trimble_AVR )

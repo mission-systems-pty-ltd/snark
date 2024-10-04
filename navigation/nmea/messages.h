@@ -50,15 +50,20 @@ namespace messages {
 
 struct coordinate { double value{0}; };
 
+struct latitude_t: public coordinate {};
+
+struct longitude_t: public coordinate {};
+
 struct coordinates
 {
-    coordinate latitude;
-    coordinate longitude;
+    latitude_t latitude;
+    longitude_t longitude;
     
     spherical::coordinates operator()() const { return spherical::coordinates( latitude.value, longitude.value ); }
 };
 
 struct time { boost::posix_time::ptime value; };
+
 struct date { boost::gregorian::date value; };
 
 struct angle { double value; };
@@ -72,14 +77,14 @@ struct gga : message
     struct quality_t { enum values { fix_not_valid = 0, gps_fix = 1, differential_gps_fix = 2, pps_fix = 3, real_time_kinematic_fixed_integers = 4, real_time_kinematic_float_integers = 5, estimated = 6, manual_input = 7, simulation = 8 }; };
 
     nmea::messages::time time;
-    nmea::messages::coordinates coordinates;
-    quality_t::values quality;
+    mutable nmea::messages::coordinates coordinates;
+    quality_t::values quality{quality_t::fix_not_valid};
     unsigned int satellites_in_use{0};
     double hdop{0};
     double orthometric_height{0};
-    std::string height_unit;
+    std::string height_unit{"M"};
     double geoid_separation{0};
-    std::string geoid_separation_unit;
+    std::string geoid_separation_unit{"M"};
     double age_of_differential_gps_data_record{0};
     std::string reference_station_id;
 };
@@ -89,13 +94,12 @@ struct rmc : message
     static const std::string type;
 
     nmea::messages::time time;
-    std::string validity;
+    std::string validity{"A"}; // A: data valid V: data invalid
     nmea::messages::coordinates coordinates;
     double speed_in_knots{0};
     double true_course{0};
     nmea::messages::date date;
-    double variation{0};
-    std::string east_west;
+    longitude_t magnetic_variation;
 };
 
 // http://www.gpsinformation.org/dale/nmea.htm#ZDA

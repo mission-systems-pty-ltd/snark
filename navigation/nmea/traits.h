@@ -1,5 +1,6 @@
 // This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2024 Vsevolod Vlaskine
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,10 +28,9 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-/// @author vsevolod vlaskine
+/// @authors David Nah, vsevolod vlaskine
 
-#ifndef SNARK_NAVIGATION_NMEA_TRAITS_H_
-#define SNARK_NAVIGATION_NMEA_TRAITS_H_
+#pragma once
 
 #include <cmath>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -45,27 +45,58 @@ template <> struct traits< snark::nmea::messages::coordinate >
     template < typename Key, class Visitor >
     static void visit( const Key&, snark::nmea::messages::coordinate& p, Visitor& v ) // hyper-quick and dirty
     {
-        double c;
-        std::string d;
+        double c{0};
         v.apply( "value", c );
-        v.apply( "direction", d );
-        double sign = d == "N" || d == "E" ? 1 : -1;
         int degrees = c / 100;
-        double fractions = ( c - degrees * 100 ) / 60 ;
-        p.value = sign * ( M_PI * ( fractions + degrees ) ) / 180;
+        double fractions = ( c - degrees * 100 ) / 60;
+        p.value = ( degrees + fractions ) * M_PI / 180;
     }
     
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::nmea::messages::coordinate& p, Visitor& v ) // hyper-quick and dirty
     {
-        double degrees = std::abs( p.value ) * 180.0 / M_PI;
-        int int_degrees = static_cast<int>(degrees);
-        double minutes = (degrees - int_degrees) * 60.0;
-        double c = int_degrees * 100 + minutes;
-        std::string d = ( p.value >= 0 ) ? "N" : "S"; 
-        
-        v.apply( "value", c );
-        v.apply( "direction", d );
+        double value = std::abs( p.value );
+        int degrees = value;
+        double fractions = ( value - degrees ) * 60.0;
+        v.apply( "value", degrees * 100 + fractions );
+    }
+};
+
+template <> struct traits< snark::nmea::messages::latitude_t >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key& k, snark::nmea::messages::latitude_t& p, Visitor& v ) // hyper-quick and dirty
+    {
+        comma::visiting::traits< snark::nmea::messages::coordinate >::visit( k, static_cast< snark::nmea::messages::coordinate& >( p ), v );
+        std::string hemisphere;
+        v.apply( "hemisphere", hemisphere );
+        p.value *= hemisphere == "N" ? 1 : -1;
+    }
+    
+    template < typename Key, class Visitor >
+    static void visit( const Key& k, const snark::nmea::messages::latitude_t& p, Visitor& v ) // hyper-quick and dirty
+    {
+        comma::visiting::traits< snark::nmea::messages::coordinate >::visit( k, static_cast< const snark::nmea::messages::coordinate& >( p ), v );
+        v.apply( "hemisphere", std::string( p.value < 0 ? "S" : "N" ) );
+    }
+};
+
+template <> struct traits< snark::nmea::messages::longitude_t >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key& k, snark::nmea::messages::longitude_t& p, Visitor& v ) // hyper-quick and dirty
+    {
+        comma::visiting::traits< snark::nmea::messages::coordinate >::visit( k, static_cast< snark::nmea::messages::coordinate& >( p ), v );
+        std::string hemisphere;
+        v.apply( "hemisphere", hemisphere );
+        p.value *= hemisphere == "E" ? 1 : -1;
+    }
+    
+    template < typename Key, class Visitor >
+    static void visit( const Key& k, const snark::nmea::messages::longitude_t& p, Visitor& v ) // hyper-quick and dirty
+    {
+        comma::visiting::traits< snark::nmea::messages::coordinate >::visit( k, static_cast< const snark::nmea::messages::coordinate& >( p ), v );
+        v.apply( "hemisphere", std::string( p.value < 0 ? "W" : "E" ) );
     }
 };
 
@@ -111,19 +142,20 @@ template <> struct traits< snark::nmea::messages::date > // pain
     {
         std::string t;
         v.apply( "date", t );
-        if( !t.empty() ) {
-            const int date_int = boost::lexical_cast<int>(t);
-            const int year = 2000 + date_int % 100;
-            const int month = (date_int / 100) % 100;
-            const int day = (date_int / 10000);
-            p.value = boost::gregorian::date(year, month, day);
+        if( !t.empty() )
+        {
+            int date_int = boost::lexical_cast< int >( t );
+            int year = 2000 + date_int % 100;
+            int month = ( date_int / 100 ) % 100;
+            int day = date_int / 10000;
+            p.value = boost::gregorian::date( year, month, day );
         }
     }
     
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::nmea::messages::date& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        std::string t; // todo, if needed: set from p
+        std::string t; // todo! set from p
         v.apply( "date", t );
     }
 };
@@ -131,17 +163,8 @@ template <> struct traits< snark::nmea::messages::date > // pain
 
 template <> struct traits< snark::nmea::message >
 {
-    template < typename Key, class Visitor >
-    static void visit( const Key&, snark::nmea::message& p, Visitor& v )
-    {
-        v.apply( "id", p.id );
-    }
-
-    template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::nmea::message& p, Visitor& v )
-    {
-        v.apply( "id", p.id );
-    }
+    template < typename Key, class Visitor > static void visit( const Key&, snark::nmea::message& p, Visitor& v ) { v.apply( "id", p.id ); }
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::nmea::message& p, Visitor& v ) { v.apply( "id", p.id ); }
 };
 
 template <> struct traits< snark::nmea::messages::gga >
@@ -196,8 +219,7 @@ template <> struct traits< snark::nmea::messages::rmc>
         v.apply( "speed_in_knots", p.speed_in_knots );
         v.apply( "true_course", p.true_course);
         v.apply( "date", p.date);
-        v.apply( "variation", p.variation);
-        v.apply( "east_west", p.east_west);
+        v.apply( "magnetic_variation", p.magnetic_variation );
     }
     
     template < typename Key, class Visitor >
@@ -210,8 +232,7 @@ template <> struct traits< snark::nmea::messages::rmc>
         v.apply( "speed_in_knots", p.speed_in_knots );
         v.apply( "true_course", p.true_course);
         v.apply( "date", p.date);
-        v.apply( "variation", p.variation);
-        v.apply( "east_west", p.east_west);
+        v.apply( "magnetic_variation", p.magnetic_variation );
     }
 };
 
@@ -290,5 +311,3 @@ template <> struct traits< snark::nmea::messages::trimble::avr >
 };
 
 } } // namespace comma { namespace visiting {
-
-#endif // SNARK_NAVIGATION_NMEA_TRAITS_H_
