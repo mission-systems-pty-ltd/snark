@@ -29,8 +29,7 @@
 
 /// @author vsevolod vlaskine
 
-#ifndef SNARK_NAVIGATION_NMEA_STRING_H_
-#define SNARK_NAVIGATION_NMEA_STRING_H_
+#pragma once
 
 #include <string>
 #include <comma/base/exception.h>
@@ -59,6 +58,8 @@ class string
         const std::vector< std::string >& values() const;
 
         static unsigned char checksum( const std::string& s );
+
+        static std::string checksum_string( const std::string& s, bool prepend_delimiter = false );
         
     private:
         bool valid_;
@@ -67,5 +68,3 @@ class string
 };
 
 } } // namespace snark { namespace nmea {
-
-#endif // SNARK_NAVIGATION_NMEA_STRING_H_

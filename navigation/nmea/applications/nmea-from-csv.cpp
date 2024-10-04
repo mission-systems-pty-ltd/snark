@@ -66,6 +66,11 @@ examples
             | nmea-to-csv --verbose --ignore-missing-time \
             | nmea-from-csv --fields ,latitude,longitude --permissive
 
+        echo '$GPGGA,021220,3348.6819,S,15109.4862,E,1,08,0.9,656.168,M,46.9,M,,*52' \
+            | nmea-to-csv --verbose --ignore-missing-time \
+            | nmea-from-csv --fields ,latitude,longitude --permissive \
+            | nmea-to-csv --verbose --ignore-missing-time
+
 )" << std::endl;
     std::cerr << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
@@ -248,7 +253,8 @@ int main( int ac, char** av )
 
                     std::string line;
                     gga.put( m, line ); // checksum: todo
-                    std::cout << "$GPGGA," << line << std::endl;
+                    line =  "$GPGGA," + line;
+                    std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
                     continue;
                 }
                 // if( t == "gsa" )
@@ -271,8 +277,9 @@ int main( int ac, char** av )
                     m.true_course = p->data.true_course;
                     m.magnetic_variation.value = p->data.magnetic_variation;
                     std::string line;
-                    rmc.put( m, line ); // checksum: todo
-                    std::cout << "$GPRMC," << line << std::endl;
+                    rmc.put( m, line );
+                    line = "$GPRMC," + line;
+                    std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
                     continue;
                 }
             }

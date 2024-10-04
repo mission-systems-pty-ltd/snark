@@ -30,6 +30,7 @@
 /// @author vsevolod vlaskine
 
 #include <comma/base/exception.h>
+#include <sstream>
 #include "string.h"
 
 namespace snark { namespace nmea {
@@ -87,6 +88,14 @@ unsigned char string::checksum( const std::string& s )
     unsigned char sum = 0;
     for( unsigned int i = begin; i < end; sum ^= s[i++] );
     return sum;
+}
+
+std::string string::checksum_string( const std::string& s, bool prepend_delimiter )
+{
+    std::ostringstream oss;
+    if( prepend_delimiter ) { oss << "*"; }
+    oss << std::hex << std::setw( 2 ) << std::setfill( '0' ) << int( checksum( s ) ); // oss << std::hex << std::uppercase << std::setw( 2 ) << std::setfill( '0' ) << int( checksum( s ) );
+    return oss.str();
 }
     
 } } // namespace snark { namespace nmea {
