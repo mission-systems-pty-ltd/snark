@@ -62,6 +62,12 @@ options
 fields
     default: t,latitude,longitude,z
 
+examples
+    basics
+        echo '$GPGGA,021220,3348.6819,S,15109.4862,E,1,08,0.9,656.168,M,46.9,M,,*52' \
+            | nmea-to-csv --verbose --ignore-missing-time \
+            | nmea-from-csv --fields ,latitude,longitude --permissive
+
 )" << std::endl;
     std::cerr << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
@@ -229,28 +235,24 @@ int main( int ac, char** av )
         
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
         comma::csv::ascii< snark::nmea::messages::gga > gga;
-        while( is.ready() && std::cin.good() )
+        while( is.ready() || std::cin.good() )
         {
-            const input::type* p = is.read();
+            auto p = is.read();
             if( !p ) { break; }
             // gga stuff
             COMMA_ASSERT_BRIEF( p->data.number_of_satellites > 0 || permissive, "got 0 satellites, use --permissive to override" );
             //COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
             COMMA_ASSERT_BRIEF( p->data.height_unit > 0 || permissive, "got height_unit 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.hdop > 0 || permissive, "got hdop 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.height_of_geoid > 0 || permissive, "got height_of_geoid 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.geoid_separation_unit > 0 || permissive, "got geoid_separation_unit 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.age_of_differential_gps_data_record > 0 || permissive, "got age_of_differential_gps_data_record 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.reference_station_id > 0 || permissive, "got reference_station_id 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.hdop > 0 || permissive, "got hdop 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
+            COMMA_ASSERT_BRIEF( p->data.geoid_separation_unit > 0 || permissive, "got geoid_separation_unit 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
+            COMMA_ASSERT_BRIEF( p->data.age_of_differential_gps_data_record > 0 || permissive, "got age_of_differential_gps_data_record 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
 
             // rmc stuff
-            COMMA_ASSERT_BRIEF( p->data.speed_in_knots > 0 || permissive, "got speed_in_knots 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.variation > 0 || permissive, "got variation 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.east_west > 0 || permissive, "got east_west 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.validity > 0 || permissive, "got validity 0, use --permissive to override" );
-            COMMA_ASSERT_BRIEF( p->data.true_course > 0 || permissive, "got true_course 0, use --permissive to override" );
+            COMMA_ASSERT_BRIEF( p->data.east_west > 0 || permissive, "got east_west 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
+            COMMA_ASSERT_BRIEF( p->data.validity > 0 || permissive, "got validity 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
+            COMMA_ASSERT_BRIEF( p->data.true_course > 0 || permissive, "got true_course 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
 
-            std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
+            //std::cerr << "==> p: " << p->data.position.latitude << "," << p->data.position.longitude << " satellites: " << p->data.number_of_satellites << std::endl;
 
             for( const auto& t: output_types )
             {
