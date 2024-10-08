@@ -281,7 +281,7 @@ struct app_base : public snark::navigation::advanced_navigation::device
         }
     }
 
-    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; }
+    //void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
 };
 
 template< typename T > struct app_t : public app_base
@@ -304,6 +304,7 @@ struct app_packet_id : public app_t< output_packet_id >
 struct app_nav : public app_t< output_nav >
 {
     app_nav( const comma::command_line_options& options ) : app_t( options ) {}
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     void handle( const messages::system_state* msg )
     {
         output_nav o;
@@ -327,6 +328,7 @@ struct app_geodetic_pose : public app_t< output_geodetic_pose >
 {
     output_geodetic_pose output;
     app_geodetic_pose( const comma::command_line_options& options ): app_t( options ) {}
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     // Unix Time, packet id (21)
     void handle( const messages::unix_time* msg ) { std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size ); }
     // Geodetic Position, packet id (32)
@@ -351,19 +353,15 @@ struct app_imu : public app_t< output_imu >
     output_imu output;
 
     app_imu( const comma::command_line_options& options ): app_t( options ) {}
-
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     // Unix Time, packet id 21
     void handle( const messages::unix_time* msg ) { std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size ); }
-
     // Euler Orientation Std Dev, packet id 26
     void handle( const messages::orientation_standard_deviation* msg ) { output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
-
     // Raw Sensors, packet id 28
     void handle( const messages::raw_sensors* msg ) { std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size ); }
-
     // Euler Orientation, packet id 39
     void handle( const messages::euler_orientation* msg ) { std::memcpy( output.orientation.data(), msg->data(), messages::euler_orientation::size ); }
-
     // Angular Velocity, packet id 42
     void handle( const messages::angular_velocity* msg )
     {
@@ -386,6 +384,7 @@ struct app_all : public app_t< output_all >
     output_all output;
 
     app_all( const comma::command_line_options& options ): app_t( options ) {}
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     void handle( const messages::system_state* msg ) { std::memcpy( output.system_state.data(), msg->data(), messages::system_state::size ); }
     void handle( const messages::velocity_standard_deviation* msg ) { output.velocity_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
     void handle( const messages::orientation_standard_deviation* msg ) { output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
@@ -403,11 +402,11 @@ struct app_all : public app_t< output_all >
 template < typename T > struct app_packet : public app_t< T >
 {
     app_packet( const comma::command_line_options& options ) : app_t< T >( options ) {}
-
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     void handle( const T* msg )
     {
-        app_t< T >::os.write( *msg );
-        if( flush ) { app_t< T >::os.flush(); }
+        this->os.write( *msg );
+        if( flush ) { this->os.flush(); }
     }
 };
 
@@ -497,8 +496,8 @@ int main( int argc, char** argv )
         else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
         else if( packet == "geodetic-pose" ) { factory.reset( new factory_t< app_geodetic_pose >() ); }
         else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
-        else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet <messages::system_state > >() ); }
-        else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet <messages::unix_time > >() ); }
+        else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet< messages::system_state > >() ); }
+        else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet< messages::unix_time > >() ); }
         else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
         else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
         else if( packet == "geodetic-position" ) { factory.reset( new factory_t< app_packet< messages::geodetic_position > >() ); }
