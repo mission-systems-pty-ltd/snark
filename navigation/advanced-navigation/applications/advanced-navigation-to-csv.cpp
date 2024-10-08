@@ -23,98 +23,108 @@ static bool flush;
 
 void usage( bool verbose )
 {
-    std::cerr << "\nconvert Advanced Navigation raw data to csv";
-    std::cerr << "\n";
-    std::cerr << "\nusage: <raw-data> | advanced-navigation-to-csv  <packet> [<options>]";
-    std::cerr << "\n       echo <value> | advanced-navigation-to-csv  --status=<packet>";
-    std::cerr << "\n       advanced-navigation-to-csv --status-description=<packet>";
-    std::cerr << "\n";
-    std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
-    std::cerr << "\n        system-state (20)";
-    std::cerr << "\n        unix-time (21)";
-    std::cerr << "\n        raw-sensors (28)";
-    std::cerr << "\n        satellites (30)";
-    std::cerr << "\n        geodetic-position (32)";
-    std::cerr << "\n        acceleration (37)";
-    std::cerr << "\n        euler-orientation (39)";
-    std::cerr << "\n        quaternion-orientation (40)";
-    std::cerr << "\n        angular-velocity (42)";
-    std::cerr << "\n        filter-options (186)";
-    std::cerr << "\n        magnetic-calibration (191)";
-    std::cerr << "\n";
-    std::cerr << "\n    or a combination or subset of packets";
-    std::cerr << "\n        navigation:     navigation data from system-state packet (default)";
-    std::cerr << "\n        imu:            combine unix-time and raw-sensors packets";
-    std::cerr << "\n        geodetic-pose:  combine several packets as described below";
-    std::cerr << "\n        all:            combine several packets as described below";
-    std::cerr << "\n";
-    std::cerr << "\n        packet-ids:     just display id's of all received packets";
-    std::cerr << "\n";
-    std::cerr << "\n        imu is a combination of unix-time(21), raw-sensors(28),";
-    std::cerr << "\n        euler-orientation-std-dev(26), euler-orientation(39) and";
-    std::cerr << "\n        angular-velocity(42)";
-    std::cerr << "\n";
-    std::cerr << "\n        geodetic-pose is a combination of ";
-    std::cerr << "\n        unix-time(21), geodetic-position(32), quaternion-orientation(40)";
-    std::cerr << "\n";    
-    std::cerr << "\n        all is a combination of system-state(20), velocity-std-dev(25),";
-    std::cerr << "\n        euler-orientation-std-dev(26), raw-sensors(28) and satellites(30).";
-    std::cerr << "\n";
-    std::cerr << "\n        The combination packets output on receipt of their last packet.";
-    std::cerr << "\n        If you are seeing no output use the packet-ids option to see what";
-    std::cerr << "\n        packets are being sent.";
-    std::cerr << "\n";
-    std::cerr << "\noptions:";
-    std::cerr << "\n    --help,-h:         show help";
-    std::cerr << "\n    --verbose,-v:      show detailed messages";
-    std::cerr << "\n    --flush:           flush output stream after each write";
-    std::cerr << "\n    --json:            format --status=<packet> output in json";
-    std::cerr << "\n    --magnetic-calibration-description: print description table";
-    std::cerr << "\n    --output-fields:   print output fields and exit";
-    std::cerr << "\n    --output-format:   print output format and exit";
-    std::cerr << "\n    --sleep=<microseconds>: sleep between reading, default " << sleep_us;
-    std::cerr << "\n    --status=<packet>: print out expanded status bit map of input values";
-    std::cerr << "\n    --status-description=<packet>: print description of status bit field";
-    std::cerr << "\n";
-    std::cerr << "\n    where <packet> is one of:";
-    std::cerr << "\n        system_status,filter_status for --status";
-    std::cerr << "\n        system_status,filter_status,gnss_fix for --status-description";
-    std::cerr << "\n";
-    std::cerr << "\ncsv options";
+    std::cerr << R"(convert Advanced Navigation raw data to csv
+
+usage: <raw-data> | advanced-navigation-to-csv  <packet> [<options>]
+       echo <value> | advanced-navigation-to-csv  --status=<packet>
+       advanced-navigation-to-csv --status-description=<packet>
+
+    <packet>: selects output (packet ids in brackets)
+        either
+            system-state (20)
+            unix-time (21)
+            raw-sensors (28)
+            satellites (30)
+            geodetic-position (32)
+            acceleration (37)
+            euler-orientation (39)
+            quaternion-orientation (40)
+            angular-velocity (42)
+            filter-options (186)
+            magnetic-calibration (191)
+        or combination or subset of packets
+            navigation:     navigation data from system-state packet (default)
+            imu:            combine unix-time and raw-sensors packets
+            geodetic-pose:  combine several packets as described below
+        or
+            packet-ids:     display only id's of all received packets
+        or
+            imu: combination of
+                unix-time (21)
+                raw-sensors (28)
+                euler-orientation-std-dev (26)
+                euler-orientation (39)
+                angular-velocity (42)
+        or
+            geodetic-pose: combination of 
+                unix-time (21)
+                geodetic-position (32)
+                quaternion-orientation (40)
+        or 
+            all: combination of
+                system-state (20)
+                velocity-std-dev (25)
+                euler-orientation-std-dev (26)
+                raw-sensors (28)
+                satellites (30)
+
+        The combination packets output on receipt of their last packet.
+        If you are seeing no output use the packet-ids option to see what
+        packets are being sent.
+
+options
+    --help,-h:         show help
+    --verbose,-v:      show detailed messages
+    --flush:           flush output stream after each write
+    --json:            format --status=<packet> output in json
+    --magnetic-calibration-description: print description table
+    --output-fields:   print output fields and exit
+    --output-format:   print output format and exit
+    --sleep=<microseconds>: sleep between reading, default " << sleep_us;
+    --status=<packet>: print out expanded status bit map of input values
+    --status-description=<packet>: print description of status bit field
+
+    where <packet> is one of:
+        system_status,filter_status for --status
+        system_status,filter_status,gnss_fix for --status-description
+
+csv options
+)";
     std::cerr << comma::csv::options::usage( verbose );
-    std::cerr << "\n";
-    std::cerr << "\nexamples";
+    std::cerr << std::endl;
+    std::cerr << "examples" << std::endl;
     if( verbose )
     {
-        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv all";
-        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv imu";
-        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state";
-        std::cerr << "\n";
-        std::cerr << "\n    --- see description of system_status values ---";
-        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state \\";
-        std::cerr << "\n        | advanced-navigation-to-csv --fields system_status \\";
-        std::cerr << "\n                                     --status system_status";
-        std::cerr << "\n    echo 128 | advanced-navigation-to-csv  --status system_status --json";
-        std::cerr << "\n";
-        std::cerr << "\n    --- see description of filter_status values ---";
-        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state \\";
-        std::cerr << "\n        | advanced-navigation-to-csv --fields ,filter_status \\";
-        std::cerr << "\n                                     --status filter_status";
-        std::cerr << "\n    echo 1029 | advanced-navigation-to-csv --status filter_status";
-        std::cerr << "\n    advanced-navigation-to-csv --status-description filter_status";
-        std::cerr << "\n";
-        std::cerr << "\n    --- see packet data rates (hz,id) ---";
-        std::cerr << "\n    <raw-data> | timeout 2 advanced-navigation-to-csv packet-ids \\";
-        std::cerr << "\n        | csv-paste - value=0 | csv-calc --fields id size \\";
-        std::cerr << "\n        | csv-eval --fields c --format d 'c*=0.5'";
-        std::cerr << "\n";
-        std::cerr << "\n  where <raw-data> is coming from advanced-navigation-cat or similar";
+        std::cerr << R"(    <raw-data> | advanced-navigation-to-csv all
+    <raw-data> | advanced-navigation-to-csv imu
+    <raw-data> | advanced-navigation-to-csv system-state
+
+    --- see description of system_status values ---
+    <raw-data> | advanced-navigation-to-csv system-state \
+        | advanced-navigation-to-csv --fields system_status \
+                                     --status system_status
+    echo 128 | advanced-navigation-to-csv  --status system_status --json
+
+    --- see description of filter_status values ---
+    <raw-data> | advanced-navigation-to-csv system-state \
+        | advanced-navigation-to-csv --fields ,filter_status \
+                                     --status filter_status
+    echo 1029 | advanced-navigation-to-csv --status filter_status
+    advanced-navigation-to-csv --status-description filter_status
+
+    --- see packet data rates (hz,id) ---
+    <raw-data> | timeout 2 advanced-navigation-to-csv packet-ids \
+        | csv-paste - value=0 | csv-calc --fields id size \
+        | csv-eval --fields c --format d 'c*=0.5'
+
+  where <raw-data> is coming from advanced-navigation-cat or similar
+)";
     }
     else
     {
-        std::cerr << "\n    run --help --verbose for more csv options and examples...";
+        std::cerr << "    run --help --verbose for more csv options and examples..." << std::endl;
     }
-    std::cerr << "\n" << std::endl;
+    std::cerr << std::endl;
 }
 
 static void bash_completion()
@@ -488,26 +498,26 @@ int main( int argc, char** argv )
             return 0;
         }
         if( options.exists( "--magnetic-calibration-description" )) { messages::magnetic_calibration_status::status_description( std::cout ); return 0; }
-        std::unique_ptr< factory_i > factory;
         COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one packet name, got: " << unnamed.size() );
         std::string packet = unnamed[0];
-        if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
-        else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
-        else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
-        else if( packet == "geodetic-pose" ) { factory.reset( new factory_t< app_geodetic_pose >() ); }
-        else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
-        else if( packet == "system-state" ) { factory.reset( new factory_t< handler_of< messages::system_state > >() ); }
-        else if( packet == "unix-time" ) { factory.reset( new factory_t< handler_of< messages::unix_time > >() ); }
-        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< handler_of< messages::raw_sensors > >() ); }
-        else if( packet == "satellites" ) { factory.reset( new factory_t< handler_of< messages::satellites > >() ); }
-        else if( packet == "geodetic-position" ) { factory.reset( new factory_t< handler_of< messages::geodetic_position > >() ); }
+        std::unique_ptr< factory_i > factory;
+        if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
         else if( packet == "acceleration" ) { factory.reset( new factory_t< handler_of< messages::acceleration > >() ); }
-        else if( packet == "euler-orientation" ) { factory.reset( new factory_t< handler_of< messages::euler_orientation > >() ); }
-        else if( packet == "quaternion-orientation" ) { factory.reset( new factory_t< handler_of< messages::quaternion_orientation > >() ); }
         else if( packet == "angular-velocity" ) { factory.reset( new factory_t< handler_of< messages::angular_velocity > >() ); }
+        else if( packet == "euler-orientation" ) { factory.reset( new factory_t< handler_of< messages::euler_orientation > >() ); }
         else if( packet == "external-time" ) { factory.reset( new factory_t< handler_of <messages::external_time > >() ); }
         else if( packet == "filter-options" ) { factory.reset( new factory_t< handler_of< messages::filter_options > >() ); }
+        else if( packet == "geodetic-pose" ) { factory.reset( new factory_t< app_geodetic_pose >() ); }
+        else if( packet == "geodetic-position" ) { factory.reset( new factory_t< handler_of< messages::geodetic_position > >() ); }
+        else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< handler_of< messages::magnetic_calibration_status > >() ); }
+        else if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
+        else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
+        else if( packet == "quaternion-orientation" ) { factory.reset( new factory_t< handler_of< messages::quaternion_orientation > >() ); }
+        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< handler_of< messages::raw_sensors > >() ); }
+        else if( packet == "satellites" ) { factory.reset( new factory_t< handler_of< messages::satellites > >() ); }
+        else if( packet == "system-state" ) { factory.reset( new factory_t< handler_of< messages::system_state > >() ); }
+        else if( packet == "unix-time" ) { factory.reset( new factory_t< handler_of< messages::unix_time > >() ); }
         else { COMMA_THROW( comma::exception, "unsupported packet '" << packet << "; see --help for more details" );}
         if( options.exists( "--output-fields" )) { factory->output_fields(); return 0; }
         if( options.exists( "--output-format" )) { factory->output_format(); return 0; }
@@ -515,7 +525,7 @@ int main( int argc, char** argv )
         factory->run( options );
         return 0;
     }
-    catch( snark::navigation::advanced_navigation::eois_exception& e ) { comma::verbose<<comma::verbose.app_name() << ": " << e.what() << std::endl; return 0; }
+    catch( snark::navigation::advanced_navigation::eois_exception& e ) { comma::say() << e.what() << std::endl; return 0; }
     catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
     catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
