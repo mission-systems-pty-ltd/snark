@@ -221,7 +221,7 @@ int main( int ac, char** av )
         sample.data.magnetic_variation = options.value( "--magnetic-variation", 0 );
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
         comma::csv::options o;
-        o.quote = false;
+        o.quote.reset();
         comma::csv::ascii< snark::nmea::messages::gga > gga( o );
         comma::csv::ascii< snark::nmea::messages::rmc > rmc( o );
         while( is.ready() || std::cin.good() )
