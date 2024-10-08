@@ -200,8 +200,7 @@ class app_base : protected snark::navigation::advanced_navigation::device
 {
 public:
     app_base( const comma::command_line_options& options )
-        : device( options.value< std::string >( "--device" )
-                , options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ))
+        : device( options.value< std::string >( "--device" ), options.value< unsigned int >( "--baud-rate,--baud", default_baud_rate ) )
         , us( options.value< unsigned int >( "--sleep", default_sleep ))
     {
         select.read().add( fd() );
@@ -232,10 +231,7 @@ private:
 class app_raw : public app_base
 {
 public:
-    app_raw( const comma::command_line_options& options )
-        : app_base( options )
-        , obuf( 260 )
-    {}
+    app_raw( const comma::command_line_options& options ): app_base( options ), obuf( 260 ) {}
 
 protected:
     void handle_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length )

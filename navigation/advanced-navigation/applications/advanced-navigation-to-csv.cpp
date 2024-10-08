@@ -281,7 +281,7 @@ struct app_base : public snark::navigation::advanced_navigation::device
         }
     }
 
-    //void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
+    // void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
 };
 
 template< typename T > struct app_t : public app_base
@@ -399,9 +399,9 @@ struct app_all : public app_t< output_all >
 
 // ----------------------- single packets ----------------------
 //
-template < typename T > struct app_packet : public app_t< T >
+template < typename T > struct handler_of : public app_t< T >
 {
-    app_packet( const comma::command_line_options& options ) : app_t< T >( options ) {}
+    handler_of( const comma::command_line_options& options ): app_t< T >( options ) {}
     void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; } // gave up on fixing massive number of compile warnings
     void handle( const T* msg )
     {
@@ -496,18 +496,18 @@ int main( int argc, char** argv )
         else if( packet == "imu" ) { factory.reset( new factory_t< app_imu >() ); }
         else if( packet == "geodetic-pose" ) { factory.reset( new factory_t< app_geodetic_pose >() ); }
         else if( packet == "packet-ids" ) { factory.reset( new factory_t< app_packet_id >() ); }
-        else if( packet == "system-state" ) { factory.reset( new factory_t< app_packet< messages::system_state > >() ); }
-        else if( packet == "unix-time" ) { factory.reset( new factory_t< app_packet< messages::unix_time > >() ); }
-        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< app_packet< messages::raw_sensors > >() ); }
-        else if( packet == "satellites" ) { factory.reset( new factory_t< app_packet< messages::satellites > >() ); }
-        else if( packet == "geodetic-position" ) { factory.reset( new factory_t< app_packet< messages::geodetic_position > >() ); }
-        else if( packet == "acceleration" ) { factory.reset( new factory_t< app_packet< messages::acceleration > >() ); }
-        else if( packet == "euler-orientation" ) { factory.reset( new factory_t< app_packet< messages::euler_orientation > >() ); }
-        else if( packet == "quaternion-orientation" ) { factory.reset( new factory_t< app_packet< messages::quaternion_orientation > >() ); }
-        else if( packet == "angular-velocity" ) { factory.reset( new factory_t< app_packet< messages::angular_velocity > >() ); }
-        else if( packet == "external-time" ) { factory.reset( new factory_t< app_packet <messages::external_time > >() ); }
-        else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
-        else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
+        else if( packet == "system-state" ) { factory.reset( new factory_t< handler_of< messages::system_state > >() ); }
+        else if( packet == "unix-time" ) { factory.reset( new factory_t< handler_of< messages::unix_time > >() ); }
+        else if( packet == "raw-sensors" ) { factory.reset( new factory_t< handler_of< messages::raw_sensors > >() ); }
+        else if( packet == "satellites" ) { factory.reset( new factory_t< handler_of< messages::satellites > >() ); }
+        else if( packet == "geodetic-position" ) { factory.reset( new factory_t< handler_of< messages::geodetic_position > >() ); }
+        else if( packet == "acceleration" ) { factory.reset( new factory_t< handler_of< messages::acceleration > >() ); }
+        else if( packet == "euler-orientation" ) { factory.reset( new factory_t< handler_of< messages::euler_orientation > >() ); }
+        else if( packet == "quaternion-orientation" ) { factory.reset( new factory_t< handler_of< messages::quaternion_orientation > >() ); }
+        else if( packet == "angular-velocity" ) { factory.reset( new factory_t< handler_of< messages::angular_velocity > >() ); }
+        else if( packet == "external-time" ) { factory.reset( new factory_t< handler_of <messages::external_time > >() ); }
+        else if( packet == "filter-options" ) { factory.reset( new factory_t< handler_of< messages::filter_options > >() ); }
+        else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< handler_of< messages::magnetic_calibration_status > >() ); }
         else { COMMA_THROW( comma::exception, "unsupported packet '" << packet << "; see --help for more details" );}
         if( options.exists( "--output-fields" )) { factory->output_fields(); return 0; }
         if( options.exists( "--output-format" )) { factory->output_format(); return 0; }
