@@ -101,9 +101,8 @@ struct input
         ::orientation orientation; // todo: make optional? or simply check for zeroes?
         comma::uint32 number_of_satellites{0};
         comma::int32 quality{snark::nmea::messages::gga::quality_t::gps_fix};
-        //snark::nmea::messages::gga::quality_t::values quality;
-        comma::uint32 hdop{0}; // relative accuracy of horizontal position
-        double height_of_geoid{0};
+        double hdop{0}; // relative accuracy of horizontal position
+        double geoid_separation{0};
         comma::uint32 age_of_differential_gps_data_record{0};
         std::string reference_station_id;
         double speed{0};
@@ -159,13 +158,12 @@ template <> struct traits< input::data >
         v.apply( "number_of_satellites", p.number_of_satellites );
         //v.apply( "quality", p.quality );
         v.apply( "hdop", p.hdop );
-        v.apply( "height_of_geoid", p.height_of_geoid );
+        v.apply( "geoid_separation", p.geoid_separation );
         v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
         v.apply( "reference_station_id", p.reference_station_id );
         v.apply( "speed", p.speed );
         v.apply( "true_course", p.true_course );
         v.apply( "magnetic_variation", p.magnetic_variation );
-        //v.apply( "true_course", p.true_course );
     }
 
     template < typename Key, class Visitor > static void visit( const Key&, const input::data& p, Visitor& v )
@@ -175,13 +173,12 @@ template <> struct traits< input::data >
         v.apply( "number_of_satellites", p.number_of_satellites );
         //v.apply( "quality", p.quality );
         v.apply( "hdop", p.hdop );
-        v.apply( "height_of_geoid", p.height_of_geoid );
+        v.apply( "geoid_separation", p.geoid_separation );
         v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
         v.apply( "reference_station_id", p.reference_station_id );
         v.apply( "speed", p.speed );
         v.apply( "true_course", p.true_course );
         v.apply( "magnetic_variation", p.magnetic_variation );
-        //v.apply( "true_course", p.true_course );
     }
 };
 
@@ -210,15 +207,21 @@ int main( int ac, char** av )
         }
         csv.fields = comma::join( v, ',' );
         input::type sample;
-        sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
+
+        // GGA input flags --------------------------------------------------------------------------------------
         //sample.data.quality = options.value( "--quality", 0 );
         //sample.data.quality = static_cast<snark::nmea::messages::gga::quality_t::values>(options.value( "--quality", 0 ));
-        sample.data.hdop = options.value( "--hdop", 0 );
-        sample.data.height_of_geoid = options.value( "--height-of-geoid", 0 );
-        sample.data.age_of_differential_gps_data_record = options.value( "--age-of-differential-gps-data-record", 0 );
+        sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
+        sample.data.hdop = options.value( "--hdop", 0.0 );
+        sample.data.geoid_separation = options.value( "--geoid-separation", 0.0 );
+        sample.data.age_of_differential_gps_data_record = options.value( "--age-of-differential-gps-data-record", 0.0 );
         sample.data.reference_station_id = options.value< std::string >( "--reference-station-id", "" );
-        sample.data.speed = options.value( "--speed", 0 );
-        sample.data.magnetic_variation = options.value( "--magnetic-variation", 0 );
+
+        // RMC input flags --------------------------------------------------------------------------------------
+        sample.data.speed = options.value( "--speed", 0.0 );
+        sample.data.true_course = options.value( "--true_course", 0.0 );
+        sample.data.magnetic_variation = options.value( "--magnetic-variation", 0.0 );
+
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
         comma::csv::options o;
         o.quote.reset();
@@ -249,35 +252,24 @@ int main( int ac, char** av )
                     //m.quality = p->data.quality;
                     m.hdop = p->data.hdop;
                     m.orthometric_height = p->data.position.z;
-                    m.geoid_separation = p->data.height_of_geoid;
+                    m.geoid_separation = p->data.geoid_separation;
                     m.age_of_differential_gps_data_record = p->data.age_of_differential_gps_data_record;
                     m.reference_station_id = p->data.reference_station_id;
 
                     std::string line;
-                    gga.put( m, line ); // checksum: todo
+                    gga.put( m, line );
                     line =  "$GPGGA," + line;
                     std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
                     continue;
                 }
-                // if( t == "gsa" )
-                // {
-                //     // todo: not needed for sagetech so on hold till someone else needs this
-                //     continue;
-                // }
-                // if( t == "gsv" )
-                // {
-                //     // todo: not needed for sagetech so on hold till someone else needs this
-                //     continue;
-                // }
                 if( t == "rmc" )
                 {
                     snark::nmea::messages::rmc m;
-                    //m.validity = p->data.validity; // todo
                     m.coordinates.latitude.value = p->data.position.latitude;
                     m.coordinates.longitude.value = p->data.position.longitude;
                     m.speed_in_knots = p->data.speed * 1.943844; // whatever
-                    m.true_course = p->data.true_course;
-                    m.magnetic_variation.value = p->data.magnetic_variation;
+                    m.true_course = p->data.true_course; // degrees true course
+                    m.magnetic_variation.value = p->data.magnetic_variation; // always positive
                     std::string line;
                     rmc.put( m, line );
                     line = "$GPRMC," + line;
