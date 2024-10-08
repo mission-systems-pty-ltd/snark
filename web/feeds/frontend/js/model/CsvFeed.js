@@ -39,6 +39,7 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
 
     var CsvFeed = function (feed_name, feed_path, config) {
         this.base = Feed;
+        this.config = config;
         this.base(feed_name, feed_path, config);
         this.init();
     };
@@ -57,7 +58,6 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
             if( this.config.type == 'csv-table' )
             {
                 var fields = this.config.csv.fields.split(',');
-                console.log( "==> fields: " + fields );
                 for( var i in fields ) { $('<th class="text-center">').text( fields[i] ).appendTo( tr ); }
             }
             else
@@ -82,12 +82,17 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
             if (max[i] && !isNaN(max[i])) { this.max[i] = Number(max[i]); }
         }
     };
-    CsvFeed.prototype.onload_ = function (data)
+    CsvFeed.prototype.is_linked_ = function( row, col )
+    {
+        return false;
+    };
+    CsvFeed.prototype.onload_ = function ( data )
     {
         var data_color;
         var column_has_space;
         var tbody = $('<tbody>');
-        if (data)
+        var fields = this.config.csv.fields.split(',');
+	if (data)
         {
             data = data.split('\n').map(function (value, index) { return value.split(','); });
             var out_of_range = false;
@@ -143,15 +148,16 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
         {
             data = '&nbsp;'
         }
-        if( this.config.type == 'csv-table' )
+        if( this.config.type == 'csv-table')
         {
             if( typeof data === 'object' )
             {
-                for( var i in data )
+                var url = this.get_url(); // todo! set url timestamp/id or whatever it is not here, but when setting row, col, etc
+                for( let i in data )
                 {
                     if (data[i].length == 1 && !data[i][0]) { continue; }
                     var tr = $('<tr>');
-                    for (var j in data[i])
+                    for (let j in data[i])
                     {
                         var td = $('<td>');
                         if ((!column_has_space[j]) && column_is_number[j]) { td.addClass('text-right'); }
@@ -173,6 +179,36 @@ define('CsvFeed', ["jquery", 'TextFeed'], function ($, Feed, TextFeed) {
                             //value = '<div style="text-align:right">' + value + '</div>'
                         }
                         tr.append( td.append( value ) );
+                        if ( this.is_linked_(i, j) )
+                        {
+                            td.data('rowIndex', i);
+                            td.data('colIndex', j);
+                            td.data('rowData', data[i]);
+                            ( function (rowIndex, colIndex) // IEF, immediately invoked function
+                            {
+                                td.on('click', function ()
+                                {
+                                    var rowIndex = $(this).data('rowIndex');
+                                    var colIndex = $(this).data('colIndex');
+                                    var rowData = $(this).data('rowData');
+                                    var fieldName = fields[colIndex];
+                                    var url_with_query = url + '&row=' + rowIndex + '&column=' + colIndex + '&data=' + encodeURIComponent (data[i]); // todo! set new id/timestamp for each click?!
+                                    $.ajax({
+                                        type: "GET",
+                                        crossDomain: true,
+                                        context: this,
+                                        url: url_with_query,
+                                        data: data[i],
+                                    }).done(function ( data, textStatus, jqXHR ) {
+                                        // todo! show backend response in widget status, see TextFeed.js for an example
+                                    }).fail( function ( jqXHR, textStatus, errorThrown ) {
+                                        // todo! show error in widget status, see TextFeed.js for an example
+                                        if( jqXHR.readyState == 0 ) { errorThrown = "Connection Refused" }
+                                        this.update_error( this, errorThrown );
+                                    });
+                                });
+                            })( i, j ); // Immediate invocation with current 'i' and 'j'
+                        }
                     }
                     tbody.append(tr);
                 }
