@@ -15,7 +15,7 @@ class device
 public:
     /// name is serial or network port or - for stdin
     device( const std::string& name, const advanced_navigation::options& options=advanced_navigation::options() );
-    virtual ~device() {}
+    virtual ~device() = default;
     void process();
     void send_ntrip( const std::vector<char>& buf );
     void send( const messages::command& command );

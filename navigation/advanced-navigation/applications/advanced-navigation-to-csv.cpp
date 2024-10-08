@@ -25,9 +25,9 @@ void usage( bool verbose )
 {
     std::cerr << "\nconvert Advanced Navigation raw data to csv";
     std::cerr << "\n";
-    std::cerr << "\nusage: <raw-data> | " << comma::verbose.app_name() << " <packet> [<options>]";
-    std::cerr << "\n       echo <value> | " << comma::verbose.app_name() << " --status=<packet>";
-    std::cerr << "\n       " << comma::verbose.app_name() << " --status-description=<packet>";
+    std::cerr << "\nusage: <raw-data> | advanced-navigation-to-csv  <packet> [<options>]";
+    std::cerr << "\n       echo <value> | advanced-navigation-to-csv  --status=<packet>";
+    std::cerr << "\n       advanced-navigation-to-csv --status-description=<packet>";
     std::cerr << "\n";
     std::cerr << "\n    where <packet> selects output and is one of (packet ids in brackets):";
     std::cerr << "\n        system-state (20)";
@@ -80,31 +80,31 @@ void usage( bool verbose )
     std::cerr << "\n        system_status,filter_status for --status";
     std::cerr << "\n        system_status,filter_status,gnss_fix for --status-description";
     std::cerr << "\n";
+    std::cerr << "\ncsv options";
+    std::cerr << comma::csv::options::usage( verbose );
+    std::cerr << "\n";
+    std::cerr << "\nexamples";
     if( verbose )
     {
-        std::cerr << "\ncsv options:";
-        std::cerr << "\n";
-        std::cerr << comma::csv::options::usage();
-        std::cerr << "\nexamples:";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " all";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " imu";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state";
+        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv all";
+        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv imu";
+        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state";
         std::cerr << "\n";
         std::cerr << "\n    --- see description of system_status values ---";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state \\";
-        std::cerr << "\n        | " << comma::verbose.app_name() << " --fields system_status \\";
+        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state \\";
+        std::cerr << "\n        | advanced-navigation-to-csv --fields system_status \\";
         std::cerr << "\n                                     --status system_status";
-        std::cerr << "\n    echo 128 | " << comma::verbose.app_name() << " --status system_status --json";
+        std::cerr << "\n    echo 128 | advanced-navigation-to-csv  --status system_status --json";
         std::cerr << "\n";
         std::cerr << "\n    --- see description of filter_status values ---";
-        std::cerr << "\n    <raw-data> | " << comma::verbose.app_name() << " system-state \\";
-        std::cerr << "\n        | " << comma::verbose.app_name() << " --fields ,filter_status \\";
+        std::cerr << "\n    <raw-data> | advanced-navigation-to-csv system-state \\";
+        std::cerr << "\n        | advanced-navigation-to-csv --fields ,filter_status \\";
         std::cerr << "\n                                     --status filter_status";
-        std::cerr << "\n    echo 1029 | " << comma::verbose.app_name() << " --status filter_status";
-        std::cerr << "\n    " << comma::verbose.app_name() << " --status-description filter_status";
+        std::cerr << "\n    echo 1029 | advanced-navigation-to-csv --status filter_status";
+        std::cerr << "\n    advanced-navigation-to-csv --status-description filter_status";
         std::cerr << "\n";
         std::cerr << "\n    --- see packet data rates (hz,id) ---";
-        std::cerr << "\n    <raw-data> | timeout 2 " << comma::verbose.app_name() << " packet-ids \\";
+        std::cerr << "\n    <raw-data> | timeout 2 advanced-navigation-to-csv packet-ids \\";
         std::cerr << "\n        | csv-paste - value=0 | csv-calc --fields id size \\";
         std::cerr << "\n        | csv-eval --fields c --format d 'c*=0.5'";
         std::cerr << "\n";
@@ -112,7 +112,7 @@ void usage( bool verbose )
     }
     else
     {
-        std::cerr << "\nuse -v or --verbose for more csv options and examples";
+        std::cerr << "\n    run --help --verbose for more csv options and examples...";
     }
     std::cerr << "\n" << std::endl;
 }
@@ -187,22 +187,13 @@ template < unsigned int S, bool P, bool F, std::size_t N > struct traits< boost:
     }
 };
 
-template <>
-struct traits< output_packet_id >
+template <> struct traits< output_packet_id >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, const output_packet_id& p, Visitor& v )
-    {
-        v.apply( "packet_id", p.packet_id );
-    }
-
-    template < typename Key, class Visitor > static void visit( const Key&, output_packet_id& p, Visitor& v )
-    {
-        v.apply( "packet_id", p.packet_id );
-    }
+    template < typename Key, class Visitor > static void visit( const Key&, const output_packet_id& p, Visitor& v ) { v.apply( "packet_id", p.packet_id ); }
+    template < typename Key, class Visitor > static void visit( const Key&, output_packet_id& p, Visitor& v ) { v.apply( "packet_id", p.packet_id ); }
 };
 
-template <>
-struct traits< output_nav >
+template <> struct traits< output_nav >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const output_nav& p, Visitor& v )
     {
@@ -225,8 +216,7 @@ struct traits< output_nav >
     }
 };
 
-template <> 
-struct traits< output_geodetic_pose >
+template <> struct traits< output_geodetic_pose >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const output_geodetic_pose& p, Visitor& v )
     {
@@ -236,8 +226,7 @@ struct traits< output_geodetic_pose >
     }
 };
 
-template <>
-struct traits< output_imu >
+template <> struct traits< output_imu >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const output_imu& p, Visitor& v )
     {
@@ -249,8 +238,7 @@ struct traits< output_imu >
     }
 };
 
-template <>
-struct traits< output_all >
+template <> struct traits< output_all >
 {
     template < typename Key, class Visitor > static void visit( const Key&, const output_all& p, Visitor& v )
     {
@@ -262,17 +250,10 @@ struct traits< output_all >
     }
 };
 
-template <>
-struct traits< status_data >
+template <> struct traits< status_data >
 {
-    template < typename Key, class Visitor > static void visit( const Key&, const status_data& p, Visitor& v )
-    {
-        v.apply( "status", p.status );
-    }
-    template < typename Key, class Visitor > static void visit( const Key&, status_data& p, Visitor& v )
-    {
-        v.apply( "status", p.status );
-    }
+    template < typename Key, class Visitor > static void visit( const Key&, const status_data& p, Visitor& v ) { v.apply( "status", p.status ); }
+    template < typename Key, class Visitor > static void visit( const Key&, status_data& p, Visitor& v ) { v.apply( "status", p.status ); }
 };
 
 } } // namespace comma { namespace visiting {
@@ -284,15 +265,12 @@ struct app_i
     virtual void output_fields() = 0;
 };
 
-struct app_base : protected snark::navigation::advanced_navigation::device
+struct app_base : public snark::navigation::advanced_navigation::device
 {
     comma::io::select select;
     comma::signal_flag signaled;
 
-    app_base() : device( "-" )
-    {
-        select.read().add( fd() );
-    }
+    app_base() : device( "-" ) { select.read().add( fd() ); }
 
     void process()
     {
@@ -303,51 +281,29 @@ struct app_base : protected snark::navigation::advanced_navigation::device
         }
     }
 
-    virtual void handle( const messages::acknowledgement* msg )
-    {
-        std::cerr << comma::verbose.app_name() << ": " << msg->result_msg() << std::endl;
-    }
+    void handle( const messages::acknowledgement* msg ) { comma::say() << msg->result_msg() << std::endl; }
 };
 
-template< typename T >
-struct app_t : public app_base
+template< typename T > struct app_t : public app_base
 {
     comma::csv::output_stream< T > os;
 
-    app_t( const comma::command_line_options& options )
-        : app_base()
-        , os( std::cout, comma::csv::options( options, "", true ))
-    {}
-
-    static void output_fields()
-    {
-        std::cout << comma::join( comma::csv::names< T >( true ), ',' ) << std::endl;
-    }
-
-    static void output_format()
-    {
-        std::cout << comma::csv::format::value< T >() << std::endl;
-    }
+    app_t( const comma::command_line_options& options ): os( std::cout, comma::csv::options( options, "", true )) {}
+    static void output_fields() { std::cout << comma::join( comma::csv::names< T >( true ), ',' ) << std::endl; }
+    static void output_format() { std::cout << comma::csv::format::value< T >() << std::endl; }
 };
 
 struct app_packet_id : public app_t< output_packet_id >
 {
-    app_packet_id( const comma::command_line_options& options ) : app_t( options )
-    {}
-    //message handlers
-    void handle_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length )
-    {
-        std::cout << (unsigned int)msg_header->id() << std::endl;
-    }
+    app_packet_id( const comma::command_line_options& options ) : app_t( options ) {}
+    void handle_raw( messages::header* msg_header, const char* msg_data, std::size_t msg_data_length ) { std::cout << (unsigned int)msg_header->id() << std::endl; }
 };
 
 // ------------------------- navigation ------------------------
 //
 struct app_nav : public app_t< output_nav >
 {
-    app_nav( const comma::command_line_options& options ) : app_t( options )
-    {}
-    //message handlers
+    app_nav( const comma::command_line_options& options ) : app_t( options ) {}
     void handle( const messages::system_state* msg )
     {
         output_nav o;
@@ -370,22 +326,11 @@ struct app_nav : public app_t< output_nav >
 struct app_geodetic_pose : public app_t< output_geodetic_pose >
 {
     output_geodetic_pose output;
-
-    app_geodetic_pose( const comma::command_line_options& options )
-        : app_t( options )
-    {}
-
+    app_geodetic_pose( const comma::command_line_options& options ): app_t( options ) {}
     // Unix Time, packet id (21)
-    void handle( const messages::unix_time* msg )
-    {
-        std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
-    }
-
+    void handle( const messages::unix_time* msg ) { std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size ); }
     // Geodetic Position, packet id (32)
-    void handle( const messages::geodetic_position* msg )
-    {
-        std::memcpy( output.geodetic_position.data(), msg->data(), messages::geodetic_position::size );
-    }
+    void handle( const messages::geodetic_position* msg ) { std::memcpy( output.geodetic_position.data(), msg->data(), messages::geodetic_position::size ); }
     // Quaternion Orientation, packet id (40)
     void handle( const messages::quaternion_orientation* msg )
     {
@@ -405,33 +350,19 @@ struct app_imu : public app_t< output_imu >
 {
     output_imu output;
 
-    app_imu( const comma::command_line_options& options )
-        : app_t( options )
-    {}
+    app_imu( const comma::command_line_options& options ): app_t( options ) {}
 
     // Unix Time, packet id 21
-    void handle( const messages::unix_time* msg )
-    {
-        std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size );
-    }
+    void handle( const messages::unix_time* msg ) { std::memcpy( output.unix_time.data(), msg->data(), messages::unix_time::size ); }
 
     // Euler Orientation Std Dev, packet id 26
-    void handle( const messages::orientation_standard_deviation* msg )
-    {
-        output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
-    }
+    void handle( const messages::orientation_standard_deviation* msg ) { output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
 
     // Raw Sensors, packet id 28
-    void handle( const messages::raw_sensors* msg )
-    {
-        std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
-    }
+    void handle( const messages::raw_sensors* msg ) { std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size ); }
 
     // Euler Orientation, packet id 39
-    void handle( const messages::euler_orientation* msg )
-    {
-        std::memcpy( output.orientation.data(), msg->data(), messages::euler_orientation::size );
-    }
+    void handle( const messages::euler_orientation* msg ) { std::memcpy( output.orientation.data(), msg->data(), messages::euler_orientation::size ); }
 
     // Angular Velocity, packet id 42
     void handle( const messages::angular_velocity* msg )
@@ -454,30 +385,11 @@ struct app_all : public app_t< output_all >
 {
     output_all output;
 
-    app_all( const comma::command_line_options& options )
-        : app_t( options )
-    {}
-
-    void handle( const messages::system_state* msg )
-    {
-        std::memcpy( output.system_state.data(), msg->data(), messages::system_state::size );
-    }
-
-    void handle( const messages::velocity_standard_deviation* msg )
-    {
-        output.velocity_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
-    }
-
-    void handle( const messages::orientation_standard_deviation* msg )
-    {
-        output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() );
-    }
-
-    void handle( const messages::raw_sensors* msg )
-    {
-        std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size );
-    }
-
+    app_all( const comma::command_line_options& options ): app_t( options ) {}
+    void handle( const messages::system_state* msg ) { std::memcpy( output.system_state.data(), msg->data(), messages::system_state::size ); }
+    void handle( const messages::velocity_standard_deviation* msg ) { output.velocity_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
+    void handle( const messages::orientation_standard_deviation* msg ) { output.orientation_stddev = Eigen::Vector3f( msg->stddev[0](), msg->stddev[1](), msg->stddev[2]() ); }
+    void handle( const messages::raw_sensors* msg ) { std::memcpy( output.raw_sensors.data(), msg->data(), messages::raw_sensors::size ); }
     void handle( const messages::satellites* msg )
     {
         std::memcpy( output.satellites.data(), msg->data(), messages::satellites::size );
@@ -488,11 +400,9 @@ struct app_all : public app_t< output_all >
 
 // ----------------------- single packets ----------------------
 //
-template< typename T >
-struct app_packet : public app_t< T >
+template < typename T > struct app_packet : public app_t< T >
 {
-    app_packet( const comma::command_line_options& options ) : app_t< T >( options )
-    {}
+    app_packet( const comma::command_line_options& options ) : app_t< T >( options ) {}
 
     void handle( const T* msg )
     {
@@ -509,8 +419,7 @@ struct factory_i
     virtual void run( const comma::command_line_options& options ) = 0;
 };
 
-template< typename T >
-struct factory_t : public factory_i
+template < typename T > struct factory_t : public factory_i
 {
     typedef T type;
     void output_fields() { T::output_fields(); }
@@ -522,16 +431,12 @@ struct factory_t : public factory_i
     }
 };
 
-template< typename T >
-struct full_description
+template < typename T > struct full_description
 {
     comma::csv::input_stream< status_data > is;
-    bool json;
+    bool json{false};
 
-    full_description( const comma::command_line_options& options )
-        : is( std::cin, comma::csv::options( options ))
-        , json( options.exists( "--json" ))
-    {}
+    full_description( const comma::command_line_options& options ): is( std::cin, comma::csv::options( options )), json( options.exists( "--json" )) {}
 
     void process()
     {
@@ -546,13 +451,11 @@ struct full_description
             std::cout.precision( 16 ); // quick and dirty
             if( json )
             {
-//                 comma::write_json( description, std::cout );
-                boost::property_tree::write_json( std::cout, ptree, false );
+                boost::property_tree::write_json( std::cout, ptree, false ); // comma::write_json( description, std::cout );
             }
             else
             {
-//                 comma::write_path_value( description, std::cout );
-                std::string s = comma::property_tree::to_path_value_string( ptree, comma::property_tree::disabled, '=', ';' );
+                std::string s = comma::property_tree::to_path_value_string( ptree, comma::property_tree::disabled, '=', ';' ); // comma::write_path_value( description, std::cout );
                 std::cout << std::regex_replace( s, std::regex( "\"([0-9]*)\"" ), "$1" ) << std::endl;
             }
         }
@@ -564,14 +467,10 @@ int main( int argc, char** argv )
     try
     {
         comma::command_line_options options( argc, argv, usage );
-
         if( options.exists( "--bash-completion" )) { bash_completion(); return 0; }
-
-        std::vector< std::string > unnamed = options.unnamed( comma::csv::options::valueless_options()
-                                                            + ",--verbose,-v,--output-fields,--output-format,--flush,--json", "-.*" );
+        std::vector< std::string > unnamed = options.unnamed( comma::csv::options::valueless_options() + ",--verbose,-v,--output-fields,--output-format,--flush,--json", "-.*" );
         flush = options.exists( "--flush" );
         sleep_us = options.value< unsigned int >( "--sleep", sleep_us );
-
         auto opt_full_description = options.optional< std::string >( "--status" );
         if( opt_full_description )
         {
@@ -590,10 +489,8 @@ int main( int argc, char** argv )
             return 0;
         }
         if( options.exists( "--magnetic-calibration-description" )) { messages::magnetic_calibration_status::status_description( std::cout ); return 0; }
-
         std::unique_ptr< factory_i > factory;
-
-        if( unnamed.size() != 1 ) { COMMA_THROW( comma::exception, "expected one packet name, got: " << unnamed.size() ); }
+        COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one packet name, got: " << unnamed.size() );
         std::string packet = unnamed[0];
         if( packet == "navigation" ) { factory.reset( new factory_t< app_nav >() ); }
         else if( packet == "all" ) { factory.reset( new factory_t< app_all >() ); }
@@ -612,18 +509,15 @@ int main( int argc, char** argv )
         else if( packet == "external-time" ) { factory.reset( new factory_t< app_packet <messages::external_time > >() ); }
         else if( packet == "filter-options" ) { factory.reset( new factory_t< app_packet< messages::filter_options > >() ); }
         else if( packet == "magnetic-calibration" ) { factory.reset( new factory_t< app_packet< messages::magnetic_calibration_status > >() ); }
-        else { COMMA_THROW( comma::exception, packet << " is an unsupported packet. See help." );}
-
+        else { COMMA_THROW( comma::exception, "unsupported packet '" << packet << "; see --help for more details" );}
         if( options.exists( "--output-fields" )) { factory->output_fields(); return 0; }
         if( options.exists( "--output-format" )) { factory->output_format(); return 0; }
-
         comma::csv::detail::unsynchronize_with_stdio();
         factory->run( options );
-
         return 0;
     }
     catch( snark::navigation::advanced_navigation::eois_exception& e ) { comma::verbose<<comma::verbose.app_name() << ": " << e.what() << std::endl; return 0; }
-    catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << comma::verbose.app_name() << ": " << "unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }
