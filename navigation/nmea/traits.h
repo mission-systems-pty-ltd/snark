@@ -130,8 +130,7 @@ template <> struct traits< snark::nmea::messages::time > // pain
     template < typename Key, class Visitor >
     static void visit( const Key&, const snark::nmea::messages::time& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        std::string t; // todo, if needed: set from p
-        v.apply( "time_of_day", t );
+        v.apply( "time_of_day", p.value.is_not_a_date_time() ? std::string() : boost::posix_time::to_iso_string( p.value ).substr( 9, 6 ) );
     }
 };
 
@@ -170,9 +169,9 @@ template <> struct traits< snark::nmea::message >
 template <> struct traits< snark::nmea::messages::gga >
 {
     template < typename Key, class Visitor >
-    static void visit( const Key&, snark::nmea::messages::gga& p, Visitor& v ) // hyper-quick and monster-dirty
+    static void visit( const Key& k, snark::nmea::messages::gga& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        v.apply( "", static_cast< snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< snark::nmea::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "coordinates", p.coordinates );
         unsigned int q = static_cast< unsigned int >( p.quality );
@@ -189,10 +188,9 @@ template <> struct traits< snark::nmea::messages::gga >
     }
     
     template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::nmea::messages::gga& p, Visitor& v ) // hyper-quick and monster-dirty
+    static void visit( const Key& k, const snark::nmea::messages::gga& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        //std::cerr << "==> visit gga: coordinates: " << p.coordinates.latitude.value << "," << p.coordinates.longitude.value << std::endl;
-        v.apply( "", static_cast< const snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< const snark::nmea::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "coordinates", p.coordinates );
         v.apply( "quality", static_cast< unsigned int >( p.quality ) );        
@@ -210,9 +208,9 @@ template <> struct traits< snark::nmea::messages::gga >
 template <> struct traits< snark::nmea::messages::rmc>
 {
     template < typename Key, class Visitor >
-    static void visit( const Key&, snark::nmea::messages::rmc& p, Visitor& v ) // hyper-quick and monster-dirty
+    static void visit( const Key& k, snark::nmea::messages::rmc& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        v.apply( "", static_cast< snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< snark::nmea::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "validity", p.validity );
         v.apply( "coordinates", p.coordinates );
@@ -223,9 +221,9 @@ template <> struct traits< snark::nmea::messages::rmc>
     }
     
     template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::nmea::messages::rmc& p, Visitor& v ) // hyper-quick and monster-dirty
+    static void visit( const Key& k, const snark::nmea::messages::rmc& p, Visitor& v ) // hyper-quick and monster-dirty
     {
-        v.apply( "", static_cast< const snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< const snark::nmea::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "validity", p.validity );
         v.apply( "coordinates", p.coordinates );
@@ -257,16 +255,16 @@ template <> struct traits< snark::nmea::messages::angle >
 template <> struct traits< snark::nmea::messages::trimble::message >
 {
     template < typename Key, class Visitor >
-    static void visit( const Key&, snark::nmea::messages::trimble::message& p, Visitor& v )
+    static void visit( const Key& k, snark::nmea::messages::trimble::message& p, Visitor& v )
     {
-        v.apply( "", static_cast< snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< snark::nmea::message& >( p ), v );
         v.apply( "message_type", p.message_type );
     }
 
     template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::nmea::messages::trimble::message& p, Visitor& v )
+    static void visit( const Key& k, const snark::nmea::messages::trimble::message& p, Visitor& v )
     {
-        v.apply( "", static_cast< const snark::nmea::message& >( p ) );
+        comma::visiting::traits< snark::nmea::message >::visit( k, static_cast< const snark::nmea::message& >( p ), v );
         v.apply( "message_type", p.message_type );
     }
 };
@@ -274,9 +272,9 @@ template <> struct traits< snark::nmea::messages::trimble::message >
 template <> struct traits< snark::nmea::messages::trimble::avr >
 {
     template < typename Key, class Visitor >
-    static void visit( const Key&, snark::nmea::messages::trimble::avr& p, Visitor& v )
+    static void visit( const Key& k, snark::nmea::messages::trimble::avr& p, Visitor& v )
     {
-        v.apply( "", static_cast< snark::nmea::messages::trimble::message& >( p ) );
+        comma::visiting::traits< snark::nmea::messages::trimble::message >::visit( k, static_cast< snark::nmea::messages::trimble::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "yaw", p.yaw );
         v.apply( "yaw_string", p.yaw_string );
@@ -293,9 +291,9 @@ template <> struct traits< snark::nmea::messages::trimble::avr >
     }
     
     template < typename Key, class Visitor >
-    static void visit( const Key&, const snark::nmea::messages::trimble::avr& p, Visitor& v )
+    static void visit( const Key& k, const snark::nmea::messages::trimble::avr& p, Visitor& v )
     {
-        v.apply( "", static_cast< const snark::nmea::messages::trimble::message& >( p ) );
+        comma::visiting::traits< snark::nmea::messages::trimble::message >::visit( k, static_cast< const snark::nmea::messages::trimble::message& >( p ), v );
         v.apply( "time", p.time );
         v.apply( "yaw", p.yaw );
         v.apply( "yaw_string", p.yaw_string );

@@ -245,6 +245,7 @@ int main( int ac, char** av )
                 {
                     // todo: output gga
                     snark::nmea::messages::gga m;
+                    m.time.value = p->t;
                     m.coordinates.latitude.value = p->data.position.latitude;
                     m.coordinates.longitude.value = p->data.position.longitude;
                     // todo: fill the remaining fields
@@ -255,16 +256,15 @@ int main( int ac, char** av )
                     m.geoid_separation = p->data.geoid_separation;
                     m.age_of_differential_gps_data_record = p->data.age_of_differential_gps_data_record;
                     m.reference_station_id = p->data.reference_station_id;
-
                     std::string line;
                     gga.put( m, line );
-                    line =  "$GPGGA," + line;
                     std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
                     continue;
                 }
                 if( t == "rmc" )
                 {
                     snark::nmea::messages::rmc m;
+                    m.time.value = p->t;
                     m.coordinates.latitude.value = p->data.position.latitude;
                     m.coordinates.longitude.value = p->data.position.longitude;
                     m.speed_in_knots = p->data.speed * 1.943844; // whatever
@@ -272,7 +272,6 @@ int main( int ac, char** av )
                     m.magnetic_variation.value = p->data.magnetic_variation; // always positive
                     std::string line;
                     rmc.put( m, line );
-                    line = "$GPRMC," + line;
                     std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
                     continue;
                 }

@@ -77,7 +77,7 @@ struct gga : message
     struct quality_t { enum values { fix_not_valid = 0, gps_fix = 1, differential_gps_fix = 2, pps_fix = 3, real_time_kinematic_fixed_integers = 4, real_time_kinematic_float_integers = 5, estimated = 6, manual_input = 7, simulation = 8 }; };
 
     nmea::messages::time time;
-    mutable nmea::messages::coordinates coordinates;
+    nmea::messages::coordinates coordinates;
     quality_t::values quality{quality_t::fix_not_valid};
     unsigned int satellites_in_use{0};
     double hdop{0};
@@ -87,6 +87,8 @@ struct gga : message
     std::string geoid_separation_unit{"M"};
     double age_of_differential_gps_data_record{0};
     std::string reference_station_id;
+
+    gga(): message{"$GPGGA"} {}
 };
 
 struct rmc : message
@@ -100,6 +102,8 @@ struct rmc : message
     double true_course{0};
     nmea::messages::date date;
     longitude_t magnetic_variation;
+
+    rmc(): message{"$GPRMC"} {}
 };
 
 // http://www.gpsinformation.org/dale/nmea.htm#ZDA
@@ -108,16 +112,17 @@ struct zda : message
 {
     static const std::string type;
     // $GPZDA, hhmmss.ss, dd, mm, yyyy, tzh, tzm
-    zda() { }
-    zda(const nmea::string& s)
+    boost::posix_time::ptime time;
+    // num ber of seconds offset, between -13 * 3600 to 13 * 3600
+    int local_time_zone_offset;
+
+    zda(): message{"$GPZDA"} {}
+    zda( const nmea::string& s ): message{"$GPZDA"}
     {
         const std::vector< std::string >& values=s.values();
         time=boost::posix_time::from_iso_string( values[4] + values[3] + values[2] + "T"+ values[1]);
         local_time_zone_offset = boost::lexical_cast<int>(values[5]) * 3600 + boost::lexical_cast<int>(values[6]) * 60;
     }
-    boost::posix_time::ptime time;
-    // num ber of seconds offset, between -13 * 3600 to 13 * 3600
-    int local_time_zone_offset;
 };
 
 namespace trimble {
@@ -126,7 +131,7 @@ static const std::string manufacturer_code = "TNL";
 
 struct message : nmea::message
 {
-    std::string message_type;
+    std::string message_type; // todo!!! set in subsclass default constructor; see gga() above
 };
 
 struct string : nmea::string { std::string message_type() const { return values()[1]; } };
@@ -148,6 +153,8 @@ struct avr : message
     quality_t::values quality;
     double pdop{0};
     unsigned int satellites_in_use{0};
+
+    avr(): message{"$GPAVR"} {}
 };
 
 }; // namespace trimble {
