@@ -1,9 +1,14 @@
 #!/bin/bash
 
+function say() { echo "$0: $1" >&2; }
+
+function die() { say "$@"; exit 1; }
+
+type -p zenity >/dev/null || die "please install zenity; run: sudo apt install zenity"
+
 function camera-config()
 {
     echo '{"center":{"x":50,"y":100,"z":0},"world":{"translation":{"x":0,"y":-50,"z":-50},"rotation":{"x":1.57079637,"y":-0,"z":0}},"camera":{"translation":{"x":100,"y":0,"z":-200},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
-    #echo '{"center":{"x":0,"y":50,"z":100},"world":{"translation":{"x":0,"y":100,"z":50},"rotation":{"x":-3.141592653589793,"y":0,"z":-1.57079637}},"camera":{"translation":{"x":100,"y":-50,"z":-200},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
 }
 
 function make-grid()
@@ -13,6 +18,7 @@ function make-grid()
 
 function make-polygon()
 {
+    zenity --title "$0" --info --width 400 --text "in the following view, please use double right click to select polygon vertices; close view-points window once you have selected all desired vertices" 2>/dev/null
     rm -f vertices-pipe edges-pipe
     mkfifo vertices-pipe edges-pipe
     make-grid \
@@ -30,7 +36,7 @@ function make-polygon()
 function grep-points()
 {
     local polygon="$1"
-    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y" | tee filtered.csv
+    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y"
 }
 
 function make-scan()
@@ -47,9 +53,11 @@ function make-scan()
             <( echo "$polygon" )';shape=loop;color=red' \
             --camera-config <( camera-config ) \
             --hide-file-panel \
-            --window-geometry 0,0,1600,1200
+            --window-geometry 0,0,1600,1200 \
+            'labeled-pipe;fields=x,y,z,id;weight=20'
 }
 
+trap "rm -f vertices-pipe edges-pipe" EXIT
 edges=$( make-polygon )
 polygon=$( cut -d, -f1-3 <<< "$edges"; tail -n1 <<< "$edges" | cut -d, -f4-6 )
 make-scan "$polygon"
