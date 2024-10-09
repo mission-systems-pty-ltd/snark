@@ -66,7 +66,7 @@ struct time { boost::posix_time::ptime value; };
 
 struct date { boost::gregorian::date value; };
 
-struct angle { double value; };
+struct angle { double value{0}; };
     
 // http://www.gpsinformation.org/dale/nmea.htm#GGA
 // todo: the website above does not exist anymore; find another one
@@ -114,7 +114,7 @@ struct zda : message
     // $GPZDA, hhmmss.ss, dd, mm, yyyy, tzh, tzm
     boost::posix_time::ptime time;
     // num ber of seconds offset, between -13 * 3600 to 13 * 3600
-    int local_time_zone_offset;
+    int local_time_zone_offset{0};
 
     zda(): message{"$GPZDA"} {}
     zda( const nmea::string& s ): message{"$GPZDA"}
