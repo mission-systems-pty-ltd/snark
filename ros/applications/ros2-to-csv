@@ -5,11 +5,17 @@ import datetime
 import numpy
 import sys
 from signal import signal, SIGPIPE, SIG_DFL
-
+import io
+import contextlib
 import rclpy
 import comma.csv
 import comma.application
 from snark.ros2 import convert, detail
+import geometry_msgs.msg
+
+import rosbag2_py
+from rclpy.serialization import deserialize_message
+from rosidl_runtime_py.utilities import get_message
 
 try:
     import rclpy_message_converter
@@ -49,7 +55,7 @@ class MessageHandler:
         self.record_type, self.record_ctor = convert.ros_message_to_csv_record(msg)
         self.output_format = ''
         if args.output_fields:
-            print(','.join(detail.command_line.fields_of_record(self.record_type, args.index_output_fields)))
+            print(','.join(detail.command_line.fields_of_record(self.record_type, args.index_output_fields)), file=sys.stderr)
             sys.exit(0)
         if args.binary:
             if args.binary == "guess":
@@ -63,7 +69,7 @@ class MessageHandler:
         if args.output_format:
             if not self.output_format:
                 self.output_format = self._output_format()
-            print(self.output_format)
+            print(self.output_format, file=sys.stderr)
             sys.exit(0)
         self.flush = args.flush
         self.binary = not not self.output_format
@@ -101,7 +107,7 @@ class TopicSubscriber:
 
 def main():
     parser = argparse.ArgumentParser(description=help_description, epilog=help_examples, formatter_class=argparse.RawDescriptionHelpFormatter, conflict_handler='resolve')
-    parser.add_argument('--bag', help='Input bag file', type=str, nargs='*')
+    parser.add_argument('--bag', help='Input bag file', type=str)
     parser.add_argument('--flush', help='Flush stdout after each message', action='store_true')
     parser.add_argument('--index-output-fields', '--index-fields', '--index', help='Output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true')
     parser.add_argument('--output-fields', help='Print output fields and exit', action='store_true')
@@ -121,9 +127,53 @@ def main():
         subscriber = TopicSubscriber(args)
         rclpy.spin(subscriber.node)
     else:
-        print("Reading bag files are not implemented yet", file=sys.stderr)
-        sys.exit(1)
 
+        if args.verbose:
+            print("ros2-to-csv: reading from bag file(s) %s..." % args.bag, file=sys.stderr)
+
+        storage_options = rosbag2_py.StorageOptions(
+            uri=args.bag,
+            storage_id='sqlite3'
+        )
+        converter_options = rosbag2_py.ConverterOptions('', '')
+
+        reader = rosbag2_py.SequentialReader()
+        reader.open(storage_options, converter_options)
+
+        topic_types = reader.get_all_topics_and_types()
+        type_map = {topic.name: topic.type for topic in topic_types}
+
+        # for topic_name, type_name in type_map.items():
+        #     print(f"Topic: {topic_name}, Type: {type_name}", file=sys.stderr)
+
+        # extract args.topic from the bag file and print it to stdout
+        if args.topic is None:
+            print("ros2-to-csv: please specify --topic", file=sys.stderr)
+            sys.exit(1)
+        
+        if args.topic not in type_map:
+            print(f"ros2-to-csv: topic '{args.topic}' not found in the bag file", file=sys.stderr)
+            sys.exit(1)
+
+        if args.verbose:
+            print(f"ros2-to-csv: reading from topic '{args.topic}'...", file=sys.stderr)
+        
+        msg = get_message(type_map[args.topic])
+        namespace = msg.__module__.split('.')
+
+        msg = msg()
+        handler = MessageHandler(msg, args)
+
+        while reader.has_next():
+            (topic, data, t) = reader.read_next()
+            if topic!=args.topic: 
+                continue
+            msg = deserialize_message(data, geometry_msgs.msg.PoseStamped)
+            try : handler
+            except NameError: handler = MessageHandler( msg, args )
+            handler.write( msg )
+
+        sys.exit(1)
     sys.exit(0)
 
 if __name__ == '__main__':
