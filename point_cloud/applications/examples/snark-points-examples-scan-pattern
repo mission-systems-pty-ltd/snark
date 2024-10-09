@@ -26,7 +26,7 @@ function make-polygon()
 function grep-points()
 {
     local polygon="$1"
-    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y" --all
+    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y"
 }
 
 function make-scan()
@@ -34,14 +34,16 @@ function make-scan()
     local polygon="$1"
     make-grid \
         | grep-points "$polygon" \
+        | csv-sort --fields x,y \
         | view-points \
             <( make-grid )';color=grey' \
-            '-;color=yellow' \
+            <( make-grid | grep-points "$polygon" )';color=yellow' \
+            '-;color=yellow;shape=lines' \
             <( echo "$polygon" )';weight=15;color=red' \
-            <( echo "$polygon" )';shape=lines;color=red' \
+            <( echo "$polygon" )';shape=loop;color=red' \
             --camera-config <( camera-config ) \
             --hide-file-panel \
-            --window-geometry 0,0,1200,900
+            --window-geometry 0,0,1600,1200
 }
 
 edges=$( make-polygon )
