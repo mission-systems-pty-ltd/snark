@@ -14,58 +14,74 @@
 
 static void usage( bool verbose = false )
 {
-    std::cerr << std::endl;
-    std::cerr << "mesh operations" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: " << "cat points.csv | points-mesh <operation> [<options>] > mesh.csv" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "operations" << std::endl;
-    std::cerr << "    grid: each point has pixel index, e.g. as in a point cloud coming from realsense; triangulate neighbour pixels only" << std::endl;
-    std::cerr << "          triangle points output order is such that the triangle normal would point towards the viewer" << std::endl;
-    std::cerr << "          according the right-hand screw rule" << std::endl;
-    std::cerr << "          by default, pixel indices are counted from the top-left corner of an image" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "        fields" << std::endl;
-    std::cerr << "            index/x, index/y: pixel coordinates" << std::endl;
-    std::cerr << "            block: block number" << std::endl;
-    std::cerr << "            default: index/x,index/y" << std::endl;
-    std::cerr << "        options" << std::endl;
-    std::cerr << "            --input-fields: output input fields and exit" << std::endl;
-    std::cerr << "            --reverse: invert order of triangle corners in the output, i.e. 'pixels' will be counted from bottom-left corner" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --help,-h:       show this help; --help --verbose for more help" << std::endl;
-    std::cerr << "    --verbose,-v:    more output" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "csv options" << std::endl;
+    std::cerr << R"(
+mesh operations
+
+usage: " << "cat points.csv | points-mesh <operation> [<options>] > mesh.csv
+
+operations
+    grid:   each point has 'pixel' index, e.g. as in a point cloud coming
+            from realsense; triangulate neighbour pixels only triangle points
+            output order is such that the triangle normal would point towards
+            the viewer according the right-hand screw rule by default, pixel
+            indices are counted from the top-left corner of an image
+        fields
+            index/x, index/y: pixel coordinates
+            block: block number
+            default: index/x,index/y
+        options
+            --input-fields: output input fields and exit
+            --reverse: invert order of triangle corners in the output, i.e.
+                       'pixels' will be counted from bottom-left corner
+
+    scan:   each point has 'pixel' index; connect points in a scan pattern
+            todo: more documentation, example
+        fields
+            index/x, index/y: pixel coordinates
+            block: block number
+            default: index/x,index/y
+        options
+            --axis=<name>; default=x; choices: x, y
+            --input-fields: output input fields and exit
+
+options
+    --help,-h:       show this help; --help --verbose for more help
+    --verbose,-v:    more output
+
+csv options)" << std::endl;
     std::cerr << comma::csv::options::usage( "x,y", verbose ) << std::endl;
     std::cerr << std::endl;
+    std::cerr << R"(examples
+    grid
+        csv-paste 'line-number;shape=10,15' value=0 --head 150 \
+            | points-mesh grid \
+            | view-points '-;shape=triangle'
+)" << std::endl;
     exit( 0 );
 }
 
-class grid
+class gridlike
 {
     public:
+        virtual ~gridlike() = default;
+
         struct input
         {
-            Eigen::Vector2i index;
-            comma::uint32 block;
-
-            input() : index( Eigen::Vector2i::Zero() ), block( 0 ) {}
+            Eigen::Vector2i index{0, 0};
+            comma::uint32 block{0};
         };
         
-        static int run( const comma::command_line_options& options )
+        template < typename G > static int run( const comma::command_line_options& options )
         {
-            if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< grid::input >( true ), ',' ) << std::endl; return 0; }
-            grid g( options );
+            if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< gridlike::input >( true ), ',' ) << std::endl; return 0; }
+            G g( options );
             return g.read_();
         }
                 
-    private:
+    protected:
         comma::csv::options csv_;
         comma::csv::input_stream< input > istream_;
         bool permissive_;
-        bool reverse_;
         typedef std::string voxel_;
         typedef snark::voxel_map< voxel_, 2 > voxel_map_t_;
         typedef voxel_map_t_::const_iterator iterator_;
@@ -82,28 +98,34 @@ class grid
         
         static voxel_map_t_::point_type resolution_( double d ) { return voxel_map_t_::point_type( d, d ); }
         
-        grid( const comma::command_line_options& options )
+        gridlike( const comma::command_line_options& options )
             : csv_( make_csv_options_( options ) )
             , istream_( std::cin, csv_ )
             , permissive_( options.exists( "--permissive" ) )
-            , reverse_( options.exists( "--reverse" ) )
             , voxel_map_( resolution_( options.value( "--resolution", 1. ) ) ) // quick and dirty: does not matter for now, but may be used in future
         {
         }
+
+        virtual void handle_block_() = 0;
         
         int read_()
         {
             while( istream_.ready() || std::cin.good() )
             {
-                const grid::input* p = istream_.read();
-                if( !p || ( block_ && *block_ != p->block ) ) { handle_block_(); if( !p ) { break; } }
+                const gridlike::input* p = istream_.read();
+                if( !p || ( block_ && *block_ != p->block ) )
+                {
+                    handle_block_();
+                    voxel_map_.clear();
+                    if( !p ) { break; }
+                }
                 block_ = p->block;
                 voxel_map_t_::index_type i = {{ p->index.x(), p->index.y() }};
                 std::pair< voxel_map_t_::iterator, bool > r = voxel_map_.as_map::insert( std::make_pair( i, voxel_() ) );
                 if( !r.second )
                 {
                     if( permissive_ ) { continue; }
-                    std::cerr << "points-mesh: grid: got duplicated index: " << p->index.x() << "," << p->index.y() << "; if it is intended, use --permissive" << std::endl;
+                    comma::say() << "grid: got duplicated index: " << p->index.x() << "," << p->index.y() << "; if it is intended, use --permissive" << std::endl;
                     return 1;
                 }
                 if( istream_.is_binary() )
@@ -118,23 +140,16 @@ class grid
             }
             return 0;
         }
+};
+
+class grid : public gridlike
+{
+    public:
+        bool reverse_{false};
         
-        void output_( const iterator_& c1, const iterator_& b, const iterator_& c3 )
-        {
-            const iterator_& a = reverse_ ? c3 : c1;
-            const iterator_& c = reverse_ ? c1 : c3;
-            if( csv_.binary() )
-            {
-                std::cout.write( &a->second[0], csv_.format().size() );
-                std::cout.write( &b->second[0], csv_.format().size() );
-                std::cout.write( &c->second[0], csv_.format().size() );
-            }
-            else
-            {
-                std::cout << a->second << csv_.delimiter << b->second << csv_.delimiter << c->second << std::endl;
-            }
-        }
+        grid( const comma::command_line_options& options ): gridlike( options ), reverse_( options.exists( "--reverse" ) ) {}
         
+    protected:
         void handle_block_()
         {
             for( iterator_ it = voxel_map_.begin(); it != voxel_map_.end(); ++it )
@@ -174,19 +189,35 @@ class grid
             }
             voxel_map_.clear();
         }
+
+        void output_( const iterator_& c1, const iterator_& b, const iterator_& c3 )
+        {
+            const iterator_& a = reverse_ ? c3 : c1;
+            const iterator_& c = reverse_ ? c1 : c3;
+            if( csv_.binary() )
+            {
+                std::cout.write( &a->second[0], csv_.format().size() );
+                std::cout.write( &b->second[0], csv_.format().size() );
+                std::cout.write( &c->second[0], csv_.format().size() );
+            }
+            else
+            {
+                std::cout << a->second << csv_.delimiter << b->second << csv_.delimiter << c->second << std::endl;
+            }
+        }
 };
 
 namespace comma { namespace visiting {
 
-template <> struct traits< ::grid::input >
+template <> struct traits< ::gridlike::input >
 {
-    template < typename K, typename V > static void visit( const K&, ::grid::input& p, V& v )
+    template < typename K, typename V > static void visit( const K&, ::gridlike::input& p, V& v )
     {
         v.apply( "index", p.index );
         v.apply( "block", p.block );
     }
 
-    template < typename K, typename V > static void visit( const K&, const ::grid::input& p, V& v )
+    template < typename K, typename V > static void visit( const K&, const ::gridlike::input& p, V& v )
     {
         v.apply( "index", p.index );
         v.apply( "block", p.block );
@@ -201,13 +232,14 @@ int main( int ac, char** av )
     {
         comma::command_line_options options( ac, av, usage );
         const std::vector< std::string >& unnamed = options.unnamed( "--verbose,-v,--flush,--strict", "-.*" );
-        if( unnamed.empty() ) { std::cerr << "points-mesh: please specify operation" << std::endl; return 1; }
-        if( unnamed.size() > 1 ) { std::cerr << "points-mesh: expected one operation; got: " << comma::join( unnamed, ';' ) << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify operation" );
+        COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one operation; got: " << comma::join( unnamed, ' ' ) );
         std::string operation = unnamed[0];
-        if( operation == "grid" ) { return ::grid::run( options ); }
-        std::cerr << "points-mesh: expected operation; got: \"" << operation << "\"" << std::endl;
+        if( operation == "grid" ) { return ::gridlike::run< grid >( options ); }
+        //if( operation == "scan" ) { return ::gridlike::run< scan >( options ); }
+        comma::say() << "expected operation; got: '" << operation << "'" << std::endl;
     }
-    catch( std::exception& ex ) { std::cerr << "points-mesh: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "points-mesh: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     return 1;
 }
