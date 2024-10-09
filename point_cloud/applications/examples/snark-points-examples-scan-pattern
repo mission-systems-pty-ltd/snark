@@ -2,10 +2,14 @@
 
 function camera-config()
 {
-    echo '{"center":{"x":50,"y":100,"z":0},"world":{"translation":{"x":0,"y":-50,"z":-50},"rotation":{"x":1.57079637,"y":-0,"z":0}},"camera":{"translation":{"x":99.0883102,"y":2.43082952,"z":-200.983795},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
+    echo '{"center":{"x":50,"y":100,"z":0},"world":{"translation":{"x":0,"y":-50,"z":-50},"rotation":{"x":1.57079637,"y":-0,"z":0}},"camera":{"translation":{"x":100,"y":0,"z":-200},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
+    #echo '{"center":{"x":0,"y":50,"z":100},"world":{"translation":{"x":0,"y":100,"z":50},"rotation":{"x":-3.141592653589793,"y":0,"z":-1.57079637}},"camera":{"translation":{"x":100,"y":-50,"z":-200},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
 }
 
-function make-grid() { csv-paste 'line-number;shape=100,200,1' --head $(( 100 * 200 )); }
+function make-grid()
+{
+    csv-paste 'line-number;shape=100,200,1' --head $(( 100 * 200 )) | csv-eval --fields x,y,z 's=y%2*-x'
+}
 
 function make-polygon()
 {
@@ -26,7 +30,7 @@ function make-polygon()
 function grep-points()
 {
     local polygon="$1"
-    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y"
+    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y" | tee filtered.csv
 }
 
 function make-scan()
@@ -34,7 +38,7 @@ function make-scan()
     local polygon="$1"
     make-grid \
         | grep-points "$polygon" \
-        | csv-sort --fields x,y \
+        | csv-sort --fields ,y,,s \
         | view-points \
             <( make-grid )';color=grey' \
             <( make-grid | grep-points "$polygon" )';color=yellow' \
