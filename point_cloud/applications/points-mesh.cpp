@@ -56,6 +56,13 @@ csv options)" << std::endl;
         csv-paste 'line-number;shape=10,15' value=0 --head 150 \
             | points-mesh grid \
             | view-points '-;shape=triangle'
+    scan
+        csv-paste 'line-number;shape=10,15' value=0 --head 150 \
+            | points-mesh scan \
+            | view-points '-;shape=line'
+        csv-paste 'line-number;shape=10,15' value=0 --head 150 \
+            | points-mesh scan --axis=y \
+            | view-points '-;shape=line'
 )" << std::endl;
     exit( 0 );
 }
@@ -145,11 +152,11 @@ class gridlike
 class grid : public gridlike
 {
     public:
-        bool reverse_{false};
-        
         grid( const comma::command_line_options& options ): gridlike( options ), reverse_( options.exists( "--reverse" ) ) {}
         
     protected:
+        bool reverse_{false};
+
         void handle_block_()
         {
             for( iterator_ it = voxel_map_.begin(); it != voxel_map_.end(); ++it )
@@ -187,7 +194,6 @@ class grid : public gridlike
                     }
                 }
             }
-            voxel_map_.clear();
         }
 
         void output_( const iterator_& c1, const iterator_& b, const iterator_& c3 )
@@ -203,6 +209,36 @@ class grid : public gridlike
             else
             {
                 std::cout << a->second << csv_.delimiter << b->second << csv_.delimiter << c->second << std::endl;
+            }
+        }
+};
+
+class scan : public gridlike
+{
+    public:
+        scan( const comma::command_line_options& options ): gridlike( options ), _x_is_axis( options.value< std::string >( "--axis", "x" ) == "x" ) {}
+        
+    protected:
+        bool _x_is_axis{true};
+
+        void handle_block_()
+        {
+            for( iterator_ it = voxel_map_.begin(); it != voxel_map_.end(); ++it )
+            {
+                // todo!
+            }
+        }
+
+        void output_( const iterator_& a, const iterator_& b )
+        {
+            if( csv_.binary() )
+            {
+                std::cout.write( &a->second[0], csv_.format().size() );
+                std::cout.write( &b->second[0], csv_.format().size() );
+            }
+            else
+            {
+                std::cout << a->second << csv_.delimiter << b->second << std::endl;
             }
         }
 };
@@ -236,7 +272,7 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one operation; got: " << comma::join( unnamed, ' ' ) );
         std::string operation = unnamed[0];
         if( operation == "grid" ) { return ::gridlike::run< grid >( options ); }
-        //if( operation == "scan" ) { return ::gridlike::run< scan >( options ); }
+        if( operation == "scan" ) { return ::gridlike::run< scan >( options ); }
         comma::say() << "expected operation; got: '" << operation << "'" << std::endl;
     }
     catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
