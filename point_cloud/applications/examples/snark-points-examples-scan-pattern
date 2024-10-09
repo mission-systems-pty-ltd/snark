@@ -1,0 +1,52 @@
+#!/bin/bash
+
+function camera-config()
+{
+    echo '{"center":{"x":50,"y":100,"z":0},"world":{"translation":{"x":0,"y":-50,"z":-50},"rotation":{"x":1.57079637,"y":-0,"z":0}},"camera":{"translation":{"x":99.0883102,"y":2.43082952,"z":-200.983795},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":true,"near_plane":0.01,"far_plane":1800,"field_of_view":45}}'
+}
+
+function make-grid() { csv-paste 'line-number;shape=100,200,1' --head $(( 100 * 200 )); }
+
+function make-polygon()
+{
+    rm -f vertices-pipe edges-pipe
+    mkfifo vertices-pipe edges-pipe
+    make-grid \
+        | view-points '-' \
+                    'vertices-pipe;size=100;weight=15;color=red' \
+                    'edges-pipe;size=100;shape=line;color=red' \
+                    --camera-config <( camera-config ) \
+                    --hide-file-panel \
+                    --window-geometry 0,0,1200,900 \
+        | tee vertices-pipe \
+        | csv-shape concatenate -n 2 --sliding-window \
+        | tee edges-pipe
+}
+
+function grep-points()
+{
+    local polygon="$1"
+    points-grep polygons --polygons <( echo "$polygon" )";fields=x,y" --all
+}
+
+function make-scan()
+{
+    local polygon="$1"
+    make-grid \
+        | grep-points "$polygon" \
+        | view-points \
+            <( make-grid )';color=grey' \
+            '-;color=yellow' \
+            <( echo "$polygon" )';weight=15;color=red' \
+            <( echo "$polygon" )';shape=lines;color=red' \
+            --camera-config <( camera-config ) \
+            --hide-file-panel \
+            --window-geometry 0,0,1200,900
+}
+
+edges=$( make-polygon )
+polygon=$( cut -d, -f1-3 <<< "$edges"; tail -n1 <<< "$edges" | cut -d, -f4-6 )
+make-scan "$polygon"
+
+
+    
