@@ -34,21 +34,29 @@ operations
             --reverse: invert order of triangle corners in the output, i.e.
                        'pixels' will be counted from bottom-left corner
 
-    scan:   each point has 'pixel' index; connect points in a scan pattern
-            todo: more documentation, example
-        fields
-            index/x, index/y: pixel coordinates
-            block: block number
-            default: index/x,index/y
-        options
-            --axis=<name>; default=x; choices: x, y
-            --input-fields: output input fields and exit
-
 options
     --help,-h:       show this help; --help --verbose for more help
     --verbose,-v:    more output
+)" << std::endl;
 
-csv options)" << std::endl;
+    // scan:   each point has 'pixel' index; connect points in a scan pattern
+    //         todo: more documentation, example
+    //     fields
+    //         index/x, index/y: pixel coordinates
+    //         block: block number
+    //         default: index/x,index/y
+    //     options
+    //         --axis=<name>; default=x; choices: x, y
+    //         --input-fields: output input fields and exit
+        // scan
+        // csv-paste 'line-number;shape=10,15' value=0 --head 150 \
+        //     | points-mesh scan \
+        //     | view-points '-;shape=line'
+        // csv-paste 'line-number;shape=10,15' value=0 --head 150 \
+        //     | points-mesh scan --axis=y \
+        //     | view-points '-;shape=line'
+
+    std::cerr << "csv options" << std::endl;
     std::cerr << comma::csv::options::usage( "x,y", verbose ) << std::endl;
     std::cerr << std::endl;
     std::cerr << R"(examples
@@ -56,13 +64,6 @@ csv options)" << std::endl;
         csv-paste 'line-number;shape=10,15' value=0 --head 150 \
             | points-mesh grid \
             | view-points '-;shape=triangle'
-    scan
-        csv-paste 'line-number;shape=10,15' value=0 --head 150 \
-            | points-mesh scan \
-            | view-points '-;shape=line'
-        csv-paste 'line-number;shape=10,15' value=0 --head 150 \
-            | points-mesh scan --axis=y \
-            | view-points '-;shape=line'
 )" << std::endl;
     exit( 0 );
 }
