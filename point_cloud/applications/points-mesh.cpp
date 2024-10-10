@@ -49,11 +49,11 @@ options
     //         --axis=<name>; default=x; choices: x, y
     //         --input-fields: output input fields and exit
         // scan
-        // csv-paste 'line-number;shape=10,15' value=0 --head 150 \
-        //     | points-mesh scan \
+        // csv-paste 'line-number;shape=10,15' value=0 --head 150
+        //     | points-mesh scan 
         //     | view-points '-;shape=line'
-        // csv-paste 'line-number;shape=10,15' value=0 --head 150 \
-        //     | points-mesh scan --axis=y \
+        // csv-paste 'line-number;shape=10,15' value=0 --head 150
+        //     | points-mesh scan --axis=y
         //     | view-points '-;shape=line'
 
     std::cerr << "csv options" << std::endl;
