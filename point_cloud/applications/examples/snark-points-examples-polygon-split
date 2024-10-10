@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function say() { echo "$0: $1" >&2; }
+function say() { echo -e "$0: $1" >&2; }
 
 function die() { say "$@"; exit 1; }
 
@@ -53,29 +53,44 @@ function select-origin()
                 --hide-file-panel \
                 --window-geometry 0,0,1600,1200 \
         | tee vertices-pipe \
-        | tail -n1
+        | tail -n1 \
+        | csv-eval --fields x,y,z "x,y,z=round(x),round(y),0"
+}
+
+function split-points()
+{
+    local pfrom="$1" pto="$2" polygon="$3" origin="$4"
+    csv-paste - line-number \
+        | points-calc subtract --fields u --v "$origin" \
+        | points-to-polar --fields ,,,,x,y,z \
+        | csv-calc --fields ,,,,,bearing percentile=$pfrom --append 2>/dev/null \
+        | csv-calc --fields ,,,,,bearing percentile=$pto --append 2>/dev/null \
+        | csv-eval --fields x,y,z,n,range,bearing,elevation,pfrom,pto \
+                   --output-if 'logical_and( bearing >= pfrom, bearing < pto )'
 }
 
 function split-polygon()
 {
-    local polygon="$1"
-    zenity --title "$0" --info --width 400 --text "in the following view, use double right click to select origin point; close view-points window once done" 2>/dev/null
-    view-points <( make-grid )';color=grey' \
-                <( make-grid | grep-points "$polygon" )';color=yellow' \
-                '-;color=yellow;shape=lines' \
-                <( echo "$polygon" )';weight=15;color=red' \
-                <( echo "$polygon" )';shape=loop;color=red' \
-                <( echo "$origin" )';fields=x,y,z;weight=20;colour=sky;size=1' \
-                --camera-config <( camera-config ) \
-                --hide-file-panel \
-                --window-geometry 0,0,1600,1200
+    local polygon="$1" origin="$2"
+    make-grid \
+        | grep-points "$polygon" \
+        | split-points "$pfrom" "$pto" "$polygon" "$origin" \
+        | view-points <( make-grid )';color=grey' \
+                      <( make-grid | grep-points "$polygon" )';color=yellow' \
+                      '-;color=green;weight=3' \
+                      <( echo "$polygon" )';weight=15;color=red' \
+                      <( echo "$polygon" )';shape=loop;color=red' \
+                      <( echo "$origin" )';fields=x,y,z;weight=20;colour=sky;size=1' \
+                      --camera-config <( camera-config ) \
+                      --hide-file-panel \
+                      --window-geometry 0,0,1600,1200
 }
 
+pfrom=$1
+pto=$2
+[[ -n "$pto" ]] || die "\\n    usage: $0 <from> <to>\\n    e.g  : $0 0.3 0.7"
 trap "rm -f vertices-pipe edges-pipe" EXIT
 edges=$( make-polygon )
 polygon=$( cut -d, -f1-3 <<< "$edges"; tail -n1 <<< "$edges" | cut -d, -f4-6 )
 origin=$( select-origin "$polygon" )
-split-polygon "$polygon"
-
-
-    
+split-polygon "$polygon" "$origin"
