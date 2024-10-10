@@ -59,24 +59,17 @@ function select-origin()
         | csv-eval --fields x,y,z "x,y,z=round(x),round(y),0"
 }
 
-function is-inside()
-{
-    local polygon="$1" point="$2"
-    if [[ -n "$( points-grep polygons --polygons <( echo "$polygon" )";fields=x,y" <<< "$point" )" ]]; then return 0; else return 1; fi
-}
-
 function split-points()
 {
     local pfrom="$1" pto="$2" polygon="$3" origin="$4"
-    csv-paste - line-number \
-        | points-calc subtract --fields u --v "$origin" \
-        | points-to-polar --fields ,,,,x,y,z \
-        | csv-eval --fields x,y,z,n,range,bearing,elevation 'bearing=(bearing<0)*(pi*2-bearing)+(bearing>=0)*bearing' \
-        | csv-calc --fields ,,,,,bearing percentile=$pfrom --append 2>/dev/null \
-        | csv-calc --fields ,,,,,bearing percentile=$pto --append 2>/dev/null \
-        | csv-eval --fields x,y,z,n,range,bearing,elevation,pfrom,pto \
+    local min_bearing=$( points-calc subtract --fields u --v "$origin" <<< "$polygon" | points-to-polar --fields ,,,x,y,z | csv-calc min --fields ,,,,bearing 2>/dev/null )
+    csv-shuffle --fields x,y,z --output-fields x,y,z,x,y,z \
+        | points-frame --fields ,,,x,y,z --to "$origin,0,0,$min_bearing" \
+        | points-to-polar --fields ,,,x,y,z \
+        | csv-calc --fields ,,,,bearing percentile=$pfrom --append 2>/dev/null \
+        | csv-calc --fields ,,,,bearing percentile=$pto --append 2>/dev/null \
+        | csv-eval --fields x,y,z,range,bearing,elevation,pfrom,pto \
                    --output-if 'logical_and(bearing>=pfrom,bearing<pto)'
-#                    --output-if 'logical_or(logical_and(pfrom<pto,logical_and(bearing>=pfrom,bearing<pto)),logical_and(pfrom>=pto,logical_and(bearing>=pto,bearing<pfrom)))'
 }
 
 function split-polygon()
@@ -92,12 +85,13 @@ function split-polygon()
                 --window-geometry 0,0,1600,1200 \
                 <( make-grid )';color=grey' \
                 <( make-grid | grep-points "$polygon" )';color=yellow' \
+                <( echo 0,0,0,0,0,0 )';shape=axes;length=10;size=1' \
                 <( grep-and-split 0        "$pfrom" "$polygon" "$origin" )';color=orange;weight=2;title=before' \
                 <( grep-and-split "$pfrom" "$pto"   "$polygon" "$origin" )';color=green;weight=3;title=selected' \
                 <( grep-and-split "$pto"   1        "$polygon" "$origin" )';color=sky;weight=2;title=after' \
                 <( echo "$polygon" )';weight=15;color=red' \
                 <( echo "$polygon" )';shape=loop;color=red' \
-                <( echo "$origin" )';fields=x,y,z;weight=20;colour=sky;size=1' \
+                <( echo "$origin" )';fields=x,y,z;weight=20;colour=sky;size=1' \                
                 2>/dev/null
 }
 
