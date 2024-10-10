@@ -202,8 +202,15 @@ int main( int ac, char** av )
         {
             if( v[i] == "latitude" || v[i] == "longitude" ) { v[i] = "data/position/" + v[i]; }
             else if( v[i] == "z" ) { v[i] = "data/position/" + v[i]; }
-            if( v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "data/orientation/" + v[i]; }
+            else if( v[i] == "roll" || v[i] == "pitch" || v[i] == "yaw" ) { v[i] = "data/orientation/" + v[i]; }
             else if( v[i] == "number_of_satellites" || v[i] == "quality" ) { v[i] = "data/" + v[i]; }
+            else if( v[i] == "hdop" ) { v[i] = "data/hdop"; }
+            else if( v[i] == "geoid_separation" ) { v[i] = "data/geoid_separation"; }
+            else if( v[i] == "age_of_differential_gps_data_record" ) { v[i] = "data/age_of_differential_gps_data_record"; }
+            else if( v[i] == "reference_station_id" ) { v[i] = "data/reference_station_id"; }
+            else if( v[i] == "speed" ) { v[i] = "data/speed"; }
+            else if( v[i] == "true_course" ) { v[i] = "data/true_course"; }
+            else if( v[i] == "magnetic_variation" ) { v[i] = "data/magnetic_variation"; }
         }
         csv.fields = comma::join( v, ',' );
         input::type sample;
@@ -219,7 +226,7 @@ int main( int ac, char** av )
 
         // RMC input flags --------------------------------------------------------------------------------------
         sample.data.speed = options.value( "--speed", 0.0 );
-        sample.data.true_course = options.value( "--true_course", 0.0 );
+        sample.data.true_course = options.value( "--true-course", 0.0 );
         sample.data.magnetic_variation = options.value( "--magnetic-variation", 0.0 );
 
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
@@ -233,10 +240,6 @@ int main( int ac, char** av )
             if( !p ) { break; }
             // gga stuff
             COMMA_ASSERT_BRIEF( p->data.number_of_satellites > 0 || permissive, "got 0 satellites, use --permissive to override" );
-            //COMMA_ASSERT_BRIEF( p->data.quality > 0 || permissive, "got quality 0, use --permissive to override" );
-            // rmc stuff
-            //COMMA_ASSERT_BRIEF( p->data.east_west > 0 || permissive, "got east_west 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
-            //COMMA_ASSERT_BRIEF( p->data.true_course > 0 || permissive, "got true_course 0, use --permissive to override" ); // todo! what are the values? what is the reasonable default?
             for( const auto& t: output_types )
             {
                 // todo: convert input into nmea strings, write to stdout
