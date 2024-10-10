@@ -61,17 +61,12 @@ function split-points()
 {
     local pfrom="$1" pto="$2" polygon="$3" origin="$4"
     csv-paste - line-number \
-        | tee 0.csv \
         | points-calc subtract --fields u --v "$origin" \
-        | tee 1.csv \
         | points-to-polar --fields ,,,,x,y,z \
-        | tee 2.csv \
         | csv-calc --fields ,,,,,bearing percentile=$pfrom --append 2>/dev/null \
         | csv-calc --fields ,,,,,bearing percentile=$pto --append 2>/dev/null \
-        | tee 3.csv \
         | csv-eval --fields x,y,z,n,range,bearing,elevation,pfrom,pto \
-                   --output-if 'logical_and( bearing >= pfrom, bearing < pto )' \
-        | tee 4.csv
+                   --output-if 'logical_and( bearing >= pfrom, bearing < pto )'
 }
 
 function split-polygon()
