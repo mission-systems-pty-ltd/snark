@@ -215,11 +215,12 @@ struct flags_t
 
 namespace snark { namespace operations { namespace polygons {
 
-struct polygon_point : public Eigen::Vector2d {
-    comma::uint32 id;   // default is 0
-    bool restrictive;
+struct polygon_point : public Eigen::Vector2d
+{
+    comma::uint32 id{0};
+    bool restrictive{false};
 
-    polygon_point() : id(0), restrictive(false) {}
+    polygon_point() : Eigen::Vector2d{0, 0} {}
 };
 
 } } } // namespace snark { namespace operations { namespace polygons {
@@ -228,18 +229,16 @@ namespace snark { namespace operations { namespace polytopes {
 
 struct normal
 {
-    Eigen::Vector3d coordinates;
-    double distance;
+    Eigen::Vector3d coordinates{0, 0, 0};
+    double distance{0};
 
     normal( const Eigen::Vector3d& coordinates = Eigen::Vector3d::Zero(), double distance = 0 ) : coordinates( coordinates ), distance( distance ) {}
 };
 
 struct position
 {
-    Eigen::Vector3d coordinates;
+    Eigen::Vector3d coordinates{0, 0, 0};
     snark::roll_pitch_yaw orientation;
-
-    position() : coordinates( Eigen::Vector3d::Zero() ) {}
 };
 
 namespace species {
