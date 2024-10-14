@@ -54,132 +54,144 @@
 
 static void usage( bool verbose = false )
 {
-    std::cerr << std::endl;
-    std::cerr << "filter points from dynamic objects represented by a position and orientation stream" << std::endl;
-    std::cerr << "stdin: stream of points to filter" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: cat points.csv | points-grep <what> [<options>]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "<what>" << std::endl;
-    std::cerr << "     box: rectangular box" << std::endl;
-    std::cerr << "         options" << std::endl;
-    std::cerr << "             --begin,--origin=<x>,<y>,<z>: lower left back corner of the box" << std::endl;
-    std::cerr << "             --end=<x>,<y>,<z>: upper right front corner of the box" << std::endl;
-    std::cerr << "             --center,--centre=<x>,<y>,<z>: centre of the box; default: 0,0,0" << std::endl;
-    std::cerr << "             --inflate-by=<x>,<y>,<z>: add it to the box size, a convenience option" << std::endl;
-    std::cerr << "             --size=<x>,<y>,<z>: size of the box" << std::endl;
-    std::cerr << "             any two of the options above are sufficient to specify a box" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "     polygons: take input 2d points or line segments, filter them based upon whether they are fully contained in or fully outside a set of 2d polygons" << std::endl;
-    std::cerr << "         options" << std::endl;
-//     std::cerr << "             --exclude-boundary: exclude points on the boundary for both permissive and restrictive polygons; the only mode currently implemented" << std::endl;
-    std::cerr << "             Due to limitations of Boost 1.53, points on boundary are not excluded from restrictive polygons, while lines are excluded." << std::endl;
-    std::cerr << "             --fields" << std::endl;
-    std::cerr << "                 x,y: input is points" << std::endl;
-    std::cerr << "                 first,second,first/x,first/y,second/x,second/y: if any of these fields present, input is line segments" << std::endl;
-    std::cerr << "                 default: x,y" << std::endl;
-    std::cerr << "             --output-all,--all: instead of filtering input records, append a boolean pass/fail field for every polygon in --polygons" << std::endl;
-    std::cerr << "             --or: polygons become OR filters, output 2d point or line segment if it is allowed by any polygon in the polygon set. Default: AND filters" << std::endl;
-    std::cerr << "             --polygon-fields: show polygon fields and exit, see --polygons" << std::endl;
-    std::cerr << "             --polygon-format: show polygon format and exit, see --polygons" << std::endl;
-    std::cerr << "             --polygon,--polygons=<filename>[;<csv options>]: polygon points specified in clockwise order, multiple --polygons options permitted" << std::endl;
-    std::cerr << "                 default fields: x,y" << std::endl;
-    std::cerr << "                 polygons: defined by boundary points identified by id field, default id: 0, both clockwise and anti-clockwise direction accepted" << std::endl;
-    std::cerr << "                 restrictive field: control wether a polygon act as fully 'contained in' or 'fully outside' filter, default: 0 for 'contained in'" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "     polytope,planes: arbitrary polytope that can be specified either as a set of planes or a set of plane normals and distances from 0,0,0" << std::endl;
-    std::cerr << "         options" << std::endl;
-    std::cerr << "             --inflate-by=<radius>: expand prism by the given value, a convenience option" << std::endl;
-    std::cerr << "             --normals=<filename>[;<csv options>]: normals specifying a polytope" << std::endl;
-    std::cerr << "             --normals-fields: output normals fields and exit" << std::endl;
-    std::cerr << "             --normals-format: output normals format and exit" << std::endl;
-    std::cerr << "             --normals-size,--number-of-planes,--number-of-normals: if normals fields given on stdin, specify the number of normals" << std::endl;
-    std::cerr << "             --planes=<filename>[;<csv options>]: planes specifying a polytope" << std::endl;
-    std::cerr << "             --planes-fields: output planes fields and exit" << std::endl;
-    std::cerr << "             --planes-format: output planes format and exit" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "     prism" << std::endl;
-    std::cerr << "         options" << std::endl;
-    std::cerr << "             --axis=<x>,<y>,<z>,<length>: prism axis vector; default: 0,0,1,0" << std::endl;
-    std::cerr << "             --corners=<filename>[;<csv options>]: corners of prism base" << std::endl;
-    std::cerr << "             --corners-fields: output corners fields and exit" << std::endl;
-    std::cerr << "             --corners-format: output corners format and exit" << std::endl;
-    std::cerr << "             --corners-size,--number-of-corners: if corners fields given on stdin, specify the number of corners" << std::endl;
-    std::cerr << "             --inflate-box-by=<radius>: expand prism by the given value, a convenience option" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "     points: take points, output those within radius of filter points" << std::endl;
-    std::cerr << "         options" << std::endl;
-    std::cerr << "             --radius=[<n>]: filtering radius if not provided in fields (default: 1e-12)" << std::endl;
-    std::cerr << "             --filter=<filename>[;<csv_options>]: filter points" << std::endl;
-    std::cerr << "                                                  default fields: x,y,z" << std::endl;
-    std::cerr << "                                                  optional fields: radius" << std::endl;
-    std::cerr << "             --filter-fields: show --filter fields" << std::endl;
-    std::cerr << "             --filter-format: show --filter format" << std::endl;
-    std::cerr << "             --output-all,--all: output all input with matching flag(s) appended for each filter point rather than filtering input" << std::endl;
-    std::cerr << "             --or: match with 'or' operation, default: 'and'" << std::endl;
-    std::cerr << "             --not-matching,--negate: negate matching" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --input-fields: print input fields and exit; default input fields: x,y,z" << std::endl;
-    std::cerr << "    --input-format: print input format and exit" << std::endl;
-    std::cerr << "    --not-matching,--negate: output points outside of the given shape (i.e. inverted output logic)" << std::endl;
-    std::cerr << "    --output-all,--all: output all input points, append 1, if point is inside the shape, 0 otherwise" << std::endl;
-    std::cerr << "    --output-fields: if --output-all given, print appended output fields and exit" << std::endl;
-    std::cerr << "    --output-format: if --output-all given, print appended output format and exit" << std::endl;
-    std::cerr << "    --point=<x>,<y>,<z>: default point coordinates; default: 0,0,0" << std::endl;
-    std::cerr << "                         useful e.g. when we need to filter a fixed point by polytope position" << std::endl;
-    std::cerr << "    --position=<x>,<y>,<z>,<roll>,<pitch>,<yaw>: default filter shape position" << std::endl;
-    std::cerr << std::endl;
+    std::cerr << R"(
+filter points from dynamic objects represented by a position and orientation stream
+stdin: stream of points to filter
+
+usage: cat points.csv | points-grep <what> [<options>]
+
+<what>
+     box: rectangular box
+         options
+             --begin,--origin=<x>,<y>,<z>: lower left back corner of the box
+             --end=<x>,<y>,<z>: upper right front corner of the box
+             --center,--centre=<x>,<y>,<z>: centre of the box; default: 0,0,0
+             --inflate-by=<x>,<y>,<z>: add it to the box size, a convenience option
+             --size=<x>,<y>,<z>: size of the box
+             any two of the options above are sufficient to specify a box
+
+     polygons: take input 2d points or line segments, filter them based upon whether
+               they are fully contained in or fully outside a set of 2d polygons
+
+               due to limitations of Boost 1.53, points on boundary are not excluded from
+               restrictive polygons, while lines are excluded
+         options
+             --fields
+                 x,y: input is points
+                 first,second,first/x,first/y,second/x,second/y: if any of these fields present
+                                                                 input is line segments
+                 default: x,y
+             --output-all,--all: instead of filtering input records, append a boolean pass/fail
+                                 field for every polygon in --polygons
+             --or: polygons become OR filters, output 2d point or line segment if it is allowed
+                   by any polygon in the polygon set. Default: AND filters
+             --polygon-fields: show polygon fields and exit, see --polygons
+             --polygon-format: show polygon format and exit, see --polygons
+             --polygon,--polygons=<filename>[;<csv options>]: polygon points specified in
+                                                              clockwise order, multiple --polygons
+                                                              options permitted
+                 default fields: x,y
+                 polygons: defined by boundary points identified by id field, default id: 0, both
+                           clockwise and anti-clockwise direction accepted
+                 restrictive field: control wether a polygon act as fully 'contained in' or
+                                    'fully outside' filter, default: 0 for 'contained in'
+
+     polytope,planes: arbitrary polytope that can be specified either as a set of planes or a set
+                      of plane normals and distances from 0,0,0
+         options
+             --inflate-by=<radius>: expand prism by the given value, a convenience option
+             --normals=<filename>[;<csv options>]: normals specifying a polytope
+             --normals-fields: output normals fields and exit
+             --normals-format: output normals format and exit
+             --normals-size,--number-of-planes,--number-of-normals: if normals fields given on stdin
+                                                                    specify the number of normals
+             --planes=<filename>[;<csv options>]: planes specifying a polytope
+             --planes-fields: output planes fields and exit
+             --planes-format: output planes format and exit
+
+     prism
+         options
+             --axis=<x>,<y>,<z>,<length>: prism axis vector; default: 0,0,1,0
+             --corners=<filename>[;<csv options>]: corners of prism base
+             --corners-fields: output corners fields and exit
+             --corners-format: output corners format and exit
+             --corners-size,--number-of-corners: if corners fields given on stdin, specify the
+                                                 number of corners
+             --inflate-box-by=<radius>: expand prism by the given value, a convenience option
+
+     points: take points, output those within radius of filter points
+         options
+             --radius=[<n>]: filtering radius if not provided in fields (default: 1e-12)
+             --filter=<filename>[;<csv_options>]: filter points
+                                                  default fields: x,y,z
+                                                  optional fields: radius
+             --filter-fields: show --filter fields
+             --filter-format: show --filter format
+             --output-all,--all: output all input with matching flag(s) appended for each
+                                 filter point rather than filtering input
+             --or: match with 'or' operation, default: 'and'
+             --not-matching,--negate: negate matching
+
+options
+    --input-fields: print input fields and exit; default input fields: x,y,z
+    --input-format: print input format and exit
+    --not-matching,--negate: output points outside of the given shape (i.e. inverted output logic)
+    --output-all,--all: output all input points, append 1, if point is inside the shape, 0 otherwise
+    --output-fields: if --output-all given, print appended output fields and exit
+    --output-format: if --output-all given, print appended output format and exit
+    --point=<x>,<y>,<z>: default point coordinates; default: 0,0,0
+                         useful e.g. when we need to filter a fixed point by polytope position
+    --position=<x>,<y>,<z>,<roll>,<pitch>,<yaw>: default filter shape position
+)" << std::endl;
     std::cerr << comma::csv::options::usage( verbose ) << std::endl;
     std::cerr << std::endl;
     std::cerr << "examples" << std::endl;
     if( verbose )
     {
-        std::cerr << "    make a sample dataset" << std::endl;
-        std::cerr << "        for i in $( seq -5 0.1 5 ) ; do for j in $( seq -5 0.1 5 ) ; do for k in $( seq -5 0.1 5 ) ; do echo $i,$j,$k ; done ; done ; done > cube.csv" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    filter by a box; view result" << std::endl;
-        std::cerr << "        cat cube.csv | points-grep box --size=1,2,3 --position=1,2,3,0.5,0.6,0.7 > filtered.csv" << std::endl;
-        std::cerr << "        view-points \"cube.csv;colour=grey;hide\" \"filtered.csv;colour=red\" <( echo 0,0,0,0:0:0 ; echo 1,2,3,1:2:3 )\";colour=green;weight=10;fields=x,y,z,label\"" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    filter by two planes; view result" << std::endl;
-        std::cerr << "        cat cube.csv | points-grep planes --normals <( echo 1,1,1,0.5 ; echo -1,1,1,0.5 ) > filtered.csv" << std::endl;
-        std::cerr << "        view-points \"cube.csv;colour=grey;hide\" \"filtered.csv;colour=red\" <( echo 0,0,0,0:0:0 )\";colour=green;weight=10;fields=x,y,z,label\"" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    filter by a polytope; view result" << std::endl;
-        std::cerr << "        cat cube.csv | points-grep planes --normals <( echo 0,0,-1,0 ; echo 0,-1,0,0 ; echo -1,0,0,0 ; echo 1,1,1,3 ) > filtered.csv" << std::endl;
-        std::cerr << "        view-points \"cube.csv;colour=grey;hide\" \"filtered.csv;colour=red\" <( echo 0,0,0,0:0:0 )\";colour=green;weight=10;fields=x,y,z,label\"" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    polygons" << std::endl;
-        std::cerr << "      testing for points inside of polygon" << std::endl;
-        std::cerr << "        ( echo 0,5; echo 5,5; echo 5,0; echo 0,5 ) | csv-paste - value=1 >polygons.csv" << std::endl;
-        std::cerr << "        ( for i in $( seq 0 0.2 6 ) ; do for j in $( seq 0 0.2 6 ) ; do echo $i,$j ; done ; done ) | points-grep polygons --polygons polygons.csv --all >results.csv" << std::endl;
-        std::cerr << "        visualisation:" << std::endl;
-        std::cerr << "           view-points 'results.csv;fields=x,y,scalar' 'polygons.csv;shape=loop;fields=x,y;colour=yellow'" << std::endl;
-        std::cerr << "      testing for points outside of polygon" << std::endl;
-        std::cerr << "        ( for i in $( seq 0 0.2 6 ) ; do for j in $( seq 0 0.2 6 ) ; do echo $i,$j ; done ; done ) | points-grep polygons --polygons <( csv-paste polygons.csv value=1 )';fields=x,y,id,restrictive' --all >results.csv" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "      making a concave polygon" << std::endl;
-        std::cerr << "        ( echo 0,5; echo 5,5; echo 0,0; echo 5,-5; echo 0,-5; echo -5,0 ) | csv-paste - value=1 >polygons.csv" << std::endl;
-        std::cerr << "      testing of line totally contained in a concave polygon" << std::endl;
-        std::cerr << "        ( echo -2,0,-1,2,inside; echo 1,2,1,-2,partial; echo 2,0,4,0,outside) | points-grep polygons --fields first,second --polygons polygons.csv --all | tee results.csv" << std::endl;
-        std::cerr << "        visualisation:" << std::endl;
-        std::cerr << "           view-points 'results.csv;fields=first/x,first/y,second/x,second/y,label,id;shape=line' 'polygons.csv;colour=grey;weight=10;fields=x,y;shape=loop'" << std::endl;
-        std::cerr << "      testing of line totally fully outside the same concave polygon" << std::endl;
-        std::cerr << "        ( echo -2,0,-1,2,inside; echo 1,2,1,-2,partial; echo 2,0,4,0,outside) | points-grep polygons --fields first,second --polygons <( csv-paste polygons.csv value=1 )';fields=x,y,id,restrictive' --all | tee results.csv" << std::endl;
-        std::cerr << "        visualisation:" << std::endl;
-        std::cerr << "           view-points 'results.csv;fields=first/x,first/y,second/x,second/y,label,id;shape=line' 'polygons.csv;colour=grey;weight=10;fields=x,y;shape=loop'" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << "    points" << std::endl;
-        std::cerr << "        output points within radius of any filter points" << std::endl;
-        std::cerr << "            cat cube.csv | points-grep points --filter <( echo 0,0,0,1; echo 1.73,1.73,1.73,2; )';fields=x,y,z,radius' --or | view-points 'cube.csv;colour=grey;hide' '-;colour=-1:3.7,cyan:magenta;weight=5'" << std::endl;
-        std::cerr << "        output points within radius of all filter points" << std::endl;
-        std::cerr << "            cat cube.csv | points-grep points --filter <( echo 0,0,0; echo 0.5,0.5,0.5; ) --radius 1 | view-points 'cube.csv;colour=grey;hide' '-;colour=-0.5:1,cyan:magenta;weight=5'" << std::endl;
-        std::cerr << "        output points not within radius of any filter points" << std::endl;
-        std::cerr << "            cat cube.csv | points-grep points --filter <( echo -3,3,-3,5; echo -3,-2,-3,3 )';fields=x,y,z,radius' --or --negate | view-points 'cube.csv;colour=grey;hide' '-;colour=-5:5,cyan:magenta;weight=2'" << std::endl;
-        std::cerr << "        filter 2d points inside a circle of radius 5" << std::endl;
-        std::cerr << "            cat cube.csv | grep ',0.0$' | points-grep points --filter <( echo 5,0 )';fields=x,y' --radius 5 | view-points 'cube.csv;colour=grey;hide' '-;weight=5'" << std::endl;
-        std::cerr << std::endl;
+        std::cerr << R"(
+make a sample dataset
+    for i in $( seq -5 0.1 5 ) ; do for j in $( seq -5 0.1 5 ) ; do for k in $( seq -5 0.1 5 ) ; do echo $i,$j,$k ; done ; done ; done > cube.csv
+
+filter by a box; view result
+    cat cube.csv | points-grep box --size=1,2,3 --position=1,2,3,0.5,0.6,0.7 > filtered.csv
+    view-points 'cube.csv;colour=grey;hide' 'filtered.csv;colour=red' <( echo 0,0,0,0:0:0 ; echo 1,2,3,1:2:3 )';colour=green;weight=10;fields=x,y,z,label'
+
+filter by two planes; view result
+    cat cube.csv | points-grep planes --normals <( echo 1,1,1,0.5 ; echo -1,1,1,0.5 ) > filtered.csv
+    view-points 'cube.csv;colour=grey;hide' 'filtered.csv;colour=red' <( echo 0,0,0,0:0:0 )';colour=green;weight=10;fields=x,y,z,label'
+
+filter by a polytope; view result
+    cat cube.csv | points-grep planes --normals <( echo 0,0,-1,0 ; echo 0,-1,0,0 ; echo -1,0,0,0 ; echo 1,1,1,3 ) > filtered.csv
+    view-points 'cube.csv;colour=grey;hide' 'filtered.csv;colour=red' <( echo 0,0,0,0:0:0 )';colour=green;weight=10;fields=x,y,z,label'
+
+polygons
+    test for points inside of polygon
+        ( echo 0,5; echo 5,5; echo 5,0; echo 0,5 ) | csv-paste - value=1 >polygons.csv
+        ( for i in $( seq 0 0.2 6 ) ; do for j in $( seq 0 0.2 6 ) ; do echo $i,$j ; done ; done ) | points-grep polygons --polygons polygons.csv --all >results.csv
+    view
+       view-points 'results.csv;fields=x,y,scalar' 'polygons.csv;shape=loop;fields=x,y;colour=yellow'
+    test for points outside of polygon
+        ( for i in $( seq 0 0.2 6 ) ; do for j in $( seq 0 0.2 6 ) ; do echo $i,$j ; done ; done ) | points-grep polygons --polygons <( csv-paste polygons.csv value=1 )';fields=x,y,id,restrictive' --all >results.csv
+    make a concave polygon
+        ( echo 0,5; echo 5,5; echo 0,0; echo 5,-5; echo 0,-5; echo -5,0 ) | csv-paste - value=1 > polygons.csv
+    test of line totally contained in a concave polygon
+        ( echo -2,0,-1,2,inside; echo 1,2,1,-2,partial; echo 2,0,4,0,outside) | points-grep polygons --fields first,second --polygons polygons.csv --all | tee results.csv
+    view
+       view-points 'results.csv;fields=first/x,first/y,second/x,second/y,label,id;shape=line' 'polygons.csv;colour=grey;weight=10;fields=x,y;shape=loop'
+    test of line totally fully outside the same concave polygon
+        ( echo -2,0,-1,2,inside; echo 1,2,1,-2,partial; echo 2,0,4,0,outside) | points-grep polygons --fields first,second --polygons <( csv-paste polygons.csv value=1 )';fields=x,y,id,restrictive' --all | tee results.csv
+    view
+        view-points 'results.csv;fields=first/x,first/y,second/x,second/y,label,id;shape=line' 'polygons.csv;colour=grey;weight=10;fields=x,y;shape=loop'
+points
+    output points within radius of any filter points
+        cat cube.csv | points-grep points --filter <( echo 0,0,0,1; echo 1.73,1.73,1.73,2; )';fields=x,y,z,radius' --or | view-points 'cube.csv;colour=grey;hide' '-;colour=-1:3.7,cyan:magenta;weight=5'
+    output points within radius of all filter points
+        cat cube.csv | points-grep points --filter <( echo 0,0,0; echo 0.5,0.5,0.5; ) --radius 1 | view-points 'cube.csv;colour=grey;hide' '-;colour=-0.5:1,cyan:magenta;weight=5'
+    output points not within radius of any filter points
+        cat cube.csv | points-grep points --filter <( echo -3,3,-3,5; echo -3,-2,-3,3 )';fields=x,y,z,radius' --or --negate | view-points 'cube.csv;colour=grey;hide' '-;colour=-5:5,cyan:magenta;weight=2'
+    filter 2d points inside a circle of radius 5
+        cat cube.csv | grep ',0.0$' | points-grep points --filter <( echo 5,0 )';fields=x,y' --radius 5 | view-points 'cube.csv;colour=grey;hide' '-;weight=5'
+)" << std::endl;
     }
     else
     {
@@ -188,8 +200,8 @@ static void usage( bool verbose = false )
     exit( 0 );
 }
 
-static bool verbose;
-static bool matching;
+static bool verbose{false};
+static bool matching{false};
 
 namespace snark { namespace operations {
 
@@ -571,7 +583,7 @@ private:
     bool restrictive;
 };
 
-std::vector< polygon_t > read_polygons(comma::command_line_options& options)
+std::vector< polygon_t > read_polygons( comma::command_line_options& options )
 {
     bool or_option = options.exists( "--or" );
     std::vector< polygon_t > polygons;
