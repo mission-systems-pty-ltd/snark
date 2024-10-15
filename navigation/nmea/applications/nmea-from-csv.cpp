@@ -36,6 +36,8 @@
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <comma/io/serial.h>
+#include <comma/io/traits.h>
+#include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include <comma/timing/timestamped.h>
 #include <comma/timing/traits.h>
@@ -193,7 +195,7 @@ static void write_to_stdout( const std::string& s ) { std::cout << s << std::end
 
 static void write_to_serial( const std::string& a, const std::string& s )
 {
-    static comma::io::serial::port p( a );
+    static comma::io::serial::port p( comma::name_value::parser( "name", ';', '=' ).get< comma::io::serial::port::properties >( a ) );
     p.write( &s[0], s.size() );
     p.write( "\n", 1 ); // todo? should it be "\r\n"?
 }
