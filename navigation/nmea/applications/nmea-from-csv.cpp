@@ -28,12 +28,14 @@
 
 /// @authors David Nah, vsevolod vlaskine
 
+#include <functional>
 #include <iostream>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>
 #include <comma/csv/impl/fieldwise.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
+#include <comma/io/serial.h>
 #include <comma/string/string.h>
 #include <comma/timing/timestamped.h>
 #include <comma/timing/traits.h>
@@ -54,6 +56,7 @@ options
     --output=<what>; default=gga,gsa,gsv,rmc; <what>: <type>[,<type>]..., what to
                      output in a given order
                      <type>: gga,gsa,gsv,rmc
+    --output-address,--address=<address>; default='-'; e.g: --address=serial:/dev/ttyUSB0
     --permissive,--force; errors will tell you when to use --force
     --verbose,-v: more output to stderr
 
@@ -186,6 +189,15 @@ template <> struct traits< input::data >
 
 static input::type input_;
 
+static void write_to_stdout( const std::string& s ) { std::cout << s << std::endl; }
+
+static void write_to_serial( const std::string& a, const std::string& s )
+{
+    static comma::io::serial::port p( a );
+    p.write( &s[0], s.size() );
+    p.write( "\n", 1 ); // todo? should it be "\r\n"?
+}
+
 int main( int ac, char** av )
 {
     try
@@ -234,6 +246,11 @@ int main( int ac, char** av )
         o.quote.reset();
         comma::csv::ascii< snark::nmea::messages::gga > gga( o );
         comma::csv::ascii< snark::nmea::messages::rmc > rmc( o );
+        std::function< void( const std::string& ) > output;
+        std::string address = options.value< std::string >( "--address", "-" );
+        if( address == "-" ) { output = write_to_stdout; }
+        else if( address.substr( 0, 7 ) == "serial:" ) { output = std::bind( write_to_serial, address.substr( 7 ), std::placeholders::_1 ); }
+        else { COMMA_THROW_BRIEF( comma::exception, "expected --address='-' or --address='serial:...', got: --address='" << address << "': not supported" ); }
         while( is.ready() || std::cin.good() )
         {
             auto p = is.read();
@@ -261,7 +278,7 @@ int main( int ac, char** av )
                     m.reference_station_id = p->data.reference_station_id;
                     std::string line;
                     gga.put( m, line );
-                    std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
+                    output( line + snark::nmea::string::checksum_string( line, true ) );
                     continue;
                 }
                 if( t == "rmc" )
@@ -275,7 +292,7 @@ int main( int ac, char** av )
                     m.magnetic_variation.value = p->data.magnetic_variation; // always positive
                     std::string line;
                     rmc.put( m, line );
-                    std::cout << line << snark::nmea::string::checksum_string( line, true ) << std::endl;
+                    output( line + snark::nmea::string::checksum_string( line, true ) );
                     continue;
                 }
             }
