@@ -54,12 +54,22 @@ read csv data on stdin, output nmea strings to stdout
 options
     --input-fields; print input fields to stdout and exit
     --number-of-satellites,--satellites=[<n>]; default number of satellites
-    --quality=[<n>]; default quality
     --output=<what>; default=gga,gsa,gsv,rmc; <what>: <type>[,<type>]..., what to
                      output in a given order
                      <type>: gga,gsa,gsv,rmc
     --output-address,--address=<address>; default='-'; e.g: --address=serial:/dev/ttyUSB0
     --permissive,--force; errors will tell you when to use --force
+    --quality=<n>; default=0; default quality, default value: 0 (fix not valid)
+        <n>
+            0: fix not valid
+            1: gps fix
+            2: differential gps fix
+            3: pps fix
+            4: real time kinematic fixed integers
+            5: real time kinematic float integers
+            6: estimated
+            7: manual input
+            8: simulation
     --verbose,-v: more output to stderr
 
 fields
@@ -161,7 +171,7 @@ template <> struct traits< input::data >
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
         v.apply( "number_of_satellites", p.number_of_satellites );
-        //v.apply( "quality", p.quality );
+        v.apply( "quality", p.quality );
         v.apply( "hdop", p.hdop );
         v.apply( "geoid_separation", p.geoid_separation );
         v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
@@ -176,7 +186,7 @@ template <> struct traits< input::data >
         v.apply( "position", p.position );
         v.apply( "orientation", p.orientation );
         v.apply( "number_of_satellites", p.number_of_satellites );
-        //v.apply( "quality", p.quality );
+        v.apply( "quality", p.quality );
         v.apply( "hdop", p.hdop );
         v.apply( "geoid_separation", p.geoid_separation );
         v.apply( "age_of_differential_gps_data_record", p.age_of_differential_gps_data_record );
@@ -230,19 +240,16 @@ int main( int ac, char** av )
         input::type sample;
 
         // GGA input flags --------------------------------------------------------------------------------------
-        //sample.data.quality = options.value( "--quality", 0 );
-        //sample.data.quality = static_cast<snark::nmea::messages::gga::quality_t::values>(options.value( "--quality", 0 ));
+        sample.data.quality = static_cast< snark::nmea::messages::gga::quality_t::values >( options.value( "--quality", int( snark::nmea::messages::gga::quality_t::fix_not_valid ) ) );
         sample.data.number_of_satellites = options.value( "--number-of-satellites,--satellites", 0 );
         sample.data.hdop = options.value( "--hdop", 0.0 );
         sample.data.geoid_separation = options.value( "--geoid-separation", 0.0 );
         sample.data.age_of_differential_gps_data_record = options.value( "--age-of-differential-gps-data-record", 0.0 );
         sample.data.reference_station_id = options.value< std::string >( "--reference-station-id", "" );
-
         // RMC input flags --------------------------------------------------------------------------------------
         sample.data.speed = options.value( "--speed", 0.0 );
         sample.data.true_course = options.value( "--true-course", 0.0 );
         sample.data.magnetic_variation = options.value( "--magnetic-variation", 0.0 );
-
         comma::csv::input_stream< input::type > is( std::cin, csv, sample );
         comma::csv::options o;
         o.quote.reset();
@@ -272,7 +279,7 @@ int main( int ac, char** av )
                     m.coordinates.longitude.value = p->data.position.longitude;
                     // todo: fill the remaining fields
                     m.satellites_in_use = p->data.number_of_satellites;
-                    //m.quality = p->data.quality;
+                    m.quality = static_cast< snark::nmea::messages::gga::quality_t::values >( p->data.quality );
                     m.hdop = p->data.hdop;
                     m.orthometric_height = p->data.position.z;
                     m.geoid_separation = p->data.geoid_separation;
