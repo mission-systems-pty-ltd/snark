@@ -197,7 +197,7 @@ static void write_to_serial( const std::string& a, const std::string& s )
 {
     static comma::io::serial::port p( comma::name_value::parser( "name", ';', '=' ).get< comma::io::serial::port::properties >( a ) );
     p.write( &s[0], s.size() );
-    p.write( "\n", 1 ); // todo? should it be "\r\n"?
+    p.write( "\r\n", 1 ); // todo? should it be "\n"? parametrize through a command-line option
 }
 
 int main( int ac, char** av )
