@@ -7,13 +7,12 @@ function test_zip_iterator
     python3 -c "$( cat <<END
 from __future__ import print_function
 import sys
-from snark.imaging import cv_image
+import snark.imaging
 from comma.io import windows_binary
 print("test_iterator loaded comma and snark", file=sys.stderr)
 print("test_zip_iterator: streams: ", sys.argv[1:], file=sys.stderr)
-for images in cv_image.zip_iterator(*sys.argv[1:]):
-    for image in images:
-        image.write()
+for images in snark.imaging.cv.zip_iterator(*sys.argv[1:]):
+    for image in images: image.write()
 print("test_iterator finished", file=sys.stderr)
 END
 )" "$@"

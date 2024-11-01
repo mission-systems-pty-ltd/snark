@@ -67,7 +67,7 @@ def make_header_from(frame, timestamp=None):
     header['time'] = timestamp if timestamp is not None else numpy.datetime64('now')
     header['rows'], header['cols'] = frame.shape[:2]
     channels = 1 if frame.ndim == 2 else frame.shape[-1]
-    header['type'] = types.string2cv(frame.dtype.name, channels)
+    header['type'] = types.from_string(frame.dtype.name, channels)
     return header[0]
 
 
@@ -105,7 +105,7 @@ class image():
         frame = None
         if frame_dtype is None:
             header = safe_read(file, image.header_dtype, 1)[0]
-            type_string, channels = types.cv2string(header['type'])
+            type_string, channels = types.to_string(header['type'])
             frame_dtype = numpy.dtype((numpy.dtype(type_string), (header['rows'], header['cols'], channels)))
         frame = safe_read(file, frame_dtype, 1)[0]
         return image(header, frame)

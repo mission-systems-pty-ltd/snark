@@ -3,19 +3,15 @@
 function test_iterator
 {
     python3 -c "$( cat <<END
-from __future__ import print_function
 import sys
-from snark.imaging import cv_image
+import snark.imaging
 from comma.io import windows_binary
 print("test_iterator loaded comma and snark", file=sys.stderr)
-for i in cv_image.iterator():
-    cv_image.write(i)
+for i in snark.imaging.cv.iterator(): snark.imaging.cv.write(i)
 print("test_iterator finished", file=sys.stderr)
 END
 )"
 }
-
-
 
 output=$( csv-to-bin t,3ui,6ub | test_iterator | csv-from-bin t,3ui,6ub )
 status=$?
