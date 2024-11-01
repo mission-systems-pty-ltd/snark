@@ -29,12 +29,8 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-import cv2 as cv
-import numpy as np
-import argparse
-import json
-from snark.imaging import cv_image
+import argparse, json, numpy as np, sys
+import snark.imaging
 from comma.io import windows_binary
 
 description = """
@@ -88,23 +84,23 @@ if args.config:
         loaded_config = json.load( config_file )
         config.update( loaded_config )
 
-for i in cv_image.iterator( sys.stdin ):
+for i in snark.imaging.cv.iterator( sys.stdin ):
     header = i.header
     type = i.header['type']
-    header['type'] = cv.CV_32SC1
+    header['type'] = cv2.CV_32SC1
     watershed = np.zeros( ( header['rows'], header['cols'], 1 ), np.int32 )
 
-    ret, thresholded = cv.threshold( i.data, float( config['threshold']['min'] ), float( config['threshold']['max'] ), cv.THRESH_BINARY )
+    ret, thresholded = cv2.threshold( i.data, float( config['threshold']['min'] ), float( config['threshold']['max'] ), cv2.THRESH_BINARY )
 
-    if( type != cv.CV_8UC1 ):
-        thresholded = cv.cvtColor( thresholded, cv.COLOR_BGR2GRAY )
+    if( type != cv2.CV_8UC1 ):
+        thresholded = cv2.cvtColor( thresholded, cv2.COLOR_BGR2GRAY )
 
     kernel = np.ones( ( float( config['blur']['radius'] ), float( config['blur']['radius'] ) ), np.uint8 )
-    blurred = cv.morphologyEx( thresholded, cv.MORPH_OPEN,kernel, iterations = int( config['blur']['iterations'] ) )
+    blurred = cv2.morphologyEx( thresholded, cv2.MORPH_OPEN,kernel, iterations = int( config['blur']['iterations'] ) )
 
-    dilated = cv.dilate( blurred, kernel, iterations = int( config['dilation']['iterations'] ) )
+    dilated = cv2.dilate( blurred, kernel, iterations = int( config['dilation']['iterations'] ) )
 
-    contours, hierarchy = cv.findContours( dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE )
+    contours, hierarchy = cv2.findContours( dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE )
 
     for j in range( len( contours ) ):
         for k in range( len( contours[j] ) ):
@@ -112,9 +108,9 @@ for i in cv_image.iterator( sys.stdin ):
             v = contours[j][k][0][1]
             watershed[v][u] = j
 
-    w = cv_image.image( header, watershed )
+    w = snark.imaging.cv.image( header, watershed )
     if args.view :
-        resized = cv.resize( w.data, None, fx=view_resize_factor, fy=view_resize_factor, interpolation = cv.INTER_NEAREST )
-        cv.imshow( 'watershed', resized )
-        cv.waitKey(10000)
-    cv_image.write( w )
+        resized = cv2.resize( w.data, None, fx=view_resize_factor, fy=view_resize_factor, interpolation = cv2.INTER_NEAREST )
+        cv2.imshow( 'watershed', resized )
+        cv2.waitKey(10000)
+    snark.imaging.cv.write( w )

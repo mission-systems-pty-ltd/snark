@@ -34,35 +34,23 @@ Provides file reader for cv-cat style binary data
 
 from __future__ import print_function
 
-import sys
-
-import cv2
-import numpy as np
-from snark.imaging import cv_types
+import cv2, numpy, sys
+from . import types
 
 __author__ = 'j.underwood'
-
-
-try:
-    STDOUT = sys.stdout.buffer
-    STDIN = sys.stdin.buffer
-except AttributeError:
-    STDOUT = sys.stdout
-    STDIN = sys.stdin
-
 
 def safe_read(file, dtype, count):
     """Compatible with Python 2 and 3; duplicates read data for short period."""
     try:
         buf = file.read(dtype.itemsize)
-        return np.frombuffer(buf, dtype, count)
+        return numpy.frombuffer(buf, dtype, count)
     except ValueError:
         raise EOFError()
 
 
 def make_header(rows, cols, dtype, timestamp=None):
-    header = np.empty(1, dtype=image.header_dtype)
-    header['time'] = timestamp if timestamp is not None else np.datetime64('now')
+    header = numpy.empty(1, dtype=image.header_dtype)
+    header['time'] = timestamp if timestamp is not None else numpy.datetime64('now')
     header['rows'] = rows
     header['cols'] = cols
     try:
@@ -70,38 +58,38 @@ def make_header(rows, cols, dtype, timestamp=None):
         dtype = dtype[1:]
     except ValueError:
         channels = 1
-    header['type'] = cv_types.string2cv(dtype, channels)
+    header['type'] = types.from_string(dtype, channels)
     return header[0]
 
 
 def make_header_from(frame, timestamp=None):
-    header = np.empty(1, dtype=image.header_dtype)
-    header['time'] = timestamp if timestamp is not None else np.datetime64('now')
+    header = numpy.empty(1, dtype=image.header_dtype)
+    header['time'] = timestamp if timestamp is not None else numpy.datetime64('now')
     header['rows'], header['cols'] = frame.shape[:2]
     channels = 1 if frame.ndim == 2 else frame.shape[-1]
-    header['type'] = cv_types.string2cv(frame.dtype.name, channels)
+    header['type'] = types.string2cv(frame.dtype.name, channels)
     return header[0]
 
 
 class image():
-    header_dtype = np.dtype([('time', 'datetime64[us]'),
-                             ('rows', np.uint32),
-                             ('cols', np.uint32),
-                             ('type', np.uint32)])
+    header_dtype = numpy.dtype([('time', 'datetime64[us]'),
+                             ('rows', numpy.uint32),
+                             ('cols', numpy.uint32),
+                             ('type', numpy.uint32)])
 
     def __init__(self, header=None, data=None):
         self.header = header
         self.data = data
 
     def validate(self):
-        type_string, channels = cv_types.cv2string(self.header['type'])
+        type_string, channels = types.to_string(self.header['type'])
         if self.data.dtype.name != type_string:
             raise ValueError("cv_image dtype mismatch ({}, expected {})".format(self.data.dtype.name, type_string))
         expected_shape = (self.header['rows'], self.header['cols'], channels)
         if self.data.shape != expected_shape:
             raise ValueError("cv_image shape mismatch ({}, expected {})".format(self.data.shape, expected_shape))
 
-    def write(self, file=STDOUT, flush=False):
+    def write(self, file=sys.stdout.buffer, flush=False):
         if self.header is not None:
             self.validate()
             file.write(self.header.tobytes())
@@ -117,18 +105,18 @@ class image():
         frame = None
         if frame_dtype is None:
             header = safe_read(file, image.header_dtype, 1)[0]
-            type_string, channels = cv_types.cv2string(header['type'])
-            frame_dtype = np.dtype((np.dtype(type_string), (header['rows'], header['cols'], channels)))
+            type_string, channels = types.cv2string(header['type'])
+            frame_dtype = numpy.dtype((numpy.dtype(type_string), (header['rows'], header['cols'], channels)))
         frame = safe_read(file, frame_dtype, 1)[0]
         return image(header, frame)
 
 
-def iterator(file=STDIN, rows=None, cols=None, dtype=None):
+def iterator(file=sys.stdin.buffer, rows=None, cols=None, dtype=None):
     """
     read binary cv-cat data from file object in the form t,rows,cols,type,data, t,3ui,data.
     if rows, cols and dtype provided, assume there is no header in the stream.
     dtype is specified by: [num_channels]{uint8, int8, uint16, int16, int32, float32, float64}
-    e.g.: iterator(sys.stdin, rows=512, cols=512, dtype='3uint8')
+    e.g.: iterator(sys.sys.stdin.buffer, rows=512, cols=512, dtype='3uint8')
     """
     assert (rows is None and cols is None and dtype is None) or (rows and cols and dtype), \
         "rows, cols, dtype should be all None or all not None"
@@ -139,7 +127,7 @@ def iterator(file=STDIN, rows=None, cols=None, dtype=None):
             dtype = dtype[1:]
         except ValueError:
             channels = 1
-        frame_dtype = np.dtype((np.dtype(dtype), (rows, cols, channels)))
+        frame_dtype = numpy.dtype((numpy.dtype(dtype), (rows, cols, channels)))
     try:
         while True: yield image.read(file, frame_dtype)
     except EOFError:
@@ -189,13 +177,13 @@ def zip_iterator(*inputs):
         return
 
 
-def write(frame, flush=False, out_file=STDOUT):
+def write(frame, flush=False, out_file=sys.stdout.buffer):
     """Method for backwards compatibility, use frame.write() instead."""
     frame.write(out_file, flush=False)
 
 
 if __name__ == '__main__':
-    for i in iterator(STDIN):
+    for i in iterator(sys.stdin.buffer):
         print("{},{},{},{}".format(
             i.header['time'].item(),
             i.header['rows'], i.header['cols'], i.header['type']), file=sys.stderr)

@@ -30,3 +30,8 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from snark.version import __version__
+
+try: __import__('pkg_resources').declare_namespace(__name__)
+except ImportError: __path__ = __import__('pkgutil').extend_path(__path__, __name__)
+
+# from . import imaging # todo? uncomment rather than let user import what he needs?

@@ -38,7 +38,7 @@ Provides conversion functions between opencv and type strings, compatible with n
 import cv2
 
 
-def cv2string(cv):
+def to_string(cv):
     """
     convert from cv typdef to type string and number of channels
     """
@@ -82,7 +82,7 @@ def cv2string(cv):
     return t[0], t[1]
 
 
-def string2cv(np, channels):
+def from_string(np, channels=1):
     """
     convert from type string to cv typedef
     """

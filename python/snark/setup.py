@@ -6,7 +6,13 @@ setup(
         name                = 'snark',
         version             = open('snark/version.py').readlines()[-1].strip().split()[-1].strip('\"'),
         description         = 'snark python utilties',
-        url                 = 'https://github.com/acfr/snark',
+        url                 = 'https://gitlab.com/orthographic/snark',
         license             = 'BSD 3-Clause',
-        packages            = [ 'snark', 'snark.imaging', 'snark.ros', 'snark.ros.detail', 'snark.ros2', 'snark.ros2.detail'],
+        packages            = [ 'snark'
+                              , 'snark.imaging'
+                              , 'snark.imaging.cv'
+                              , 'snark.imaging.cv.types'
+                              , 'snark.ros'
+                              , 'snark.ros2' ]
+        # namespace_packages  = [ 'snark' ] # deprectated
      )

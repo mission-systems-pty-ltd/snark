@@ -33,7 +33,7 @@ import sys
 import cv2
 import numpy as np
 from optparse import OptionParser
-from snark.imaging import cv_image
+from snark.imaging import cv
 from comma.io import windows_binary
 
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     output = np.zeros(1, dtype='uint64,uint32,uint32,uint32,float64')
 
-    for i in cv_image.iterator(sys.stdin.buffer):
+    for i in cv.image.iterator(sys.stdin.buffer):
         intensity = np.mean(i.data)
 
         if options.binary:
