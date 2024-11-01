@@ -66,3 +66,5 @@ install( TARGETS image-stereo RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPO
 #add_executable( equirectangular-to-rectilinear equirectangular-to-rectilinear.cpp )
 #target_link_libraries( equirectangular-to-rectilinear ${comma_ALL_LIBRARIES} ${OpenCV_LIBS} )
 #install( TARGETS equirectangular-to-rectilinear RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
+install( PROGRAMS image-watershed DESTINATION ${snark_INSTALL_BIN_DIR} )
