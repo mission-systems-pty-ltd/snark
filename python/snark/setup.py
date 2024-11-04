@@ -10,6 +10,7 @@ setup(
         license             = 'BSD 3-Clause',
         packages            = [ 'snark'
                               , 'snark.imaging'
+                              , 'snark.imaging.cameras'
                               , 'snark.imaging.cv'
                               , 'snark.imaging.cv.types'
                               , 'snark.ros'
