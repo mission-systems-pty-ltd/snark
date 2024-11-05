@@ -30,6 +30,8 @@ MACRO( set_python_build_lib_directory )
     ENDIF( MODULE_EXIT_CODE MATCHES 0 )
 ENDMACRO( set_python_build_lib_directory )
 
+find_program( PYTHON "python3" )
+
 check_python_module( comma )
 check_python_module( numpy )
 check_python_module( cv2 )
@@ -58,7 +60,6 @@ set( BUILD_BASE "${CMAKE_CURRENT_BINARY_DIR}/build" )
 
 set_python_build_lib_directory()
  
-find_program( PYTHON "python3" )
 set( SETUP_PY "${CMAKE_CURRENT_SOURCE_DIR}/setup.py" ) # todo? use pip3 instead?
 
 if( snark_build_python_use_pip )
