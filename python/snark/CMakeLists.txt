@@ -38,6 +38,7 @@ ENDMACRO( set_python_build_lib_directory )
 find_program( PYTHON "python3" )
 
 check_python_module( comma )
+check_python_module( dataclasses_json )
 check_python_module( numpy )
 check_python_module( cv2 )
 if( snark_build_ros )
