@@ -1,3 +1,8 @@
+MACRO( disable_python_testing )
+    EXECUTE_PROCESS( COMMAND touch ${CMAKE_CURRENT_SOURCE_DIR}/disabled )
+    MESSAGE( STATUS "disabled file has been dropped in ${CMAKE_CURRENT_SOURCE_DIR}: testing python modules and applications is disabled" )
+ENDMACRO( disable_python_testing )
+
 MACRO( check_python_module module )
     EXECUTE_PROCESS( COMMAND ${PYTHON} -c "import ${module}; print( hasattr( ${module}, '__version__' ) and ${module}.__version__ or 'unknown' );"
         RESULT_VARIABLE MODULE_EXIT_CODE
