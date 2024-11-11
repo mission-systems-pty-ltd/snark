@@ -53,6 +53,7 @@ read csv data on stdin, output nmea strings to stdout
 
 options
     --input-fields; print input fields to stdout and exit
+    --no-carriage-return,--no-cr; no \r before the end of line
     --number-of-satellites,--satellites=[<n>]; default number of satellites
     --output=<what>; default=gga,gsa,gsv,rmc; <what>: <type>[,<type>]..., what to
                      output in a given order
@@ -200,14 +201,16 @@ template <> struct traits< input::data >
 } } // namespace comma { namespace visiting {
 
 static input::type input_;
+static bool output_carriage_return;
 
-static void write_to_stdout( const std::string& s ) { std::cout << s << std::endl; }
+static void write_to_stdout( const std::string& s ) { std::cout << s << ( output_carriage_return ? "\r" : "" ) << "\n"; }
 
 static void write_to_serial( const std::string& a, const std::string& s )
 {
     static comma::io::serial::port p( comma::name_value::parser( "name", ';', '=' ).get< comma::io::serial::port::properties >( a ) );
     p.write( &s[0], s.size() );
-    p.write( "\r\n", 2 ); // todo? should it be "\n"? parametrize through a command-line option
+    if( output_carriage_return ) { p.write( "\r", 1 ); }
+    p.write( "\n", 1 );
 }
 
 int main( int ac, char** av )
@@ -220,6 +223,7 @@ int main( int ac, char** av )
         //for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "gsa" || t == "gsv" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         for( const auto& t: output_types ) { COMMA_ASSERT_BRIEF( t == "gga" || t == "rmc", "expected nmea message type; got unsupported type: '" << t << "'" ); }
         bool permissive = options.exists( "--permissive" );
+        output_carriage_return = !options.exists( "--no-carriage-return,--no-cr" );
         comma::csv::options csv( options, "t,latitude,longitude,z" );
         std::vector< std::string > v = comma::split( csv.fields, ',', true );
         for( unsigned int i = 0; i < v.size(); ++i ) // todo: use alias map in csv::options constructor
