@@ -1,6 +1,4 @@
-#!/bin/python
-
-# This file is part of comma, a generic and flexible library
+# This file is part of snark, a generic and flexible library
 # Copyright (c) 2011 The University of Sydney
 # All rights reserved.
 #
@@ -30,5 +28,3 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from . import cameras, cv
-from .operations import strides
-

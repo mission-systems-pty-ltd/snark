@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from distutils.core import setup
 
@@ -13,7 +13,8 @@ setup(
                               , 'snark.imaging.cameras'
                               , 'snark.imaging.cv'
                               , 'snark.imaging.cv.types'
+                              , 'snark.math'
                               , 'snark.ros'
                               , 'snark.ros2' ]
-        # namespace_packages  = [ 'snark' ] # deprectated
+        # namespace_packages  = [ 'snark' ] # deprecated
      )
