@@ -93,9 +93,10 @@ options
     --scale-factor,--zoom=<factor>; default=1; extra scale factor
     --shape=<shape>; default=point
                      <shape>
-                         point: each input point represents one pixel
                          lines: connect with line subsequent points with the same id
-                                e.g. to draw a trajectory or plot a basic graph
+                                e.g. to draw a trajectory or plot a basic graph                         
+                         point: each input point represents one pixel
+                         rectangle: draw rectangle based on upper left corner and size
     --timestamp=<how>: which image timestamp to output
           <how>
               first: timestamp of the first point of a block
@@ -107,14 +108,18 @@ options
               default: first
     --verbose,-v: more output
 
-fields: t,x,y,r,g,b,block or t,x,y,grey,block
-    t: image timestamp, optional
-    x,y: pixel coordinates, if double, will get rounded to the nearest integer
-    r,g,b: red, green, blue values
-    grey: greyscale value
-    channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr
-                                         if only channels[0] given, it is the same as specifying grey field
-    block: image number, optional
+fields
+    basic fields: t,x,y,r,g,b,block or t,x,y,grey,block
+    all fields
+        t: image timestamp, optional
+        x,y: pixel coordinates, if double, will get rounded to the nearest integer
+        size/x,size/y: primitive size (currently used only for rectangles)
+        r,g,b: red, green, blue values
+        grey: greyscale value
+        channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr
+                                            if only channels[0] given, it is the same as specifying grey field
+        block: image number, optional
+        id: point id, optional
 )" << std::endl;
     if( verbose )
     {
@@ -278,9 +283,15 @@ namespace snark { namespace imaging { namespace applications { namespace image_f
 
 struct input
 {
+    struct point // quick and dirty; generalise
+    {
+        double x{0};
+        double y{0};
+    };
     boost::posix_time::ptime t;
     double x{0};
     double y{0};
+    input::point size;
     std::vector< double > channels;
     comma::uint32 block{0};
     comma::uint32 id{0};
@@ -378,6 +389,21 @@ class axis // keeping consistent with csv-plot
 
 namespace comma { namespace visiting {
 
+template <> struct traits< snark::imaging::applications::image_from_csv::input::point >
+{
+    typedef snark::imaging::applications::image_from_csv::input::point value_t;
+    template < typename K, typename V > static void visit( const K&, value_t& r, V& v )
+    {
+        v.apply( "x", r.x );
+        v.apply( "y", r.y );
+    }
+    template < typename K, typename V > static void visit( const K&, const value_t& r, V& v )
+    {
+        v.apply( "x", r.x );
+        v.apply( "y", r.y );
+    }
+};
+
 template <> struct traits< snark::imaging::applications::image_from_csv::input >
 {
     typedef snark::imaging::applications::image_from_csv::input input_t;
@@ -386,6 +412,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "t", r.t );
         v.apply( "x", r.x );
         v.apply( "y", r.y );
+        v.apply( "size", r.size );
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
         v.apply( "id", r.id );
@@ -395,6 +422,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "t", r.t );
         v.apply( "x", r.x );
         v.apply( "y", r.y );
+        v.apply( "size", r.size );
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
         v.apply( "id", r.id );
@@ -459,12 +487,13 @@ class shape // todo: quick and dirty, make polymorphic
     public:
         struct types
         { 
-            enum values { point, lines };
+            enum values { lines, point, rectangle };
 
             static values from_string( const std::string& s )
             {
-                if( s == "point" ) { return point; }
                 if( s == "lines" ) { return lines; }
+                if( s == "point" ) { return point; }
+                if( s == "rectangle" ) { return rectangle; }
                 COMMA_THROW_BRIEF( comma::exception, "expected shape, got: '" << s << "'" );
             }
         };
@@ -502,6 +531,10 @@ class shape // todo: quick and dirty, make polymorphic
                     }
                     _previous[v.id] = v;
                     break;
+                }
+                case types::rectangle:
+                {
+                    COMMA_THROW_BRIEF( comma::exception, "rectangle: todo" );
                 }
             }
         }
