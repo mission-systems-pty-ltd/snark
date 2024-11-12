@@ -30,4 +30,5 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from . import cameras, cv
+from .operations import strides
 
