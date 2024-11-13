@@ -9,6 +9,7 @@ def strides( shape, kernel_shape, stride_shape, align_end=True ):
     '''
         examples
             >>> strides( ( 2000, 500, 3 ), ( 500, 200 ), ( 200, 200 ), align_end=True )
+            see in strides_test.py for more examples
     '''
     assert len( kernel_shape ) == len( stride_shape ), f'expected kernel_shape and stride_shape of same size; got kernel_shape: {kernel_shape}, stride_shape: {stride_shape}'
     assert len( shape ) >= len( kernel_shape ), f'expected shape size >= kernel_shape; got shape: {shape} kernel_shape: {kernel_shape}'
@@ -20,7 +21,8 @@ def strides( shape, kernel_shape, stride_shape, align_end=True ):
 
 class stride_iterator:
     """
-    ... todo
+    examples
+        see examples in strides_test.py
     """
     def __init__( self, input, kernel_shape, stride_shape, align_end=True ):
         self.input = input
