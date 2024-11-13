@@ -1,4 +1,7 @@
 #!/bin/bash
 
-name=$( basename $0 )
-pytest -v -s 1>&2 && echo "$name: succeeded" >&2 || { echo "$name: failed" >&2; exit 1; }
+pytest -v -s 1>&2
+status=$?
+echo "pytest/status=$status"
+exit $status
+
