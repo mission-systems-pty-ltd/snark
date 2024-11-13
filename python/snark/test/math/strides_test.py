@@ -15,11 +15,17 @@ def test_strides():
     # todo! more tests
 
 def test_stride_iterator():
-    a = numpy.arange( 0, 24, 1 ).reshape( ( 4, 6 ) )
-    for i in snark.math.stride_iterator( a, ( 3, 4 ), ( 2, 2 ) ):
-        print( i )
-
-    # s = snark.math.strides( ( 4, 6, 2 ), ( 3, 4 ), ( 2, 2 ) )
-    # a = numpy.arange( 0, 48, 1 ).reshape( ( 4, 6, 2 ) )
-    # for i in snark.math.stride_iterator( a, s ):
-    #     print( i )
+    a = numpy.arange( 0, 24 * 3, 1 ).reshape( ( 4, 6, 3 ) )
+    expected = [ [[[ 0,  1,  2], [ 3,  4,  5]], [[18, 19, 20], [21, 22, 23]], [[36, 37, 38], [39, 40, 41]]]
+               , [[[ 6,  7,  8], [ 9, 10, 11]], [[24, 25, 26], [27, 28, 29]], [[42, 43, 44], [45, 46, 47]]]
+               , [[[12, 13, 14], [15, 16, 17]], [[30, 31, 32], [33, 34, 35]], [[48, 49, 50], [51, 52, 53]]]
+               , [[[18, 19, 20], [21, 22, 23]], [[36, 37, 38], [39, 40, 41]], [[54, 55, 56], [57, 58, 59]]]
+               , [[[24, 25, 26], [27, 28, 29]], [[42, 43, 44], [45, 46, 47]], [[60, 61, 62], [63, 64, 65]]]
+               , [[[30, 31, 32], [33, 34, 35]], [[48, 49, 50], [51, 52, 53]], [[66, 67, 68], [69, 70, 71]]] ]
+    it = snark.math.stride_iterator( a, ( 3, 2 ), ( 2, 2 ) )
+    assert len( it.strides ) == len( expected )
+    i = 0
+    for stride, array in it:
+        assert numpy.all( array == expected[i] )
+        i += 1
+    # todo! more tests

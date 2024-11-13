@@ -4,11 +4,6 @@
 import numpy
 
 # todo
-# - align end
-# - move to math
-# todo
-# - align end
-# - move to math
 # - more flags: aligned, not aligned, etc
 def strides( shape, kernel_shape, stride_shape, align_end=True ):
     '''
@@ -23,16 +18,6 @@ def strides( shape, kernel_shape, stride_shape, align_end=True ):
     grid = numpy.array( numpy.meshgrid( *values ), dtype=int ).T
     return numpy.reshape( grid, ( int( numpy.prod( grid.shape ) / len( kernel_shape ) ), len( kernel_shape ) ) )
 
-def stride_iterator( a, kernel_shape, stride_shape ):
-    """
-    ... todo
-    """
-    s = strides( a.shape, kernel_shape, stride_shape, align_end=True )
-    k = numpy.array( kernel_shape, dtype=int )
-    #for t in s: yield a[t : t + k]
-    for t in s: yield t, t + k
-
-
 class stride_iterator:
     """
     ... todo
@@ -45,5 +30,6 @@ class stride_iterator:
         self._kernel_shape = numpy.array( kernel_shape, dtype=int ) # quick and dirty
 
     def __iter__( self ):
-        #for t in s: yield a[t : t + self._kernel_shape]
-        for s in self.strides: yield s, s + self._kernel_shape
+        for s in self.strides:
+            yield s, self.input[ tuple( slice( b, b + k ) for b, k in zip( s, self._kernel_shape ) ) ]
+
