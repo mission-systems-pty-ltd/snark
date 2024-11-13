@@ -27,5 +27,5 @@ def stride_iterator( a, s ):
     """
     trivial convenience wrapper
     """
-    assert len( a.shape ) >= s.shape[2] and , f'expected array dimensions greater or equal to stride shape; got: array shape: {a.shape}; stride dimensions: {s.shape[2]}'
+    assert len( a.shape ) >= s.shape[2], f'expected array dimensions greater or equal to stride shape; got: array shape: {a.shape}; stride dimensions: {s.shape[2]}'
     for t in s: yield a[t]
