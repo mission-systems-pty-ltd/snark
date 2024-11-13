@@ -23,9 +23,27 @@ def strides( shape, kernel_shape, stride_shape, align_end=True ):
     grid = numpy.array( numpy.meshgrid( *values ), dtype=int ).T
     return numpy.reshape( grid, ( int( numpy.prod( grid.shape ) / len( kernel_shape ) ), len( kernel_shape ) ) )
 
-def stride_iterator( a, s ):
+def stride_iterator( a, kernel_shape, stride_shape ):
     """
-    trivial convenience wrapper
+    ... todo
     """
-    assert len( a.shape ) >= s.shape[2], f'expected array dimensions greater or equal to stride shape; got: array shape: {a.shape}; stride dimensions: {s.shape[2]}'
-    for t in s: yield a[t]
+    s = strides( a.shape, kernel_shape, stride_shape, align_end=True )
+    k = numpy.array( kernel_shape, dtype=int )
+    #for t in s: yield a[t : t + k]
+    for t in s: yield t, t + k
+
+
+class stride_iterator:
+    """
+    ... todo
+    """
+    def __init__( self, input, kernel_shape, stride_shape, align_end=True ):
+        self.input = input
+        self.kernel_shape = kernel_shape
+        self.stride_shape = stride_shape
+        self.strides = strides( input.shape, kernel_shape, stride_shape, align_end=align_end )
+        self._kernel_shape = numpy.array( kernel_shape, dtype=int ) # quick and dirty
+
+    def __iter__( self ):
+        #for t in s: yield a[t : t + self._kernel_shape]
+        for s in self.strides: yield s, s + self._kernel_shape
