@@ -22,3 +22,10 @@ def strides( shape, kernel_shape, stride_shape, align_end=True ):
     values = tuple( numpy.where( r + kernel_shape[i] > shape[i], shape[i] - kernel_shape[i], r ) for i, r, in enumerate( ranges ) ) if align_end else ranges
     grid = numpy.array( numpy.meshgrid( *values ), dtype=int ).T
     return numpy.reshape( grid, ( int( numpy.prod( grid.shape ) / len( kernel_shape ) ), len( kernel_shape ) ) )
+
+def stride_iterator( a, s ):
+    """
+    trivial convenience wrapper
+    """
+    assert len( a.shape ) >= s.shape[2] and , f'expected array dimensions greater or equal to stride shape; got: array shape: {a.shape}; stride dimensions: {s.shape[2]}'
+    for t in s: yield a[t]
