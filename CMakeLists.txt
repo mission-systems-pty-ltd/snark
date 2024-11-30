@@ -552,15 +552,17 @@ ENDIF( snark_build_terrain )
 
 add_subdirectory( etc/bash_completion.d )
 
-add_subdirectory( python )
+if( snark_build_python )
+    add_subdirectory( python )
+endif()
 
 if( snark_build_io )
     add_subdirectory( io )
 endif( snark_build_io )
 
-IF( snark_build_web )
+if( snark_build_web )
     add_subdirectory( web )
-ENDIF( snark_build_web )
+endif( snark_build_web )
 
 if( snark_build_ros OR snark_build_ros2)
     add_subdirectory(ros)
