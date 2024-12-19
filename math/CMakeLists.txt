@@ -45,7 +45,6 @@ INSTALL(
 )
 
 ADD_SUBDIRECTORY( filter )
-ADD_SUBDIRECTORY( fft )
 ADD_SUBDIRECTORY( gaussian_process )
 ADD_SUBDIRECTORY( spherical_geometry )
 

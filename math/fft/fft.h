@@ -27,14 +27,12 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#pragma once
 
-#ifndef SNARK_MATH_FFT_H_
-#define SNARK_MATH_FFT_H_
-
+#include <array>
 #include <cmath>
-#include <boost/array.hpp>
 
-namespace snark{ 
+namespace snark { 
 
 /// Cooley-Tukey in-place fft based on Danielson-Lanczos algorithm
 ///
@@ -42,27 +40,23 @@ namespace snark{
 ///
 /// see also: Vlodymyr Myrnyy, Simple and Efficient Fast Fourier Transform, Dr. Dobbs' Journal
 /// http://www.drdobbs.com/cpp/a-simple-and-efficient-fft-implementatio/199500857
-template < typename T, std::size_t N >
-void fft( boost::array< T, N >& data );
-
-/// Cooley-Tukey in-place fft based on Danielson-Lanczos algorithm
 template < typename T >
 void fft( T* data, std::size_t size );
 
+/// Cooley-Tukey in-place fft based on Danielson-Lanczos algorithm
+template < typename T, std::size_t N >
+void fft( std::array< T, N >& data ) { fft( &data[0], N ); }
+
 /// Cooley-Tukey fft based on Danielson-Lanczos algorithm (convenience function)
 template < typename T, std::size_t N >
-boost::array< T, N > fft( const boost::array< T, N >& data );
+std::array< T, N > fft( const std::array< T, N >& data );
+
+
 
 template < typename T, std::size_t N >
-void fft( boost::array< T, N >& data )
+inline std::array< T, N > fft( const std::array< T, N >& data )
 {
-    fft( &data[0], N );
-}
-
-template < typename T, std::size_t N >
-inline boost::array< T, N > fft( const boost::array< T, N >& data )
-{
-    boost::array< T, N > a = data;
+    std::array< T, N > a = data;
     fft( &a[0], N );
     return a;
 }
@@ -125,5 +119,3 @@ inline void fft( T* data, std::size_t size )
 }
 
 }  // namespace snark{ 
-
-#endif // SNARK_MATH_FFT_H_
