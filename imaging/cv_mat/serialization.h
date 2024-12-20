@@ -30,10 +30,10 @@ class serialization
         struct header
         {
             boost::posix_time::ptime timestamp;
-            comma::uint32 rows;
-            comma::uint32 cols;
-            comma::uint32 type; /// cv::Mat type (see http://opencv.willowgarage.com/documentation/cpp/basic_structures.html)
-            comma::uint32 size; /// data size, convenience member equal to rows*cols
+            comma::uint32 rows{0};
+            comma::uint32 cols{0};
+            comma::uint32 type{0}; /// cv::Mat type (see http://opencv.willowgarage.com/documentation/cpp/basic_structures.html)
+            comma::uint32 size{0}; /// data size, convenience member equal to rows*cols
             
             header();
             header( const cv::Mat& m );

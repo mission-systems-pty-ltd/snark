@@ -30,8 +30,7 @@
 
 /// @author Cedric Wohlleber
 
-#ifndef SNARK_MATH_INTERVAL_H_
-#define SNARK_MATH_INTERVAL_H_
+#pragma once
 
 #include <boost/optional.hpp>
 #include <comma/base/exception.h>
@@ -102,5 +101,3 @@ class closed_interval
 };
 
 } } // namespace snark { namespace math {
-
-#endif // SNARK_MATH_INTERVAL_H_

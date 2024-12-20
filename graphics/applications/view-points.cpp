@@ -71,17 +71,17 @@ static void bash_completion( unsigned const ac, char const * const * av )
 static void usage( bool )
 {
 #if Qt3D_VERSION>=2
-    static const char * const usage_qt55_warning =
-        "\nWARNING: this version of view-points is compiled against Qt5.5+"
-        "\n         it is not be fully functional (yet)"
-        "\n"
-        "\nUnsupported features are shown in dimmed text in this help"
-        "\n"
-        "\nFor an example of current functionality try:"
-        "\n    points-make cube | view-points --fields=x,y,z,r,g,b,a"
-        "\n"
-        "\n----------------------------------------------"
-        "\n";
+    static const char * const usage_qt55_warning = R"(
+WARNING: this version of view-points is compiled against Qt5.5+
+         it is not be fully functional (yet)
+
+Unsupported features are shown in dimmed text in this help
+
+For an example of current functionality try:
+    points-make cube | view-points --fields=x,y,z,r,g,b,a
+
+----------------------------------------------
+)";
 
     #define qt55_unsupported_marker_start "\x1B[0;90m"
     #define qt55_unsupported_marker_end "\x1B[0m"
@@ -94,18 +94,18 @@ static void usage( bool )
     #define qtold_unsupported_marker_end "\x1B[0m"
 #endif
 
-    static const char * const usage_synopsis =
-        "\nview 3D point clouds:"
-        "\nview points from given files/streams and stdin"
-        "\n(see examples below for a quick start)"
-        "\n"
-        "\nnote: scene radius, centre and point of view will be decided depending on"
-        "\n      the extents of the first data source (if you want it to be stdin,"
-        "\n      specify \"-\" as the explicitly as the first data source); see also"
-        "\n      --scene-radius option and examples"
-        "\n"
-        "\nusage: view-points [<options>] [<filenames>]"
-        "\n";
+    static const char * const usage_synopsis = R"(
+view 3D point clouds:
+view points from given files/streams and stdin
+(see examples below for a quick start)
+
+note: scene radius, centre and point of view will be decided depending on
+      the extents of the first data source (if you want it to be stdin,
+      specify \"-\" as the explicitly as the first data source); see also
+      --scene-radius option and examples
+
+usage: view-points [<options>] [<filenames>]"
+)";
 
     static const char * const usage_options =
         "\ninput data options"
@@ -164,53 +164,53 @@ static void usage( bool )
         "\n    --no-stdin: do not read from stdin"
         "\n    --pass-through,--pass; pass input data to stdout"
         "\n    --point-size,--weight <point size>: default: 1"
-        "\n    --shape <shape>: \"point\", \"extents\", \"line\", \"label\"; default \"point\""
-        "\n                     \"arc\": e.g: --shape=arc --fields=,,begin,end,centre,"
+        "\n    --shape <shape>: point, extents, line, label; default: point"
+        "\n                     arc: e.g: --shape=arc --fields=,,begin,end,centre,"
         "\n                               or: --shape=arc --fields=,,begin,middle,end,,,"
         "\n                                   where 'begin' and 'end' are x,y,z points"
         "\n                                   and 'middle' is a point between begin and end on the arc"
         "\n                                   default: 'begin,end', with centre 0,0,0"
-        "\n                     \"axis\", \"axes\": draws three axis lines per record, in red/green/blue corresponding to x/y/z axes, using position and orientation e.g. --shape=axis --fields=position,orientation"
+        "\n                     axis, axes: draws three axis lines per record, in red/green/blue corresponding to x/y/z axes, using position and orientation e.g. --shape=axis --fields=position,orientation"
         "\n                               default fields: position,orientation"
         "\n                               fields: position: x,y,z or position/x,position/y,position/z"
         "\n                                       orientation: roll,pitch,yaw or orientation/roll,orientation/pitch,orientation/yaw"
         "\n                               options: options can be specified as command line option and/or in each stream (without -- prefix)"
         "\n                                        --length=<d>: length of each axis line"
-        "\n                                        --labels=\"<x>:<y>:<z>\" colon separated list of axis labels, leave empty for no labels."
+        "\n                                        --labels=<x>:<y>:<z> colon separated list of axis labels, leave empty for no labels."
 #if Qt3D_VERSION>=2
         "\n                                        --weight or --point-size can be used for line thickness"
 #endif
         "\n                                        by default each axis is painted with different colors x:red y:green z:blue; unless"
         "\n                                        if --color option exists or any of id or scalar fields are present it will use the normal coloring for all axis lines"
-        "\n                     \"ellipse\": e.g. --shape=ellipse --fields=,,center,orientation,minor,major,"
+        "\n                     ellipse: e.g. --shape=ellipse --fields=,,center,orientation,minor,major,"
         "\n                                  default fields:center/x,center/y,center/z,roll,pitch,yaw,minor,major"
         "\n                                  orientation: roll,pitch,yaw; default: in x,y plane"
-        "\n                     \"extents\": e.g. --shape=extents --fields=,,min,max,,,"
+        "\n                     extents, box: e.g. --shape=extents --fields=,,min,max,,,"
         "\n                                  default fields: min,max"
         qt55_unsupported_marker_start
-        "\n                     \"label\": e.g. --shape=label --fields=,x,y,z,,,label"
+        "\n                     label: e.g. --shape=label --fields=,x,y,z,,,label"
         "\n                                default fields: x,y,z,label"
         qt55_unsupported_marker_end
-        "\n                     \"line\": e.g. --shape=line --fields=,,first,second,,,"
+        "\n                     line: e.g. --shape=line --fields=,,first,second,,,"
         "\n                               default fields: first,second"
-        "\n                     \"lines\": connect all points of a block from first to the last; fields same as for 'point'"
+        "\n                     lines: connect all points of a block from first to the last; fields same as for 'point'"
         "\n                                default fields: x,y,z"
-        "\n                     \"loop\": connect all points of a block; fields same as for 'point'"
+        "\n                     loop: connect all points of a block; fields same as for 'point'"
         "\n                               default fields: x,y,z"
-        "\n                     \"triangle\": e.g. --shape=triangle --fields=,,corners,,,"
+        "\n                     triangle: e.g. --shape=triangle --fields=,,corners,,,"
         "\n                                   or --shape=triangle --fields=,,corners[0],,,corners[1],,,corners[2],,,"
         "\n                                   or --shape=triangle --fields=,,corners[0]/x,,corners[0]/y,,corners[0]/z,,,,corners[1],,,corners[2],,, etc"
         "\n                                   default fields: corners"
         //qt55_unsupported_marker_start
-        "\n                     \"model file ( obj, ply... )>[;<options>]\": e.g. --shape=vehicle.obj"
+        "\n                     model file ( obj, ply... )>[;<options>]: e.g. --shape=vehicle.obj"
 #if Qt3D_VERSION>=2
         "\n                          ATTENTION: implementation in progress; currently shows only vertices, use at your own risk..."
 #endif
         "\n                          <options>"
-        "\n                              flip\": flip the model around the x-axis"
-        "\n                              scale=<value>\": resize model (ply only, todo), e.g. show model half-size: scale=0.5"
+        "\n                              flip: flip the model around the x-axis"
+        "\n                              scale=<value>: resize model (ply only, todo), e.g. show model half-size: scale=0.5"
         //qt55_unsupported_marker_end
-        "\n                     \"<image file>[,<image options>]:<image file>[,<image options>]\": show image, e.g. --shape=\"vehicle-lights-on.jpg:vehicle-lights-off.jpg\""
+        "\n                     <image file>[,<image options>]:<image file>[,<image options>]: show image, e.g. --shape=vehicle-lights-on.jpg:vehicle-lights-off.jpg"
         "\n                            <image file>: e.g. either: images/cat.png"
         "\n                                                   or: images/*.png; images can be displayed by id (see note 2 for the id field description"
         "\n                            <image options>: <width>,<height> or <pixel-size>"
@@ -223,7 +223,7 @@ static void usage( bool )
         "\n                            streams: 2000000 for points, for 10000 for other shapes"
         "\n    --groups <csv>: include in group/s named in csv"
         "\n    --title <title>: title for source, defaults to filename"
-        "\n                     if set to \"none\" don't show source in selection box"
+        "\n                     if set to 'none' don't show source in selection box"
         "\n                     (but still display data and checkbox)"
         "\n    --version: print Qt version and exit"
         "\n"
@@ -236,7 +236,7 @@ static void usage( bool )
         "\n                unless stdout is used for something else, in which case will print a warning"
         "\n        alt-v: pop the oldest camera configuration"
         "\n    options"
-        "\n        --camera=\"<options>\""
+        "\n        --camera=<options>"
         "\n              <options>: [fov=<fov>];[<type>];[transition/duration=<seconds>]"
         "\n                  fov: field of view in degrees, default 45 degrees"
         "\n                  type: orthographic | perspective; default=perspective"
@@ -245,7 +245,7 @@ static void usage( bool )
         "\n                  transitions/enabled|transition/diabled; default=enabled; enable smooth camera transitions"
         "\n        --camera-config=<filename>: camera config in json; to see an example, run --output-camera-config"
         qt55_unsupported_marker_start
-        "\n        --camera-position=\"<options>\": todo: fix: broken for qt5.5 and higher"
+        "\n        --camera-position=<options>: todo: fix: broken for qt5.5 and higher"
         "\n              <options>: <position>|<stream>"
         "\n              <position>: <x>,<y>,<z>,<roll>,<pitch>,<yaw>"
         "\n              <stream>: position csv stream with options; default fields: x,y,z,roll,pitch,yaw"
@@ -309,7 +309,7 @@ static void usage( bool )
         "\n    --hide-file-panel-fields,--hide-fields; do not show csv fields in the hide panel (show only stream title)"
         "\n    --output-camera-config,--output-camera: output camera config to stdout as stream of json structures"
         "\n    --output-camera-position: output camera position as x,y,z,roll,pitch,yaw in the world frame, i.e. same as --camera-position"
-        "\n    --scene-center,--center=<value>: fixed scene center as \"x,y,z\""
+        "\n    --scene-center,--center=<value>: fixed scene center as 'x,y,z'"
         "\n    --scene-radius,--radius=<value>: fixed scene radius in metres, since sometimes it is hard to imply"
         "\n                                     scene size from the dataset (e.g. for streams)"
         "\n    --window-geometry=[<x>],[<y>],[<width>],[<height>: position of application window on screen in pixels"
@@ -322,24 +322,23 @@ static void usage( bool )
         qt55_unsupported_marker_end
         "\n";
 
-    static const char * const usage_csv_options =
-        "\n"
-        "\n    fields:"
-        "\n        default: x,y,z"
-        "\n        x,y,z: coordinates (%d in binary)"
-        "\n        id: if present, colour by id (%ui in binary)"
-        "\n        block: if present, clear screen once block id changes (%ui in binary)"
-        "\n        r,g,b: if present, specify RGB colour (0-255; %uc in binary)"
-        "\n        a: if present, specifies colour transparency (0-255, %uc in binary); default 255"
-        "\n        scalar: if present, colour by scalar"
-        "\n                  use --colour=<from>:<to>[,<from colour>:<to colour>]"
-        "\n                  default: 0:1,cyan:magenta"
-        "\n                  todo: implement for shapes (currently works only for points)"
-        "\n        label: text label (currenly implemented for ascii only)"
-        "\n        roll,pitch,yaw: if present, show orientation"
-        "\n"
-        "\n    most of the options can be set for individual files (see examples)"
-        "\n";
+    static const char * const usage_csv_options = R"(
+    fields:
+        default: x,y,z
+        x,y,z: coordinates (%d in binary)
+        id: if present, colour by id (%ui in binary)
+        block: if present, clear screen once block id changes (%ui in binary)
+        r,g,b: if present, specify RGB colour (0-255; %uc in binary)
+        a: if present, specifies colour transparency (0-255, %uc in binary); default 255
+        scalar: if present, colour by scalar
+                  use --colour=<from>:<to>[,<from colour>:<to colour>]
+                  default: 0:1,cyan:magenta
+                  todo: implement for shapes (currently works only for points)
+        label: text label (currenly implemented for ascii only)
+        roll,pitch,yaw: if present, show orientation
+
+    most of the options can be set for individual files (see examples)
+)";
 
     static const char * const usage_examples =
         "\nkey presses and mouse clicks:"
@@ -673,7 +672,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
         if( param.options.fields == "" ) { param.options.fields="begin,end"; }
         std::vector< std::string > v = comma::split( param.options.fields, ',' );
     }
-    else if( shape == "extents" )
+    else if( shape == "extents" || shape == "box" )
     {
         if( param.options.fields == "" ) { param.options.fields="min,max"; }
     }
@@ -746,7 +745,7 @@ std::unique_ptr< snark::graphics::view::Reader > make_reader( const comma::comma
     }
     param.options.fields = comma::join( v, ',' );
     param.options.full_xpath = true;
-    if( shape == "extents" )
+    if( shape == "extents" || shape == "box" )
     {
         std::unique_ptr< snark::graphics::view::Reader > reader( new snark::graphics::view::shape_reader< snark::math::closed_interval< double, 3 > >( param, colored, label, snark::math::closed_interval< double, 3 >( Eigen::Vector3d( 0, 0, 0 ), Eigen::Vector3d( 0, 0, 0 ) ) ) );
         reader->show( show );
