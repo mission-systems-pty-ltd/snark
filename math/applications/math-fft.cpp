@@ -1,5 +1,6 @@
 // Copyright (c) 2011 The University of Sydney
 
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <math.h>
@@ -187,7 +188,7 @@ private:
     fftw_plan plan;
 
 public:
-    fft(std::size_t samples) : 
+    fft( std::size_t samples ): 
         h( samples ), 
         c_input(allocate_fftw_array<fftw_complex>(samples)) ,
         input(allocate_fftw_array<double>(samples)) ,
@@ -216,19 +217,19 @@ public:
         if(filter_input)
         {
             // for(std::size_t i=0;i<size;i++) { fft.input[i][0] = fft.h[i] * data[i]; fft.input[i][1] = fft.h[i] * data[i]; }
-            if (real_input) 
+            if( real_input )
             {
-                for(std::size_t i=0;i<samples;i++) { fft.input[i] = fft.h[i] * data[i]; }
+                for( std::size_t i = 0; i < samples; ++i ) { fft.input[i] = fft.h[i] * data[i]; }
             }
             else 
             {
-                for(std::size_t i=0;i<samples;i++) { fft.c_input[i][0] = fft.h[i] * data[i]; fft.c_input[i][1] = fft.h[i] * data[i]; }
+                for( std::size_t i = 0; i < samples; ++i ) { fft.c_input[i][0] = fft.h[i] * data[i]; fft.c_input[i][1] = fft.h[i] * data[i]; }
             }
         }
         else 
         { 
-            if (real_input) { ::memcpy(fft.input, data, samples * sizeof(double) ); }
-            else { memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); }
+            if (real_input) { std::memcpy(fft.input, data, samples * sizeof(double) ); }
+            else { std::memcpy(fft.c_input, data, samples * sizeof(fftw_complex) ); }
             // memcpy(fft.input, data, size * sizeof(double) ); 
         }        
         fft.execute();
@@ -346,16 +347,16 @@ struct app
     void output_fields() { std::cout<<comma::join(comma::csv::names< output_t >(true),',')<<std::endl; }
 };
 
-template< typename T > static std::ostream& operator<< (std::ostream& os, const std::vector<T>& v) { std::copy(v.begin(), v.end(), std::ostream_iterator<T>(os, " ")); return os; }
+template< typename T > static std::ostream& operator<<( std::ostream& os, const std::vector< T >& v ) { std::copy( v.begin(), v.end(), std::ostream_iterator< T >( os, " " ) ); return os; }
 
 template< typename T > static void range_check(T value, T min, T max, const char* label) { if(value<min || value>max) { COMMA_THROW( comma::exception, label << " out of range " << min << " to " << max ); } }
 
 int main( int argc, char** argv )
 {
-    comma::command_line_options options( argc, argv, usage );
     try
     {
-        comma::csv::options csv(options,"data");
+        comma::command_line_options options( argc, argv, usage );
+        comma::csv::options csv( options,"data" );
         csv.full_xpath = false;
         filter_input = options.exists( "--filter" );
         real_input = !options.exists( "--complex-input,--complex" );

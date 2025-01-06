@@ -41,73 +41,64 @@ struct shuffle
     struct field
     {
         std::string name;
-        unsigned offset;
-        unsigned size;
-        field( const std::string& name, unsigned offset, unsigned size=0 ) : name( name ), offset( offset ), size(size) { }
+        unsigned int offset{0};
+        unsigned int size{0};
+        field( const std::string& name, unsigned offset, unsigned size = 0 ) : name( name ), offset( offset ), size( size ) {}
     };
     std::vector< field > fields;
-    shuffle(const comma::csv::options& csv,const std::string& shuffle_fields,const std::string& array_sizes)
+    char csv_delimiter{','};
+
+    shuffle( const comma::csv::options& csv, const std::string& shuffle_fields, const std::string& array_sizes )
+        : csv_delimiter( csv.delimiter )
     {
-        csv_delimiter=csv.delimiter;
-        //make array size map from input string
         std::unordered_map<std::string,unsigned> array_sizes_map;
-        for(const auto& s : comma::split(array_sizes,','))
+        for(const auto& s : comma::split(array_sizes,',')) //make array size map from input string
         {
-            const auto& v=comma::split(s,'=');
-            if(v.size()!=2){ COMMA_THROW(comma::exception,"expected <name>=<size> for array size, got: "<<s); }
-            array_sizes_map.insert(std::pair<std::string,unsigned>(v[0],boost::lexical_cast<unsigned>(v[1])));
+            const auto& v = comma::split( s, '=' );
+            COMMA_ASSERT( v.size() == 2, "expected <name>=<size> for array size, got: '" << s << "'" );
+            array_sizes_map.insert( std::make_pair( v[0], boost::lexical_cast< unsigned int >( v[1] ) ) );
         }
-        //calculate input fields offset,size
         std::vector<field> input_fields;
-        unsigned index=0;
-        for(const std::string& f : comma::split( csv.fields, ',' ))
+        unsigned int index{0};
+        for( const std::string& f: comma::split( csv.fields, ',' ) ) //calculate input fields offset,size
         {
-            unsigned size=1;
-            auto it=f.empty() ? array_sizes_map.cend() : array_sizes_map.find(f);
-            if(it!=array_sizes_map.cend())
-                size=it->second;
-            if(csv.binary())
+            unsigned int size = 1;
+            auto it = f.empty() ? array_sizes_map.cend() : array_sizes_map.find(f);
+            if( it != array_sizes_map.cend() ) { size = it->second; }
+            if( csv.binary() )
             {
                 unsigned bin_offset=csv.format().offset(index).offset;
                 unsigned bin_size=0;
-                for(unsigned i=0;i<size;i++)
-                    bin_size+=csv.format().offset(index+i).size;
+                for(unsigned i=0;i<size;i++) { bin_size+=csv.format().offset(index+i).size; }
                 input_fields.push_back(field(f,bin_offset,bin_size));
             }
             else
             {
-                input_fields.push_back(field(f,index,size));
+                input_fields.push_back( field( f, index, size ) );
             }
-            index+=size;
+            index += size;
         }
-        //copy to shuffle fields
-        for(const std::string& s : comma::split(shuffle_fields,','))
+        for( const std::string& s : comma::split( shuffle_fields, ',' ) ) //copy to shuffle fields
         {
-            if(s.empty()) { COMMA_THROW(comma::exception, "shuffle field name cannot be empty");}
-            const auto& it = std::find_if(input_fields.cbegin(), input_fields.cend(), [&](const field& f) { return f.name==s; } );
+            COMMA_ASSERT( !s.empty(), "shuffle field name cannot be empty" );
+            const auto& it = std::find_if( input_fields.cbegin(), input_fields.cend(), [&](const field& f) { return f.name==s; } );
             //or add trailing fields?
-            if(it==input_fields.cend()) { COMMA_THROW( comma::exception,"shuffle feild name ("<<s<<") not found in input fields"); }
+            COMMA_ASSERT( it != input_fields.cend(), "shuffle field name '" << s << "' not found in input fields" );
             fields.push_back(*it);
         }
     }
-    void binary_write(const char* buf, std::size_t size, std::ostream& os)
+
+    void binary_write( const char* buf, std::size_t size, std::ostream& os )
     {
-        for(const field& f : fields)
-        {
-            os.write(&buf[f.offset],f.size);
-        }
+        for( const field& f : fields ) { os.write( &buf[f.offset], f.size ); }
     }
-    char csv_delimiter;
-    void ascii_write(const std::vector< std::string >& v, std::ostream& os)
+
+    void ascii_write( const std::vector< std::string >& v, std::ostream& os )
     {
         std::string d;
-        for(const shuffle::field& f : fields)
+        for( const shuffle::field& f : fields )
         {
-            for(unsigned i=0;i<f.size;i++)
-            {
-                os<<d<<v[f.offset+i];
-                d=csv_delimiter;
-            }
+            for( unsigned i = 0; i < f.size; ++i, d = csv_delimiter ) { os << d << v[ f.offset + i ]; }
         }
     }
 };
@@ -117,34 +108,35 @@ struct shuffle_tied
 {
     const comma::csv::input_stream< S >& is;
     comma::csv::output_stream< T >& os;
-    std::unique_ptr<::shuffle> shuffle;
-    shuffle_tied(const comma::csv::input_stream< S >& i, comma::csv::output_stream< T >& o, const comma::csv::options& csv,
-                 const boost::optional<std::string>& shuffle_fields,const std::string& array_sizes) : is( i ), os( o )
+    std::unique_ptr< ::shuffle > shuffle;
+
+    shuffle_tied( const comma::csv::input_stream< S >& i
+                , comma::csv::output_stream< T >& o
+                , const comma::csv::options& csv
+                , const boost::optional<std::string>& shuffle_fields
+                , const std::string& array_sizes )
+        : is( i )
+        , os( o )
     {
-        if(shuffle_fields) { shuffle.reset(new ::shuffle(csv,*shuffle_fields,array_sizes)); }
+        if( shuffle_fields ) { shuffle.reset( new ::shuffle(csv,*shuffle_fields,array_sizes  )); }
     }
     
     void append( const T& data )
     {
-        std::ostream& ostream=std::cout;
-//         std::ostream& ostream=is.is_binary()?os.binary().os_:os.ascii().os_;
+        std::ostream& ostream = std::cout; // std::ostream& ostream=is.is_binary()?os.binary().os_:os.ascii().os_;
         if( is.is_binary())
         {
-            if(shuffle)
-                shuffle->binary_write(is.binary().last(), is.binary().size(), ostream);
-            else
-                ostream.write( is.binary().last(), is.binary().size() );
+            if( shuffle ) { shuffle->binary_write( is.binary().last(), is.binary().size(), ostream ); }
+            else { ostream.write( is.binary().last(), is.binary().size() ); }
             os.write( data );
         }
         else
         {
-            if(shuffle)
-                shuffle->ascii_write(is.ascii().last(), ostream);
-            else
-                ostream << comma::join( is.ascii().last(), os.ascii().ascii().delimiter() ) ;
+            if( shuffle ) { shuffle->ascii_write( is.ascii().last(), ostream ); }
+            else { ostream << comma::join( is.ascii().last(), os.ascii().ascii().delimiter() ); }
             static std::string sbuf;
             os.ascii().ascii().put( data, sbuf );
-            ostream<< os.ascii().ascii().delimiter() << sbuf << std::endl;
+            ostream << os.ascii().ascii().delimiter() << sbuf << std::endl;
         }
     }
 };
