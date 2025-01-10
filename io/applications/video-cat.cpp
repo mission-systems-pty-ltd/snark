@@ -37,16 +37,18 @@ output options
     --fields=[<fields>]; header output fields: t,width,height,type,count
                          default: no header
                          t: buffer timestamp
-                         width: output image width: --width divided by pixel size
-                         height: output image height: same as --height
+                         width,cols : output image width: --width divided by pixel size
+                         height,rows: output image height: same as --height
                          type: image type as in opencv, see e.g. cv-cat -h -v for details
                              rggb  : 24 : CV_8UC4  or 4ub
                              y16   : 2  : CV_16UC1 or uw
                              support for more types: todo
     --flush; flush stdout after each output (remember when using --output-header-only)
-    --image=<width>,<height>,<type>; convenience option to use instead of --width, --height, and --pixel-format
-        <width> : width in pixels
-        <height>: height in pixels
+    --image=<rows>,<cols>,<type>; convenience option to use instead of
+                                  --width, --height, and --pixel-format
+                                  and --fields=t,height,width,type
+        <rows>: height in pixels
+        <cols> : width in pixels
         <type>  : cv-cat-style image type, just ask if you need more types
                       4ub: same as rggb
                       uw : same as y16
@@ -55,6 +57,7 @@ output options
     --log-index-file=<filename>; default=index.bin
     --output-header-fields,--output-fields
     --output-header-format,--output-format
+    --output-no-header,--no-header; do not output header
     --output-header-only,--header-only; output header only, e.g. for debugging
 examples
     acquire and display video stream from a FLIR 16-bit greyscale camera
@@ -63,7 +66,7 @@ examples
                 | cv-cat --input 'rows=512;cols=640;type=uw;no-header' \
                                  'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
         porcelain
-            video-cat /dev/video0 --image=640,512,uw \
+            video-cat /dev/video0 --image=512,640,uw \
                 | cv-cat 'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
 )";
     exit( 0 );
@@ -172,11 +175,14 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--output-header-fields,--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::io::video::header >(), ',' ) << std::endl; return 0; }
         if( options.exists( "--output-header-format,--output-format" ) ) { std::cout << comma::csv::format::value< snark::io::video::header >() << std::endl; return 0; }
-        const auto& unnamed = options.unnamed( "--discard,--latest,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--log-index", "-.*" );
+        const auto& unnamed = options.unnamed( "--discard,--latest,--output-header-fields,--output-fields,--output-header-format,--output-format,--output-header-only,--header-only,--output-no-header,--no-header,--log-index", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify video device" );
         COMMA_ASSERT_BRIEF( unnamed.size() <= 2, "expected one video device; got'" << comma::join( unnamed, ' ' ) << "'" );
         auto name = unnamed[0];
-        comma::csv::options csv( options );
+        comma::csv::options csv( options, { { "rows", "height" }, { "cols", "width" } } ); // quick and dirty, to preserve compatibility with imaging::cv_cat::serialization (too fiddly to change)
+        options.assert_mutually_exclusive( "--width,--height,--pixel-format,--fields", "--image" );
+        if( options.exists( "--image" ) ) { csv.fields = "t,height,width,type"; }
+        if( options.exists( "--output-no-header,--no-header" ) ) { csv.fields = ""; }
         csv.format( comma::csv::format::value< snark::io::video::header >( csv.fields, true ) );
         auto output_options = unnamed.size() < 2 ? "-" : unnamed[1];
         boost::optional< snark::io::video::index > index;
@@ -198,13 +204,7 @@ int main( int ac, char** av )
             ostream = std::make_unique< csv_stream_t >( *( *os ), csv );
         }
         snark::io::video::header header;
-
-        // todo: --image=640,512,4ub
-        // todo! debug! cv-cat does not like output header...
-        // todo: example
-
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
-        options.assert_mutually_exclusive( "--width,--height,--pixel-format", "--image" );
         std::string image_options = options.value< std::string >( "--image", "" );
         unsigned int width{0}, height{0}, pixel_size{0};
         int pixel_format{0};
@@ -231,7 +231,7 @@ int main( int ac, char** av )
         else
         {
             const auto& v = comma::split( image_options, ',' );
-            COMMA_ASSERT_BRIEF( v.size() == 3, "expected --image=<width>,<height>,<type>; got: '" << image_options << "'" );
+            COMMA_ASSERT_BRIEF( v.size() == 3, "expected --image=<rows>,<cols>,<type>; got: '" << image_options << "'" );
             if( v[2] == "4ub" ) // todo: quick and dirty, generalise
             {
                 pixel_size = 4;
@@ -244,8 +244,8 @@ int main( int ac, char** av )
                 header.type = 2;
                 pixel_format = V4L2_PIX_FMT_Y16;
             }
-            header.width = boost::lexical_cast< unsigned int >( v[0] );
-            header.height = boost::lexical_cast< unsigned int >( v[1] );
+            header.height = boost::lexical_cast< unsigned int >( v[0] );
+            header.width = boost::lexical_cast< unsigned int >( v[1] );
             width = header.width * pixel_size;
             height = header.height;
         }
