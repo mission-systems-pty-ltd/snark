@@ -61,13 +61,13 @@ output options
     --output-header-only,--header-only; output header only, e.g. for debugging
 examples
     acquire and display video stream from a FLIR 16-bit greyscale camera
+        porcelain
+            video-cat /dev/video0 --image=512,640,uw \
+                | cv-cat 'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
         bolts and nuts
             video-cat /dev/video0 --height 512 --width $(( 640 * 2 )) --pixel-format y16 \
                 | cv-cat --input 'rows=512;cols=640;type=uw;no-header' \
                                  'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
-        porcelain
-            video-cat /dev/video0 --image=512,640,uw \
-                | cv-cat 'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
 )";
     exit( 0 );
 }
