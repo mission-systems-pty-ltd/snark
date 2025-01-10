@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mission Systems Pty Ltd
 
 #include <fcntl.h>
-#include <linux/videodev2.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <comma/base/exception.h>
@@ -16,7 +15,7 @@ static int xioctl( int fd, int request, void* arg )
     return r;
 }
 
-stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers )
+stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format )
     : _name( name )
     , _width( width )
     , _height( height )
@@ -30,7 +29,7 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     format.fmt.pix.width = width;
     format.fmt.pix.height = height;
-    format.fmt.pix.pixelformat = V4L2_PIX_FMT_SRGGB8;
+    format.fmt.pix.pixelformat = pixel_format;
     format.fmt.pix.field = V4L2_FIELD_NONE;
     COMMA_ASSERT( xioctl( _fd, VIDIOC_QUERYCAP, &capability ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_QUERYCAP" ) );
     COMMA_ASSERT( capability.capabilities & V4L2_CAP_VIDEO_CAPTURE, "'" << name << "': is not a video capture device" );

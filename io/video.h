@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <linux/videodev2.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "../timing/timestamped.h"
 
@@ -22,7 +23,7 @@ class stream
             record( std::uint32_t count, const snark::timestamped< void* >& buffer ): count( count ), buffer( buffer ) {}
             operator bool() const { return buffer.data != nullptr; }
         };
-        stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers );
+        stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format = V4L2_PIX_FMT_Y16 );
         ~stream();
         const unsigned int width() const { return _width; }
         const unsigned int height() const { return _height; }

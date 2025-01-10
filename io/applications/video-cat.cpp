@@ -28,7 +28,7 @@ usage: video-cat <path> <output> <options>
     << R"(
 options
     --height=<rows>
-    --pixel-type=<type>; default=rggb; todo...
+    --pixel-format=<type>; default: 'rggb'; choices: 'rggb', 'y16', todo: more types, just ask
     --size,--number-of-buffers=<n>; default=32
     --width=<bytes>
 output options
@@ -40,7 +40,8 @@ output options
                          width: output image width: --width divided by pixel size
                          height: output image height: same as--height
                          type: image type as in opencv, see e.g. cv-cat -h -v for details
-                             rggb: 24 (CV_8UC4 or 4ub)
+                             rggb  : 24 : CV_8UC4  or 4ub
+                             y16   : 2  : CV_16UC1 or uw
                              support for more types: todo
     --latest; if --discard, always output the latest available video buffer and discard the rest
     --log-index; if logging, log index as binary with header <fields>
@@ -48,6 +49,8 @@ output options
     --output-header-fields,--output-fields
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
+examples
+    todo!
 
 )";
     exit( 0 );
@@ -185,12 +188,25 @@ int main( int ac, char** av )
         unsigned int width = options.value< unsigned int >( "--width" );
         unsigned int height = options.value< unsigned int >( "--height" );
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
-        unsigned int pixel_size = 4;
+        unsigned int pixel_size{0};
+        int pixel_format{0};
+        std::string pixel_type_name = options.value< std::string >( "--pixel-format", "rggb" );
+        if( pixel_type_name == "rggb" )
+        {
+            pixel_size = 4;
+            header.type = 24;
+            pixel_format = V4L2_PIX_FMT_SRGGB8;
+        }
+        else if( pixel_type_name == "y16" )
+        {
+            pixel_size = 2;
+            header.type = 2;
+            pixel_format = V4L2_PIX_FMT_Y16;
+        }
         header.width = width / pixel_size;
         header.height = height;
-        header.type = 24; // todo! --type,--pixel-type
         comma::saymore() << name << ": video stream: creating..." << std::endl;
-        snark::io::video::stream video( name, width, height, number_of_buffers );
+        snark::io::video::stream video( name, width, height, number_of_buffers, pixel_format );
         comma::saymore() << name << ": video stream: created" << std::endl;
         comma::signal_flag is_shutdown;
         typedef snark::io::video::stream::record record_t;
