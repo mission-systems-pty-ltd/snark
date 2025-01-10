@@ -43,6 +43,7 @@ output options
                              rggb  : 24 : CV_8UC4  or 4ub
                              y16   : 2  : CV_16UC1 or uw
                              support for more types: todo
+    --flush; flush stdout after each output (remember when using --output-header-only)
     --latest; if --discard, always output the latest available video buffer and discard the rest
     --log-index; if logging, log index as binary with header <fields>
     --log-index-file=<filename>; default=index.bin
@@ -50,8 +51,14 @@ output options
     --output-header-format,--output-format
     --output-header-only,--header-only; output header only, e.g. for debugging
 examples
-    todo!
-
+    acquire and display video stream from a FLIR 16-bit greyscale camera
+        bolts and nuts
+            video-cat /dev/video0 --height 512 --width $(( 640 * 2 )) --pixel-format y16 \
+                | cv-cat --input 'rows=512;cols=640;type=uw;no-header' \
+                                 'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
+        porcelain
+            video-cat /dev/video0 --image=640,512,uw \
+                | cv-cat 'convert-to=f,1,-22400;convert-to=f,0.0008;convert-to=ub,255;color-map=jet;timestamp;view;null'
 )";
     exit( 0 );
 }
@@ -185,26 +192,57 @@ int main( int ac, char** av )
             ostream = std::make_unique< csv_stream_t >( *( *os ), csv );
         }
         snark::io::video::header header;
-        unsigned int width = options.value< unsigned int >( "--width" );
-        unsigned int height = options.value< unsigned int >( "--height" );
+
+        // todo: --image=640,512,4ub
+        // todo! debug! cv-cat does not like output header...
+        // todo: example
+
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
-        unsigned int pixel_size{0};
+        options.assert_mutually_exclusive( "--width,--height,--pixel-format", "--image" );
+        std::string image_options = options.value< std::string >( "--image", "" );
+        unsigned int width{0}, height{0}, pixel_size{0};
         int pixel_format{0};
-        std::string pixel_type_name = options.value< std::string >( "--pixel-format", "rggb" );
-        if( pixel_type_name == "rggb" )
+        if( image_options.empty() ) // todo: get rid of repetitiveness in this if-clause
         {
-            pixel_size = 4;
-            header.type = 24;
-            pixel_format = V4L2_PIX_FMT_SRGGB8;
+            width = options.value< unsigned int >( "--width" );
+            height = options.value< unsigned int >( "--height" );
+            std::string pixel_type_name = options.value< std::string >( "--pixel-format", "rggb" );
+            if( pixel_type_name == "rggb" )
+            {
+                pixel_size = 4;
+                header.type = 24;
+                pixel_format = V4L2_PIX_FMT_SRGGB8;
+            }
+            else if( pixel_type_name == "y16" )
+            {
+                pixel_size = 2;
+                header.type = 2;
+                pixel_format = V4L2_PIX_FMT_Y16;
+            }
+            header.width = width / pixel_size;
+            header.height = height;
         }
-        else if( pixel_type_name == "y16" )
+        else
         {
-            pixel_size = 2;
-            header.type = 2;
-            pixel_format = V4L2_PIX_FMT_Y16;
+            const auto& v = comma::split( image_options, ',' );
+            COMMA_ASSERT_BRIEF( v.size() == 3, "expected --image=<width>,<height>,<type>; got: '" << image_options << "'" );
+            if( v[2] == "4ub" ) // todo: quick and dirty, generalise
+            {
+                pixel_size = 4;
+                header.type = 24;
+                pixel_format = V4L2_PIX_FMT_SRGGB8;
+            }
+            else if( v[2] == "uw" ) // todo: quick and dirty, generalise
+            {
+                pixel_size = 2;
+                header.type = 2;
+                pixel_format = V4L2_PIX_FMT_Y16;
+            }
+            header.width = boost::lexical_cast< unsigned int >( v[0] );
+            header.height = boost::lexical_cast< unsigned int >( v[1] );
+            width = header.width * pixel_size;
+            height = header.height;
         }
-        header.width = width / pixel_size;
-        header.height = height;
         comma::saymore() << name << ": video stream: creating..." << std::endl;
         snark::io::video::stream video( name, width, height, number_of_buffers, pixel_format );
         comma::saymore() << name << ": video stream: created" << std::endl;
