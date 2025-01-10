@@ -38,12 +38,18 @@ output options
                          default: no header
                          t: buffer timestamp
                          width: output image width: --width divided by pixel size
-                         height: output image height: same as--height
+                         height: output image height: same as --height
                          type: image type as in opencv, see e.g. cv-cat -h -v for details
                              rggb  : 24 : CV_8UC4  or 4ub
                              y16   : 2  : CV_16UC1 or uw
                              support for more types: todo
     --flush; flush stdout after each output (remember when using --output-header-only)
+    --image=<width>,<height>,<type>; convenience option to use instead of --width, --height, and --pixel-format
+        <width> : width in pixels
+        <height>: height in pixels
+        <type>  : cv-cat-style image type, just ask if you need more types
+                      4ub: same as rggb
+                      uw : same as y16
     --latest; if --discard, always output the latest available video buffer and discard the rest
     --log-index; if logging, log index as binary with header <fields>
     --log-index-file=<filename>; default=index.bin
