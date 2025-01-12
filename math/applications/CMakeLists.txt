@@ -57,7 +57,7 @@ set_target_properties( math-k-means PROPERTIES LINK_FLAGS_RELEASE -s )
 install( TARGETS math-k-means RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 if(snark_build_math_fft)
-    add_executable( math-fft math-fft.cpp )
+    add_executable( math-fft math-fft.cpp fft/basic.h fft/basic.cpp )
     target_link_libraries( math-fft ${comma_ALL_LIBRARIES} ${snark_ALL_EXTERNAL_LIBRARIES} fftw3 )
     set_target_properties( math-fft PROPERTIES LINK_FLAGS_RELEASE -s )
     install( TARGETS math-fft RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
