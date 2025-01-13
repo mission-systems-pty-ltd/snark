@@ -36,7 +36,7 @@ static bool tied=true;
 std::string usage( bool verbose )
 {
     std::ostringstream oss;
-    oss << "    perform basic fft on input data" << std::endl;
+    oss << "    perform basic fft on input data, output to stdout" << std::endl;
     if( verbose )
     {
         oss << R"(

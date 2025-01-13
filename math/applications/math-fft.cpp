@@ -17,20 +17,38 @@ static void usage( const comma::command_line_options& options )
 {
     bool basic = options.exists( "--basic" ); // quick and dirty for reasonable backward compatibility
     bool verbose = options.exists( "--verbose,-v" );
-    std::cerr << "basic usage (if --basic)" << std::endl;
+    std::cerr << R"(
+read data on stdin, perform fft, output to stdout
+
+basic usage if --basic
+)";
     std::cerr << snark::math::applications::fft::basic::usage( basic ) << std::endl;
     std::cerr << std::endl;
-    if( !basic )
+    if( basic )
     {
-        std::cerr << R"(
+        std::cerr << "standard usage" << std::endl;
+        std::cerr << "    run --help without --basic for details..." << std::endl;
+        std::cerr << std::endl;
+    }    
+    else
+    {
+        std::cerr << R"(in progress... use --basic for now
+
 options
-    in progress... use --basic for now
+    --basic; basic usage; run --help --basic for details
+    --fields=<fields>; 
 )" << std::endl;
     }
     std::cerr << "csv options" << std::endl;
     std::cerr << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
 }
+
+namespace snark { namespace math { namespace applications { namespace fft {
+
+
+
+} } } } // namespace snark { namespace math { namespace applications { namespace fft {
 
 int main( int ac, char** av )
 {
