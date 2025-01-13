@@ -29,30 +29,35 @@
 
 /// @author vsevolod vlaskine
 
-#include <comma/application/command_line_options.h>
-#include <comma/base/exception.h>
-#include <comma/csv/options.h>
-#include "../pipeline/record.h"
+#pragma once
 
-static void usage( bool verbose )
+#include <array>
+#include <cstdint>
+#include <complex>
+#include <vector>
+
+namespace snark { namespace signals { namespace pipeline {
+
+struct record_parameters
 {
-    std::cerr << R"(
-swiss-knife application for signal processing
+    enum class types { real_float, real_double, complex_float, complex_double };
+    std::vector< std::uint32_t > shape{};
+    std::vector< std::uint32_t > headers{};
+    std::vector< std::uint32_t > footers{};
+    std::uint32_t channels{1};
+    types type{types::complex_double};
+};
 
-placeholder
-
-)" << std::endl;
-    exit( 0 );
-}
-
-int main( int ac, char** av )
+class record
 {
-    try
-    {
-        comma::command_line_options options( ac, av, usage );
-        return 0;
-    }
-    catch( std::exception& ex ) { comma::say() << ": " << ex.what() << std::endl; }
-    catch( ... ) { comma::say() << ": " << "unknown exception" << std::endl; }
-    return 1;
-}
+    typedef record_parameters parameters_t;
+
+    parameters_t parameters;
+    std::vector< char > buffers;
+
+    record() = default;
+    record( const parameters_t& parameters );
+    operator bool() const { return !buffers.empty(); }
+};
+
+} } } // namespace snark { namespace signals { namespace pipeline {

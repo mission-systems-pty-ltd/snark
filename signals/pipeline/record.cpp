@@ -29,30 +29,14 @@
 
 /// @author vsevolod vlaskine
 
-#include <comma/application/command_line_options.h>
-#include <comma/base/exception.h>
-#include <comma/csv/options.h>
-#include "../pipeline/record.h"
+#include "record.h"
 
-static void usage( bool verbose )
+namespace snark { namespace signals { namespace pipeline {
+
+record::record( const record_parameters& parameters )
+    : parameters( parameters )
 {
-    std::cerr << R"(
-swiss-knife application for signal processing
-
-placeholder
-
-)" << std::endl;
-    exit( 0 );
+    // todo: buffer.resize( parameters.offset );
 }
 
-int main( int ac, char** av )
-{
-    try
-    {
-        comma::command_line_options options( ac, av, usage );
-        return 0;
-    }
-    catch( std::exception& ex ) { comma::say() << ": " << ex.what() << std::endl; }
-    catch( ... ) { comma::say() << ": " << "unknown exception" << std::endl; }
-    return 1;
-}
+} } } // namespace snark { namespace signals { namespace pipeline {
