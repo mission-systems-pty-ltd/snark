@@ -34,7 +34,7 @@ Provides file reader for cv-cat style binary data
 
 from __future__ import print_function
 
-import cv2, numpy, sys
+import cv2, datetime, numpy, sys
 from . import types
 
 __author__ = 'j.underwood'
@@ -50,7 +50,7 @@ def safe_read(file, dtype, count):
 
 def make_header(rows, cols, dtype, timestamp=None):
     header = numpy.empty(1, dtype=image.header_dtype)
-    header['time'] = timestamp if timestamp is not None else numpy.datetime64('now')
+    header['time'] = timestamp if timestamp is not None else numpy.datetime64( datetime.datetime.now() )
     header['rows'] = rows
     header['cols'] = cols
     try:
@@ -64,7 +64,7 @@ def make_header(rows, cols, dtype, timestamp=None):
 
 def make_header_from(frame, timestamp=None):
     header = numpy.empty(1, dtype=image.header_dtype)
-    header['time'] = timestamp if timestamp is not None else numpy.datetime64('now')
+    header['time'] = timestamp if timestamp is not None else numpy.datetime64( datetime.datetime.now() )
     header['rows'], header['cols'] = frame.shape[:2]
     channels = 1 if frame.ndim == 2 else frame.shape[-1]
     header['type'] = types.from_string(frame.dtype.name, channels)
