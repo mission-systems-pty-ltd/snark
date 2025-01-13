@@ -1,4 +1,31 @@
+// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2011 The University of Sydney
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. Neither the name of the University of Sydney nor the
+//    names of its contributors may be used to endorse or promote products
+//    derived from this software without specific prior written permission.
+//
+// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include <cstring>
@@ -35,83 +62,76 @@ static bool tied=true;
 
 std::string usage( bool verbose )
 {
+    ( void )verbose;
     std::ostringstream oss;
-    oss << "    perform basic fft on input data, output to stdout" << std::endl;
-    if( verbose )
-    {
-        oss << R"(
-        perform basic fft on input data
+    oss << R"(
+perform basic fft on input data, output to stdout
 
-        usage:  cat input.csv | fft-math <options> > converted.csv
+usage:  cat input.csv | fft-math <options> > converted.csv
 
-        input:  an array of double or interleaved complex double, length
-                of sequence is specified with --size
-        output: array of pair (real, imaginary) of double; use --output-size
-                to get size of array of doubles with the specified options
+input:  an array of double or interleaved complex double, length
+        of sequence is specified with --size
+output: array of pair (real, imaginary) of double; use --output-size
+        to get size of array of doubles with the specified options
 
-        options
-            --bin-overlap=[<overlap>]:  if specified, each bin will contain 
-                                        this portion of the last bin's data,verbose || 
-                                        range: 0 (no overlap) to 1
-            --bin-size=[<size>]:        cut data into several bins of this size
-                                        and perform fft on each bin, when not
-                                        specified calculates fft on the whole data
-            --complex-input,--complex:  when not specified, expect real-valued
-                                        input, ala rfft
-            --decibels,--dB,--db:       scale output to 20*log10 for magnitude
-                                        (phase is not affected)
-            --filter:                   when specified, filters input using a cut
-                                        window to get limited output
-            --logarithmic,--log:        scale output to logarithm of 10 for
-                                        magnitude (phase is not affected)
-            --output-fields:            print output fields to stdout and exit
-                                        depends on input fields and size
-            --output-format:            print binary format of output to stdout
-                                        and exit depends on input fields and size
-            --output-size:              print size of output data array and exit
-                                        e.g. if output format is t,ui,256d, then
-                                        output size is 256
-            --samples,--size=<samples>: number of samples; for complex input
-                                        each sample is represented by comma-separated
-                                        real and imaginary parts; for real input
-                                        each sample is just the real part
-            --verbose,-v:               more verbose output
+options
+    --bin-overlap=[<overlap>]:  if specified, each bin will contain 
+                                this portion of the last bin's data,verbose || 
+                                range: 0 (no overlap) to 1
+    --bin-size=[<size>]:        cut data into several bins of this size
+                                and perform fft on each bin, when not
+                                specified calculates fft on the whole data
+    --complex-input,--complex:  when not specified, expect real-valued
+                                input, ala rfft
+    --decibels,--dB,--db:       scale output to 20*log10 for magnitude
+                                (phase is not affected)
+    --filter:                   when specified, filters input using a cut
+                                window to get limited output
+    --logarithmic,--log:        scale output to logarithm of 10 for
+                                magnitude (phase is not affected)
+    --output-fields:            print output fields to stdout and exit
+                                depends on input fields and size
+    --output-format:            print binary format of output to stdout
+                                and exit depends on input fields and size
+    --output-size:              print size of output data array and exit
+                                e.g. if output format is t,ui,256d, then
+                                output size is 256
+    --samples,--size=<samples>: number of samples; for complex input
+                                each sample is represented by comma-separated
+                                real and imaginary parts; for real input
+                                each sample is just the real part
+    --verbose,-v:               more verbose output
 
-        output options
-            --imaginary: output imaginary part only output is binary array of doubles
-                        with half the size of input
-            --magnitude: output magnitude only output is binary array of double with
-                        half the size of input
-            --phase:     output phase only output is binary array of double with half
-                        the size of input
-            --polar:     output in complex polar form; (magnitude, phase)
-            --real:      output real part only output is binary array of double with half
-                        the size of input
-            --shuffle,--shuffle-fields,--shuffled-fields=[<csv_fields>]: comma separated
-                        list of input fields to be written to stdout; if not specified
-                        prepend all input fields to the output
-            --split:     output array of real/magnitude followed by array of imaginary/phase
-                        part; when not specified real/magnitude and imaginary/phase parts
-                        are interleaved
-            --untied,--discard-input: only write output to stdout, if unspecified,
-                        write input to stdout and append output (see examples)
+output options
+    --imaginary: output imaginary part only output is binary array of doubles
+                with half the size of input
+    --magnitude: output magnitude only output is binary array of double with
+                half the size of input
+    --phase:     output phase only output is binary array of double with half
+                the size of input
+    --polar:     output in complex polar form; (magnitude, phase)
+    --real:      output real part only output is binary array of double with half
+                the size of input
+    --shuffle,--shuffle-fields,--shuffled-fields=[<csv_fields>]: comma separated
+                list of input fields to be written to stdout; if not specified
+                prepend all input fields to the output
+    --split:     output array of real/magnitude followed by array of imaginary/phase
+                part; when not specified real/magnitude and imaginary/phase parts
+                are interleaved
+    --untied,--discard-input: only write output to stdout, if unspecified,
+                write input to stdout and append output (see examples)
 
-        examples
-            echo 0,1,2,3,4,5,6,7 | math-fft --samples=8
-            echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied
-            echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied --split
-            echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex
-            echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex --untied
-            echo 0,1,2,3,4,5,6,7 \
-                | csv-to-bin 8f \
-                | math-fft --samples=4 --binary 8f --complex --untied \
-                | csv-from-bin 8d
-            cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000)";
-    }
-    else
-    {
-        oss << "            run math-fft --help --basic for details...";
-    }
+examples
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=8 --untied --split
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex
+    echo 0,1,2,3,4,5,6,7 | math-fft --samples=4 --complex --untied
+    echo 0,1,2,3,4,5,6,7 \
+        | csv-to-bin 8f \
+        | math-fft --samples=4 --binary 8f --complex --untied \
+        | csv-from-bin 8d
+    cat data.bin | math-fft --binary=\"t,16000f\" --fields=t,data --samples=16000)";
     return oss.str();
 }
 

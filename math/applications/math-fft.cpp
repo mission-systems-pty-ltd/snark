@@ -1,63 +1,51 @@
-// Copyright (c) 2025 Vsevolod Vlaskine
+// This file is part of snark, a generic and flexible library for robotics research
+// Copyright (c) 2011 The University of Sydney
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. Neither the name of the University of Sydney nor the
+//    names of its contributors may be used to endorse or promote products
+//    derived from this software without specific prior written permission.
+//
+// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+// GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+// HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+// IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cstring>
-#include <iostream>
-#include <vector>
-#include <boost/optional.hpp>
-#include <fftw3.h>
-#include <comma/visiting/traits.h>
+#include <exception>
 #include <comma/application/command_line_options.h>
-#include <comma/base/exception.h>
 #include <comma/csv/options.h>
-#include <comma/csv/stream.h>
-#include <comma/string/string.h>
 #include "fft/basic.h"
 
-static void usage( const comma::command_line_options& options )
+static void usage( bool verbose )
 {
-    bool basic = options.exists( "--basic" ); // quick and dirty for reasonable backward compatibility
-    bool verbose = options.exists( "--verbose,-v" );
-    std::cerr << R"(
-read data on stdin, perform fft, output to stdout
-
-basic usage if --basic
-)";
-    std::cerr << snark::math::applications::fft::basic::usage( basic ) << std::endl;
-    std::cerr << std::endl;
-    if( basic )
-    {
-        std::cerr << "standard usage" << std::endl;
-        std::cerr << "    run --help without --basic for details..." << std::endl;
-        std::cerr << std::endl;
-    }    
-    else
-    {
-        std::cerr << R"(in progress... use --basic for now
-
-options
-    --basic; basic usage; run --help --basic for details
-    --fields=<fields>; 
-)" << std::endl;
-    }
+    std::cerr << snark::math::applications::fft::basic::usage( verbose ) << std::endl;
     std::cerr << "csv options" << std::endl;
     std::cerr << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
 }
 
-namespace snark { namespace math { namespace applications { namespace fft {
-
-
-
-} } } } // namespace snark { namespace math { namespace applications { namespace fft {
-
 int main( int ac, char** av )
 {
     try
     {
-        comma::command_line_options options( ac, av );
-        if( options.exists( "--help,-h" ) ) { usage( options ); }
-        if( options.exists( "--basic" ) ) { return snark::math::applications::fft::basic::run( options ); }
-        COMMA_THROW_BRIEF( comma::exception, "please specify --basic; extended functionality: in progress..." );
+        comma::command_line_options options( ac, av, usage );
+        return snark::math::applications::fft::basic::run( options );
     }
     catch( std::exception& ex ) { comma::say() << ": " << ex.what() << std::endl; }
     catch( ... ) { comma::say() << ": " << "unknown exception" << std::endl; }
