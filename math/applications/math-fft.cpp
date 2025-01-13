@@ -13,9 +13,22 @@
 #include <comma/string/string.h>
 #include "fft/basic.h"
 
-void usage( bool verbose )
+static void usage( const comma::command_line_options& options )
 {
-    std::cerr << snark::math::applications::fft::basic::usage( verbose ) << std::endl;
+    bool basic = options.exists( "--basic" ); // quick and dirty for reasonable backward compatibility
+    bool verbose = options.exists( "--verbose,-v" );
+    std::cerr << "basic usage (if --basic)" << std::endl;
+    std::cerr << snark::math::applications::fft::basic::usage( basic ) << std::endl;
+    std::cerr << std::endl;
+    if( !basic )
+    {
+        std::cerr << R"(
+options
+    in progress... use --basic for now
+)" << std::endl;
+    }
+    std::cerr << "csv options" << std::endl;
+    std::cerr << comma::csv::options::usage( verbose ) << std::endl;
     exit( 0 );
 }
 
@@ -23,7 +36,8 @@ int main( int ac, char** av )
 {
     try
     {
-        comma::command_line_options options( ac, av, usage );
+        comma::command_line_options options( ac, av );
+        if( options.exists( "--help,-h" ) ) { usage( options ); }
         return snark::math::applications::fft::basic::run( options );
     }
     catch( std::exception& ex ) { comma::say() << ": " << ex.what() << std::endl; }
