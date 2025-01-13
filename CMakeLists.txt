@@ -294,6 +294,7 @@ OPTION( snark_build_point_cloud_pcl "build points cloud pcl" OFF )
 OPTION( snark_build_python "build python packages" OFF )
 OPTION( snark_build_python_use_pip "build python packages using pip, otherwise use python install setup.py" OFF )
 OPTION( snark_build_sensors "build sensors" ON )
+OPTION( snark_build_signals "build signals" OFF )
 OPTION( snark_build_terrain "build terrain" ON )
 OPTION( snark_build_web "build web" OFF )
 option( snark_build_ros "build ros" OFF )
@@ -418,6 +419,10 @@ if( snark_build_sensors_kinect )
   find_package( OpenCL REQUIRED )
   find_package( freenect2 REQUIRED )
 endif( snark_build_sensors_kinect )
+
+# if( snark_build_signals )
+#     SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_signals-d optimized snark_signals )
+# endif()
 
 SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES}
                          debug snark_math-d
@@ -565,7 +570,11 @@ if( snark_build_web )
 endif( snark_build_web )
 
 if( snark_build_ros OR snark_build_ros2)
-    add_subdirectory(ros)
+    add_subdirectory( ros )
+endif()
+
+if( snark_build_signals )
+    add_subdirectory( signals )
 endif()
 
 # Testing
