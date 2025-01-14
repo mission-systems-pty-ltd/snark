@@ -8,6 +8,7 @@
 #endif
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -309,7 +310,7 @@ int main( int argc, char** argv )
         if( filters_string.find( "encode" ) != filters_string.npos && !output_options.no_header ) { std::cerr << "cv-cat: warning: encoding image and not using no-header, are you sure?" << std::endl; }
         if( vm.count( "camera" ) ) { device = 0; }
         rate_limit rate( fps );
-        cv::VideoCapture video_capture;
+        std::unique_ptr< cv::VideoCapture > video_capture;
         snark::cv_mat::serialization input( input_options );
         snark::cv_mat::serialization output( output_options );
         boost::scoped_ptr< snark::tbb::bursty_reader< pair_t > > reader;
@@ -359,9 +360,9 @@ int main( int argc, char** argv )
             }
             else
             {
-                video_capture.open( name );
-                skip( number_of_frames_to_skip, video_capture, rate );
-                reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard, capacity ) );
+                video_capture = std::make_unique< cv::VideoCapture >( name );
+                skip( number_of_frames_to_skip, *video_capture, rate );
+                reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( *video_capture ), boost::ref( rate ) ), discard, capacity ) );
             }
         }
         else if( vm.count( "files" ) )
@@ -370,9 +371,10 @@ int main( int argc, char** argv )
         }
         else if( vm.count( "camera" ) || vm.count( "id" ) )
         {
-            video_capture.open( device );
-            skip( number_of_frames_to_skip, video_capture, rate );
-            reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( video_capture ), boost::ref( rate ) ), discard ) );
+            video_capture = std::make_unique< cv::VideoCapture >();
+            video_capture->open( device );
+            skip( number_of_frames_to_skip, *video_capture, rate );
+            reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &capture, boost::ref( *video_capture ), boost::ref( rate ) ), discard ) );
         }
         else
         {
