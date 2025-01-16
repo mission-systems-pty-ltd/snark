@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+import argparse, cv2, sys
+import comma, snark.imaging
+from comma.io import windows_binary
+
+description = '''
+
+a helper application to view image streams, due to cv::imshow
+being broken since opencv 4.5 or thereabout
+
+usage: cv-cat --camera | cv-view [<properties>] [<options>] | cv-cat ...
+
+properties: a subset of cv-cat 'view=<properties>'
+    <wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>[,<options>]]]]]];
+    currently only <wait-interval> and <name> implemented, just ask for more
+
+hot keys
+    'q', <esc>: exit
+
+'''
+
+epilog = '''
+
+examples
+    todo
+
+gory details
+    starting around opencv version 4.5.xxx, cv-cat 'view'
+    stopped working on image streams:
+
+    cv::imshow would randomly block after a small handful
+    of images with both qt and opengl as backend
+
+    it is possible that it is a multithreading problem
+    between tbb and opencv
+
+    people on the internet report similar problems (that
+    would be mostly brushed off by opencv support)
+
+'''
+
+def parse_args():
+    parser = argparse.ArgumentParser( description=description, epilog=epilog,formatter_class=argparse.RawDescriptionHelpFormatter )
+    parser.add_argument( 'properties', type=str, help='view properties (a subset of cv-cat view; see cv-cat --help --verbose)' )
+    parser.add_argument( '--null', action='store_true', help='do not pass input images to stdout' )
+    args = parser.parse_args()
+    p = args.properties.split( ',' )
+    wait_interval = int( ( 0 if p[0] == 'stay' else float( p[0] ) ) ) if len( p ) > 0 and p[0] else 1
+    name = p[1] if len( p ) > 1 and p[1] else 'cv-view'
+    return args, wait_interval, name
+
+def main():
+    args, wait_interval, name = parse_args()
+    is_shutdown = comma.signal.is_shutdown()
+    for i in snark.imaging.cv.iterator():
+        cv2.imshow( name, i.data )
+        k = cv2.waitKey( wait_interval ) & 0xFF
+        if is_shutdown or k in [ ord( 'q' ), 27 ]: break
+        if not args.null: i.write()
+    cv2.destroyAllWindows()
+
+if __name__ == '__main__': main()

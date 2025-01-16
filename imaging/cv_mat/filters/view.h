@@ -42,8 +42,13 @@ class view
     private:
         timestamp_functor_t _get_timestamp;
         std::string _name;
+        std::string _title;
         int _delay;
         std::string _suffix;
+        boost::optional< std::pair< int, int > > _window_position;
+        boost::optional< std::pair< int, int > > _window_size;
+        bool _window_created{false};
+        int _flags{0};
         bool _capture_on_exit;
         std::string _capture_on_exit_filename;
         std::pair< boost::posix_time::ptime, cv::Mat > _last;

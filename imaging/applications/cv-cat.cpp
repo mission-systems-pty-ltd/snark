@@ -16,6 +16,7 @@
 #include <boost/program_options.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/base/exception.h>
 #include <comma/name_value/parser.h>
@@ -166,7 +167,7 @@ int main( int argc, char** argv )
         _setmode( _fileno( stdin ), _O_BINARY );
         _setmode( _fileno( stdout ), _O_BINARY );
         #endif
-
+        comma::command_line_options options( argc, argv ); // quick and dirty, to init comma application features
         std::string name;
         std::string files;
         int device;
@@ -382,12 +383,13 @@ int main( int argc, char** argv )
             reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &read, boost::ref( input ), boost::ref( rate ) ), discard, capacity ) );
         }
         pipeline_with_header pipeline( output, filters, *reader, number_of_threads );
+        comma::saymore() << "starting processing pipeline..." << std::endl;
         pipeline.run();
         COMMA_ASSERT_BRIEF( input.last_error().empty(), input.last_error() );
         COMMA_ASSERT_BRIEF( output.last_error().empty(), output.last_error() );
         if( vm.count( "stay" ) )
         {
-            std::cerr << "cv-cat: stopped; asked to --stay...; press any key to exit" << std::endl;
+            comma::say() << "stopped; asked to --stay...; press any key to exit" << std::endl;
             while( !is_shutdown && cv::waitKey( 1000 ) == -1 ); // todo: handle ' ' for screenshot - need access to the last image in view
         }
         return 0;

@@ -67,4 +67,5 @@ install( TARGETS image-stereo RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPO
 #target_link_libraries( equirectangular-to-rectilinear ${comma_ALL_LIBRARIES} ${OpenCV_LIBS} )
 #install( TARGETS equirectangular-to-rectilinear RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
+install( PROGRAMS cv-view         DESTINATION ${snark_INSTALL_BIN_DIR} )
 install( PROGRAMS image-watershed DESTINATION ${snark_INSTALL_BIN_DIR} )
