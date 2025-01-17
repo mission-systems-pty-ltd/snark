@@ -13,7 +13,14 @@ usage: cv-cat --camera | cv-view [<properties>] [<options>] | cv-cat ...
 
 properties: a subset of cv-cat 'view=<properties>'
     <wait-interval>[,<name>[,<suffix>[,<offset/x>,<offset/y>[,<size/x>,<size/y>[,<options>]]]]]];
-    currently only <wait-interval> and <name> implemented, just ask for more
+        <wait-interval>
+        <name>
+        <suffix>: not supported yet
+        <offset/x>
+        <offset/y>
+        <size/x>
+        <size/y>
+        <options>: not supported yet;
 
 hot keys
     'q', <esc>: exit
@@ -42,17 +49,25 @@ gory details
 
 def parse_args():
     parser = argparse.ArgumentParser( description=description, epilog=epilog,formatter_class=argparse.RawDescriptionHelpFormatter )
-    parser.add_argument( 'properties', type=str, help='view properties (a subset of cv-cat view; see cv-cat --help --verbose)' )
+    parser.add_argument( 'properties', nargs='?', type=str, help='view properties (a subset of cv-cat view; see cv-cat --help --verbose)' )
     parser.add_argument( '--null', action='store_true', help='do not pass input images to stdout' )
     args = parser.parse_args()
-    p = args.properties.split( ',' )
+    p = [] if args.properties is None else args.properties.split( ',' )
     wait_interval = int( ( 0 if p[0] == 'stay' else float( p[0] ) ) ) if len( p ) > 0 and p[0] else 1
     name = p[1] if len( p ) > 1 and p[1] else 'cv-view'
-    return args, wait_interval, name
+    x = int( p[3] ) if len( p ) > 3 and p[3] else 0
+    y = int( p[4] ) if len( p ) > 4 and p[4] else 0
+    w = int( p[5] ) if len( p ) > 5 and p[5] else None
+    h = int( p[6] ) if len( p ) > 6 and p[6] else None
+    return args, wait_interval, name, ( x, y ), None if x is None else ( w, h )
 
 def main():
-    args, wait_interval, name = parse_args()
+    args, wait_interval, name, window_position, window_size = parse_args()
+    print( f'{wait_interval=} {name=} {window_position=} {window_size=}', file=sys.stderr )
     is_shutdown = comma.signal.is_shutdown()
+    cv2.namedWindow( name, cv2.WINDOW_AUTOSIZE if window_size is None else 0 )
+    if window_size is not None: cv2.resizeWindow( name, *window_size )
+    cv2.moveWindow( name, *window_position )
     for i in snark.imaging.cv.iterator():
         cv2.imshow( name, i.data )
         k = cv2.waitKey( wait_interval ) & 0xFF
