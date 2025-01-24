@@ -1,1 +1,1 @@
-from .pinhole import Pinhole
+from ._pinhole import Pinhole
