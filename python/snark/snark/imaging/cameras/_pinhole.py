@@ -53,7 +53,7 @@ class Pinhole:
     focal_length: float = 0
     distortion: typing.Optional[Distortion] = field( default_factory=lambda: None )
 
-    def empty( self ): return image_size.x == 0 or image_size.y == 0 # quick and dirty
+    def empty( self ): return self.image_size.x == 0 or self.image_size.y == 0 # quick and dirty
 
     def field_of_view_2tan( self ): # todo: add other modalities
         assert self.focal_length > 0, f'expected positive focal length, got {self.focal_length}'
