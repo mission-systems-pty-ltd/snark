@@ -30,6 +30,9 @@ options
     --height=<rows>
     --pixel-format=<type>; default: 'rggb'; choices: 'rggb', 'y16', todo: more types, just ask
     --size,--number-of-buffers=<n>; default=32
+    --read-attempts=<n>; default=1; number of attempts on read timeout for each frame
+                                    0 means forever, just in case
+    --read-timeout=<seconds>; read timeout
     --width=<bytes>
 output options
     --discard; discard buffers when the output handler cannot keep up (due to
@@ -203,6 +206,8 @@ int main( int ac, char** av )
             os = std::make_unique< comma::io::ostream >( output_options );
             ostream = std::make_unique< csv_stream_t >( *( *os ), csv );
         }
+        unsigned int read_attempts = options.value( "--read-attempts", 1u );
+        float read_timeout = options.value( "--read-timeout", 1. );
         snark::io::video::header header;
         unsigned int number_of_buffers = options.value< unsigned int >( "--size,--number-of-buffers", 32 );
         std::string image_options = options.value< std::string >( "--image", "" );
@@ -259,7 +264,7 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( !latest || discard, "if --latest, please specify --discard" );
         bool header_only = options.exists( "--output-header-only,--header-only" );
         std::atomic_uint count{0};
-        auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { ++count; return video.read(); } };
+        auto read_once = [&]()->record_t { if( is_shutdown ) { video.stop(); return record_t(); } else { ++count; return video.read( read_timeout, read_attempts ); } };
         snark::tbb::filter< record_t, void >::type write_filter( snark::tbb::filter_mode::serial_in_order
                                                                , [&]( const record_t& record )
                                                                  {

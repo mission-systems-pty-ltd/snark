@@ -7,6 +7,8 @@
 #include <vector>
 #include <linux/videodev2.h>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/optional.hpp>
+#include <comma/base/none.h>
 #include "../timing/timestamped.h"
 
 namespace snark { namespace io { namespace video {
@@ -30,7 +32,7 @@ class stream
         unsigned int count() const { return _count; }
         void start();
         void stop();
-        record read();
+        record read( float timeout = 1, unsigned int attempts = 1 );
         const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:

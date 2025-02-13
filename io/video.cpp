@@ -84,22 +84,31 @@ void stream::stop()
     _started = false;
 }
 
-stream::record stream::read()
+stream::record stream::read( float timeout_seconds, unsigned int attempts )
 {
+    fd_set fds{}; // todo? use comma::select?
+    FD_ZERO( &fds );
+    FD_SET( _fd, &fds );
+    timeval timeout{};
+    unsigned int microseconds = timeout_seconds * 1e6;
+    timeout.tv_sec = microseconds / 1000000;
+    timeout.tv_usec = microseconds % 1000000;
+    unsigned int attempts_remaining = attempts;
+    bool forever = attempts == 0;
     while( true )
     {
-        fd_set fds{}; // todo? use comma::select?
-        FD_ZERO( &fds );
-        FD_SET( _fd, &fds );
-        timeval timeout{};
-        timeout.tv_sec = 2;
         int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
         if( r == -1 )
         {
-            if( errno == EINTR ) { return record(); } // todo? why continue on interrupted system call? should not we return nullptr instead on signal?
+            if( errno == EINTR ) { return record(); }
             COMMA_THROW( comma::exception, "'" << _name << ": select error: " << strerror( errno ) << "(" << errno << ")" );
         }
-        COMMA_ASSERT( r != 0, "'" << _name << ": select timeout" );
+        if( r == 0 )
+        {
+            COMMA_ASSERT( forever || attempts_remaining > 0, "'" << _name << ": select timeout" );
+            --attempts_remaining;
+            continue;
+        }
         v4l2_buffer buffer{};
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = V4L2_MEMORY_MMAP;
