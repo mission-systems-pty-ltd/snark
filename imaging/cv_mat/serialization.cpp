@@ -5,7 +5,9 @@
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
 #include <comma/base/last_error.h>
-#include <comma/csv/binary.h>
+#include <comma/csv/options.h>
+#include <comma/csv/traits.h>
+#include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include <boost/bimap.hpp>
 #include "utils.h"
@@ -300,7 +302,7 @@ unsigned type_from_string( const std::string& t )
     else if( t == "CV_64FC2" || t == "2d" ) { return CV_64FC2; }
     else if( t == "CV_64FC3" || t == "3d" ) { return CV_64FC3; }
     else if( t == "CV_64FC4" || t == "4d" ) { return CV_64FC4; }
-    COMMA_THROW( comma::exception, "expected type, got \"" << t << "\"" );
+    COMMA_THROW( comma::exception, "expected type, got '" << t << "'" );
 }
 
 // std::string type_as_string( int type ) { return type_as_string( type ); }
@@ -338,7 +340,7 @@ std::string format_from_type( unsigned type )
         case CV_64FC3: return std::string( "3d" );
         case CV_64FC4: return std::string( "4d" );
     }
-    COMMA_THROW( comma::exception, "type: \"" << type << "\" is not valid" );
+    COMMA_THROW( comma::exception, "type: '" << type << "' is not valid" );
 }
 
 std::string all_image_types()
@@ -440,6 +442,35 @@ std::string serialization::options::type_usage()
     stream << "        CV_64FC3 or 3d  (" << CV_64FC3 << ")\n";
     stream << "        CV_64FC4 or 4d  (" << CV_64FC4 << ")\n";
     return stream.str();
+}
+
+static serialization::options _handle_fields_and_format( const comma::csv::options& csv, serialization::options s )
+{
+    COMMA_ASSERT( csv.fields.empty() || s.fields.empty(), "expected --fields or --input/--output=...,fields,...; got both" );
+    COMMA_ASSERT( !csv.binary() || s.format.elements().empty(), "please set binary format in --binary or --input/--output, not both");
+    if( !csv.fields.empty() && s.fields.empty() ) { s.fields = csv.fields; }
+    if( csv.binary() && s.format.string().empty() ) { s.format = csv.format(); }
+    return s;
+}
+
+std::pair< serialization::options, serialization::options > serialization::options::make( const comma::command_line_options& o, bool ignore_csv_options )
+{
+    const serialization::options parsed = comma::name_value::parser( ';', '=' ).get< serialization::options >( o.value< std::string >( "--input", "" ) );
+    serialization::options input_options = ignore_csv_options ? parsed : _handle_fields_and_format( comma::csv::options( o ), parsed );
+    std::string output_options_string = o.value< std::string >( "--output", "" );
+    serialization::options output_options = output_options_string.empty() ? input_options : comma::name_value::parser( ';', '=' ).get< serialization::options >( output_options_string );
+    if( input_options.no_header && !output_options.fields.empty() && input_options.fields != output_options.fields ) { COMMA_ASSERT( output_options.fields == serialization::header::default_fields(), "when --input has no-header option, --output fields can only be fields='" << serialization::header::default_fields() << "', got: '" << output_options.fields << "'" ); }
+    else { COMMA_ASSERT( output_options.fields.empty() || input_options.fields == output_options.fields, "customised output header fields not supported (todo); got: input fields: '" << input_options.fields << "' output fields: '" << output_options.fields << "'" ); }
+    if( output_options.fields.empty() ) { output_options.fields = input_options.fields; } // output fields and format will be empty when the user specifies only --output no-header or --output header-only
+    COMMA_ASSERT( output_options.format.elements().empty() || input_options.format.string() == output_options.format.string(), "customised output header format not supported (todo); got: input format: '" << input_options.format.string() << "' output format: '" << output_options.format.string() << "'" );
+    if( output_options.format.elements().empty() ) { output_options.format = input_options.format; };
+    return { input_options, output_options };
+}
+
+std::pair< serialization, serialization > serialization::make( const comma::command_line_options& o, bool ignore_csv_options )
+{
+    const auto& p = serialization::options::make( o, ignore_csv_options );
+    return { serialization( p.first ), serialization( p.second ) };
 }
 
 } } // namespace snark{ namespace cv_mat {

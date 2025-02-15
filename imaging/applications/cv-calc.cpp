@@ -23,6 +23,7 @@
 #include <comma/base/exception.h>
 #include <comma/csv/impl/epoch.h> // quick and dirty
 #include <comma/csv/stream.h>
+#include <comma/csv/traits.h>
 #include <comma/io/stream.h>
 #include <comma/math/compare.h>
 #include <comma/math/interval.h>
@@ -37,6 +38,8 @@
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
 #include "cv_calc/graph.h"
+#include "cv_calc/life.h"
+#include "cv_calc/melt.h"
 #include "cv_calc/polar_map.h"
 #include "cv_calc/unstride.h"
 
@@ -68,6 +71,7 @@ static void usage( bool verbose=false )
     std::cerr << "    histogram: output image histogram for all image channels appended to image header" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
     std::cerr << "    mean: output image mean and count for each image channel appended to image header" << std::endl;
+    std::cerr << "    melt: generate 'connecting' frames using a poor-man's morph" << std::endl;
     std::cerr << "    polar-map: output polar-to-cartesian map or reverse for given dimensions" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
@@ -177,11 +181,7 @@ static void usage( bool verbose=false )
     std::cerr << "    histogram" << std::endl;
     std::cerr << "        --interleave-channels,--interleave: interleave channel histograms for each value" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    life" << std::endl;
-    std::cerr << "        --exit-on-stability: exit, if no change" << std::endl;
-    std::cerr << "        --procreation-treshold,--procreation=[<threshold>]: todo: document; default: 3.0" << std::endl;
-    std::cerr << "        --stability-treshold,--stability,--extinction-threshold,--extinction=[<threshold>]: todo: document; default: 4.0" << std::endl;
-    std::cerr << "        --step=[<step>]: todo: document; default: 1.0" << std::endl;
+    std::cerr << "    life" << std::endl << snark::cv_calc::life::options() << std::endl;
     std::cerr << std::endl;
     std::cerr << "    mean" << std::endl;
     std::cerr << "        --threshold=[<thresh>]: apply a mask (binary threshold) and only calculate mean on pixel matching the mask" << std::endl;
@@ -191,6 +191,8 @@ static void usage( bool verbose=false )
     std::cerr << "        mean,count: calculated and output for each channel; e.g. for rgb image, output fields: t,rows,cols,type,mean,count,mean,count,mean,count" << std::endl;
     std::cerr << "        count: with no filtering: total number of pixels (cols*rows)" << std::endl;
     std::cerr << "               with filtering (currently only --threshold implemented): total number of pixels participating in mean" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "    melt" << std::endl << snark::cv_calc::melt::options() << std::endl;
     std::cerr << std::endl;
     std::cerr << "    polar-map" << std::endl << snark::cv_calc::polar_map::options();
     std::cerr << "    roi" << std::endl;
@@ -1261,27 +1263,7 @@ int main( int ac, char** av )
             if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
-        if( operation == "life" )
-        {
-            snark::cv_mat::serialization input_serialization( input_options );
-            snark::cv_mat::serialization output_serialization( output_options );
-            double procreation_threshold = options.value( "--procreation-threshold,--procreation", 3.0 );
-            double stability_threshold = options.value( "--stability-threshold,--stability,--extinction-threshold,--extinction", 4.0 );
-            double step = options.value( "--step", 1.0 );
-            bool exit_on_stability = options.exists( "--exit-on-stability" );
-            snark::cv_mat::filters::life< boost::posix_time::ptime > life( procreation_threshold, stability_threshold, step, exit_on_stability );
-            auto iterations = options.optional< unsigned int >( "--iterations,-i" );
-            std::pair< boost::posix_time::ptime, cv::Mat > p = input_serialization.read< boost::posix_time::ptime >( std::cin );
-            if( p.second.empty() ) { return 0; }
-            for( unsigned int i = 0; ( !iterations || i < *iterations ) && std::cout.good(); ++i )
-            {
-                output_serialization.write_to_stdout( life( p ) ); // todo: decouple step from output
-                std::cout.flush();
-            }
-            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
-            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
-            return 0;
-        }
+        if( operation == "life" ) { return snark::cv_calc::life::run( options ); }
         if( operation == "histogram" )
         {
             if( options.exists("--output-fields") ) { std::cout << "t,rows,cols,type,histogram" << std::endl;  exit(0); }
@@ -1361,6 +1343,7 @@ int main( int ac, char** av )
             if( !serialization.last_error().empty() ) { comma::say() << serialization.last_error() << std::endl; }
             return 0;
         }
+        if( operation == "melt" ) { return snark::cv_calc::melt::run( options ); }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
         if( operation == "stride" )
         {

@@ -6,9 +6,10 @@
 #include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <opencv2/core/core.hpp>
+#include <comma/application/command_line_options.h>
 #include <comma/base/types.h>
 #include <comma/csv/binary.h>
-#include <comma/csv/traits.h>
+#include <comma/csv/options.h>
 
 namespace snark { namespace cv_mat {
 
@@ -63,6 +64,7 @@ class serialization
             header get_header() const; /// make header (to be used as default)
             static std::string usage();
             static std::string type_usage();
+            static std::pair< options, options > make( const comma::command_line_options& o, bool ignore_csv_options = false );
         };
         
         /// default constructor
@@ -126,6 +128,9 @@ class serialization
         /// thus, use this method instead: it returns true, "" on success and
         /// false, <error message> otherwise
         const std::string& last_error() const;
+
+        /// make serialization from input/output command line options
+        static std::pair< serialization, serialization > make( const comma::command_line_options& o, bool ignore_csv_options = false );
 
     private:
         boost::optional< comma::csv::binary< header > > m_binary;
