@@ -23,7 +23,7 @@ std::string options()
 
 int run( const comma::command_line_options& options )
 {
-    auto [ input_serialization, output_serialization ] = cv_mat::serialization::make( options );
+    auto [ input_serialization, output_serialization ] = cv_mat::serialization::make( options, true );
     double procreation_threshold = options.value( "--procreation-threshold,--procreation", 3.0 );
     double stability_threshold = options.value( "--stability-threshold,--stability,--extinction-threshold,--extinction", 4.0 );
     double step = options.value( "--step", 1.0 );
