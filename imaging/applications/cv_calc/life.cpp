@@ -13,13 +13,11 @@ namespace snark { namespace cv_calc { namespace life {
 std::string options()
 {
     std::ostringstream oss;
-    oss << R"(
-            options
-                --exit-on-stability: exit, if no change
-                --procreation-treshold,--procreation=[<threshold>]: todo: document; default: 3.0
-                --stability-treshold,--stability,--extinction-threshold,--extinction=[<threshold>]: todo: document; default: 4.0
-                --step=[<step>]: todo: document; default: 1.0
-)" << std::endl;
+    oss << R"(        options
+            --exit-on-stability: exit, if no change
+            --procreation-treshold,--procreation=[<threshold>]: todo: document; default: 3.0
+            --stability-treshold,--stability,--extinction-threshold,--extinction=[<threshold>]: todo: document; default: 4.0
+            --step=[<step>]: todo: document; default: 1.0)";
     return oss.str();
 }
 

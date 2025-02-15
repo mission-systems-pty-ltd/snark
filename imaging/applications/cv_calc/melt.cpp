@@ -12,8 +12,8 @@ namespace snark { namespace cv_calc { namespace melt {
 std::string options()
 {
     std::ostringstream oss;
-    oss << "        options" << std::endl;
-    oss << "            todo" << std::endl;
+    oss << R"(        options
+            todo)";
     return oss.str();
 }
 
