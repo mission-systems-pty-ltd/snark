@@ -5,6 +5,8 @@
 #pragma once
 
 #include <array>
+#include <cinttypes>
+#include <functional>
 #include <vector>
 #include <opencv2/core/core.hpp>
 #include <comma/base/exception.h>
@@ -14,8 +16,16 @@
 
 namespace snark { namespace cv_mat {
 
+template < typename V >
+void set( cv::Mat m, int row, int col, const V& value );
+
+template < template < typename, unsigned int > typename F, typename R = void, class ...Args >
+auto choose_method( int type );
+
+template < int Type, typename V >
+void assign( cv::Mat m, int row, int col, const V& value );
+
 template < int Type > struct type_traits;
-template < int Type, typename V > void assign( cv::Mat m, int row, int col, const V& value );
 
 template <> struct type_traits< CV_8UC1 > { typedef unsigned char type; enum { channels = 1 }; };
 template <> struct type_traits< CV_8UC2 > { typedef unsigned char type; enum { channels = 2 }; };
@@ -70,26 +80,14 @@ template < int Type, unsigned int Channels > struct operations
 
 template < int Type > struct operations< Type, 1 > // quick and dirty
 {
-    template < typename V, unsigned int Size > static void set( cv::Mat m, int row, int col, const std::array< V, Size >& values )
-    {
-        m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = values[0];
-    }
+    template < typename V, unsigned int Size > static void set( cv::Mat m, int row, int col, const std::array< V, Size >& values ) { m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = values[0]; }
     
-    template < typename V > static void set( cv::Mat m, int row, int col, const std::vector< V >& values )
-    {
-        m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = values[0];
-    }
+    template < typename V > static void set( cv::Mat m, int row, int col, const std::vector< V >& values ) { m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = values[0]; }
     
-    template < typename V > static void set( cv::Mat m, int row, int col, const V& value )
-    {
-        m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = value;
-    }
+    template < typename V > static void set( cv::Mat m, int row, int col, const V& value ) { m.at< typename cv_mat::type_traits< Type >::type >( row, col ) = value; }
 };
 
-template < int Type, typename V > inline void set( cv::Mat m, int row, int col, const V& value )
-{
-    impl::operations< Type, cv_mat::type_traits< Type >::channels >::set( m, row, col, value );
-}
+template < int Type, typename V > inline void set( cv::Mat m, int row, int col, const V& value ) { impl::operations< Type, cv_mat::type_traits< Type >::channels >::set( m, row, col, value ); }
 
 } // namespace impl
 
@@ -135,6 +133,51 @@ template < typename V > inline void set( cv::Mat m, int row, int col, const V& v
         case CV_64FC4: impl::set< CV_64FC4 >( m, row, col, value ); return;
         
         default: COMMA_THROW( comma::exception, "expected image type; got: " << m.type() << ", which is not supported" );
+    }
+}
+
+template < template < typename, unsigned int > typename F, typename R, class ...Args >
+inline auto choose_method( int type )
+{
+    typedef std::function< R( Args... ) > function_t;
+    switch( type )
+    {
+        case CV_8UC1: return function_t( F< unsigned char, 1 >() );
+        case CV_8UC2: return function_t( F< unsigned char, 2 >() );
+        case CV_8UC3: return function_t( F< unsigned char, 3 >() );
+        case CV_8UC4: return function_t( F< unsigned char, 4 >() );
+
+        case CV_8SC1: return function_t( F< char, 1 >() );
+        case CV_8SC2: return function_t( F< char, 2 >() );
+        case CV_8SC3: return function_t( F< char, 3 >() );
+        case CV_8SC4: return function_t( F< char, 4 >() );
+        
+        case CV_16UC1: return function_t( F< std::uint16_t, 1 >() );
+        case CV_16UC2: return function_t( F< std::uint16_t, 2 >() );
+        case CV_16UC3: return function_t( F< std::uint16_t, 3 >() );
+        case CV_16UC4: return function_t( F< std::uint16_t, 4 >() );
+
+        case CV_16SC1: return function_t( F< std::int16_t, 1 >() );
+        case CV_16SC2: return function_t( F< std::int16_t, 2 >() );
+        case CV_16SC3: return function_t( F< std::int16_t, 3 >() );
+        case CV_16SC4: return function_t( F< std::int16_t, 4 >() );
+
+        case CV_32SC1: return function_t( F< std::int32_t, 1 >() );
+        case CV_32SC2: return function_t( F< std::int32_t, 2 >() );
+        case CV_32SC3: return function_t( F< std::int32_t, 3 >() );
+        case CV_32SC4: return function_t( F< std::int32_t, 4 >() );
+
+        case CV_32FC1: return function_t( F< float, 1 >() );
+        case CV_32FC2: return function_t( F< float, 2 >() );
+        case CV_32FC3: return function_t( F< float, 3 >() );
+        case CV_32FC4: return function_t( F< float, 4 >() );
+
+        case CV_64FC1: return function_t( F< double, 1 >() );
+        case CV_64FC2: return function_t( F< double, 2 >() );
+        case CV_64FC3: return function_t( F< double, 3 >() );
+        case CV_64FC4: return function_t( F< double, 4 >() );
+        
+        default: COMMA_THROW( comma::exception, "expected image type; got: " << type << ", which is not supported" );
     }
 }
 
