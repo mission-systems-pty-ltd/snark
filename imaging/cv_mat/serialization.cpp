@@ -48,14 +48,14 @@ serialization::serialization() :
     m_binary( comma::csv::binary< header >( header::default_format(), header::default_fields(), false ) ),
     m_binary_no_timestamp( comma::csv::binary< header >( header::default_format(), ",rows,cols,type", false ) ),
     m_buffer( m_binary->format().size() ),
-    m_headerOnly( false )
+    _header_only( false )
 {
     m_binary->put( m_header, &m_buffer[0]); // make sure that the default timestamp (if not read from input) is not-a-date-time, and not 19700101T00000
 }
 
 serialization::serialization( const std::string& fields, const comma::csv::format& format, bool headerOnly, const header& default_header, bool set_timestamp )
     : m_buffer( format.size() )
-    , m_headerOnly( headerOnly )
+    , _header_only( headerOnly )
     , m_header( default_header )
     , _set_timestamp( set_timestamp )
 {
@@ -82,7 +82,7 @@ serialization::serialization( const serialization::options& options )
     if( options.format.elements().empty() ) { for( unsigned int i = 0; i < v.size(); ++i ) { if( v[i] == "t" ) { format += "t"; } else { format += "ui"; } } }
     else { format = options.format; } 
     m_buffer.resize( format.size() );
-    m_headerOnly = options.header_only;
+    _header_only = options.header_only;
     m_header = options.get_header();
     if( options.no_header )
     {
@@ -200,7 +200,7 @@ void serialization::write( std::ostream& os, const std::pair< boost::posix_time:
         m_binary->put( serialization::header( m ), &m_buffer[0] );
         os.write( &m_buffer[0], m_buffer.size() );
     }
-    if( !m_headerOnly ) { os.write( reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
+    if( !_header_only ) { os.write( reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
     if( flush ) { os.flush(); }
 }
 
@@ -212,7 +212,7 @@ void serialization::write( std::ostream& os, const std::pair< header::buffer_t, 
         if( m_binary_no_timestamp ) { m_binary_no_timestamp->put( serialization::header( m.second ), &m_buffer[0] ); }
         os.write( &m_buffer[0], m_buffer.size() );
     }
-    if( !m_headerOnly ) { os.write( reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
+    if( !_header_only ) { os.write( reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
     if( flush ) { os.flush(); }
 }
 
@@ -257,7 +257,7 @@ void serialization::write_to_stdout(const std::pair< serialization::header::buff
         if( m_binary_no_timestamp ) { m_binary_no_timestamp->put( serialization::header( m.second ), &m_buffer[0] ); }
         write_( 1, &m_buffer[0], m_buffer.size() );
     }
-    if( !m_headerOnly ) { write_( 1, reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
+    if( !_header_only ) { write_( 1, reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
     if( flush ) { ::fflush( stdout ); }
 }
 
@@ -268,7 +268,7 @@ void serialization::write_to_stdout( const std::pair< boost::posix_time::ptime, 
         m_binary->put( serialization::header( m ), &m_buffer[0] );
         write_( 1, &m_buffer[0], m_buffer.size() );
     }
-    if( !m_headerOnly ) { write_( 1, reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
+    if( !_header_only ) { write_( 1, reinterpret_cast< const char* >( m.second.datastart ), m.second.dataend - m.second.datastart ); }
     if( flush ) { ::fflush( stdout ); }
 }
 

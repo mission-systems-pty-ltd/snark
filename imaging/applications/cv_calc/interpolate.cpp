@@ -22,7 +22,7 @@ std::string options()
 //template < typename T, unsigned int D >
 static void _interpolate( cv::Mat& m, const cv::Mat& p, const cv::Mat& t, unsigned int row, unsigned int col, unsigned int steps, unsigned int radius )
 {
-
+    COMMA_ASSERT_BRIEF( radius == 0, "todo" );
 }
 
 //template < typename T, unsigned int D >

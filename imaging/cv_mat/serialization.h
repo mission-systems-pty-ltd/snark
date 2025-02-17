@@ -92,6 +92,9 @@ class serialization
         /// return true, if constructed with no-header option
         bool no_header() const;
 
+        /// return true, if constructed with no-header option
+        bool header_only() const { return _header_only; }
+
         /// return usage
         static const std::string& usage();
 
@@ -138,7 +141,7 @@ class serialization
         /// Same header binary as m_binary, however it ignores the timestamp field 't'
         boost::optional< comma::csv::binary< header > > m_binary_no_timestamp; // ignores timestamp 't' field
         std::vector< char > m_buffer;
-        bool m_headerOnly;
+        bool _header_only;
         header m_header; /// default header
         bool _set_timestamp{false};
         std::string _last_error;

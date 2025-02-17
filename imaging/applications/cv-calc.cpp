@@ -40,6 +40,7 @@
 #include "cv_calc/graph.h"
 #include "cv_calc/interpolate.h"
 #include "cv_calc/life.h"
+#include "cv_calc/optical_flow.h"
 #include "cv_calc/polar_map.h"
 #include "cv_calc/unstride.h"
 
@@ -72,6 +73,7 @@ static void usage( bool verbose=false )
     std::cerr << "    interpolate: interpolate between two frames" << std::endl;
     std::cerr << "    life: take image on stdin, output game of life on each channel" << std::endl;
     std::cerr << "    mean: output image mean and count for each image channel appended to image header" << std::endl;
+    std::cerr << "    optical-flow-farneback; thin wrapper around farneback optical flow opencv implementation" << std::endl;
     std::cerr << "    polar-map: output polar-to-cartesian map or reverse for given dimensions" << std::endl;
     std::cerr << "    roi: given cv image data associated with a region of interest, either set everything outside the region of interest to zero or crop it" << std::endl;
     std::cerr << "    stride: stride through the image, output images of kernel size for each pixel" << std::endl;
@@ -193,6 +195,8 @@ static void usage( bool verbose=false )
     std::cerr << "        mean,count: calculated and output for each channel; e.g. for rgb image, output fields: t,rows,cols,type,mean,count,mean,count,mean,count" << std::endl;
     std::cerr << "        count: with no filtering: total number of pixels (cols*rows)" << std::endl;
     std::cerr << "               with filtering (currently only --threshold implemented): total number of pixels participating in mean" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "    optical-flow-farneback" << std::endl << snark::cv_calc::optical_flow::farneback::options() << std::endl;
     std::cerr << std::endl;
     std::cerr << "    polar-map" << std::endl << snark::cv_calc::polar_map::options();
     std::cerr << "    roi" << std::endl;
@@ -1078,7 +1082,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         verbose = options.exists( "--verbose,-v" );
         //std::vector< std::string > unnamed = options.unnamed("-h,--help,-v,--verbose,--flush,--input-fields,--input-format,--output-fields,--output-format,--show-partial", "--fields,--binary,--input,--output,--strides,--padding,--shape,--size,--kernel");
-        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u,--status", "-.*" );
+        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u,--status,--use-initial-flow,--use-gaussian,--gaussian,--output-polar,--polar,--output-normalized,--normalized", "-.*" );
         if( unnamed.empty() ) { std::cerr << name << "please specify operation" << std::endl; return 1; }
         if( unnamed.size() > 1 ) { std::cerr << name << "please specify only one operation, got " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
         std::string operation = unnamed.front();
@@ -1344,6 +1348,7 @@ int main( int ac, char** av )
             if( !serialization.last_error().empty() ) { comma::say() << serialization.last_error() << std::endl; }
             return 0;
         }
+        if( operation == "optical-flow-farneback" ) { return snark::cv_calc::optical_flow::farneback::run( options ); }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
         if( operation == "stride" )
         {
