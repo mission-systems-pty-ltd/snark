@@ -2,6 +2,7 @@
 
 /// @author vsevolod vlaskine
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <opencv2/core.hpp>
@@ -107,13 +108,61 @@ int run( const comma::command_line_options& options )
             switch( output )
             {
                 case output_t::applied:
+                {
+                    int rows = frame1.second.rows; // for brevity
+                    int cols = frame1.second.cols; // for brevity
+                    int depth = frame1.second.depth(); // for brevity
                     applied.first = frame2.first;
-                    frame1.second.copyTo( applied.second );
-
-                    // todo: apply
-
+                    if( applied.second.empty() ) { applied.second = cv::Mat( frame1.second.size(), frame1.second.type() ); }
+                    applied.second = 0;
+                    char* p = &frame1.second.at< char >( 0, 0 ); // todo! generalise
+                    float* f = &flow.second.at< float >( 0, 0 );
+                    for( unsigned int row = 0; int( row ) < rows; ++row )
+                    {
+                        for( unsigned int col = 0; int( col ) < cols; ++col, p += depth, f += 2 )
+                        {
+                            double x{f[0] + col};
+                            double y{f[1] + row};
+                            int i = std::floor( x );
+                            int j = std::floor( y );
+                            //std::cerr << "==> pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << std::endl;
+                            if( i >= 0 && i < cols && j >= 0 && j < rows )
+                            {
+                                char* t = &applied.second.at< char >( i, j );
+                                char* q = p;
+                                double g = double( *p ) * ( x - i ) * ( y - j );
+                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                            }
+                            ++i;
+                            if( i >= 0 && i < cols && j >= 0 && j < rows )
+                            {
+                                char* t = &applied.second.at< char >( i, j );
+                                char* q = p;
+                                double g = ( i - x ) * ( y - j );
+                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                            }
+                            --i;
+                            ++j;
+                            if( i >= 0 && i < cols && j >= 0 && j < rows )
+                            {
+                                char* t = &applied.second.at< char >( i, j );
+                                char* q = p;
+                                double g = ( x - i ) * ( j - y );
+                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                            }
+                            ++i;
+                            if( i >= 0 && i < cols && j >= 0 && j < rows )
+                            {
+                                char* t = &applied.second.at< char >( i, j );
+                                char* q = p;
+                                double g = ( i - x ) * ( j - y );
+                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                            }
+                        }
+                    }
                     output_serialization.write_to_stdout( applied, true );
                     break;
+                }
                 case output_t::polar:
                     cv::split( flow.second, cartesian );
                     cv::cartToPolar( cartesian[0], cartesian[1], polar[0], polar[1], true );
