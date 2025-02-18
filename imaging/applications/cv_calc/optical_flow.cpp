@@ -111,53 +111,58 @@ int run( const comma::command_line_options& options )
                 {
                     int rows = frame1.second.rows; // for brevity
                     int cols = frame1.second.cols; // for brevity
-                    int depth = frame1.second.depth(); // for brevity
+                    int channels = frame1.second.channels(); // for brevity
                     applied.first = frame2.first;
                     if( applied.second.empty() ) { applied.second = cv::Mat( frame1.second.size(), frame1.second.type() ); }
                     applied.second = 0;
-                    char* p = &frame1.second.at< char >( 0, 0 ); // todo! generalise
+                    unsigned char* p = &frame1.second.at< unsigned char >( 0, 0 ); // todo! generalise
                     float* f = &flow.second.at< float >( 0, 0 );
                     for( unsigned int row = 0; int( row ) < rows; ++row )
                     {
-                        for( unsigned int col = 0; int( col ) < cols; ++col, p += depth, f += 2 )
+                        for( unsigned int col = 0; int( col ) < cols; ++col, p += channels, f += 2 )
                         {
                             double x{f[0] + col};
                             double y{f[1] + row};
                             int i = std::floor( x );
                             int j = std::floor( y );
-                            //std::cerr << "==> pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << std::endl;
+                            double g00, g01, g10, g11;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                char* t = &applied.second.at< char >( i, j );
-                                char* q = p;
-                                double g = double( *p ) * ( x - i ) * ( y - j );
-                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* q = p;
+                                double g = ( x - i ) * ( y - j );
+                                g00 = g;
+                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                char* t = &applied.second.at< char >( i, j );
-                                char* q = p;
+                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* q = p;
                                 double g = ( i - x ) * ( y - j );
-                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                g01 = g;
+                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             --i;
                             ++j;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                char* t = &applied.second.at< char >( i, j );
-                                char* q = p;
+                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* q = p;
                                 double g = ( x - i ) * ( j - y );
-                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                g10 = g;
+                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                char* t = &applied.second.at< char >( i, j );
-                                char* q = p;
+                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* q = p;
                                 double g = ( i - x ) * ( j - y );
-                                for( int k = 0; k < depth; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                g11 = g;
+                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
+                            // std::cerr << "==> pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << " factors: " << g00 << "," << g01 << "," << g10 << "," << g11 << " sum: " << ( g00 + g01 + g10 + g11 ) << std::endl;
                         }
                     }
                     output_serialization.write_to_stdout( applied, true );
