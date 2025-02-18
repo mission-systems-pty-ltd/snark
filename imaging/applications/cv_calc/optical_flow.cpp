@@ -131,7 +131,7 @@ int run( const comma::command_line_options& options )
                                 unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( x - i ) * ( y - j );
-                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                for( int k = 0; k < channels; ++k ) { *t++ += double( *q++ ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
@@ -139,7 +139,7 @@ int run( const comma::command_line_options& options )
                                 unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( i - x ) * ( y - j );
-                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                for( int k = 0; k < channels; ++k ) { *t++ += double( *q++ ) * g; }
                             }
                             --i;
                             ++j;
@@ -148,7 +148,7 @@ int run( const comma::command_line_options& options )
                                 unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( x - i ) * ( j - y );
-                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                for( int k = 0; k < channels; ++k ) { *t++ += double( *q++ ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
@@ -156,7 +156,7 @@ int run( const comma::command_line_options& options )
                                 unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( i - x ) * ( j - y );
-                                for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
+                                for( int k = 0; k < channels; ++k ) { *t++ += double( *q++ ) * g; }
                             }
                             //std::cerr << "==> b: pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << std::endl;
                         }
