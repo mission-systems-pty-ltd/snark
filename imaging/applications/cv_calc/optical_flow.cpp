@@ -9,9 +9,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
-
-
 #include <tbb/parallel_for.h>
+#include <comma/containers/enums.h>
 #include "../../../imaging/cv_mat/filters/life.h"
 #include "../../../imaging/cv_mat/traits.h"
 #include "../../../imaging/cv_mat/serialization.h"
@@ -39,6 +38,11 @@ std::string options()
                 magnitude, e.g. for debugging or visualisation
             --output-polar,--polar; instead of x,y components, output
                 magnitude and angle
+            --output=<what>; default=xy
+                <what>
+                    applied: apply x,y displacement to input image
+                    polar  : output magnitude,angle instead of x,y
+                    xy     : output optical flow x,y displacement
             --poly-n=<n>; default=5; size of the pixel neighborhood used to
                 find polynomial expansion in each pixel; larger values mean
                 that the image will be approximated with smoother surfaces,
@@ -83,10 +87,10 @@ int run( const comma::command_line_options& options )
     double pyramid_scale = options.value( "--pyramid-scale", 0.5 );
     unsigned int window_size = options.value( "--window-size", 15 );
     int flags = ( options.exists( "--use-initial-flow" ) ? cv::OPTFLOW_USE_INITIAL_FLOW : 0 ) | ( options.exists( "--use-gaussian,--gaussian" ) ? cv::OPTFLOW_FARNEBACK_GAUSSIAN : 0 );
-    bool output_polar = options.exists( "--output-polar,--polar" );
-    bool output_normalized = options.exists( "--output-normalized,--normalized" );
+    struct output_t { enum types { applied, polar, xy }; };
+    output_t::types output = comma::enums::find< output_t::types >( options.value< std::string >( "--output", "xy" ), { "applied", "polar", "xy" } );
     typedef std::pair< boost::posix_time::ptime, cv::Mat > pair_t;
-    pair_t frame1, frame2, flow;
+    pair_t frame1, frame2, flow, applied;
     cv::Mat previous, next, normalized;
     cv::Mat cartesian[2];
     cv::Mat polar[2];
@@ -100,19 +104,28 @@ int run( const comma::command_line_options& options )
             flow.first = frame2.first;
             if( flow.second.empty() ) { flow.second = cv::Mat( previous.size(), CV_32FC2 ); }
             cv::calcOpticalFlowFarneback( previous, next, flow.second, pyramid_scale, levels, window_size, iterations, poly_n, poly_sigma, flags );
-            if( output_polar )
+            switch( output )
             {
-                cv::split( flow.second, cartesian );
-                cv::cartToPolar( cartesian[0], cartesian[1], polar[0], polar[1], true );
-                polar[1] *= M_PI / 180;
-                if( output_normalized )
-                {
-                    cv::normalize( polar[0], normalized, 0.0f, 1.0f, cv::NORM_MINMAX );
-                    normalized.copyTo( polar[0] );
-                }
-                merge( polar, 2, flow.second );
+                case output_t::applied:
+                    applied.first = frame2.first;
+                    frame1.second.copyTo( applied.second );
+
+                    // todo: apply
+
+                    output_serialization.write_to_stdout( applied, true );
+                    break;
+                case output_t::polar:
+                    cv::split( flow.second, cartesian );
+                    cv::cartToPolar( cartesian[0], cartesian[1], polar[0], polar[1], true );
+                    polar[1] *= M_PI / 180;
+                    // if( output_normalized ) { cv::normalize( polar[0], normalized, 0.0f, 1.0f, cv::NORM_MINMAX ); normalized.copyTo( polar[0] ); }
+                    merge( polar, 2, flow.second );
+                    output_serialization.write_to_stdout( flow, true );
+                    break;
+                case output_t::xy:
+                    output_serialization.write_to_stdout( flow, true );
+                    break;
             }
-            output_serialization.write_to_stdout( flow, true );
         }
         frame1.first = frame2.first;
         frame2.second.copyTo( frame1.second );
