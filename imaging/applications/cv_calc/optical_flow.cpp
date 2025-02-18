@@ -113,10 +113,10 @@ int run( const comma::command_line_options& options )
                     int cols = frame1.second.cols; // for brevity
                     int channels = frame1.second.channels(); // for brevity
                     applied.first = frame2.first;
-                    if( applied.second.empty() ) { applied.second = cv::Mat( frame1.second.size(), frame1.second.type() ); }
-                    applied.second = 0;
+                    if( applied.second.empty() ) { applied.second = cv::Mat::zeros( frame1.second.size(), frame1.second.type() ); }
                     unsigned char* p = &frame1.second.at< unsigned char >( 0, 0 ); // todo! generalise
                     float* f = &flow.second.at< float >( 0, 0 );
+                    unsigned char* s = &applied.second.at< unsigned char >( 0, 0 );
                     for( unsigned int row = 0; int( row ) < rows; ++row )
                     {
                         for( unsigned int col = 0; int( col ) < cols; ++col, p += channels, f += 2 )
@@ -125,44 +125,40 @@ int run( const comma::command_line_options& options )
                             double y{f[1] + row};
                             int i = std::floor( x );
                             int j = std::floor( y );
-                            double g00, g01, g10, g11;
+                            //std::cerr << "==> a: pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << std::endl;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( x - i ) * ( y - j );
-                                g00 = g;
                                 for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( i - x ) * ( y - j );
-                                g01 = g;
                                 for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             --i;
                             ++j;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( x - i ) * ( j - y );
-                                g10 = g;
                                 for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
                             ++i;
                             if( i >= 0 && i < cols && j >= 0 && j < rows )
                             {
-                                unsigned char* t = &applied.second.at< unsigned char >( i, j );
+                                unsigned char* t = s + ( i * row + j ) * channels;
                                 unsigned char* q = p;
                                 double g = ( i - x ) * ( j - y );
-                                g11 = g;
                                 for( int k = 0; k < channels; ++k, ++t, ++q ) { *t += double( *q ) * g; }
                             }
-                            // std::cerr << "==> pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << " factors: " << g00 << "," << g01 << "," << g10 << "," << g11 << " sum: " << ( g00 + g01 + g10 + g11 ) << std::endl;
+                            //std::cerr << "==> b: pixel: " << col << "," << row << ": f: " << f[0] << "," << f[1] << " x: " << x << " y: " << y << std::endl;
                         }
                     }
                     output_serialization.write_to_stdout( applied, true );
