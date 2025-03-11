@@ -25,7 +25,7 @@ class stream
             record( std::uint32_t count, const snark::timestamped< void* >& buffer ): count( count ), buffer( buffer ) {}
             operator bool() const { return buffer.data != nullptr; }
         };
-        stream( const std::string& name, unsigned int width, unsigned int height, std::vector< snark::timestamped< void* > >* user_buffers, int pixel_format ); // USERPTR constructor
+        stream( const std::string& name, unsigned int width, unsigned int height, std::vector< void* > user_buffers, int pixel_format = V4L2_PIX_FMT_Y16 ); // USERPTR constructor
         stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format = V4L2_PIX_FMT_Y16 ); // IOMAP constructor
         ~stream();
         const unsigned int width() const { return _width; }
@@ -34,11 +34,7 @@ class stream
         void start();
         void stop();
         record read( float timeout = 1, unsigned int attempts = 1 );
-        const std::vector< snark::timestamped< void* > >& buffers() const 
-        {   
-            if(_buffers == nullptr) { COMMA_THROW(comma::exception, "_buffers is nullptr"); }
-            return *_buffers; 
-        }
+        const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
 
     private:
         enum io_method_t { IO_MMAP, IO_USERPTR }; // todo: add support for DMABUF?
@@ -48,14 +44,13 @@ class stream
         unsigned int _height{0};
         std::FILE* _file{nullptr};
         int _fd{-1};
-        std::vector< snark::timestamped< void* > >* _buffers{nullptr};
+        std::vector< snark::timestamped< void* > > _buffers;
         unsigned int _size{0};
         unsigned int _index{0};
         unsigned int _count{0};
         bool _started{false};
 
         void initialise_stream( const std::string& name, const unsigned int width, const unsigned int height, const unsigned int number_of_buffers, const int pixel_format );
-
 
 };
 

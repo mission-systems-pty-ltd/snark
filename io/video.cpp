@@ -15,26 +15,30 @@ static int xioctl( int fd, int request, void* arg )
     return r;
 }
 
-stream::stream( const std::string& name, unsigned int width, unsigned int height, std::vector< snark::timestamped< void* > >* user_buffers, int pixel_format )
+stream::stream( const std::string& name, unsigned int width, unsigned int height, std::vector< void* > user_buffers, int pixel_format )
     : _name( name )
     , _width( width )
     , _height( height )
+    , _buffers( user_buffers.size() )
 {   
-    COMMA_ASSERT(user_buffers != nullptr, "user_buffers must be provided for IO_USERPTR mode");
+    COMMA_ASSERT(user_buffers.size() != 0, "user_buffers must be provided for IO_USERPTR mode");
     _io_method = IO_USERPTR;
 
-    initialise_stream( name, width, height, user_buffers->size(), pixel_format);
+    initialise_stream( name, width, height, user_buffers.size(), pixel_format);
     
-    _buffers = user_buffers;
+    for( unsigned int i = 0; i < user_buffers.size(); ++i )
+    {
+        _buffers[i].data = user_buffers[i];
+    }
 }
 
 stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format )
     : _name( name )
     , _width( width )
     , _height( height )
+    , _buffers( number_of_buffers )
 {
     _io_method = IO_MMAP;
-    _buffers = new std::vector<snark::timestamped<void*>>(number_of_buffers);
 
     initialise_stream( name, width, height, number_of_buffers, pixel_format);
 
@@ -46,17 +50,16 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
         buffer.index = i;
         COMMA_ASSERT( xioctl( _fd, VIDIOC_QUERYBUF, &buffer ) != -1, "'" << name << "': on buffer " << i << ": ioctl error: VIDIOC_QUERYBUF, " << ::strerror( errno ) << "(" << errno << ")" );
         _size = buffer.length;
-        _buffers->at(i).data = ::mmap( nullptr, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, buffer.m.offset );
-        COMMA_ASSERT( _buffers->at(i).data != MAP_FAILED, "'" << name << "': mmap failed on buffer index " << i );
+        _buffers[i].data = ::mmap( nullptr, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, buffer.m.offset );
+        COMMA_ASSERT( _buffers[i].data != MAP_FAILED, "'" << name << "': mmap failed on buffer index " << i );
     }
 }
 
 stream::~stream()
 {   
-    if(_io_method == IO_MMAP && _buffers != nullptr) 
+    if(_io_method == IO_MMAP) 
     {   
-        for( auto& buffer: *_buffers ) { ::munmap( buffer.data, _size ); }
-        delete _buffers;
+        for( auto& buffer: _buffers ) { ::munmap( buffer.data, _size ); }
     }
     std::fclose( _file );
 }
@@ -82,14 +85,14 @@ void stream::initialise_stream(const std::string& name, const unsigned int width
     request_buffers.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     request_buffers.memory = (_io_method == IO_MMAP) ? V4L2_MEMORY_MMAP : V4L2_MEMORY_USERPTR;
     COMMA_ASSERT( xioctl( _fd, VIDIOC_REQBUFS, &request_buffers ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_REQBUFS" ) << "; " << ::strerror( errno ) << "(" << errno << ")" );
-    COMMA_ASSERT( request_buffers.count == _buffers->size(), "'" << name << "': insufficient buffer memory for " << _buffers->size() << " buffers; maximum available " << request_buffers.count << " buffers" );
+    COMMA_ASSERT( request_buffers.count == _buffers.size(), "'" << name << "': insufficient buffer memory for " << _buffers.size() << " buffers; maximum available " << request_buffers.count << " buffers" );
     if(_io_method == IO_USERPTR) { _size = format.fmt.pix.sizeimage;  }
 }
 
 void stream::start()
 {
     if( _started ) { return; }
-    for( size_t i = 0; i < _buffers->size(); ++i )
+    for( size_t i = 0; i < _buffers.size(); ++i )
     {
         v4l2_buffer buffer{};
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -103,7 +106,7 @@ void stream::start()
             } case (IO_USERPTR):
             {   
                 buffer.memory = V4L2_MEMORY_USERPTR;
-                buffer.m.userptr = reinterpret_cast< unsigned long >( _buffers->at(i).data );
+                buffer.m.userptr = reinterpret_cast< unsigned long >( _buffers[i].data );
                 buffer.length = _size;
                 break;
             } default:
@@ -156,11 +159,11 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = (_io_method == IO_MMAP) ? V4L2_MEMORY_MMAP : V4L2_MEMORY_USERPTR;
         COMMA_ASSERT( xioctl( _fd, VIDIOC_DQBUF, &buffer ) != -1, "'" << _name << "': " << ( errno == EAGAIN ? "EAGAIN" : "VIDIOC_DQBUF" ) << ": " << ::strerror( errno ) << "(" << errno << ")" );
-        COMMA_ASSERT( buffer.index < _buffers->size(), "'" << _name << "': expected buffer index less than number of buffers (" << _buffers->size() << "); got: " << buffer.index );
+        COMMA_ASSERT( buffer.index < _buffers.size(), "'" << _name << "': expected buffer index less than number of buffers (" << _buffers.size() << "); got: " << buffer.index );
         COMMA_ASSERT( xioctl( _fd, VIDIOC_QBUF, &buffer ) != -1, "'" << _name << "': ioctl error: VIDIOC_QBUF" );
         _index = buffer.index;
-        _buffers->at(_index).t = boost::posix_time::microsec_clock::universal_time();
-        return stream::record( ++_count, _buffers->at(_index) );
+        _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+        return stream::record( ++_count, _buffers[_index] );
     }
 }
 
