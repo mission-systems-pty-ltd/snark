@@ -30,6 +30,9 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     {
         _buffers[i].data = user_buffers[i];
     }
+    // unsigned int page_size = getpagesize ();
+    // _size = (_width * _height + page_size - 1) & ~(page_size - 1); 
+    _size = _width * _height;
 }
 
 stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format )
@@ -86,7 +89,6 @@ void stream::initialise_stream(const std::string& name, const unsigned int width
     request_buffers.memory = (_io_method == IO_MMAP) ? V4L2_MEMORY_MMAP : V4L2_MEMORY_USERPTR;
     COMMA_ASSERT( xioctl( _fd, VIDIOC_REQBUFS, &request_buffers ) != -1, "'" << name << "': " << ( errno == EINVAL ? "not a v4l2 device" : "ioctl error: VIDIOC_REQBUFS" ) << "; " << ::strerror( errno ) << "(" << errno << ")" );
     COMMA_ASSERT( request_buffers.count == _buffers.size(), "'" << name << "': insufficient buffer memory for " << _buffers.size() << " buffers; maximum available " << request_buffers.count << " buffers" );
-    if(_io_method == IO_USERPTR) { _size = format.fmt.pix.sizeimage;  }
 }
 
 void stream::start()
@@ -96,17 +98,17 @@ void stream::start()
     {
         v4l2_buffer buffer{};
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buffer.index = i;
         switch (_io_method )
         {
             case (IO_MMAP):
             {   
                 buffer.memory = V4L2_MEMORY_MMAP;
-                buffer.index = i;
                 break;
             } case (IO_USERPTR):
             {   
                 buffer.memory = V4L2_MEMORY_USERPTR;
-                buffer.m.userptr = reinterpret_cast< unsigned long >( _buffers[i].data );
+                buffer.m.userptr = (unsigned long) _buffers[i].data;
                 buffer.length = _size;
                 break;
             } default:
