@@ -256,7 +256,7 @@ static void write_( int fd, const char* buf, std::size_t count )
     {
         auto bytes_written = ::write( fd, buf, count );
         if( bytes_written == -1 ) { COMMA_THROW( comma::last_error::exception, "error" ); }
-        if( bytes_written == 0 ) { COMMA_THROW( comma::exception, "write() wrote 0 bytes" ); } // shouldn't occur with stdout
+        COMMA_ASSERT_BRIEF( bytes_written != 0, "write() wrote 0 bytes" ); // shouldn't occur with stdout
         count -= bytes_written;
         buf += bytes_written;
     }
@@ -323,7 +323,7 @@ template <> struct traits< Eigen::Vector3d >
         if( !use_cuda ) { return NULL; }
         char* buf = NULL;
         cudaError_t err = cudaMalloc( &buf, records.size() * sizeof( double ) * 4 );
-        if( err != cudaSuccess ) { COMMA_THROW( comma::exception, "failed to allocate cuda memory for " << records.size() << " records (" << ( records.size() * sizeof( double ) * 4 ) << " bytes); " << cudaGetErrorString( err ) ); }
+        COMMA_ASSERT_BRIEF( err == cudaSuccess, "failed to allocate cuda memory for " << records.size() << " records (" << ( records.size() * sizeof( double ) * 4 ) << " bytes); " << cudaGetErrorString( err ) );
         char* cur = buf;
         std::vector< double > v;
         for( grid_t::iterator it = grid.begin(); it != grid.end(); ++it )
@@ -331,7 +331,7 @@ template <> struct traits< Eigen::Vector3d >
             v.resize( it->second.records.size() * 3 ); // quick and dirty
             for( std::size_t i( 0 ), k( 0 ); i < it->second.records.size(); ++i ) { v[ k++ ] = it->second.records[i]->value.x(); v[ k++ ] = it->second.records[i]->value.y(); v[ k++ ] = it->second.records[i]->value.z(); }
             err = cudaMemcpy( cur, &v[0], v.size() * sizeof( double ), cudaMemcpyHostToDevice );
-            if( err != cudaSuccess ) { COMMA_THROW( comma::exception, "failed to copy; " << cudaGetErrorString( err ) ); }
+            COMMA_ASSERT_BRIEF( err == cudaSuccess, "failed to copy; " << cudaGetErrorString( err ) );
             it->second.buffer.cuda_in = reinterpret_cast< double* >( cur );
             cur += v.size() * sizeof( double );
             it->second.buffer.cuda_out = reinterpret_cast< double* >( cur );
@@ -565,7 +565,6 @@ template < typename V > struct join_impl_
             }
             return inputs;
         };
-
         auto join_points = [&]( const input_container& inputs ) -> output_container
         {
             typedef typename traits< V >::nearest_t nearest_t;
@@ -781,14 +780,14 @@ template < typename V > struct join_impl_
             {
                 if( p->block != *block )
                 {
-                    if( count == 0 ) { COMMA_THROW( comma::exception, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" ); }
+                    COMMA_ASSERT_BRIEF( count != 0, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
                     grid = read_filter_block( self_join ); // read next filter block
                     if( block )
                     {
-                        if( p->block != *block ) { COMMA_THROW( comma::exception, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" ); }
+                        COMMA_ASSERT_BRIEF( p->block == *block, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
                         continue;
                     }
-                    comma::say() << "reached end of filter stream" << std::endl;
+                    comma::saymore() << "reached end of filter stream" << std::endl;
                     if( matching )
                     {
                         if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
