@@ -462,7 +462,7 @@ template < typename V > struct join_impl_
             }
             else
             {
-                if( !permissive ) { COMMA_THROW( comma::exception, "points-join: filter point " << count << " invalid; use --permissive" ); }
+                COMMA_ASSERT_BRIEF( permissive, "points-join: filter point " << count << " invalid; use --permissive" );
                 comma::saymore() << "filter point " << count << " invalid; discarded" << std::endl;
             }
             p = istream.read();
@@ -485,9 +485,9 @@ template < typename V > struct join_impl_
             return read_filter_block( istream );
         }
         static std::ifstream ifs( &filter_csv.filename[0] );
-        if( !ifs.is_open() ) { comma::say() << "failed to open \"" << filter_csv.filename << "\"" << std::endl; }
-        static comma::csv::input_stream< filter_value_t > ifstream( ifs, filter_csv, filter_value_t() );
-        return read_filter_block( ifstream );
+        COMMA_ASSERT_BRIEF( ifs.is_open(), "failed to open '" << filter_csv.filename << "'" );
+        static comma::csv::input_stream< filter_value_t > istream( ifs, filter_csv );
+        return read_filter_block( istream );
     }
 
     static void handle_record( const typename traits< Eigen::Vector3d >::input_t& r ) {}
