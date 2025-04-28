@@ -88,39 +88,39 @@ static void usage( bool more = false )
     #ifdef SNARK_USE_CUDA
     std::cerr << "    --use-cuda,--cuda: experimental option; currently 40 times slower then normal operation, thus don't use it, yet" << std::endl;
     #endif
-    std::cerr << std::endl;
-    std::cerr << "points filter (default): for each input point find the nearest point of the filter in given radius" << std::endl;
-    std::cerr << "    input: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]" << std::endl;
-    std::cerr << "    filter: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]" << std::endl;
-    std::cerr << "    output: concatenated input and corresponding line of filter" << std::endl;
-    std::cerr << "            if the angle between the input and filter point normals is greater than 90 degrees" << std::endl;
-    std::cerr << "            then the filter point will not be considered" << std::endl;
-    std::cerr << "    radius logic" << std::endl;
-    std::cerr << "        - input: no radius field;  filter: no radius field:  points not farther than --radius are considered" << std::endl;
-    std::cerr << "        - input: has radius field; filter: no radius field:  points not farther than input radius are considered" << std::endl;
-    std::cerr << "        - input: no radius field;  filter: has radius field: points not farther than filter radius are considered" << std::endl;
-    std::cerr << "        - input: has radius field; filter: has radius field: points not farther than input radius plus filter radius are considered" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "triangulated filter: for each input point find the nearest triangle of the filter, if any, in given radius; i.e." << std::endl;
-    std::cerr << "                     nearest point of a triangle is the input point projection onto the triangle plane" << std::endl;
-    std::cerr << "                     if the projection is inside of the triangle, border included" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    input fields: x,y,z,[block],[radius]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    filter: triangles; fields: corners; or corners[0],corners[1],corners[2]; or corners[0]/x,or corners[0]/y,or corners[0]/z etc" << std::endl;
-    std::cerr << "    output: concatenated input, corresponding line of filter, and nearest point of triangle (3d in binary)" << std::endl;
-    std::cerr << "    options" << std::endl;
-    std::cerr << "        --max-triangle-side=<value>: triangles with any side longer than <value> will be discarded; default: value of --radius" << std::endl;
-    std::cerr << "        --origin=<x>,<y>,<z>: point from which the input points were seen" << std::endl;
-    std::cerr << "                              if the angle between the normal of the triangle and the vector from" << std::endl;
-    std::cerr << "                              the point to the origin greater or equal 90 degrees, the triangle" << std::endl;
-    std::cerr << "                              will not be considered" << std::endl;
-    std::cerr << "                              default: 0,0,0" << std::endl;
-    std::cerr << "    radius logic" << std::endl;
-    std::cerr << "        input: no radius field;  triangles not farther than --radius are considered" << std::endl;
-    std::cerr << "        input: has radius field; triangles not farther than input radius are considered" << std::endl;
-    std::cerr << std::endl;
-    if( more ) { std::cerr << "csv options" << std::endl << comma::csv::options::usage() << std::endl << std::endl; }
+    std::cerr << R"(
+points filter (default): for each input point find the nearest point of the filter in given radius
+    input: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]
+    filter: points; fields: x,y,z,[block],[radius],[normal/x,normal/y,normal/z]
+    output: concatenated input and corresponding line of filter
+            if the angle between the input and filter point normals is greater than 90 degrees
+            then the filter point will not be considered
+    radius logic
+        - input: no radius field;  filter: no radius field:  points not farther than --radius are considered
+        - input: has radius field; filter: no radius field:  points not farther than input radius are considered
+        - input: no radius field;  filter: has radius field: points not farther than filter radius are considered
+        - input: has radius field; filter: has radius field: points not farther than input radius plus filter radius are considered
+
+triangulated filter: for each input point find the nearest triangle of the filter, if any, in given radius; i.e.
+                     nearest point of a triangle is the input point projection onto the triangle plane
+                     if the projection is inside of the triangle, border included
+
+    input fields: x,y,z,[block],[radius]
+
+    filter: triangles; fields: corners; or corners[0],corners[1],corners[2]; or corners[0]/x,or corners[0]/y,or corners[0]/z etc
+    output: concatenated input, corresponding line of filter, and nearest point of triangle (3d in binary)
+    options
+        --max-triangle-side=<value>: triangles with any side longer than <value> will be discarded; default: value of --radius
+        --origin=<x>,<y>,<z>: point from which the input points were seen
+                              if the angle between the normal of the triangle and the vector from
+                              the point to the origin greater or equal 90 degrees, the triangle
+                              will not be considered
+                              default: 0,0,0
+    radius logic
+        input: no radius field;  triangles not farther than --radius are considered
+        input: has radius field; triangles not farther than input radius are considered
+)" << std::endl;
+    std::cerr << "csv options" << std::endl << comma::csv::options::usage( more ) << std::endl;
     std::cerr << "examples: todo" << std::endl;
     std::cerr << std::endl;
     exit( 0 );
@@ -293,7 +293,7 @@ template <> struct traits< Eigen::Vector3d >
             if( use_filter_radius )
             {
                 double r = records[k]->radius + rhs.radius;
-                if( r > ::radius ) { std::cerr << "points-join: expected sum of input and filter radius less or equal " << ::radius << "; got: " << r << " on input radius: " << rhs.radius << " and filter radius: " << records[k]->radius << std::endl; exit( 1 ); }
+                if( r > ::radius ) { comma::say() << "expected sum of input and filter radius less or equal " << ::radius << "; got: " << r << " on input radius: " << rhs.radius << " and filter radius: " << records[k]->radius << std::endl; exit( 1 ); }
                 max_squared_norm = r * r;
             }
             if( d > max_squared_norm ) { return boost::none; }
@@ -395,7 +395,7 @@ template <> struct traits< snark::triangle >
             || ( record.value.corners[1] - record.value.corners[2] ).norm() > max_triangle_side
             || ( record.value.corners[2] - record.value.corners[0] ).norm() > max_triangle_side )
         {
-            if( verbose || strict ) { std::cerr << "points-join: expected triangles with longest side of " << max_triangle_side << "; got: " << std::endl << record.value.corners[0].transpose() << ";" << record.value.corners[1].transpose() << ";" << record.value.corners[2].transpose() << std::endl; }
+            if( verbose || strict ) { comma::say() << "expected triangles with longest side of " << max_triangle_side << "; got: " << std::endl << record.value.corners[0].transpose() << ";" << record.value.corners[1].transpose() << ";" << record.value.corners[2].transpose() << std::endl; }
             return false;
         }
         grid_t::iterator i0 = grid.touch_at( record.value.corners[0] );
@@ -439,7 +439,7 @@ template < typename V > struct join_impl_
     {
         filter_points.clear();
         snark::math::closed_interval< double, 3 > extents;
-        if( verbose ) { std::cerr << "points-join: reading filter records..." << std::endl; }
+        comma::saymore() << "reading filter records..." << std::endl;
         std::size_t count = 0;
         static const filter_value_t* p = nullptr;
         if( !block ) { p = istream.read(); }
@@ -448,7 +448,7 @@ template < typename V > struct join_impl_
         {
             // reached end of istream
             block = boost::none;
-            if( verbose ) { std::cerr << "points-join: no filter records read" << std::endl; }
+            comma::saymore() << "no filter records read" << std::endl;
             return { extents.min(), resolution };
         }
         while( p )
@@ -463,12 +463,12 @@ template < typename V > struct join_impl_
             else
             {
                 if( !permissive ) { COMMA_THROW( comma::exception, "points-join: filter point " << count << " invalid; use --permissive" ); }
-                if( verbose ) { std::cerr << "points-join: filter point " << count << " invalid; discarded" << std::endl; }
+                comma::saymore() << "filter point " << count << " invalid; discarded" << std::endl;
             }
             p = istream.read();
             ++count;
         }
-        if( verbose ) { std::cerr << "points-join: loading " << filter_points.size() << " filter records of block " << *block << std::endl; }
+        comma::saymore() << "loading " << filter_points.size() << " filter records of block " << *block << std::endl;
         grid_t grid( extents.min(), resolution );
         for( std::size_t i = 0; i < filter_points.size(); ++i ) { if( !traits< V >::touch( grid, filter_points[i] ) && strict ) { COMMA_THROW(comma::exception, "filter point " << i << " is invalid; don't use --strict"); } }
         #ifdef SNARK_USE_CUDA
@@ -485,7 +485,7 @@ template < typename V > struct join_impl_
             return read_filter_block( istream );
         }
         static std::ifstream ifs( &filter_csv.filename[0] );
-        if( !ifs.is_open() ) { std::cerr << "points-join: failed to open \"" << filter_csv.filename << "\"" << std::endl; }
+        if( !ifs.is_open() ) { comma::say() << "failed to open \"" << filter_csv.filename << "\"" << std::endl; }
         static comma::csv::input_stream< filter_value_t > ifstream( ifs, filter_csv, filter_value_t() );
         return read_filter_block( ifstream );
     }
@@ -497,14 +497,14 @@ template < typename V > struct join_impl_
         // todo: self-join
         // todo: --ignore 0 distance (or --min-distance)
         // todo? --incremental or it belongs to points-calc?
-        if( verbose ) { std::cerr << "points-join: joining..." << std::endl; }
-        if( self_join ) { std::cerr << "points-join: self-join: todo" << std::endl; return 1; }
+        comma::saymore() << "joining..." << std::endl;
+        if( self_join ) { comma::say() << "self-join: todo" << std::endl; return 1; }
         std::size_t size = options.value( "--size,--number-of-points,--number-of-nearest-points", 1 );
         bool blocks_ordered = options.exists( "--blocks-ordered" );
         bool all = options.exists( "--all" );
         bool output_count = options.exists( "--count,--count-fast" );
         bool fast = options.exists( "--count-fast" );
-        if( output_count && !all ) { std::cerr << "points-join: --count requires --all; please specify --all" << std::endl; return 1; }
+        if( output_count && !all ) { comma::say() << "--count requires --all; please specify --all" << std::endl; return 1; }
         #ifdef SNARK_USE_CUDA
         use_cuda = options.exists( "--use-cuda,--cuda" );
         options.assert_mutually_exclusive( "--use-cuda,--cuda,--all" );
@@ -512,7 +512,7 @@ template < typename V > struct join_impl_
         grid_t grid = read_filter_block( self_join );
         bool empty_filter_and_matching = !block && !self_join && matching;
         if( empty_filter_and_matching && !strict ) { return 0; }
-        if( self_join && use_radius ) { std::cerr << "points-join: self-join: radius field: todo" << std::endl; return 1; }
+        if( self_join && use_radius ) { comma::say() << "self-join: radius field: todo" << std::endl; return 1; }
         comma::csv::input_stream< input_t > istream( std::cin, stdin_csv ); // quick and dirty, don't mind self_join
         #ifdef WIN32
         if( stdin_csv.binary() ) { _setmode( _fileno( stdout ), _O_BINARY ); }
@@ -534,7 +534,7 @@ template < typename V > struct join_impl_
         if( parallel_threads <= 0 ) { parallel_threads = std::thread::hardware_concurrency(); }
         if( strict && stdin_csv.flush && parallel_threads != 1 )
         {
-            std::cerr << "points-join: WARNING: --strict and --flush have been set with " << parallel_threads << " threads" << std::endl;
+            comma::say() << "WARNING: --strict and --flush have been set with " << parallel_threads << " threads" << std::endl;
             std::cerr << "                      as an implementation limitation, you may need to specify --threads=1, depending on your use case, for consistent behaviour:" << std::endl;
             std::cerr << "                      - suppose you set --strict and --flush and expect that once there is a not matched input record, points-join exits immediately" << std::endl;
             std::cerr << "                      - however, if --threads is not set to 1, points-join would exit once it reads the NEXT input record, which may not unexpected" << std::endl;
@@ -580,7 +580,7 @@ template < typename V > struct join_impl_
                 const input_t& p = inputs[input_i].first;
                 const std::string& left_line = inputs[input_i].second;
                 double current_squared_radius = get_squared_radius( p );
-                if( verbose && comma::math::less( squared_radius, current_squared_radius ) ) { std::cerr << "points-join: expected point-specific radius not exceeding --radius " << radius << "; got: " << p.radius << std::endl; }
+                if( verbose && comma::math::less( squared_radius, current_squared_radius ) ) { comma::say() << "expected point-specific radius not exceeding --radius " << radius << "; got: " << p.radius << std::endl; }
                 typename grid_t::index_type index = grid.index_of( p.value );
                 typename grid_t::index_type i;
                 if( all )
@@ -687,7 +687,7 @@ template < typename V > struct join_impl_
                     {
                         if( nearest_point_not_found )
                         {
-                            if( verbose ) { std::cerr << "points-join: record at " << p.value.x() << ',' << p.value.y() << ',' << p.value.z() << ": no matches found" << std::endl; }
+                            comma::saymore() << "record at " << p.value.x() << ',' << p.value.y() << ',' << p.value.z() << ": no matches found" << std::endl;
                             if( strict ) { container.strict_and_nearest_point_not_found = true; return container; }
                             ++container.discarded;
                         }
@@ -738,7 +738,7 @@ template < typename V > struct join_impl_
             tbb::parallel_pipeline( parallel_threads, read_points_filter & join_points_filter & write_points_filter );
             if( strict_and_nearest_point_not_found )
             {
-                if( verbose && empty_filter_and_matching ) { std::cerr << "points-join: could not match input records as filter is empty" << std::endl; }
+                if( verbose && empty_filter_and_matching ) { comma::say() << "could not match input records as filter is empty" << std::endl; }
                 return 1;
             }
             if( !read_next_filter_block ) { continue; }
@@ -759,10 +759,10 @@ template < typename V > struct join_impl_
                 while( block && p->block > *block ) { grid = read_filter_block( self_join ); }
                 if( !block )
                 {
-                    std::cerr << "points-join: reached end of filter stream" << std::endl;
+                    comma::say() << "reached end of filter stream" << std::endl;
                     if( matching )
                     {
-                        if( strict ) { std::cerr << "points-join: record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                        if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
                         break; // stop processing input records since no filter block to match with
                     }
                     pass_through();
@@ -771,7 +771,7 @@ template < typename V > struct join_impl_
                 if( p->block == *block ) { continue; } // found matching block grid, start joining
                 if( matching )
                 {
-                    if( strict ) { std::cerr << "points-join: record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                    if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
                     while( p && p->block < *block ) { ++count; ++discarded; p = read_(); }
                     continue;
                 }
@@ -788,17 +788,17 @@ template < typename V > struct join_impl_
                         if( p->block != *block ) { COMMA_THROW( comma::exception, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" ); }
                         continue;
                     }
-                    std::cerr << "points-join: reached end of filter stream" << std::endl;
+                    comma::say() << "reached end of filter stream" << std::endl;
                     if( matching )
                     {
-                        if( strict ) { std::cerr << "points-join: record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                        if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
                         break; // stop processing input records since no filter block to match with
                     }
                     pass_through();
                 }
             }
         }
-        std::cerr << "points-join: processed " << count << " record(s); discarded " << discarded << " record(s) with " << ( matching ? "no " : "" ) << "matches" << std::endl;
+        comma::say() << "processed " << count << " record(s); discarded " << discarded << " record(s) with " << ( matching ? "no " : "" ) << "matches" << std::endl;
         #ifdef SNARK_USE_CUDA
         cuda_deallocate();
         #endif
@@ -837,11 +837,11 @@ int main( int ac, char** av )
         append_nearest = !options.exists( "--matching" ) && matching;
         matching_id = !options.exists( "--id-not-matching,--not-matching-id" );
         std::vector< std::string > unnamed = options.unnamed( "--all,--count,--count-fast,--fast,--blocks-ordered,--id-not-matching,--not-matching-id,--matching,--not-matching,--strict,--permissive,--use-cuda,--cuda,--flush,--full-xpath,--verbose,-v", "-.*" );
-        if( unnamed.size() > 1 ) { std::cerr << "points-join: expected one file or stream to join, got: " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
+        if( unnamed.size() > 1 ) { comma::say() << "expected one file or stream to join, got: " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
         comma::name_value::parser parser( "filename", ';', '=', false );
         filter_csv = unnamed.empty() ? stdin_csv : parser.get< comma::csv::options >( unnamed[0] );
         if( filter_csv.fields.empty() ) { filter_csv.fields = "x,y,z"; }
-        if( !options.exists( "--count,--count-fast" ) && append_nearest && stdin_csv.binary() && !filter_csv.binary() ) { std::cerr << "points-join: stdin stream binary and filter stream ascii: this combination is not supported" << std::endl; return 1; }
+        if( !options.exists( "--count,--count-fast" ) && append_nearest && stdin_csv.binary() && !filter_csv.binary() ) { comma::say() << "stdin stream binary and filter stream ascii: this combination is not supported" << std::endl; return 1; }
         const std::vector< std::string >& v = comma::split( filter_csv.fields, ',' );
         const std::vector< std::string >& w = comma::split( stdin_csv.fields, ',' );
         const std::vector< std::string > normal_strings = { "normal" };
@@ -852,13 +852,13 @@ int main( int ac, char** av )
         use_filter_radius = filter_csv.has_field( "radius" ); // quick and dirty
         #ifdef SNARK_USE_CUDA
         if( use_cuda && use_normal ) { std::cerr << "todo: point normals not implemented for cuda" << std::endl; return 1; }
-        if( use_cuda && use_filter_radius ) { std::cerr << "points-join: cuda: radius field in filter: todo" << std::endl; return 1; }
+        if( use_cuda && use_filter_radius ) { comma::say() << "cuda: radius field in filter: todo" << std::endl; return 1; }
         #endif
         double r = radius;
         if( filter_triangulated ) // quick and dirty
         {
-            if( unnamed.empty() ) { std::cerr << "points-join: self-join is not supported for triangles" << std::endl; return 1; }
-            if( use_filter_radius ) { std::cerr << "points-join: radius field in filter not supported for triangles" << std::endl; return 1; }
+            if( unnamed.empty() ) { comma::say() << "self-join is not supported for triangles" << std::endl; return 1; }
+            if( use_filter_radius ) { comma::say() << "radius field in filter not supported for triangles" << std::endl; return 1; }
             max_triangle_side = options.value< double >( "--max-triangle-side", r );
             if( max_triangle_side > r ) { r = max_triangle_side; }
             r *= 2; // todo: quick and dirty, calculate precise upper bound; needed to contain all triangles in given radius
@@ -868,8 +868,8 @@ int main( int ac, char** av )
         if( unnamed.empty() ) { return join_impl_< Eigen::Vector3d >::run( options, unnamed.empty() ); }
         return filter_triangulated ? join_impl_< snark::triangle >::run( options, unnamed.empty() ) : join_impl_< Eigen::Vector3d >::run( options, unnamed.empty() );
     }
-    catch( std::exception& ex ) { std::cerr << "points-join: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "points-join: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
+    catch( ... ) { comma::say() << "unknown exception" << std::endl; }
     #ifdef SNARK_USE_CUDA
     cuda_deallocate();
     #endif
