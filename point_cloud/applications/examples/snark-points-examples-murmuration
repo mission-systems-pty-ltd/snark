@@ -9,7 +9,8 @@ function _init()
 }
 
 # todo
-# - io-cat: read sources sequentially: debug or implement
+# ? io-cat: read sources sequentially: debug or implement
+# ? points-join: reverse index field
 # - snark-points-examples-murmuration -> wiki
 # - self-join, snark-points-examples-murmuration: announce
 
