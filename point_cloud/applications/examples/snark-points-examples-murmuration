@@ -8,6 +8,11 @@ function _init()
         | csv-paste 'line-number;size=9' 'line-number;size=9;index' 'line-number;shape=3,3' value=0 - --repeat 1
 }
 
+# todo
+# - io-cat: read sources sequentially: debug or implement
+# - snark-points-examples-murmuration -> wiki
+# - self-join, snark-points-examples-murmuration: announce
+
 _init \
     | io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --blocking --verbose \
     | points-join --fields block,,x,y,z --radius 1.1 --all -v \
@@ -15,6 +20,5 @@ _init \
     | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
     | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
     | csv-eval --fields block,,x,y,z,dx,dy,dz 'block += 1; x += dx; y += dy; z += dz' --flush \
-    | view-points '-;fields=block,id,x,y,z;weight=10;pass' \
-                  --window-geometry=0,0,1200,900 \
+    | view-points '-;fields=block,id,x,y,z;weight=10;pass' --window-geometry=0,0,1200,900 \
     | io-publish tcp:12345 -
