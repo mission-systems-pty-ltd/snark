@@ -809,7 +809,7 @@ template < typename V > struct join_impl_
                 }
             }
         }
-        comma::say() << "processed " << count << " record(s); discarded " << discarded << " record(s) with " << ( matching ? "no " : "" ) << "matches" << std::endl;
+        comma::saymore() << "processed " << count << " record(s); discarded " << discarded << " record(s) with " << ( matching ? "no " : "" ) << "matches" << std::endl;
         #ifdef SNARK_USE_CUDA
         cuda_deallocate();
         #endif
