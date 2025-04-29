@@ -13,12 +13,13 @@ function _init()
 # - snark-points-examples-murmuration -> wiki
 # - self-join, snark-points-examples-murmuration: announce
 
-_init \
-    | io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --blocking --verbose \
+# _init | io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --blocking --verbose \
+step=0.1
+{ _init; io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose; } \
     | points-join --fields block,,x,y,z --radius 1.1 --all -v \
     | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
     | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
     | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
-    | csv-eval --fields block,,x,y,z,dx,dy,dz 'block += 1; x += dx; y += dy; z += dz' --flush \
+    | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush \
     | view-points '-;fields=block,id,x,y,z;weight=10;pass' --window-geometry=0,0,1200,900 \
     | io-publish tcp:12345 -
