@@ -499,8 +499,7 @@ template < typename V > struct join_impl_
     {
         // todo: --ignore 0 distance (or --min-distance)
         // todo? --incremental or it belongs to points-calc?
-        comma::saymore() << "joining..." << std::endl;
-        // if( self_join ) { comma::say() << "self-join: todo" << std::endl; return 1; }
+        comma::saymore() << ( self_join ? "self-" : "" ) << "joining..." << std::endl;
         std::size_t size = options.value( "--size,--number-of-points,--number-of-nearest-points", 1 );
         bool blocks_ordered = options.exists( "--blocks-ordered" );
         bool all = options.exists( "--all" );
