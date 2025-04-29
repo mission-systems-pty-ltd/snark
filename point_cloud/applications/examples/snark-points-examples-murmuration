@@ -5,22 +5,53 @@ function _init()
     csv-random make --type 3f \
         | points-calc normalize \
         | csv-shuffle --fields ,,,x,y,z -e \
-        | csv-paste 'line-number;size=9' 'line-number;size=9;index' 'line-number;shape=3,3' value=0 - --repeat 1
+        | csv-paste 'line-number;size=125' 'line-number;size=125;index' 'line-number;shape=5,5,5' - --repeat 1 | tee init.csv
+}
+
+function _join()
+{
+    local step=$1
+    points-join --fields block,,x,y,z --radius 1.1 --all -v \
+        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
+        | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
+        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
+        | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush
 }
 
 # todo
 # ? io-cat: read sources sequentially: debug or implement
-# ? points-join: reverse index field
+# - points-join
+#   ! segfault below: fix
+#   - self-join: load filter as before (see segfault below?)
+#   ? reverse index field
+#   - self-join: example
+#   - test
 # - snark-points-examples-murmuration -> wiki
 # - self-join, snark-points-examples-murmuration: announce
 
-# _init | io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --blocking --verbose \
-step=0.1
-{ _init; io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose; } \
-    | points-join --fields block,,x,y,z --radius 1.1 --all -v \
-    | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
-    | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
-    | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
-    | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush \
-    | view-points '-;fields=block,id,x,y,z;weight=10;pass' --window-geometry=0,0,1200,900 \
-    | io-publish tcp:12345 -
+# > cat init.csv | points-join --fields block,,x,y,z --radius 1.1 --all -v
+# points-join: self-joining...
+# points-join: reading filter records...
+# points-join: loading 125 filter records of block 0
+# points-join: reading filter records...
+# points-join: no filter records read
+# Segmentation fault (core dumped)
+
+_init > init.csv
+_init > next.csv
+while (( 1 )); do
+    cat next.csv | _join 0.05 | sponge next.csv
+    break
+    cat next.csv
+    sleep 0.1
+done \
+    | view-points '-;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
+
+# { _init; io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose; } \
+#     | points-join --fields block,,x,y,z --radius 1.1 --all -v \
+#     | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
+#     | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
+#     | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
+#     | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush \
+#     | view-points '-;fields=block,id,x,y,z;weight=10;pass' --window-geometry=0,0,1200,900 \
+#     | io-publish tcp:12345 -
