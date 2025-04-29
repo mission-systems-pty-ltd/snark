@@ -21,7 +21,7 @@ function _join()
 # todo
 # ? io-cat: read sources sequentially: debug or implement
 # - points-join
-#   ! segfault below: fix
+#   ! segfault below: fix!!! filters get cleared while joining
 #   - self-join: load filter as before (see segfault below?)
 #   ? reverse index field
 #   - self-join: example
