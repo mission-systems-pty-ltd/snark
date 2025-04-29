@@ -159,11 +159,11 @@ static void cuda_deallocate()
 
 struct point_input
 {
-    Eigen::Vector3d value;
-    Eigen::Vector3d normal;
-    double radius;
-    comma::uint64 block;
-    comma::uint32 id;
+    Eigen::Vector3d value{0, 0, 0};
+    Eigen::Vector3d normal{0, 0, 0};
+    double radius{0};
+    comma::uint64 block{0};
+    comma::uint32 id{0};
     point_input() : value( Eigen::Vector3d::Zero() ), normal( Eigen::Vector3d::Zero() ), radius( 0 ), block( 0 ), id( 0 ) {}
 };
 
@@ -172,8 +172,8 @@ static double get_squared_radius( const point_input& p ) { return use_radius ? p
 struct triangle_input
 {
     snark::triangle value;
-    comma::uint64 block;
-    comma::uint32 id;
+    comma::uint64 block{0};
+    comma::uint32 id{0};
     triangle_input() : block( 0 ), id( 0 ) {}
 };
 
@@ -427,6 +427,10 @@ template <> struct traits< snark::triangle >
     }
 };
 
+static Eigen::Vector3d point( const Eigen::Vector3d& p ) { return p; }
+
+static Eigen::Vector3d point( const snark::triangle& p ) { return ( p.corners[0] + p.corners[1] + p.corners[2] ) / 3.; }
+
 template < typename V > struct join_impl_
 {
     typedef typename traits< V >::input_t filter_value_t;
@@ -443,14 +447,13 @@ template < typename V > struct join_impl_
         std::size_t count = 0;
         static const filter_value_t* p = nullptr;
         if( !block ) { p = istream.read(); }
-        if( p ) { block = p->block; }
-        else
+        if( !p )
         {
-            // reached end of istream
             block = boost::none;
             comma::saymore() << "no filter records read" << std::endl;
             return { extents.min(), resolution };
         }
+        block = p->block;
         while( p )
         {
             if( use_block && ( p->block != *block ) ) { break; } // todo: is the condition excessive? is not it just ( p->block != *block )?
@@ -477,7 +480,7 @@ template < typename V > struct join_impl_
         return grid;
     }
 
-    static grid_t read_filter_block( bool self_join )
+    static grid_t read_filter_block( bool self_join = false )
     {
         if( self_join )
         {
@@ -494,29 +497,30 @@ template < typename V > struct join_impl_
 
     static int run( const comma::command_line_options& options, bool self_join )
     {
-        // todo: self-join
         // todo: --ignore 0 distance (or --min-distance)
         // todo? --incremental or it belongs to points-calc?
         comma::saymore() << "joining..." << std::endl;
-        if( self_join ) { comma::say() << "self-join: todo" << std::endl; return 1; }
+        // if( self_join ) { comma::say() << "self-join: todo" << std::endl; return 1; }
         std::size_t size = options.value( "--size,--number-of-points,--number-of-nearest-points", 1 );
         bool blocks_ordered = options.exists( "--blocks-ordered" );
         bool all = options.exists( "--all" );
         bool output_count = options.exists( "--count,--count-fast" );
         bool fast = options.exists( "--count-fast" );
-        if( output_count && !all ) { comma::say() << "--count requires --all; please specify --all" << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( !output_count || all, "--count requires --all; please specify --all" );
         #ifdef SNARK_USE_CUDA
         use_cuda = options.exists( "--use-cuda,--cuda" );
         options.assert_mutually_exclusive( "--use-cuda,--cuda,--all" );
+        COMMA_ASSERT_BRIEF( !blocks_ordered || !self_join, "--blocks-ordered does not make sense for self-join" );
         #endif
-        grid_t grid = read_filter_block( self_join );
-        bool empty_filter_and_matching = !block && !self_join && matching;
-        if( empty_filter_and_matching && !strict ) { return 0; }
-        if( self_join && use_radius ) { comma::say() << "self-join: radius field: todo" << std::endl; return 1; }
-        comma::csv::input_stream< input_t > istream( std::cin, stdin_csv ); // quick and dirty, don't mind self_join
         #ifdef WIN32
         if( stdin_csv.binary() ) { _setmode( _fileno( stdout ), _O_BINARY ); }
         #endif
+        COMMA_ASSERT_BRIEF( !self_join || !use_radius, "self-join: radius field: todo" );
+        grid_t grid( resolution ); // quick and dirty
+        if( !self_join ) { grid = std::move( read_filter_block() ); }
+        bool empty_filter_and_matching = !block && !self_join && matching;
+        if( empty_filter_and_matching && !strict ) { return 0; }
+        comma::csv::input_stream< input_t > istream( std::cin, stdin_csv ); // quick and dirty, don't mind self_join
         struct output_row_t
         {
             const std::string left_buffer;
@@ -549,6 +553,14 @@ template < typename V > struct join_impl_
         auto read_ = [&]() { return istream.ready() || ( std::cin.good() && !std::cin.eof() ) ? istream.read() : nullptr; };
         auto read_points = [&]( tbb::flow_control& fc ) -> input_container
         {
+            if( self_join )
+            {
+                grid = std::move( read_filter_block( true ) );
+                if( filter_points.empty() ) { fc.stop(); return {}; } 
+                input_container inputs( filter_points.size() ); // todo: super-quick and dirty for now; very wasteful, watch performance!
+                for( unsigned int i = 0; i < filter_points.size(); ++i ) { inputs[i].first.value = point( filter_points[i].value ); inputs[i].second = filter_points[i].line; } 
+                return inputs;
+            }
             if( read_next_filter_block ) { fc.stop(); return {}; }
             input_container inputs;
             inputs.reserve( parallel_chunk_size );
@@ -755,13 +767,13 @@ template < typename V > struct join_impl_
             };
             if( blocks_ordered )
             {
-                while( block && p->block > *block ) { grid = read_filter_block( self_join ); }
+                while( block && p->block > *block ) { grid = std::move( read_filter_block() ); }
                 if( !block )
                 {
                     comma::say() << "reached end of filter stream" << std::endl;
                     if( matching )
                     {
-                        if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                        COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
                         break; // stop processing input records since no filter block to match with
                     }
                     pass_through();
@@ -770,7 +782,7 @@ template < typename V > struct join_impl_
                 if( p->block == *block ) { continue; } // found matching block grid, start joining
                 if( matching )
                 {
-                    if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                    COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
                     while( p && p->block < *block ) { ++count; ++discarded; p = read_(); }
                     continue;
                 }
@@ -781,7 +793,7 @@ template < typename V > struct join_impl_
                 if( p->block != *block )
                 {
                     COMMA_ASSERT_BRIEF( count != 0, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
-                    grid = read_filter_block( self_join ); // read next filter block
+                    if( !self_join ) { grid = std::move( read_filter_block() ); }
                     if( block )
                     {
                         COMMA_ASSERT_BRIEF( p->block == *block, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
@@ -790,7 +802,7 @@ template < typename V > struct join_impl_
                     comma::saymore() << "reached end of filter stream" << std::endl;
                     if( matching )
                     {
-                        if( strict ) { comma::say() << "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" << std::endl; return 1; }
+                        COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
                         break; // stop processing input records since no filter block to match with
                     }
                     pass_through();

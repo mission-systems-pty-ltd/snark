@@ -1,9 +1,9 @@
-strict/failure[0]="( echo 0,0,0 | csv-to-bin 3i | points-join <( ) --radius 10 --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
+strict/failure[0]="( echo 0,0,0 | csv-to-bin 3i | points-join <( echo -n ) --radius 10 --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
 strict/failure[1]="( ( echo 0,0,0; echo 1,1,1; echo 2,2,2 ) | csv-to-bin 3i | points-join <( echo 0,0,0 | csv-to-bin 3i )';binary=3i' --radius 1 --strict --binary 3i | csv-from-bin 3i,3i; comma_status_ok || exit 1 )"
 strict/failure[2]="( ( echo 0,0,0; echo 1,1,1; echo 2,2,2 ) | csv-to-bin 3i | points-join <( echo 0,0,0 | csv-to-bin 3i )';binary=3i' --radius 1 --strict --matching --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
 strict/failure[3]="( echo 0,0,0 | csv-to-bin 3i | points-join <( echo 0,0,0 | csv-to-bin 3i )';binary=3i' --min-radius 1 --radius 1 --matching --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
 strict/failure[4]="( ( echo 0,0,0; echo 10,10,10 ) | csv-to-bin 3i | points-join <( ( echo 0,0,0; echo 1,1,1; echo 2,2,2 ) | csv-to-bin 3i )';binary=3i' --radius 2 --strict --size 2 --binary 3i | csv-from-bin 3i,3i; comma_status_ok || exit 1 )"
-strict/failure[5]="( echo 0,0,0 | csv-to-bin 3i | points-join <( ) --radius 1 --not-matching --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
+strict/failure[5]="( echo 0,0,0 | csv-to-bin 3i | points-join <( echo -n ) --radius 1 --not-matching --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
 
 strict/success[0]="( echo 0,0,0 | csv-to-bin 3i | points-join <( echo 0,0,0 | csv-to-bin 3i )';binary=3i' --radius 1 --strict --binary 3i | csv-from-bin 3i,3i; comma_status_ok || exit 1 )"
 strict/success[1]="( echo 0,0,0 | csv-to-bin 3i | points-join <( echo 0,0,0 | csv-to-bin 3i )';binary=3i' --radius 1 --matching --strict --binary 3i | csv-from-bin 3i; comma_status_ok || exit 1 )"
