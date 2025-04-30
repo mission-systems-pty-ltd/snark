@@ -5,14 +5,14 @@ function _init()
     csv-random make --type 3f \
         | points-calc normalize \
         | csv-shuffle --fields ,,,x,y,z -e \
-        | csv-paste 'line-number;size=125' 'line-number;size=125;index' 'line-number;shape=5,5,5' - --repeat 1 | tee init.csv
+        | csv-paste 'line-number;size=1000' 'line-number;size=1000;index' 'line-number;shape=10,10,10' - --repeat 1 | tee init.csv
 }
 
 function _join()
 {
     local step=$1
-    points-join --fields block,,x,y,z --radius 1.1 --all -v \
-        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
+    points-join --fields block,,x,y,z --radius 1.1 --all \
+        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z mean --append 2>/dev/null \
         | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
         | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
         | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush
@@ -41,9 +41,7 @@ _init > init.csv
 _init > next.csv
 while (( 1 )); do
     cat next.csv | _join 0.05 | sponge next.csv
-    break
     cat next.csv
-    sleep 0.1
 done \
     | view-points '-;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
 
