@@ -5,17 +5,18 @@ function _init()
     csv-random make --type 3f \
         | points-calc normalize \
         | csv-shuffle --fields ,,,x,y,z -e \
-        | csv-paste 'line-number;size=1000' 'line-number;size=1000;index' 'line-number;shape=10,10,10' - --repeat 1 | tee init.csv
+        | csv-paste 'line-number;size=1000' 'line-number;size=1000;index' 'line-number;shape=10,10,10' - --repeat 1 \
+        | csv-to-bin 2ui,6d
 }
 
 function _join()
 {
     local step=$1
-    points-join --fields block,,x,y,z --radius 1.1 --all \
-        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z mean --append 2>/dev/null \
-        | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
-        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
-        | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush
+    points-join --fields block,,x,y,z --radius 1.1 --all --binary 2ui,6d --flush \
+        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append --flush \
+        | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d --flush \
+        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d --flush \
+        | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d --flush
 }
 
 # todo
@@ -37,13 +38,13 @@ function _join()
 # points-join: no filter records read
 # Segmentation fault (core dumped)
 
-_init > init.csv
-_init > next.csv
+_init > init.bin
+_init > next.bin
 while (( 1 )); do
-    cat next.csv | _join 0.05 | sponge next.csv
-    cat next.csv
+    cat next.bin | _join 0.025 | sponge next.bin
+    cat next.bin
 done \
-    | view-points '-;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
+    | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
 
 # { _init; io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose; } \
 #     | points-join --fields block,,x,y,z --radius 1.1 --all -v \
