@@ -450,8 +450,7 @@ template < typename V > struct join_impl_
     {
         filter_points.clear();
         snark::math::closed_interval< double, 3 > extents;
-        comma::saymore() << "reading filter records..." << std::endl;
-        std::size_t count = 0;
+        comma::saymore() << "reading filter records" << ( filter_block_size > 0 ? "; fixed filter block size: " + std::to_string( filter_block_size ) : "" ) << "..." << std::endl;
         static const filter_value_t* p = nullptr;
         if( filter_block_size > 0 ) { block.reset(); }
         if( !block ) { p = istream.read(); }
