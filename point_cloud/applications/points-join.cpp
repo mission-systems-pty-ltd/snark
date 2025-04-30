@@ -743,7 +743,11 @@ template < typename V > struct join_impl_
         };
         if( self_join )
         {
-            while( !filter_points.empty() && !strict_and_nearest_point_not_found ) { write_points( join_points( read_points_self_join() ) ); }
+            while( !strict_and_nearest_point_not_found )
+            {
+                write_points( join_points( read_points_self_join() ) );
+                if( filter_points.empty() ) { break; }
+            }
             COMMA_ASSERT_BRIEF( !strict_and_nearest_point_not_found, "asked to be strict: but nearest point not found" );
         }
         else
