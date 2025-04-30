@@ -1,11 +1,18 @@
 #!/bin/bash
 
-shape=10,10,10
-size=$(( ${shape//,/*} ))
+side=10
+radius=10
+neighbours=4
+step=1
+seed=123
+
+shape=$side,$side,$side
+size=$(( side * side * side ))
 
 function _init()
 {
-    csv-random make --type 3f \
+    local seed=$1
+    csv-random make --type 3f --range -1,1 --seed $seed \
         | points-calc normalize \
         | csv-shuffle --fields ,,,x,y,z -e \
         | csv-paste "line-number;size=$size" "line-number;size=$size;index" "line-number;shape=$shape" - --repeat 1 \
@@ -14,41 +21,39 @@ function _init()
 
 function _join()
 {
-    local step=$1
-    points-join --fields block,,x,y,z --radius 1.1 --all --binary 2ui,6d --flush --filter-block-size $size \
+    local radius=$1 neighbours=$2 step=$3
+    points-join --fields block,,x,y,z --radius $radius --size $neighbours --binary 2ui,6d --flush --filter-block-size $size \
         | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append --flush \
         | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d --flush \
         | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d --flush \
         | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d --flush
 }
 
-function _via_file()
-{
-    _init > init.bin
-    _init > next.bin
-    while (( 1 )); do
-        cat next.bin | _join 0.025 | sponge next.bin
-        cat next.bin
-    done \
-        | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
-}
+function _grid() { local s=50; csv-paste "line-number;shape=$s,$s" value=-10 | csv-eval --fields x,y "x = ( x - $s / 2 ) * 10; y = ( y - $s / 2 ) * 10"; }
+
+function _camera() { echo '{"center":{"x":-5,"y":-5,"z":-10},"world":{"translation":{"x":5.41410303,"y":3.12545872,"z":-5.00009012},"rotation":{"x":1.58457708,"y":-1.5291748,"z":-0.101387911}},"camera":{"translation":{"x":-0.0101249814,"y":-4.69642878,"z":-93.8186188},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":1646.4681396484375,"field_of_view":45}}'; }
 
 function _run()
 {
-    {
-        _init
-        io-cat tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose
-    } \
-        | _join 0.025 \
-        | io-publish tcp:12345 --size $( echo 2ui,6d | csv-format size ) \
-        | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
+    local next="/dev/shm/snark-points-examples-murmuration.next.bin"
+    trap "rm -f $next" SIGINT SIGTERM
+    _init $seed > $next
+    while (( 1 )); do
+        cat $next | _join $radius $neighbours $step | sponge $next 
+        cat $next
+    done \
+        | view-points <( _grid )';colour=grey;weight=2' \
+                      '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' \
+                      --camera-config <( _camera ) \
+                      --window-geometry=0,0,1200,900 \
+                      --hide-file-panel
 }
 
-_via_file
+_run
+
 
 # todo
 # - points-join
-#   ? reverse index field
 #   - self-join
 #     - example
 #     - wiki
