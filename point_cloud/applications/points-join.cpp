@@ -44,37 +44,43 @@
 
 static void usage( bool more = false )
 {
-    std::cerr << std::endl;
-    std::cerr << "join two point clouds by distance" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "usage: cat points.1.csv | points-join \"points.2.csv[;<csv options>]\" [<options>] > joined.csv" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    if the second set is not given, for each point output the nearest point in the same set; todo" << std::endl;
-    std::cerr << "                " << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --all: output all points in the given radius instead of the nearest" << std::endl;
-    std::cerr << "    --blocks-ordered: stdin and filter blocks are ordered and therefore missing filter blocks can be handled correctly" << std::endl;
-    std::cerr << "    --count: if --all, append to input just count of points in a given radius as 4-byte integer, not the points themselves" << std::endl;
-    std::cerr << "    --count-fast: same as --count, but instead of sphere, simply count all points in neighbouring voxels" << std::endl;
-    std::cerr << "    --id-not-matching,--not-matching-id: if id field present in --fields, match only points with different ids" << std::endl;
-    std::cerr << "                                         default: if id field present, match points with the same id" << std::endl;
-    std::cerr << "    --input-fields: output input fields and exit" << std::endl;
-    std::cerr << "    --matching: output only points that have a match, do not append nearest point; a convenience option" << std::endl;
-    std::cerr << "    --not-matching: output only points that do not have a match, i.e. opposite of --matching" << std::endl;
+    std::cerr << R"(
+join two point clouds by distance
+
+usage: cat points.1.csv | points-join ["points.2.csv[;<csv options>]"] [<options>] > joined.csv
+
+    if the second set is not given, for each point output the nearest point in the same set (self-join)
+
+options
+    --all: output all points in the given radius instead of the nearest
+    --blocks-ordered: stdin and filter blocks are ordered and therefore missing filter
+                      blocks can be handled correctly
+    --count: if --all, append to input just count of points in a given radius as
+             4-byte integer, not the points themselves
+    --count-fast: same as --count, but instead of sphere, simply count all points
+                  in neighbouring voxels
+    --filter-block-size=[<n>]; filter block size if fixed to <n>, convenience option
+                               useful in streaming cases, especially with feedback;
+                               todo: optional support of block-size field in --fields 
+                               (see examples below)
+    --id-not-matching,--not-matching-id: if id field present in --fields, match only points with different ids
+                                         default: if id field present, match points with the same id
+    --input-fields: output input fields and exit
+    --matching: output only points that have a match, do not append nearest point; a convenience option
+    --not-matching: output only points that do not have a match, i.e. opposite of --matching)" << std::endl;
     std::cerr << "    --parallel-threads,--threads=<count>; default=" << std::thread::hardware_concurrency() << "; number of threads" << std::endl;
-    std::cerr << "                                        LIMITATION: if the input data stream is intermittent, i.e. there are intervals of idleness" << std::endl;
-    std::cerr << "                                                    between batches of points, points-join may start taking 100% of CPU" << std::endl;
-    std::cerr << "                                                    this is due to how multithreading is implemented (most likely a design" << std::endl;
-    std::cerr << "                                                    bug/drawback in TBB: see e.g:" << std::endl;
-    std::cerr << "                                                    https://community.intel.com/t5/Intel-oneAPI-Threading-Building/tbb-pipeline-instance-using-excessive-CPU-when-idle/td-p/891491)" << std::endl;
-    std::cerr << "                                                    we are trying to fix it, but in vain so far" << std::endl;
-    std::cerr << "    --parallel-chunk-size,--chunk-size=<size>; default=256: read input in chunks of <size> record; if --flush or ascii input, automatically set to --chunk-size=1" << std::endl;
-    std::cerr << "    --permissive: discard invalid points or triangles and continue" << std::endl;
-    std::cerr << "    --radius=<radius>: max lookup radius, required even if radius field is present" << std::endl;
-    std::cerr << "    --radius-min,--min-radius=<radius>; default=0: min lookup radius, e.g. to filter out points on poor-man's self-join" << std::endl;
-    std::cerr << "    --size,--number-of-points,--number-of-nearest-points=<number_of_points>; default=1: output up to a given number of nearest points in the given radius" << std::endl;
-    std::cerr << "    --strict: exit, if nearest point not found; may not exit immediately sometimes" << std::endl;
+    std::cerr << R"(                                        LIMITATION: if the input data stream is intermittent, i.e. there are intervals of idleness
+                                                    between batches of points, points-join may start taking 100% of CPU
+                                                    this is due to how multithreading is implemented (most likely a design
+                                                    bug/drawback in TBB: see e.g:
+                                                    https://community.intel.com/t5/Intel-oneAPI-Threading-Building/tbb-pipeline-instance-using-excessive-CPU-when-idle/td-p/891491)
+                                                    we are trying to fix it, but in vain so far
+    --parallel-chunk-size,--chunk-size=<size>; default=256: read input in chunks of <size> record; if --flush or ascii input, automatically set to --chunk-size=1
+    --permissive: discard invalid points or triangles and continue
+    --radius=<radius>: max lookup radius, required even if radius field is present
+    --radius-min,--min-radius=<radius>; default=0: min lookup radius, e.g. to filter out points on poor-man's self-join
+    --size,--number-of-points,--number-of-nearest-points=<number_of_points>; default=1: output up to a given number of nearest points in the given radius
+    --strict: exit, if nearest point not found; may not exit immediately sometimes)" << std::endl;
     if( more )
     {
         std::cerr << "              if --parallel-threads is greater than 1, points-join may not always exit immediately on the current point but on the next input point" << std::endl;
@@ -141,6 +147,7 @@ static double max_triangle_side;
 static bool matching;
 static bool append_nearest;
 static bool matching_id;
+static unsigned int filter_block_size;
 static Eigen::Vector3d origin;
 static Eigen::Vector3d resolution;
 static comma::csv::options stdin_csv;
@@ -446,6 +453,7 @@ template < typename V > struct join_impl_
         comma::saymore() << "reading filter records..." << std::endl;
         std::size_t count = 0;
         static const filter_value_t* p = nullptr;
+        if( filter_block_size > 0 ) { block.reset(); }
         if( !block ) { p = istream.read(); }
         if( !p )
         {
@@ -456,7 +464,14 @@ template < typename V > struct join_impl_
         block = p->block;
         while( p )
         {
-            if( use_block && ( p->block != *block ) ) { break; } // todo: is the condition excessive? is not it just ( p->block != *block )?
+            if( use_block ) // todo: is the condition excessive? is not it just ( p->block != *block )?
+            {
+                if( p->block != *block )
+                { 
+                    COMMA_ASSERT_BRIEF( filter_block_size == 0 || filter_points.size() == filter_block_size, "expected block of size " << filter_block_size << "; got: " << filter_points.size() << " in block " << *block << " followed by block " << p->block );
+                    break;
+                }
+            }
             filter_record_t filter_record( *p, istream.last() ); // istream.last()
             if( filter_record.is_valid() )
             {
@@ -465,11 +480,11 @@ template < typename V > struct join_impl_
             }
             else
             {
-                COMMA_ASSERT_BRIEF( permissive, "points-join: filter point " << count << " invalid; use --permissive" );
-                comma::saymore() << "filter point " << count << " invalid; discarded" << std::endl;
+                COMMA_ASSERT_BRIEF( permissive, "points-join: filter point " << ( filter_points.size() + 1 ) << " of block " << *block << " invalid; use --permissive" );
+                comma::saymore() << "filter point " << ( filter_points.size() + 1 ) << " of block " << *block << " invalid; discarded" << std::endl;
             }
+            if( filter_block_size > 0 && filter_points.size() == filter_block_size ) { break; }
             p = istream.read();
-            ++count;
         }
         comma::saymore() << "read " << filter_points.size() << " filter records of block " << *block << "; loading into grid..." << std::endl;
         grid_t grid( extents.min(), resolution );
@@ -505,6 +520,7 @@ template < typename V > struct join_impl_
         bool all = options.exists( "--all" );
         bool output_count = options.exists( "--count,--count-fast" );
         bool fast = options.exists( "--count-fast" );
+        filter_block_size = options.value( "--filter-block-size", 0 );
         COMMA_ASSERT_BRIEF( !output_count || all, "--count requires --all; please specify --all" );
         #ifdef SNARK_USE_CUDA
         use_cuda = options.exists( "--use-cuda,--cuda" );

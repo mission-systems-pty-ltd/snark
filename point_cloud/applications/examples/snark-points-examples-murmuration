@@ -1,56 +1,67 @@
 #!/bin/bash
 
+shape=10,10,10
+size=$(( ${shape//,/*} ))
+
 function _init()
 {
     csv-random make --type 3f \
         | points-calc normalize \
         | csv-shuffle --fields ,,,x,y,z -e \
-        | csv-paste 'line-number;size=1000' 'line-number;size=1000;index' 'line-number;shape=10,10,10' - --repeat 1 \
+        | csv-paste "line-number;size=$size" "line-number;size=$size;index" "line-number;shape=$shape" - --repeat 1 \
         | csv-to-bin 2ui,6d
 }
 
 function _join()
 {
     local step=$1
-    points-join --fields block,,x,y,z --radius 1.1 --all --binary 2ui,6d --flush \
+    points-join --fields block,,x,y,z --radius 1.1 --all --binary 2ui,6d --flush --filter-block-size $size \
         | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append --flush \
         | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d --flush \
         | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d --flush \
         | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d --flush
 }
 
+function _via_file()
+{
+    _init > init.bin
+    _init > next.bin
+    while (( 1 )); do
+        cat next.bin | _join 0.025 | sponge next.bin
+        cat next.bin
+    done \
+        | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
+}
+
+function _run()
+{
+    {
+        _init
+        io-cat tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose
+    } \
+        | _join 0.025 \
+        | io-publish tcp:12345 --size $( echo 2ui,6d | csv-format size ) \
+        | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
+}
+
+_via_file
+
 # todo
-# ? io-cat: read sources sequentially: debug or implement
 # - points-join
-#   ! segfault below: fix!!! filters get cleared while joining
-#   - self-join: load filter as before (see segfault below?)
 #   ? reverse index field
-#   - self-join: example
-#   - test
-# - snark-points-examples-murmuration -> wiki
-# - self-join, snark-points-examples-murmuration: announce
-
-# > cat init.csv | points-join --fields block,,x,y,z --radius 1.1 --all -v
-# points-join: self-joining...
-# points-join: reading filter records...
-# points-join: loading 125 filter records of block 0
-# points-join: reading filter records...
-# points-join: no filter records read
-# Segmentation fault (core dumped)
-
-_init > init.bin
-_init > next.bin
-while (( 1 )); do
-    cat next.bin | _join 0.025 | sponge next.bin
-    cat next.bin
-done \
-    | view-points '-;binary=2ui,6d;fields=block,id,x,y,z;weight=10' --window-geometry=0,0,1200,900 --orthographic
-
-# { _init; io-cat - tcp:localhost:12345 --connect-period 0.5 --connect-attempts 3 --verbose; } \
-#     | points-join --fields block,,x,y,z --radius 1.1 --all -v \
-#     | csv-calc --fields ,block,,,,,,,,,,,,x,y,z sum --append 2>/dev/null \
-#     | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --flush \
-#     | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e \
-#     | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --flush \
-#     | view-points '-;fields=block,id,x,y,z;weight=10;pass' --window-geometry=0,0,1200,900 \
-#     | io-publish tcp:12345 -
+#   - self-join
+#     - example
+#     - wiki
+#     - announce
+#   - --filter-block-size
+#     - example
+#     - wiki
+#     - announce
+# - python
+#   - voxel map class
+#   - voxel map methods
+#     - wiki
+#     - announce
+# - snark-points-examples-murmuration
+#     - wiki
+#     - announce
