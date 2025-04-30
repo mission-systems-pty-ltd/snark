@@ -1,7 +1,7 @@
 #!/bin/bash
 
-side=20
-radius=5
+side=10
+radius=10
 neighbours=6
 step=1
 seed=123
@@ -25,7 +25,8 @@ function _join()
     points-join --fields block,,x,y,z --radius $radius --size $neighbours --binary 2ui,6d --filter-block-size $size \
         | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append \
         | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d \
-        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d \
+        | points-calc normalize --fields ,,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d,3d \
+        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d,3d \
         | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d
 }
 
