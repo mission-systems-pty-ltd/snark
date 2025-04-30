@@ -1,8 +1,8 @@
 #!/bin/bash
 
-side=10
-radius=10
-neighbours=4
+side=20
+radius=5
+neighbours=6
 step=1
 seed=123
 
@@ -22,11 +22,11 @@ function _init()
 function _join()
 {
     local radius=$1 neighbours=$2 step=$3
-    points-join --fields block,,x,y,z --radius $radius --size $neighbours --binary 2ui,6d --flush --filter-block-size $size \
-        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append --flush \
-        | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d --flush \
-        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d --flush \
-        | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d --flush
+    points-join --fields block,,x,y,z --radius $radius --size $neighbours --binary 2ui,6d --filter-block-size $size \
+        | csv-calc --fields ,block,,,,,,,,,,,,x,y,z --binary 2ui,6d,2ui,6d mean --append \
+        | csv-eval --fields ,i,,,,,,,,j --output-if 'i == j' --binary 2ui,6d,2ui,6d,3d \
+        | csv-shuffle --fields block,id,x,y,z,,,,,,,,,dx,dy,dz -e --binary 2ui,6d,2ui,6d,3d \
+        | csv-eval --fields block,,x,y,z,dx,dy,dz "block += 1; x += dx * $step; y += dy * $step; z += dz * $step" --binary 2ui,6d
 }
 
 function _grid() { local s=50; csv-paste "line-number;shape=$s,$s" value=-10 | csv-eval --fields x,y "x = ( x - $s / 2 ) * 10; y = ( y - $s / 2 ) * 10"; }
