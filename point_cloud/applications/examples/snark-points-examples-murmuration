@@ -1,21 +1,21 @@
 #!/bin/bash
 
-side=10
+side=100
 radius=10
-neighbours=6
+neighbours=5
 step=1
 seed=123
 
-shape=$side,$side,$side
-size=$(( side * side * side ))
+shape=$side,$side # shape=$side,$side,$side
+size=$(( side * side )) # size=$(( side * side * side ))
 
 function _init()
 {
     local seed=$1
     csv-random make --type 3f --range -1,1 --seed $seed \
-        | points-calc normalize \
+        | points-calc normalize --fields x,y,z \
         | csv-shuffle --fields ,,,x,y,z -e \
-        | csv-paste "line-number;size=$size" "line-number;size=$size;index" "line-number;shape=$shape" - --repeat 1 \
+        | csv-paste "line-number;size=$size" "line-number;size=$size;index" "line-number;shape=$shape" value=10 - --repeat 1 \
         | csv-to-bin 2ui,6d
 }
 
