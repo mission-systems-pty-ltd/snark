@@ -515,6 +515,7 @@ template < typename V > struct join_impl_
         if( stdin_csv.binary() ) { _setmode( _fileno( stdout ), _O_BINARY ); }
         #endif
         COMMA_ASSERT_BRIEF( !self_join || !use_radius, "self-join: radius field: todo" );
+        //grid_t grid = std::move( read_filter_block( self_join ) );
         grid_t grid( resolution ); // quick and dirty
         if( !self_join ) { grid = std::move( read_filter_block() ); }
         bool empty_filter_and_matching = !block && !self_join && matching;
@@ -550,16 +551,16 @@ template < typename V > struct join_impl_
         bool read_next_filter_block = false;
         const input_t* p = nullptr;
         auto read_ = [&]() { return istream.ready() || ( std::cin.good() && !std::cin.eof() ) ? istream.read() : nullptr; };
+        auto read_points_self_join = [&]() -> input_container
+        {
+            grid = std::move( read_filter_block( true ) ); // todo? more naturally, read stdin points instead and then load them to filter
+            if( filter_points.empty() ) { return {}; } 
+            input_container inputs( filter_points.size() ); // todo: super-quick and dirty for now; very wasteful, watch performance!
+            for( unsigned int i = 0; i < filter_points.size(); ++i ) { inputs[i].first.value = point( filter_points[i].value ); inputs[i].second = filter_points[i].line; } 
+            return inputs;
+        };
         auto read_points = [&]( tbb::flow_control& fc ) -> input_container
         {
-            if( self_join )
-            {
-                grid = std::move( read_filter_block( true ) );
-                if( filter_points.empty() ) { fc.stop(); return {}; } 
-                input_container inputs( filter_points.size() ); // todo: super-quick and dirty for now; very wasteful, watch performance!
-                for( unsigned int i = 0; i < filter_points.size(); ++i ) { inputs[i].first.value = point( filter_points[i].value ); inputs[i].second = filter_points[i].line; } 
-                return inputs;
-            }
             if( read_next_filter_block ) { fc.stop(); return {}; }
             input_container inputs;
             inputs.reserve( parallel_chunk_size );
@@ -740,71 +741,79 @@ template < typename V > struct join_impl_
             if( stdin_csv.flush || !stdin_csv.binary() ) { ::fflush( stdout ); }
             if( container.strict_and_nearest_point_not_found ) { strict_and_nearest_point_not_found = true; snark::tbb::cancel_group_execution(); } // todo! fix properly and test
         };
-        typename snark::tbb::filter< void, input_container >::type read_points_filter( snark::tbb::filter_mode::serial_in_order, read_points );
-        typename snark::tbb::filter< input_container, output_container >::type join_points_filter( snark::tbb::filter_mode::parallel, join_points );
-        typename snark::tbb::filter< output_container, void >::type write_points_filter( snark::tbb::filter_mode::serial_in_order, write_points );
-        while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
+        if( self_join )
         {
-            tbb::parallel_pipeline( parallel_threads, read_points_filter & join_points_filter & write_points_filter );
-            if( strict_and_nearest_point_not_found )
+            while( !filter_points.empty() && !strict_and_nearest_point_not_found ) { write_points( join_points( read_points_self_join() ) ); }
+            COMMA_ASSERT_BRIEF( !strict_and_nearest_point_not_found, "asked to be strict: but nearest point not found" );
+        }
+        else
+        {
+            typename snark::tbb::filter< void, input_container >::type read_points_filter( snark::tbb::filter_mode::serial_in_order, read_points );
+            typename snark::tbb::filter< input_container, output_container >::type join_points_filter( snark::tbb::filter_mode::parallel, join_points );
+            typename snark::tbb::filter< output_container, void >::type write_points_filter( snark::tbb::filter_mode::serial_in_order, write_points );
+            while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
-                if( verbose && empty_filter_and_matching ) { comma::say() << "could not match input records as filter is empty" << std::endl; }
-                return 1;
-            }
-            if( !read_next_filter_block ) { continue; }
-            read_next_filter_block = false;
-            auto pass_through = [&]()
-            {
-                while( p && ( !block || p->block < *block ) )
+                tbb::parallel_pipeline( parallel_threads, read_points_filter & join_points_filter & write_points_filter );
+                if( strict_and_nearest_point_not_found )
                 {
-                    ++count;
-                    ::write_( 1, istream.last());
-                    if( !stdin_csv.binary() ) { ::write_( 1, '\n' ); ::fflush( stdout ); }
-                    else if( stdin_csv.flush ) { ::fflush( stdout ); }
-                    p = read_();
+                    if( empty_filter_and_matching ) { comma::saymore() << "could not match input records as filter is empty" << std::endl; }
+                    return 1;
                 }
-            };
-            if( blocks_ordered )
-            {
-                while( block && p->block > *block ) { grid = std::move( read_filter_block() ); }
-                if( !block )
+                if( !read_next_filter_block ) { continue; }
+                read_next_filter_block = false;
+                auto pass_through = [&]()
                 {
-                    comma::say() << "reached end of filter stream" << std::endl;
+                    while( p && ( !block || p->block < *block ) )
+                    {
+                        ++count;
+                        ::write_( 1, istream.last());
+                        if( !stdin_csv.binary() ) { ::write_( 1, '\n' ); ::fflush( stdout ); }
+                        else if( stdin_csv.flush ) { ::fflush( stdout ); }
+                        p = read_();
+                    }
+                };
+                if( blocks_ordered )
+                {
+                    while( block && p->block > *block ) { grid = std::move( read_filter_block() ); }
+                    if( !block )
+                    {
+                        comma::saymore() << "reached end of filter stream" << std::endl;
+                        if( matching )
+                        {
+                            COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
+                            break; // stop processing input records since no filter block to match with
+                        }
+                        pass_through();
+                        break;
+                    }
+                    if( p->block == *block ) { continue; } // found matching block grid, start joining
                     if( matching )
                     {
                         COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
-                        break; // stop processing input records since no filter block to match with
-                    }
-                    pass_through();
-                    break;
-                }
-                if( p->block == *block ) { continue; } // found matching block grid, start joining
-                if( matching )
-                {
-                    COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
-                    while( p && p->block < *block ) { ++count; ++discarded; p = read_(); }
-                    continue;
-                }
-                pass_through();
-            }
-            else
-            {
-                if( p->block != *block )
-                {
-                    COMMA_ASSERT_BRIEF( count != 0, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
-                    if( !self_join ) { grid = std::move( read_filter_block() ); }
-                    if( block )
-                    {
-                        COMMA_ASSERT_BRIEF( p->block == *block, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
+                        while( p && p->block < *block ) { ++count; ++discarded; p = read_(); }
                         continue;
                     }
-                    comma::saymore() << "reached end of filter stream" << std::endl;
-                    if( matching )
-                    {
-                        COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
-                        break; // stop processing input records since no filter block to match with
-                    }
                     pass_through();
+                }
+                else
+                {
+                    if( p->block != *block )
+                    {
+                        COMMA_ASSERT_BRIEF( count != 0, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
+                        if( !self_join ) { grid = std::move( read_filter_block() ); }
+                        if( block )
+                        {
+                            COMMA_ASSERT_BRIEF( p->block == *block, "expected blocks in input and filter to match, got input block " << p->block << " and filter block " << *block << "; make sure block ids are in ascending order and use --blocks-ordered" );
+                            continue;
+                        }
+                        comma::saymore() << "reached end of filter stream" << std::endl;
+                        if( matching )
+                        {
+                            COMMA_ASSERT_BRIEF( !strict, "record at " << p->value.x() << ',' << p->value.y() << ',' << p->value.z() << ": no matches found" );
+                            break; // stop processing input records since no filter block to match with
+                        }
+                        pass_through();
+                    }
                 }
             }
         }
