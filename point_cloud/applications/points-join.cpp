@@ -42,7 +42,7 @@
 #include "points-join/points_join_cuda.h"
 #endif
 
-static void usage( bool more = false )
+static void usage( bool verbose = false )
 {
     std::cerr << R"(
 join two point clouds by distance
@@ -60,9 +60,9 @@ options
     --count-fast: same as --count, but instead of sphere, simply count all points
                   in neighbouring voxels
     --filter-block-size=[<n>]; filter block size if fixed to <n>, convenience option
-                               useful in streaming cases, especially with feedback;
-                               todo: optional support of block-size field in --fields 
-                               (see examples below)
+                               useful in data streaming cases, especially with feedback
+                               current limitation: self-join is not parallelized
+                               see examples below
     --id-not-matching,--not-matching-id: if id field present in --fields, match only points with different ids
                                          default: if id field present, match points with the same id
     --input-fields: output input fields and exit
@@ -81,7 +81,7 @@ options
     --radius-min,--min-radius=<radius>; default=0: min lookup radius, e.g. to filter out points on poor-man's self-join
     --size,--number-of-points,--number-of-nearest-points=<number_of_points>; default=1: output up to a given number of nearest points in the given radius
     --strict: exit, if nearest point not found; may not exit immediately sometimes)" << std::endl;
-    if( more )
+    if( verbose )
     {
         std::cerr << "              if --parallel-threads is greater than 1, points-join may not always exit immediately on the current point but on the next input point" << std::endl;
         std::cerr << "              the output will still be the same (the next input point will not be processed)" << std::endl;
@@ -126,9 +126,36 @@ triangulated filter: for each input point find the nearest triangle of the filte
         input: no radius field;  triangles not farther than --radius are considered
         input: has radius field; triangles not farther than input radius are considered
 )" << std::endl;
-    std::cerr << "csv options" << std::endl << comma::csv::options::usage( more ) << std::endl;
-    std::cerr << "examples: todo" << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
+    std::cerr << "examples" << std::endl;
+    if( verbose )
+    {
+        std::cerr << R"(    self-join
+        find all neighbours in a given radius except itself
+            { echo 0,0,0; echo 1,1,1; echo 2,2,2; } | points-join --radius 2 --min-radius 0.1
+        take random points, find their nearest neighbours
+            csv-random make --type 2f | csv-paste - value=0 | head -n1000 > random.csv
+            cat random.csv \
+                | points-join --radius 0.5 --min-radius 0.00001 \
+                | view-points '-;shape=line;fields=first,second' \
+                              'random.csv;weight=5'
+        take random points, find all their neighbours in the radius of 5cm
+            cat random.csv \
+                | points-join --radius 0.05 --min-radius 0.00001 --all \
+                | view-points '-;shape=line;fields=first,second' \
+                              'random.csv;weight=5'
+        same as before, but preserve point identity
+            csv-random make --type 2f | csv-paste line-number - value=0 | head -n1000 > random.with-id.csv
+            cat random.with-id.csv \
+                | points-join --fields ,x,y,z --radius 0.05 --min-radius 0.00001 --all \
+                | view-points '-;shape=line;fields=id,first,,second' \
+                              'random.with-id.csv;fields=id,x,y,z;weight=5'
+)" << std::endl;
+    }
+    else
+    {
+        std::cerr << "    run points-join --help --verbose for more..." << std::endl << std::endl;
+    }
     exit( 0 );
 }
 
