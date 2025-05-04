@@ -150,6 +150,11 @@ triangulated filter: for each input point find the nearest triangle of the filte
                 | points-join --fields ,x,y,z --radius 0.05 --min-radius 0.00001 --all \
                 | view-points '-;shape=line;fields=id,first,,second' \
                               'random.with-id.csv;fields=id,x,y,z;weight=5'
+        same as before, but as a data stream
+            csv-random make --type 2f \
+                | csv-paste 'line-number;size=1000' 'line-number;size=1000' - value=0 \
+                | points-join --fields block,,x,y,z --radius 0.05 --min-radius 0.00001 --all \
+                | view-points '-;shape=line;fields=block,id,first,,,second'
 )" << std::endl;
     }
     else
