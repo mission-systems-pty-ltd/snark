@@ -1,0 +1,10 @@
+self_join/ascii[0]="{ echo 0,0,0; echo 1,1,1; } | points-join --radius 0.5"
+self_join/ascii[1]="{ echo 0,0,0; echo 1,1,1; } | points-join --radius 2 --min-radius 0.1"
+self_join/ascii[2]="{ echo 0,0,0,0; echo 1,1,1,1; echo 2,2,2,1; } | points-join --fields x,y,z,block --radius 2 --min-radius 0.1"
+self_join/ascii[3]="{ echo 0,0,0,0; echo 1,1,1,1; echo 2,2,2,1; } | points-join --fields x,y,z,block --radius 2 --all"
+
+
+self_join/binary[0]="{ echo 0,0,0; echo 1,1,1; } | csv-to-bin 3d | points-join --binary 3d --radius 0.5 | csv-from-bin 6d"
+self_join/binary[1]="{ echo 0,0,0; echo 1,1,1; } | csv-to-bin 3d | points-join --binary 3d --radius 2 --min-radius 0.1 | csv-from-bin 6d"
+self_join/binary[2]="{ echo 0,0,0,0; echo 1,1,1,1; echo 2,2,2,1; } | csv-to-bin 3d,ui | points-join --fields x,y,z,block --binary 3d,ui --radius 2 --min-radius 0.1 | csv-from-bin 3d,ui,3d,ui"
+self_join/binary[3]="{ echo 0,0,0,0; echo 1,1,1,1; echo 2,2,2,1; } | csv-to-bin 3d,ui | points-join --fields x,y,z,block --binary 3d,ui --radius 2 --all | csv-from-bin 3d,ui,3d,ui"
