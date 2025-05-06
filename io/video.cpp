@@ -4,6 +4,8 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <comma/base/exception.h>
+#include <comma/application/command_line_options.h>
+#include <comma/timing/traits.h>
 #include "video.h"
 
 namespace snark { namespace io { namespace video {
@@ -143,6 +145,8 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
     timeout.tv_usec = microseconds % 1000000;
     unsigned int attempts_remaining = attempts;
     bool forever = attempts == 0;
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::time_point<std::chrono::high_resolution_clock> end_total, start_total;
     while( true )
     {
         int r = select( _fd + 1, &fds, nullptr, nullptr, &timeout );
@@ -157,6 +161,7 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
             --attempts_remaining;
             continue;
         }
+        start_total = clock::now();
         v4l2_buffer buffer{};
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buffer.memory = (_io_method == IO_MMAP) ? V4L2_MEMORY_MMAP : V4L2_MEMORY_USERPTR;
@@ -165,6 +170,12 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
         COMMA_ASSERT( xioctl( _fd, VIDIOC_QBUF, &buffer ) != -1, "'" << _name << "': ioctl error: VIDIOC_QBUF" );
         _index = buffer.index;
         _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+        end_total = clock::now();
+        std::ostringstream oss;
+        oss << "read CSI data into buffer " 
+                    << std::chrono::duration<double, std::milli>(end_total - start_total).count() 
+                    << " ms";
+        COMMA_SAY_DEBUG(oss.str());
         return stream::record( ++_count, _buffers[_index] );
     }
 }
