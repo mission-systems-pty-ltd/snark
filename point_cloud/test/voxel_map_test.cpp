@@ -57,33 +57,33 @@ TEST( voxel_map, operations )
 {
     map_type m( map_type::point_type( 1, 1, 1 ) );
     {
-        EXPECT_TRUE( ( m.find( map_type::point_type( 1, 1, 1 ) ) == m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 1, 1, 1 ) ) == m.end() ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 1, 1, 1 ) ) != m.end() ) );
         EXPECT_EQ( 1, m.size() );
-        EXPECT_TRUE( ( m.find( map_type::point_type( 1, 1, 1 ) ) != m.end() ) );
-        EXPECT_TRUE( ( m.find( map_type::point_type( 1, 1, 1 ) ) == m.find( map_type::point_type( 1.1, 1.1, 1.1 ) ) ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 1, 1, 1 ) ) != m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 1, 1, 1 ) ) == m.at( map_type::point_type( 1.1, 1.1, 1.1 ) ) ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 1, 1, 1 ) ) != m.end() ) );
         EXPECT_EQ( 1, m.size() );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 1.1, 1.1, 1.1 ) ) != m.end() ) );
         EXPECT_EQ( 1, m.size() );
     }
     {
-        EXPECT_TRUE( ( m.find( map_type::point_type( -1, -1, -1 ) ) == m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( -1, -1, -1 ) ) == m.end() ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( -1, -1, -1 ) ) != m.end() ) );
         EXPECT_EQ( 2, m.size() );
-        EXPECT_TRUE( ( m.find( map_type::point_type( -1, -1, -1 ) ) != m.end() ) );
-        EXPECT_TRUE( ( m.find( map_type::point_type( -1, -1, -1 ) ) == m.find( map_type::point_type( -0.1, -0.1, -0.1 ) ) ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( -1, -1, -1 ) ) != m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( -1, -1, -1 ) ) == m.at( map_type::point_type( -0.1, -0.1, -0.1 ) ) ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( -1, -1, -1 ) ) != m.end() ) );
         EXPECT_EQ( 2, m.size() );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( -0.1, -0.1, -0.1 ) ) != m.end() ) );
         EXPECT_EQ( 2, m.size() );
     }
     {
-        EXPECT_TRUE( ( m.find( map_type::point_type( 0, 0, 0 ) ) == m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 0, 0, 0 ) ) == m.end() ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 0, 0, 0 ) ) != m.end() ) );
         EXPECT_EQ( 3, m.size() );
-        EXPECT_TRUE( ( m.find( map_type::point_type( 0, 0, 0 ) ) != m.end() ) );
-        EXPECT_TRUE( ( m.find( map_type::point_type( 0, 0, 0 ) ) == m.find( map_type::point_type( 0.1, 0.1, 0.1 ) ) ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 0, 0, 0 ) ) != m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 0, 0, 0 ) ) == m.at( map_type::point_type( 0.1, 0.1, 0.1 ) ) ) );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 0, 0, 0 ) ) != m.end() ) );
         EXPECT_EQ( 3, m.size() );
         EXPECT_TRUE( ( m.touch_at( map_type::point_type( 0.1, 0.1, 0.1 ) ) != m.end() ) );
@@ -101,12 +101,12 @@ TEST( voxel_map, neighbourhood )
 {
     map_type m( map_type::point_type( 1, 1, 1 ) );
     {
-        EXPECT_TRUE( ( m.find( map_type::point_type( 1, 1, 1 ) ) == m.end() ) );
+        EXPECT_TRUE( ( m.at( map_type::point_type( 1, 1, 1 ) ) == m.end() ) );
         {
             EXPECT_TRUE( ( m.touch_at( map_type::point_type( 1, 1, 1 ) ) != m.end() ) );
             EXPECT_EQ( 1, m.size() );
             m.touch_at( map_type::point_type( 1, 1, 1 ) )->second = 111;
-            EXPECT_EQ( 111, m.find( map_type::point_type( 1, 1, 1 ) )->second );
+            EXPECT_EQ( 111, m.at( map_type::point_type( 1, 1, 1 ) )->second );
             map_type::index_type index = {{ 1, 1, 1 }};
             EXPECT_EQ( 111, m.map_type::find( index )->second );
         }
@@ -114,7 +114,7 @@ TEST( voxel_map, neighbourhood )
             EXPECT_TRUE( ( m.touch_at( map_type::point_type( 2, 2, 2 ) ) != m.end() ) );
             EXPECT_EQ( 2, m.size() );
             m.touch_at( map_type::point_type( 2, 2, 2 ) )->second = 222;
-            EXPECT_EQ( 222, m.find( map_type::point_type( 2, 2, 2 ) )->second );
+            EXPECT_EQ( 222, m.at( map_type::point_type( 2, 2, 2 ) )->second );
             map_type::index_type index = {{ 2, 2, 2 }};
             EXPECT_EQ( 222, m.map_type::find( index )->second );
         }

@@ -173,7 +173,7 @@ static void match() // todo: refactor this bloody mess, once voxel grid is refac
     {
         comma::uint32 current_id = it->second.id();
         boost::optional< comma::uint32 > previous_id = comma::silent_none< comma::uint32 >();
-        snark::voxel_map< voxel, 3 >::const_iterator v = voxels.first->find( it->second.mean() );
+        snark::voxel_map< voxel, 3 >::const_iterator v = voxels.first->at( it->second.mean() );
         if( v != voxels.first->end() ) { previous_id = v->second.id(); }
         partitions[ current_id ].push_back( std::make_pair( &it->second, previous_id ) );
     }
