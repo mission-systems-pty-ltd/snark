@@ -164,7 +164,7 @@ static void trace_points( const tbb::blocked_range< std::size_t >& range, std::d
 {
     for( std::size_t i = range.begin(); i < range.end(); ++i )
     {
-        grid_t::const_iterator it = grid.find( grid_t::point_type( records[i].first.point.bearing(), records[i].first.point.elevation() ) );
+        grid_t::const_iterator it = grid.at( grid_t::point_type( records[i].first.point.bearing(), records[i].first.point.elevation() ) );
         if( it == grid.end() )
         { 
             records[i].first.traced = &records[i];

@@ -314,7 +314,7 @@ int main( int argc, char** argv )
         {
             const point_t* p = istream.read();
             if( !p ) { break; }
-            grid_t::const_iterator it = grid.find( grid_t::point_type( p->bearing(), p->elevation() ) );
+            grid_t::const_iterator it = grid.at( grid_t::point_type( p->bearing(), p->elevation() ) );
             if( it == grid.end() ) { continue; }
             const cell::entry* q = it->second.trace( *p, threshold, range_threshold );
             if( !q ) { continue; }
