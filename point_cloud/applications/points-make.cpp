@@ -84,19 +84,19 @@ struct box : public operation_t< Eigen::Vector3d >
     {
         options.assert_mutually_exclusive( "--extents,-e", "--width,-w" );
         bool fill = options.exists( "--fill" );
-        auto origin = comma::csv::ascii< Eigen::Vector3d >().get( options.value< std::string >( "--origin,-o", "0,0,0" ) );
+        auto origin = comma::csv::ascii< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 ) ).get( options.value< std::string >( "--origin,-o", "0,0,0" ) );
         Eigen::Vector3d extents;
         if( !options.exists( "--extents,-e,--width,-w" ) ) { COMMA_THROW( comma::exception, "box: please specify either --extents or --width" ); }
-        if( options.exists( "--extents,-e" ) ) { extents = comma::csv::ascii< Eigen::Vector3d >().get( options.value< std::string >( "--extents,-e" ) ); }
+        if( options.exists( "--extents,-e" ) ) { extents = comma::csv::ascii< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 ) ).get( options.value< std::string >( "--extents,-e" ) ); }
         else { double w = options.value< double >( "--width,-w" ); extents = Eigen::Vector3d( w, w, w ); }
-        Eigen::Vector3d resolution;
+        Eigen::Vector3d resolution{0, 0, 0};
         std::string s = options.value< std::string >( "--resolution,-r", "1,1,1" );
         if( comma::split( s, ',' ).size() == 1 ) { auto r = boost::lexical_cast< double >( s ); resolution = Eigen::Vector3d( r, r, r ); }
-        else { resolution = comma::csv::ascii< Eigen::Vector3d >().get( s ); }
+        else { resolution = comma::csv::ascii< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 ) ).get( s ); }
         auto size = options.optional< unsigned int >( "--size" );
         auto seed = options.optional< std::string >( "--random-seed,--seed,-s" );
         if( options.exists( "--random" ) && !seed ) { seed = "0"; } // quick and dirty
-        comma::csv::output_stream< Eigen::Vector3d > ostream( std::cout, comma::csv::options( options ) );
+        comma::csv::output_stream< Eigen::Vector3d > ostream( std::cout, comma::csv::options( options ), Eigen::Vector3d( 0, 0, 0 ) );
         auto p = origin;
         auto end = origin + extents;
         if( fill )
@@ -203,7 +203,7 @@ struct sphere : public operation_t< Eigen::Vector3d >
         options.assert_mutually_exclusive( "--fibonacci", "--fill,--random,--seed,--random-seed,-s" );
         options.assert_exists_if( "--fibonacci", "--size" );
         bool fill = options.exists( "--fill" );
-        auto center = comma::csv::ascii< Eigen::Vector3d >().get( options.value< std::string >( "--center,-c", "0,0,0" ) );
+        auto center = comma::csv::ascii< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 ) ).get( options.value< std::string >( "--center,-c", "0,0,0" ) );
         double radius = options.value< double >( "--radius" );
         auto resolution = options.value( "--resolution,-r", 1.0 );
         auto size = options.optional< unsigned int >( "--size" );
@@ -211,7 +211,7 @@ struct sphere : public operation_t< Eigen::Vector3d >
         if( fibonacci && !size ) { COMMA_THROW( comma::exception, "for --fibonacci, please specify --size" ); }
         auto seed = options.optional< std::string >( "--random-seed,--seed,-s" );
         if( options.exists( "--random" ) && !seed ) { seed = "0"; } // quick and dirty
-        comma::csv::output_stream< Eigen::Vector3d > ostream( std::cout, comma::csv::options( options ) );
+        comma::csv::output_stream< Eigen::Vector3d > ostream( std::cout, comma::csv::options( options ), Eigen::Vector3d( 0, 0, 0 ) );
         if( seed )
         {
             if( size ) { COMMA_THROW( comma::exception, "sphere: --size for --random: todo; meanwhile use --resolution" ); }
@@ -402,7 +402,7 @@ struct grid : public operation_t< Eigen::Vector3f >
         output_csv.full_xpath = false;
         if( options.exists( "--binary,-b" )) { output_csv.format( comma::csv::format::value< Eigen::Vector3f >() ); }
 
-        comma::csv::output_stream< Eigen::Vector3f > ostream( std::cout, output_csv );
+        comma::csv::output_stream< Eigen::Vector3f > ostream( std::cout, output_csv, Eigen::Vector3f( 0, 0, 0 ) );
 
         int sign = 1;
         float offset = width / 2.0f;

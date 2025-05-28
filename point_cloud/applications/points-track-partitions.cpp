@@ -79,12 +79,10 @@ class voxel;
 
 struct input_t
 {
-    Eigen::Vector3d point;
-    comma::uint32 block;
-    comma::uint32 id;
-    mutable ::voxel* voxel;
-
-    input_t() : block( 0 ), id( 0 ), voxel( NULL ) {}
+    Eigen::Vector3d point{0, 0, 0};
+    comma::uint32 block{0};
+    comma::uint32 id{0};
+    mutable ::voxel* voxel{nullptr};
 };
 
 namespace comma { namespace visiting {
@@ -253,7 +251,7 @@ int main( int ac, char** av )
         comma::command_line_options options( ac, av );
         if( options.exists( "--help,-h" ) ) { usage(); }
         verbose = options.exists( "--verbose,-v" );
-        origin = comma::csv::ascii< Eigen::Vector3d >().get( options.value< std::string >( "--origin", "0,0,0" ) );
+        origin = comma::csv::ascii< Eigen::Vector3d >( Eigen::Vector3d( 0, 0, 0 ) ).get( options.value< std::string >( "--origin", "0,0,0" ) );
         double r = options.value< double >( "--resolution", 0.2 );
         resolution = Eigen::Vector3d( r, r, r );
         csv = comma::csv::options( options );
