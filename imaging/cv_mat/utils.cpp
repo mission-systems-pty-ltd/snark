@@ -145,6 +145,15 @@ boost::unordered_map< std::string, unsigned int > fill_cvt_color_types_() // tod
     types[ "CV_BGR2RGB" ] = types[ "BGR,RGB" ] = types[ "bgr,rgb" ] = CV_BGR2RGB;
     types[ "CV_RGB2BGR" ] = types[ "RGB,BGR" ] = types[ "rgb,bgr" ] = CV_RGB2BGR;
     types[ "CV_BGR2BGRA" ] = types[ "BGR,BGRA" ] = types[ "bgr,bgra" ] = CV_BGR2BGRA;
+    types[ "CV_RGB2RGBA" ] = types[ "RGB,RGBA" ] = types[ "rgb,rgba" ] = CV_RGB2RGBA;
+    types[ "CV_BGRA2BGR" ] = types[ "BGRA,BGR" ] = types[ "bgra,bgr" ] = CV_BGRA2BGR;
+    types[ "CV_RGBA2RGB" ] = types[ "RGBA,RGB" ] = types[ "rgba,rgb" ] = CV_RGBA2RGB;
+    types[ "CV_BGR2RGBA" ] = types[ "BGR,RGBA" ] = types[ "bgr,rgba" ] = CV_BGR2RGBA;
+    types[ "CV_RGB2BGRA" ] = types[ "RGB,BGRA" ] = types[ "rgb,bgra" ] = CV_RGB2BGRA;
+    types[ "CV_RGBA2BGR" ] = types[ "RGBA,BGR" ] = types[ "rgba,bgr" ] = CV_RGBA2BGR;
+    types[ "CV_BGRA2RGB" ] = types[ "BGRA,RGB" ] = types[ "bgra,rgb" ] = CV_BGRA2RGB;
+    types[ "CV_BGRA2RGBA" ] = types[ "BGRA,RGBA" ] = types[ "bgra,rgba" ] = CV_BGRA2RGBA;
+    types[ "CV_RGBA2BGRA" ] = types[ "RGBA,BGRA" ] = types[ "rgba,bgra" ] = CV_RGBA2BGRA;
     return types;
 }
 
