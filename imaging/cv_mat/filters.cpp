@@ -739,15 +739,6 @@ static typename impl::filters< H >::value_type brightness_impl_( typename impl::
 }
 
 template < typename H >
-static typename impl::filters< H >::value_type colour_map_impl_( typename impl::filters< H >::value_type m, int type )
-{
-    typename impl::filters< H >::value_type n;
-    n.first = m.first;
-    cv::applyColorMap( m.second, n.second, type );
-    return n;
-}
-
-template < typename H >
 struct tee_impl_
 {
     typedef typename impl::filters< H >::value_type value_type;
@@ -1942,7 +1933,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
             COMMA_THROW(comma::exception, "accumulated=" << s.front() << ": expected a number as filter parameter, got: '" << bc.what() << "'" );
         }
     }
-    if( e[0] == "balance-white" ) { return std::make_pair( filters::balance_white< H >(), false ); }
+    if( e[0] == "balance-white" ) { return std::make_pair( filters::colors::balance_white< H >(), false ); }
     if( e[0] == "canny" )
     {
         if( e.size() == 1 ) { COMMA_THROW( comma::exception, "canny: please specify <threshold1>,<threshold2>[,<kernel_size>]" ); }
@@ -2406,7 +2397,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "color-map" )
     {
         if( e.size() != 2 ) { COMMA_THROW( comma::exception, "expected colour-map=<type>; got: \"" << e[1] << "\"" ); }
-        return std::make_pair( boost::bind< value_type_t >( colour_map_impl_< H >, boost::placeholders::_1, colormap_from_string( e[1] ) ), true );
+        return std::make_pair( filters::colors::map< H >( colormap_from_string( e[1] ) ), true );
     }
     if( e[0] == "blur" )
     {
@@ -2931,6 +2922,7 @@ static std::string usage_impl_()
     oss << "             max: pixelwise image maximum\n";
     oss << "             moving-average,<window>: pixelwise moving average\n";
     oss << "                 <window>: number of images in sliding window\n";
+    oss << filters::colors::balance_white< boost::posix_time::ptime >::usage(4);
     oss << "    bayer=<mode>: convert from bayer, <mode>=1-4 (see also convert-color)\n";
     oss << "    blur=<type>,<parameters>: apply a blur to the image (positive and odd kernel sizes)\n";
     oss << "        blur=box,<kernel_size> \n";
@@ -2949,13 +2941,7 @@ static std::string usage_impl_()
     oss << "                                                      (see opencv documentation for more), e.g. try clahe=2.0,8,8\n";
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
     oss << filters::canvas< boost::posix_time::ptime >::usage(4);
-    oss << "    color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail\n";
-    oss << "        <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot\n";
-    oss << "                or numeric colormap code (names for colormaps in newer opencv versions: todo)\n";
-    oss << "                colormap type numeric values in opencv:\n";
-    oss << "                    autumn: 0, bone: 1, jet: 2, winter: 3, rainbow: 4, ocean: 5, summer: 6, spring: 7, cool: 8\n";
-    oss << "                    hsv: 9, pink: 10, hot: 11, parula: 12, magma: 13, inferno: 14, plasma: 15, viridis: 16\n";
-    oss << "                    cividis: 17, twilight: 18, twilight_shifted: 19, turbo: 20, deepgreen: 21\n";
+    oss << filters::colors::map< boost::posix_time::ptime >::usage(4);
     oss << filters::contraharmonic< boost::posix_time::ptime >::usage(4);
     oss << "    count: write frame number on images\n";
     oss << "    convert-to,convert_to=<type>[,<scale>[,<offset>]]: convert to given type; should be the same number of channels\n";

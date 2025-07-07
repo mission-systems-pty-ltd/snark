@@ -28,11 +28,13 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
+#include <sstream>
 #include <vector>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "colors.h"
 
-namespace snark { namespace cv_mat { namespace filters {
+namespace snark { namespace cv_mat { namespace filters { namespace colors {
 
 #if OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
     
@@ -48,7 +50,42 @@ template < typename H > std::pair< H, cv::Mat > balance_white< H >::operator()( 
 
 #endif // OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
 
+template < typename H > std::string balance_white< H >::usage( unsigned int indent_size )
+{
+    std::ostringstream oss;
+    std::string indent( indent_size, ' ' );
+    oss << indent << "balance-white: apply white balance to image" << std::endl;
+    #ifdef BALANCE_WHITE_ERROR_MSG
+    oss << indent << "               " << BALANCE_WHITE_ERROR_MSG << std::endl;
+    #endif
+    return oss.str();
+}
+
+template < typename H > std::pair< H, cv::Mat > map< H >::operator()( std::pair< H, cv::Mat > m )
+{
+    std::pair< H, cv::Mat > n;
+    n.first = m.first;
+    cv::applyColorMap( m.second, n.second, _type );
+    return n;
+}
+
+template < typename H > std::string map< H >::usage( unsigned int indent_size )
+{
+    std::ostringstream oss;
+    std::string indent( indent_size, ' ' );
+    oss << indent << "color-map=<type>: take image, apply colour map; see cv::applyColorMap for detail" << std::endl;
+    oss << indent << "    <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot" << std::endl;
+    oss << indent << "        or numeric colormap code (names for colormaps in newer opencv versions: todo)" << std::endl;
+    oss << indent << "        colormap type numeric values in opencv:" << std::endl;
+    oss << indent << "            autumn: 0, bone: 1, jet: 2, winter: 3, rainbow: 4, ocean: 5, summer: 6, spring: 7, cool: 8" << std::endl;
+    oss << indent << "            hsv: 9, pink: 10, hot: 11, parula: 12, magma: 13, inferno: 14, plasma: 15, viridis: 16" << std::endl;
+    oss << indent << "            cividis: 17, twilight: 18, twilight_shifted: 19, turbo: 20, deepgreen: 21" << std::endl;
+    return oss.str();
+}
+
 template class balance_white< boost::posix_time::ptime >;
 template class balance_white< std::vector< char > >;
+template class map< boost::posix_time::ptime >;
+template class map< std::vector< char > >;
 
-} } }  // namespace snark { namespace cv_mat { namespace impl {
+} } } }  // namespace snark { namespace cv_mat { namespace filters { namespace colors {
