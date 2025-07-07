@@ -27,6 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <vector>
@@ -82,7 +83,7 @@ template < typename H > map< H >::map( int type, bool invert )
 {
     if( invert )
     {
-        cv::Mat m( 0, 256, CV_8UC1 );
+        cv::Mat m( 1, 256, CV_8UC1 );
         for( unsigned int i = 0; i < 256; ++i ) { m.at< char >( 0, i ) = i; }
         cv::Mat n;
         cv::applyColorMap( m, n, _type );
