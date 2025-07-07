@@ -77,6 +77,7 @@ class map
         map( int type, bool invert = false );
         std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
         static std::string usage( unsigned int indent );
+        static map make( const std::string& params );
     private:
         int _type{0};
         std::unordered_map< std::uint32_t, char > _inverted;
