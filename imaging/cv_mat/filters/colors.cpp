@@ -126,6 +126,11 @@ template < typename H > std::string map< H >::usage( unsigned int indent_size )
     oss << indent << "            output grey-scale 8-bit image with values corresponding to colors" << std::endl;
     oss << indent << "            currently, expects exact color-mapped values, i.e. will exit with error" << std::endl;
     oss << indent << "            on input images with lossy compression (e.g. jpg) " << std::endl;
+    oss << indent << "    examples" << std::endl;
+    oss << indent << "        recover original data" << std::endl;
+    oss << indent << "            cv-cat --file jet.png 'color-map=jet,revert' > original.bin" << std::endl;
+    oss << indent << "        change color map" << std::endl;
+    oss << indent << "            cv-cat --file autumn.png 'color-map=autumn,revert;color-map=jet' > jet.bin" << std::endl;
     return oss.str();
 }
 
