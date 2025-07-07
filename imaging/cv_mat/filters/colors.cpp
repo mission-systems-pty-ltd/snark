@@ -33,7 +33,9 @@
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <comma/base/exception.h>
+#include <comma/string/split.h>
 #include "colors.h"
+#include "../utils.h" // quick and dirty
 
 namespace snark { namespace cv_mat { namespace filters { namespace colors {
 
@@ -67,6 +69,12 @@ static std::uint32_t pixel_to_uint( const cv::Vec3b& pixel )
     std::uint32_t i = 0;
     std::memcpy( &i, &pixel[0], 3 );
     return i;
+}
+
+template < typename H > map< H > map< H >::map::make( const std::string& params )
+{
+    const auto& v = comma::split( params, ',' );
+    return map( colormap_from_string( v[0] ), v.size() > 1 && v[1] == "invert" );
 }
 
 template < typename H > map< H >::map( int type, bool invert )

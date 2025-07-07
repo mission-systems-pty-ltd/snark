@@ -2397,7 +2397,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "color-map" )
     {
         if( e.size() != 2 ) { COMMA_THROW( comma::exception, "expected colour-map=<type>; got: \"" << e[1] << "\"" ); }
-        return std::make_pair( filters::colors::map< H >( colormap_from_string( e[1] ) ), true );
+        return std::make_pair( filters::colors::map< H >::make( e[1] ), true );
     }
     if( e[0] == "blur" )
     {
