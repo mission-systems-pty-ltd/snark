@@ -31,6 +31,8 @@
 
 #define OPENCV_HAS_BALANCE_WHITE !(defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
 
+#include <cinttypes>
+#include <unordered_map>
 #include <opencv2/core/core.hpp>
 #if OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
 #include <opencv2/xphoto/white_balance.hpp>
@@ -72,11 +74,12 @@ template < typename H >
 class map
 {
     public:
-        map( int type ): _type( type ) {}
+        map( int type, bool invert = false );
         std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
         static std::string usage( unsigned int indent );
     private:
-        int _type{0}; 
+        int _type{0};
+        std::unordered_map< std::uint32_t, char > _inverted;
 };
 
 } } } }  // namespace snark { namespace cv_mat { namespace filters { namespace colors {
