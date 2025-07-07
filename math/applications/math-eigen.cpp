@@ -243,16 +243,16 @@ template <> struct traits< Eigen::Matrix< double, 3, 3 > >
 template < typename From, typename To >
 static int run( const comma::command_line_options& options )
 {
-    if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< From >( true ), ',' ) << std::endl; return 0; }
-    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< To >( true ), ',' ) << std::endl; return 0; }
-    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format::value< To >() << std::endl; return 0; }
+    if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< From >( true, rotation::traits< From >::zero() ), ',' ) << std::endl; return 0; }
+    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< To >( true, rotation::traits< To >::zero() ), ',' ) << std::endl; return 0; }
+    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format::value< To >( rotation::traits< To >::zero() ) << std::endl; return 0; }
     comma::csv::options csv( options );
     csv.full_xpath = true;
     comma::csv::input_stream< From > istream( std::cin, csv, rotation::traits< From >::zero() );
     comma::csv::options output_csv;
-    if( csv.binary() ) { output_csv.format( comma::csv::format::value< To >() ); }
+    if( csv.binary() ) { output_csv.format( comma::csv::format::value< To >( rotation::traits< To >::zero() ) ); }
     output_csv.full_xpath = true;
-    comma::csv::output_stream< To > ostream( std::cout, output_csv );
+    comma::csv::output_stream< To > ostream( std::cout, output_csv, rotation::traits< To >::zero() );
     while( istream.ready() || std::cin.good() )
     {
         const From* p = istream.read();
