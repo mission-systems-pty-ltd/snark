@@ -74,13 +74,13 @@ template < typename H >
 class map
 {
     public:
-        map( int type, bool invert = false );
+        map( int type, bool revert = false );
         std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
         static std::string usage( unsigned int indent );
         static map make( const std::string& params );
     private:
         int _type{0};
-        std::unordered_map< std::uint32_t, char > _inverted;
+        std::unordered_map< std::uint32_t, char > _reverted;
 };
 
 } } } }  // namespace snark { namespace cv_mat { namespace filters { namespace colors {

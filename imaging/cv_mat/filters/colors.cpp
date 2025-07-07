@@ -75,19 +75,19 @@ static std::uint32_t pixel_to_uint( const cv::Vec3b& pixel )
 template < typename H > map< H > map< H >::map::make( const std::string& params )
 {
     const auto& v = comma::split( params, ',' );
-    return map( colormap_from_string( v[0] ), v.size() > 1 && v[1] == "invert" );
+    return map( colormap_from_string( v[0] ), v.size() > 1 && v[1] == "revert" );
 }
 
-template < typename H > map< H >::map( int type, bool invert )
+template < typename H > map< H >::map( int type, bool revert )
     : _type( type )
 {
-    if( invert )
+    if( revert )
     {
         cv::Mat m( 1, 256, CV_8UC1 );
         for( unsigned int i = 0; i < 256; ++i ) { m.at< char >( 0, i ) = i; }
         cv::Mat n;
         cv::applyColorMap( m, n, _type );
-        for( unsigned int i = 0; i < 256; ++i ) { _inverted[ pixel_to_uint( n.at< cv::Vec3b >( 0, i ) ) ] = i; }
+        for( unsigned int i = 0; i < 256; ++i ) { _reverted[ pixel_to_uint( n.at< cv::Vec3b >( 0, i ) ) ] = i; }
     }
 }
 
@@ -95,7 +95,7 @@ template < typename H > std::pair< H, cv::Mat > map< H >::operator()( std::pair<
 {
     std::pair< H, cv::Mat > n;
     n.first = m.first;
-    if( _inverted.empty() ) { cv::applyColorMap( m.second, n.second, _type ); return n; }
+    if( _reverted.empty() ) { cv::applyColorMap( m.second, n.second, _type ); return n; }
     COMMA_ASSERT( m.second.type() == CV_8UC3, "expected rgb 8-byte input image of type CV_8UC3 (" << CV_8UC3 << "); got: " << m.second.type() );
     n.second = cv::Mat( m.second.rows, m.second.cols, CV_8UC1 );
     for( int row = 0; row < m.second.rows; ++row ) // todo? use tbb::parallel_for? use an opencv native function if such exists?
@@ -103,8 +103,8 @@ template < typename H > std::pair< H, cv::Mat > map< H >::operator()( std::pair<
         for( int col = 0; col < m.second.rows; ++col )
         {
             const auto& p = m.second.template at< cv::Vec3b >( row, col );
-            auto i = _inverted.find( pixel_to_uint( p ) );
-            COMMA_ASSERT( i != _inverted.end(), "pixel value at row: " << row << " col: " << col << " " << p[0] << "," << p[1] << "," << p[2] << " not found in the colour map" );
+            auto i = _reverted.find( pixel_to_uint( p ) );
+            COMMA_ASSERT( i != _reverted.end(), "pixel value at row: " << row << " col: " << col << " " << p[0] << "," << p[1] << "," << p[2] << " not found in the colour map" );
             n.second.template at< char >( row, col ) = i->second;
         }
     }
@@ -115,14 +115,14 @@ template < typename H > std::string map< H >::usage( unsigned int indent_size )
 {
     std::ostringstream oss;
     std::string indent( indent_size, ' ' );
-    oss << indent << "color-map=<type>[,invert]: take image, apply colour map; see cv::applyColorMap for detail" << std::endl;
+    oss << indent << "color-map=<type>[,revert]: take image, apply colour map; see cv::applyColorMap for detail" << std::endl;
     oss << indent << "    <type>: autumn, bone, jet, winter, rainbow, ocean, summer, spring, cool, hsv, pink, hot" << std::endl;
     oss << indent << "        or numeric colormap code (names for colormaps in newer opencv versions: todo)" << std::endl;
     oss << indent << "        colormap type numeric values in opencv:" << std::endl;
     oss << indent << "            autumn: 0, bone: 1, jet: 2, winter: 3, rainbow: 4, ocean: 5, summer: 6, spring: 7, cool: 8" << std::endl;
     oss << indent << "            hsv: 9, pink: 10, hot: 11, parula: 12, magma: 13, inferno: 14, plasma: 15, viridis: 16" << std::endl;
     oss << indent << "            cividis: 17, twilight: 18, twilight_shifted: 19, turbo: 20, deepgreen: 21" << std::endl;
-    oss << indent << "    invert: if present, expect rgb 8-bit image as input coloured as <type>" << std::endl;
+    oss << indent << "    revert: if present, expect rgb 8-bit image as input coloured as <type>" << std::endl;
     oss << indent << "            output grey-scale 8-bit image with values corresponding to colors" << std::endl;
     oss << indent << "            currently, expects exact color-mapped values, i.e. will exit with error" << std::endl;
     oss << indent << "            on input images with lossy compression (e.g. jpg) " << std::endl;
