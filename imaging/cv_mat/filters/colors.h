@@ -38,7 +38,7 @@
 #include <comma/base/exception.h>
 #endif // OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
 
-namespace snark{ namespace cv_mat { namespace filters {
+namespace snark { namespace cv_mat { namespace filters { namespace colors {
 
 #if OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
     template < typename H >
@@ -47,6 +47,7 @@ namespace snark{ namespace cv_mat { namespace filters {
         public:
             balance_white();
             std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
+            static std::string usage( unsigned int indent );
         private:
             cv::Ptr< cv::xphoto::SimpleWB > wb_;
     };
@@ -59,11 +60,23 @@ namespace snark{ namespace cv_mat { namespace filters {
         #define STR(x) STR_HELPER(x)
         #define BALANCE_WHITE_ERROR_MSG "balance-white not implemented for opencv version " STR(CV_MAJOR_VERSION) "." STR(CV_MINOR_VERSION) " that you have"
         #else // OPENCV_HAS_BALANCE_WHITE
-        #define BALANCE_WHITE_ERROR_MSG "balance-white disabled. Enable with snark_build_imaging_opencv_contrib=ON"
+        #define BALANCE_WHITE_ERROR_MSG "balance-white disabled; enable by recompiling with snark_build_imaging_opencv_contrib=ON"
         #endif // OPENCV_HAS_BALANCE_WHITE
         balance_white() { COMMA_THROW( comma::exception, BALANCE_WHITE_ERROR_MSG ); }
         std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m ) { COMMA_THROW( comma::exception, BALANCE_WHITE_ERROR_MSG ); }
+        static std::string usage( unsigned int indent );
     };
 #endif // OPENCV_HAS_BALANCE_WHITE && SNARK_OPENCV_CONTRIB
 
-} } }  // namespace snark { namespace cv_mat { namespace impl {
+template < typename H >
+class map
+{
+    public:
+        map( int type ): _type( type ) {}
+        std::pair< H, cv::Mat > operator()( std::pair< H, cv::Mat > m );
+        static std::string usage( unsigned int indent );
+    private:
+        int _type{0}; 
+};
+
+} } } }  // namespace snark { namespace cv_mat { namespace filters { namespace colors {
