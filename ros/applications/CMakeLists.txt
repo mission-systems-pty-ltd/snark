@@ -24,19 +24,19 @@ if( snark_build_ros_version_1 )
     target_compile_definitions(ros-points PRIVATE SNARK_BUILD_ROS_1)
 
     install( TARGETS ros-array ros-image ros-points
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
     install( PROGRAMS ros-from-csv ros-to-csv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 endif( snark_build_ros_version_1 )
 
 if( snark_build_ros_version_2 )
     # Ros 2 points.
-    find_package(std_msgs REQUIRED)
-    find_package(sensor_msgs REQUIRED)
-    add_executable(ros2-points ros2-points.cpp ${detail_source})
-    target_compile_definitions(ros2-points PRIVATE SNARK_BUILD_ROS_2)
-    target_include_directories(ros2-points PRIVATE
+    find_package( std_msgs REQUIRED )
+    find_package( sensor_msgs REQUIRED )
+    add_executable( ros2-points ros2-points.cpp ${detail_source} )
+    target_compile_definitions( ros2-points PRIVATE SNARK_BUILD_ROS_2 )
+    target_include_directories( ros2-points PRIVATE
         ${sensor_msgs_INCLUDE_DIRS}
         ${std_msgs_INCLUDE_DIRS}
         ${ros2_core_include_dirs}
@@ -46,9 +46,9 @@ if( snark_build_ros_version_2 )
 
     target_link_libraries( ros2-points ${all_ros2_libs} ${snark_ALL_EXTERNAL_LIBRARIES} )
     install( TARGETS ros2-points
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
     install( PROGRAMS ros2-to-csv ros2-from-csv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )            
-            
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
 endif( snark_build_ros_version_2 )
