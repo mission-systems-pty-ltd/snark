@@ -24,10 +24,10 @@ if( snark_build_ros_version_1 )
     target_compile_definitions(ros-points PRIVATE SNARK_BUILD_ROS_1)
 
     install( TARGETS ros-array ros-image ros-points
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
     install( PROGRAMS ros-from-csv ros-to-csv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 endif( snark_build_ros_version_1 )
 
 if( snark_build_ros_version_2 )
@@ -46,9 +46,9 @@ if( snark_build_ros_version_2 )
 
     target_link_libraries( ros2-points ${all_ros2_libs} ${snark_ALL_EXTERNAL_LIBRARIES} )
     install( TARGETS ros2-points
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
     install( PROGRAMS ros2-to-csv ros2-from-csv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )            
-            
+             DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
 endif( snark_build_ros_version_2 )
