@@ -52,6 +52,7 @@ class view
         bool _capture_on_exit;
         std::string _capture_on_exit_filename;
         std::pair< boost::posix_time::ptime, cv::Mat > _last;
+        static boost::posix_time::ptime _system_time( const H& );
 };
 
 } } }  // namespace snark { namespace cv_mat { namespace impl {
