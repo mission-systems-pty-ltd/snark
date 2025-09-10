@@ -540,7 +540,9 @@ class shape // todo: quick and dirty, make polymorphic
                 }
                 case types::rectangle:
                 {
-                    COMMA_THROW_BRIEF( comma::exception, "rectangle: todo" );
+                    int x1 = std::floor( ( v.x + v.size.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
+                    int y1 = std::floor( ( v.y + v.size.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
+                    cv::rectangle( m, cv::Point( x, y ), cv::Point( x1, y1 ), v.color(), v.weight );
                 }
             }
         }
