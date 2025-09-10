@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/bind/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <comma/string/string.h>
 #include "../utils.h"
@@ -65,17 +66,19 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
         auto window_type = cv::WINDOW_NORMAL;
     #endif
     int flags = cv::WINDOW_AUTOSIZE | window_type;
+    bool use_system_time{false};
     for( unsigned int i = 0; i < w.size(); ++i )
     {
         if( w[i] == "expanded" ) { flags &= ~window_type; flags |= cv::WINDOW_GUI_EXPANDED; }
         else if( w[i] == "noauto" ) { flags &= ~cv::WINDOW_AUTOSIZE; flags |= cv::WINDOW_KEEPRATIO; }
+        else if( w[i] == "system-time" ) { use_system_time = true; }
         else if( w[i].substr( 0, 15 ) == "capture-on-exit" )
         {
             capture_on_exit = true;
             filename = w[i].substr( 15, 1 ) == ":" ? w[i].substr( 16 ) : std::string();
         }
     }
-    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( get_timestamp, n, delay, suffix, position, size, flags, capture_on_exit, filename ), boost::placeholders::_1 ), false );
+    return std::make_pair( boost::bind< std::pair< H, cv::Mat > >( view< H >( use_system_time ? _system_time : get_timestamp, n, delay, suffix, position, size, flags, capture_on_exit, filename ), boost::placeholders::_1 ), false );
 }
 
 static std::string _make_name() { static unsigned int count = 0; return "view_" + boost::lexical_cast< std::string >( count++ ); } // uber-quick and dirty
@@ -96,6 +99,8 @@ static void _make_window( const std::string& name
         if( window_size ) { cv::resizeWindow( &name[0], window_size->first, window_size->second ); }
     #endif
 }
+
+template < typename H > boost::posix_time::ptime view< H >::_system_time( const H& ) { return boost::posix_time::microsec_clock::universal_time(); }
 
 template < typename H >
 view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
@@ -170,6 +175,7 @@ std::string view< H >::usage( unsigned int indent )
     oss << i << "        capture-on-exit[:<filename>]: capture the last image on destruction of view filter\n";
     oss << i << "        expanded: use expanded image view with resizing, zooming, etc; broken in opencv version on ubuntu 20.04\n";
     oss << i << "        noauto: no auto-sizing; may look uglier, but allows resizing image view\n";
+    oss << i << "        system-time: use system time for timestamp\n";
     oss << i << "    attention! it seems that lately using cv::imshow() in multithreaded context has been broken\n";
     oss << i << "               in opencv or in underlying x window stuff therefore,\n";
     oss << i << "               instead of: cv-cat 'view;do-something;view'\n";
