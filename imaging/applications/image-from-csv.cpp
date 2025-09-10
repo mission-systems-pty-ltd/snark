@@ -106,10 +106,11 @@ options
               middle: average of the first and last timestamp of a block
               min: minimum timestamp of a block
               default: first
+    --weight=<n>; default=1; shape line weight
     --verbose,-v: more output
 
 fields
-    basic fields: t,x,y,r,g,b,block or t,x,y,grey,block
+    basic fields: t,x,y,r,g,b,block,weight or t,x,y,grey,block,weight
     all fields
         t: image timestamp, optional
         x,y: pixel coordinates, if double, will get rounded to the nearest integer
@@ -120,6 +121,7 @@ fields
                                             if only channels[0] given, it is the same as specifying grey field
         block: image number, optional
         id: point id, optional
+        weight: primitive weight (line thickness)
 )" << std::endl;
     if( verbose )
     {
@@ -129,10 +131,10 @@ fields
     basics
         cat pixels.csv | image-from-csv --fields x,y,grey --output='rows=1200;cols=1000;type=ub' | cv-cat --output no-header 'encode=png' > test.bmp
     autoscale
-        csv-random make --type 6f --range 0,1 \
-            | csv-eval --fields i,x,y,r,g,b 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255)' \
-            | csv-paste 'line-number;size=10000' -  \
-            | image-from-csv --fields block,id,x,y,r,g,b \
+        csv-random make --type 7f --range 0,1 \
+            | csv-eval --fields i,x,y,r,g,b,w 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255);w=round(w*50)' \
+            | csv-paste 'line-number;size=100' -  \
+            | image-from-csv --fields block,id,x,y,r,g,b,weight \
                              --output 'rows=1000;cols=1000;type=3ub' \
                              --autoscale='once;proportional;centre'  \
             | cv-cat 'view;null'
@@ -295,8 +297,10 @@ struct input
     std::vector< double > channels;
     comma::uint32 block{0};
     comma::uint32 id{0};
+    comma::uint32 weight{1};
     
     input() : x( 0 ), y( 0 ), block( 0 ) {}
+    cv::Scalar color() const { cv::Scalar c; for( unsigned int j = 0; j < channels.size(); ++j ) { c[j] = channels[j]; } return c; }
 };
 
 struct autoscale
@@ -416,6 +420,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
         v.apply( "id", r.id );
+        v.apply( "weight", r.weight );
     }
     template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
     {
@@ -426,6 +431,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "channels", r.channels );
         v.apply( "block", r.block );
         v.apply( "id", r.id );
+        v.apply( "weight", r.weight );
     }
 };
 
@@ -513,7 +519,8 @@ class shape // todo: quick and dirty, make polymorphic
             switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
             {
                 case types::point:
-                    snark::cv_mat::set( m, y, x, v.channels );
+                    if( v.weight == 1 ) { snark::cv_mat::set( m, y, x, v.channels ); }
+                    else { cv::circle( m, cv::Point2i( x, y ), v.weight, v.color(), cv::FILLED ); }
                     break;
                 case types::lines:
                 {
@@ -526,8 +533,7 @@ class shape // todo: quick and dirty, make polymorphic
                     {
                         int x0 = std::floor( ( i->second.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first; // todo: quick and dirty, save previous
                         int y0 = std::floor( ( i->second.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second; // todo: quick and dirty, save previous
-                        cv::Scalar c0, c; for( unsigned int j = 0; j < v.channels.size(); ++j ) { c0[j] = i->second.channels[j]; c[j] = v.channels[j]; }
-                        cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( c0 + c ) / 2, 1, cv::LINE_AA );
+                        cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( i->second.color() + v.color() ) / 2, v.weight, cv::LINE_AA );
                     }
                     _previous[v.id] = v;
                     break;
@@ -702,6 +708,7 @@ int main( int ac, char** av )
         snark::imaging::applications::image_from_csv::input sample;
         bool is_greyscale = colours.empty();
         bool has_alpha = false;
+        sample.weight = options.value( "--weight", 1u );
         std::vector< std::string > v = comma::split( csv.fields, ',' );
         for( unsigned int i = 0; i < v.size(); ++i ) // quick and dirty, somewhat silly
         {

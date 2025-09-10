@@ -526,7 +526,7 @@ template < typename shape_type, typename config_type > static void init_( std::v
              ? comma::name_value::parser( delimiter, '=' ).get< config_type >( config_string )
              : comma::name_value::parser( unnamed_attr_name, delimiter, '=' ).get< config_type >( config_string );
     if( !cfg.filename.empty() ) { cfg.full_xpath = true; stream_shapes = std::unique_ptr< region::join_filter< shape_type > >( new region::join_filter< shape_type >( cfg, cfg.properties ) ); }
-    if( 0 < cfg.size ) header_shapes.resize( cfg.size, shape_type( cfg.properties ) );
+    if( 0 < cfg.size ) { header_shapes.resize( cfg.size, shape_type( cfg.properties ) ); }
 }
 
 } //namespace region
@@ -598,7 +598,7 @@ public:
 
     struct config : public region::config { shapes::properties properties; };
 
-        //void draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
+    //void draw( cv::Mat m ) const { cv::circle( m, center, radius, color, thickness, line_type, shift ); }
 
     struct rectangle : public region::rectangle
     {
