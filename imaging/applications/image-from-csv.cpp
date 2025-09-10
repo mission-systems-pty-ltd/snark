@@ -129,6 +129,9 @@ fields
         std::cerr<< snark::cv_mat::serialization::options::usage() << std::endl;
         std::cerr<< "input stream csv options" << std::endl << comma::csv::options::usage() << std::endl;
         std::cerr << R"(examples
+    try them; focus on image-from-csv and its options
+    on ubuntu 24.04, replace cv-cat 'view;null' with cv-view --null (opencv imshow is broken on 24.04)
+
     basics
         cat pixels.csv | image-from-csv --fields x,y,grey --output='rows=1200;cols=1000;type=ub' | cv-cat --output no-header 'encode=png' > test.bmp
     autoscale
@@ -148,6 +151,12 @@ fields
                              --autoscale='grow;proportional;centre' \
             | cv-cat 'view;null'
     shapes
+        point
+            csv-paste 'line-number;shape=5,10' value=255,0,255 line-number line-number --head=50 \
+                | csv-eval --fields x,y,r,g,b,w 'x=200+x*100;y=150+y*100;w=1+round(w/2)' \
+                | image-from-csv --fields y,x,r,g,b,weight,label \
+                                 --output 'rows=800;cols=1200;type=3ub' \
+                | cv-cat 'view=stay;null'
         lines
             ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 ) \
                 | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \
@@ -159,6 +168,12 @@ fields
                                  --output 'rows=1000;cols=1000;type=3ub' \
                                  --autoscale='once;proportional;centre'\
                                  --shape=lines \
+                | cv-cat 'view=stay;null'
+        rectangle
+            ( echo 200,100,250,150,255,0,0,5,hello; echo 500,120,100,300,0,255,0,2,world ) \
+                | image-from-csv --fields x,y,size,r,g,b,weight,label \
+                                 --shape rectangle \
+                                 --output 'rows=600;cols=1000;type=3ub' \
                 | cv-cat 'view=stay;null'
     3D projections, binary feeds, autoscaling
         basic
