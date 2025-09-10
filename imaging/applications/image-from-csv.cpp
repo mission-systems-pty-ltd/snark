@@ -121,7 +121,8 @@ fields
                                             if only channels[0] given, it is the same as specifying grey field
         block: image number, optional
         id: point id, optional
-        weight: primitive weight (line thickness)
+        weight: primitive weight (point size, line thickness)
+        label: optional label (currently implemented only for point and rectangle) 
 )" << std::endl;
     if( verbose )
     {
@@ -298,6 +299,7 @@ struct input
     comma::uint32 block{0};
     comma::uint32 id{0};
     comma::uint32 weight{1};
+    std::string label;
     
     input() : x( 0 ), y( 0 ), block( 0 ) {}
     cv::Scalar color() const { cv::Scalar c; for( unsigned int j = 0; j < channels.size(); ++j ) { c[j] = channels[j]; } return c; }
@@ -421,6 +423,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "block", r.block );
         v.apply( "id", r.id );
         v.apply( "weight", r.weight );
+        v.apply( "label", r.label );
     }
     template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
     {
@@ -432,6 +435,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "block", r.block );
         v.apply( "id", r.id );
         v.apply( "weight", r.weight );
+        v.apply( "label", r.label );
     }
 };
 
@@ -516,11 +520,15 @@ class shape // todo: quick and dirty, make polymorphic
             int x = std::floor( ( v.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
             int y = std::floor( ( v.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
             //std::cerr << "==> x,y: " << x << "," << y << " v: " << v.x << "," << v.y << " scale: " << scale.first << "," << scale.second << " offset: " << offset.first << "," << offset.second << " factor: " << factor << "," << factor << " extra offset: " << extra_offset.first << "," << extra_offset.second << std::endl;
+            cv::Point origin(x, y);
+            cv::Point label_offset( 0, 0 );
+            const auto& color = v.color();
             switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
             {
                 case types::point:
                     if( v.weight == 1 ) { snark::cv_mat::set( m, y, x, v.channels ); }
-                    else { cv::circle( m, cv::Point2i( x, y ), v.weight, v.color(), cv::FILLED ); }
+                    else { cv::circle( m, origin, v.weight, color, cv::FILLED ); }
+                    label_offset = cv::Point( -4, -3 - v.weight );
                     break;
                 case types::lines:
                 {
@@ -528,12 +536,15 @@ class shape // todo: quick and dirty, make polymorphic
                     if( i == _previous.end() )
                     { 
                         snark::cv_mat::set( m, y, x, v.channels );
+                        label_offset = cv::Point( -4, -3 - v.weight );
                     }
                     else
                     {
                         int x0 = std::floor( ( i->second.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first; // todo: quick and dirty, save previous
                         int y0 = std::floor( ( i->second.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second; // todo: quick and dirty, save previous
-                        cv::line( m, cv::Point( x0, y0 ), cv::Point( x, y ), ( i->second.color() + v.color() ) / 2, v.weight, cv::LINE_AA );
+                        const auto& end = cv::Point( x0, y0 );
+                        cv::line( m, end, origin, ( i->second.color() + color ) / 2, v.weight, cv::LINE_AA );
+                        if( !v.label.empty() ) { label_offset = ( end - origin ) / 2 + cv::Point( -4, -3 - v.weight ); } // skip if label is empty
                     }
                     _previous[v.id] = v;
                     break;
@@ -542,9 +553,11 @@ class shape // todo: quick and dirty, make polymorphic
                 {
                     int x1 = std::floor( ( v.x + v.size.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
                     int y1 = std::floor( ( v.y + v.size.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
-                    cv::rectangle( m, cv::Point( x, y ), cv::Point( x1, y1 ), v.color(), v.weight );
+                    cv::rectangle( m, origin, cv::Point( x1, y1 ), color, v.weight );
+                    label_offset = cv::Point( 7 + v.weight, 19 + v.weight ); 
                 }
             }
+            if( !v.label.empty() ) { cv::putText( m, v.label, origin + label_offset, cv::FONT_HERSHEY_SIMPLEX, 0.8, color, 1, cv::LINE_AA ); }
         }
 
     private:
