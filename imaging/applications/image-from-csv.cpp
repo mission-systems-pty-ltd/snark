@@ -132,8 +132,10 @@ fields
     try them; focus on image-from-csv and its options
     on ubuntu 24.04, replace cv-cat 'view;null' with cv-view --null (opencv imshow is broken on 24.04)
 
-    basics
-        cat pixels.csv | image-from-csv --fields x,y,grey --output='rows=1200;cols=1000;type=ub' | cv-cat --output no-header 'encode=png' > test.bmp
+    generate image from pixel coordinates and values
+        csv-paste 'line-number;shape=256,256;repeat=1' value=128 'line-number;shape=256,256' \
+            | image-from-csv --fields x,y,r,g,b --output 'rows=256;cols=256;type=3ub' \
+            | cv-cat 'resize=2;view=stay;null'
     autoscale
         csv-random make --type 7f --range 0,1 \
             | csv-eval --fields i,x,y,r,g,b,w 'i=round(i*10);y/=3;r=round(r*255);g=round(g*255);b=round(b*255);w=round(w*50)' \
@@ -170,10 +172,12 @@ fields
                                  --shape=lines \
                 | cv-cat 'view=stay;null'
         rectangle
-            ( echo 200,100,250,150,255,0,0,5,hello; echo 500,120,100,300,0,255,0,2,world ) \
+            ( echo 200,100,250,150,255,0,0,5,hello; \
+              echo 500,120,100,600,0,255,0,2,world; \
+              echo 400,350,600,150,0,255,255,3,jupiter ) \
                 | image-from-csv --fields x,y,size,r,g,b,weight,label \
-                                 --shape rectangle \
-                                 --output 'rows=600;cols=1000;type=3ub' \
+                                --shape rectangle \
+                                --output 'rows=800;cols=1200;type=3ub' \
                 | cv-cat 'view=stay;null'
     3D projections, binary feeds, autoscaling
         basic
