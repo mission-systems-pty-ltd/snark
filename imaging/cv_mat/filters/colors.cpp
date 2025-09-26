@@ -100,7 +100,7 @@ template < typename H > std::pair< H, cv::Mat > map< H >::operator()( std::pair<
     n.second = cv::Mat( m.second.rows, m.second.cols, CV_8UC1 );
     for( int row = 0; row < m.second.rows; ++row ) // todo? use tbb::parallel_for? use an opencv native function if such exists?
     {
-        for( int col = 0; col < m.second.rows; ++col )
+        for( int col = 0; col < m.second.cols; ++col )
         {
             const auto& p = m.second.template at< cv::Vec3b >( row, col );
             auto i = _reverted.find( pixel_to_uint( p ) );
