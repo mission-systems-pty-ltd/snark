@@ -1,0 +1,43 @@
+#!/bin/bash
+
+function _pinhole()
+{
+    local k1=$1 k2=$2 k3=$3 p1=$4 p2=$5
+    cat <<eof
+sensor_size/x=$width
+sensor_size/y=$height
+image_size/x=$width
+image_size/y=$height
+focal_length=$width
+distortion/radial/k1=$k1
+distortion/radial/k2=$k2
+distortion/radial/k3=$k3
+distortion/tangential/p1=$p1
+distortion/tangential/p2=$p2
+eof
+}
+
+image=$1
+[[ -n "$image" ]] || { echo "usage: $0 <image>" >&2; exit 1; }
+IFS=, read _ height width _ < <( cv-cat --file $image --output header-only | csv-from-bin t,3ui )
+rwidth=1200
+rheight=$(( height * rwidth / width ))
+cheight=$(( rheight + 30 ))
+
+csv-sliders 'k1;min=-10;max=10;step=0.05;default=0' \
+            'k2;min=-10;max=10;step=0.05;default=0' \
+            'k3;min=-10;max=10;step=0.05;default=0' \
+            'p1;min=-10;max=10;step=0.05;default=0' \
+            'p2;min=-10;max=10;step=0.05;default=0' \
+            --on-change \
+            --window-geometry 100,$(( cheight + 220 )),400 \
+            --window-title "manual undistortion calibration" \
+    | while IFS=, read k1 k2 k3 p1 p2; do
+          echo "$0: on k: $k1 $k2 $k3 p: $p1 $p2" >&2
+          _pinhole $k1 $k2 $k3 $p1 $p2 | name-value-convert --to json > pinhole.json
+          ktext="text=k: $k1 $k2 $k3,20,$(( cheight - 5 )),red,,,scale=0.4"
+          ptext="text=p: $p1 $p2,$(( cwidth / 2 )),$(( cheight - 5 )),red,,,scale=0.4"
+          cv-cat --file $image "undistort=pinhole.json;resize=$rwidth,$rheight;canvas=$rwidth,$cheight;$ktext;$ptext"
+      done \
+    | cv-view --null ",$image,,0,0"
+
