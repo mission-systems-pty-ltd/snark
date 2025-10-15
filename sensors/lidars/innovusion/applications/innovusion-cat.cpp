@@ -1,7 +1,7 @@
-// Copyright (c) 2021,2022 Mission Systems Pty Ltd
+// Copyright (c) 2021-2025 Mission Systems Pty Ltd
 
-#include "../lidar.h"
-#include "../traits.h"
+#include "../inno_lidar_sdk.h"
+
 #include <comma/application/command_line_options.h>
 #include <comma/application/signal_flag.h>
 #include <comma/base/last_error.h>
@@ -9,8 +9,29 @@
 #include <thread>
 #include <tbb/concurrent_queue.h>
 
-const std::string default_address( "172.168.1.10" );
-const unsigned int default_port( 8001 );
+// Data
+// ----------------
+//
+// We register a callback method to accept a frame whenever it's ready.
+//
+// The SDK allocates memory for the frame but in the v1 library we can free it, so the logic is:
+// callback: add pointer to data to queue and return, indicating that we will free the memory
+// processing thread: watch for items on the queue, pop them and output data to stdout, free memory
+//
+// In the v3 library there is no option to manage the memory so everything is done in the callback:
+// callback: receive pointer to data, output to stdout, return
+
+
+// Alarms and logs
+// ----------------
+//
+// There are two kinds of run-time message:
+//
+// * the SDK will output messages to a file descriptor set by inno_lidar_set_logs - we use stderr;
+//   the log level is set by inno_lidar_set_log_level()
+//
+// * the device will send messages via a callback set by inno_lidar_set_callbacks()
+
 const std::string default_name( "innovusion_lidar" );
 const std::string default_output_type( "cooked" );
 const unsigned int default_max_latency( 0 );
@@ -21,6 +42,9 @@ static void bash_completion( unsigned int const ac, char const* const* av )
         " --help -h --verbose -v --debug"
         " --output-fields --output-format --output-type"
         " --address --port --name"
+#if INNOVUSION_VERSION_MAJOR == 3
+        " --udp-port"
+#endif
         " --max-latency --sample-data --time-offset --checksum"
         ;
     std::cout << completion_options << std::endl;
@@ -37,8 +61,11 @@ static void usage( bool verbose = false )
     std::cerr << "\n    --help,-h:             show this help";
     std::cerr << "\n    --verbose,-v:          more output to stderr";
     std::cerr << "\n    --debug:               even more output";
-    std::cerr << "\n    --address=<ip>:        device address; default=" << default_address;
-    std::cerr << "\n    --port=<num>:          device port; default=" << default_port;
+    std::cerr << "\n    --address=<ip>:        device address; default=" << snark::innovusion::default_address;
+    std::cerr << "\n    --port=<num>:          device port; default=" << snark::innovusion::default_port;
+#if INNOVUSION_VERSION_MAJOR == 3
+    std::cerr << "\n    --udp-port=<num>:      device udp port; default=" << snark::innovusion::default_udp_port;
+#endif
     std::cerr << "\n    --max-latency=<ms>:    maximum latency in ms; default=" << default_max_latency;
     std::cerr << "\n    --name=<name>:         device name (max 32 chars); default=" << default_name;
     std::cerr << "\n    --checksum:            add crc checksum to output (cooked data only)";
@@ -105,6 +132,7 @@ struct null_output {};
 template< typename T >
 struct writer
 {
+#if INNOVUSION_VERSION_MAJOR == 1
     static void process()
     {
         while( !shutdown_requested )
@@ -115,7 +143,11 @@ struct writer
             {
                 // latest_frame is the latest frame received on the queue
                 // frame is the frame we are processing now
+#if INNOVUSION_VERSION_MAJOR == 3
+                InnoTimestampUs latency = latest_frame_start_time - frame->common.ts_start_us;
+#else
                 inno_timestamp_us_t latency = latest_frame_start_time - frame->ts_us_start;
+#endif
                 if( comma::verbose )
                 {
                     if( latency > 0 ) { std::cerr << comma::verbose.app_name() << ": latency = " << latency << "µs"; }
@@ -123,11 +155,12 @@ struct writer
                     if( latency > 0 ) { std::cerr << std::endl; }
                 }
                 if( latency <= max_latency ) { output( frame ); }
-                free( frame );
+                free( (void*)frame );
             }
             std::this_thread::sleep_for( std::chrono::milliseconds( 40 ));
         }
     }
+#endif
 
     // We roll the output routine by hand rather than use comma::csv::binary_output_stream
     // so that we can use a custom write() routine that writes to the stdout file descriptor
@@ -158,6 +191,20 @@ struct writer
         // the first frame.
         static std::vector< char > buf;
 
+#if INNOVUSION_VERSION_MAJOR == 3
+        comma::verbose << "received " << frame->item_number << " points" << std::endl;
+        if( frame->item_number * record_size > buf.size() )
+        {
+            std::cerr << "innovusion-cat: received " << frame->item_number << " points, resizing output buffer" << std::endl;
+            buf.resize( static_cast< size_t >( frame->item_number * record_size * 1.05 ));     // 5% buffer to minimise resizes
+        }
+
+        for( unsigned int i = 0; i < frame->item_number; i++ )
+        {
+            binary.put( T( frame, i, timeframe_offset_us ), &buf[ i * record_size ] );
+        }
+        write( &buf[0], frame->item_number * record_size );
+#else
         if( frame->points_number * record_size > buf.size() )
         {
             std::cerr << "innovusion-cat: received " << frame->points_number << " points, resizing output buffer" << std::endl;
@@ -169,6 +216,7 @@ struct writer
             binary.put( T( frame, i, timeframe_offset_us ), &buf[ i * record_size ] );
         }
         write( &buf[0], frame->points_number * record_size );
+#endif
     }
 
     static void write( const char* buf, unsigned int count )
@@ -184,6 +232,8 @@ struct writer
     }
 };
 
+static std::unique_ptr< snark::innovusion::log > api_log;
+
 template< typename T >
 struct app
 {
@@ -195,24 +245,35 @@ struct app
         if( options.exists( "--output-fields" )) { std::cout << output_fields() << std::endl; return 0; }
         if( options.exists( "--output-format" )) { std::cout << output_format() << std::endl; return 0; }
 
-        std::string address = options.value< std::string >( "--address", default_address );
-        int port = options.value< unsigned int >( "--port", default_port );
+        std::string address = options.value< std::string >( "--address", snark::innovusion::default_address );
+        int port = options.value< unsigned int >( "--port", snark::innovusion::default_port );
+#if INNOVUSION_VERSION_MAJOR == 3
+        int udp_port = options.value< unsigned int >( "--udp-port", snark::innovusion::default_udp_port );
+#endif
         std::string name = options.value< std::string >( "--name", default_name );
         timeframe_offset_us = options.value< int64_t >( "--time-offset", 0 ) * 1000000;
 
-        inno_lidar_set_logs( STDERR_FILENO, STDERR_FILENO, nullptr );
-        // There are two more log levels beyond INFO: TRACE and EVERYTHING,
-        // but they log an insane amount so we'll set the debug level to be INFO
-        // Even INFO we'll only activate for --debug, not for --verbose
-        inno_lidar_set_log_level( options.exists( "--debug" ) ? INNO_LOG_INFO_LEVEL : INNO_LOG_WARNING_LEVEL );
+        // set the handling for messages from the api
+        api_log.reset( new snark::innovusion::log() );
+        api_log->set_logs();
+
+        // default level is "warn"
+        if( options.exists( "--debug" )) { api_log->set_log_level( snark::innovusion::log::Level::debug ); }
+        else if( options.exists( "--verbose,-v" )) { api_log->set_log_level( snark::innovusion::log::Level::info ); }
 
         comma::signal_flag is_shutdown;
         inno_lidar_setup_sig_handler();
 
+#if INNOVUSION_VERSION_MAJOR == 1
         std::thread output_thread( &writer<T>::process );
+#endif
 
         snark::innovusion::lidar lidar;
+#if INNOVUSION_VERSION_MAJOR == 3
+        lidar.init( name, address, port, udp_port, message_callback, data_callback, status_callback );
+#else
         lidar.init( name, address, port, alarm_callback, frame_callback );
+#endif
         lidar.start();
 
         while( !is_shutdown && !fatal_error && std::cout.good() )
@@ -220,21 +281,71 @@ struct app
             std::this_thread::sleep_for( std::chrono::milliseconds( 500 ));
         }
         shutdown_requested = true;
+#if INNOVUSION_VERSION_MAJOR == 1
         output_thread.join();
+#endif
         if( is_shutdown ) { std::cerr << comma::verbose.app_name() << ": interrupted by signal" << std::endl; }
         if( fatal_error ) { std::cerr << comma::verbose.app_name() << ": fatal error, exiting" << std::endl; return 1; }
         return 0;
     }
 
+#if INNOVUSION_VERSION_MAJOR == 3
+    static bool has_newline( const char* str)
+    {
+        if( !str ) return false;
+        size_t len = std::strlen( str );
+        return( len > 0 && str[len-1] == '\n' );
+    }
+
+    static void message_callback( int lidar_handle, void* context, uint32_t from_remote
+                                , enum InnoMessageLevel level, enum InnoMessageCode code, const char* error_message )
+    {
+        if( api_log->publish_msg( level ))
+        {
+            std::cerr << comma::verbose.app_name() << ": Msg " << error_message;
+            if( ! has_newline( error_message )) { std::cerr << std::endl; }
+        }
+        if( level == INNO_MESSAGE_LEVEL_FATAL || level == INNO_MESSAGE_LEVEL_CRITICAL ) { fatal_error = true; }
+    }
+
+    static int status_callback( int lidar_handle, void* context, const InnoStatusPacket* status )
+    {
+        return 0;
+    }
+#else
     static void alarm_callback( int lidar_handle, void* context
                               , enum inno_alarm error_level, enum inno_alarm_code alarm_code, const char* error_message )
     {
         std::cerr << comma::verbose.app_name() << ": [" << snark::innovusion::alarm_type_to_string( error_level ) << "] "
                   << snark::innovusion::alarm_code_to_string( alarm_code )
                   << " \"" << error_message << "\"" << std::endl;
-        if( error_level >= INNO_ALARM_CRITICAL ) { fatal_error = true; }
+        if( error_level == INNO_ALARM_FATAL || error_level == INNO_ALARM_CRITICAL ) { fatal_error = true; }
     }
+#endif
 
+#if INNOVUSION_VERSION_MAJOR == 3
+    static int data_callback( int lidar_handle, void* context, const InnoDataPacket* frame )
+    {
+        //static inno_timestamp_us_t oldest_valid_time = 1609419600000000;        // 2021-01-01
+        static inno_timestamp_us_t oldest_valid_time = 0;        // 1970-01-01
+
+        if( frame->confidence_level != INNO_FULL_CONFIDENCE )
+        {
+            std::cerr << comma::verbose.app_name() << ": dropping frame " << frame->idx
+                      << ", confidence level = " << snark::innovusion::confidence_level_to_string( static_cast< InnoConfidenceLevel >( frame->confidence_level )) << std::endl;
+            return 1;
+        }
+        if( frame->common.ts_start_us < oldest_valid_time )
+        {
+            std::cerr << comma::verbose.app_name() << ": dropping frame " << frame->idx
+                      << ", start time of " << frame->common.ts_start_us/1000000 << " (seconds from epoch) too old" << std::endl;
+            return 1;
+        }
+        latest_frame_start_time = frame->common.ts_start_us;
+        writer< T >::output( frame );
+        return 0;        // they free memory
+    }
+#else
     static int frame_callback( int lidar_handle, void* context, inno_frame* frame )
     {
         static inno_timestamp_us_t oldest_valid_time = 1609419600000000;        // 2021-01-01
@@ -255,6 +366,7 @@ struct app
         queue.push( frame );
         return 1;        // we free memory
     }
+#endif
 };
 
 template<> std::string app< snark::innovusion::raw_output >::output_fields()
@@ -262,10 +374,17 @@ template<> std::string app< snark::innovusion::raw_output >::output_fields()
 template<> std::string app< snark::innovusion::raw_output >::output_format()
     { COMMA_THROW( comma::exception, "raw data does not have output format" ); }
 
+#if INNOVUSION_VERSION_MAJOR == 3
+template<> void writer< snark::innovusion::raw_output >::output( const InnoDataPacket* frame )
+{
+    std::cout.write( (const char*)&frame->xyz_points[0], frame->item_number * sizeof( InnoXyzPoint ));
+}
+#else
 template<> void writer< snark::innovusion::raw_output >::output( inno_frame* frame )
 {
     std::cout.write( (const char*)&frame->points[0], frame->points_number * sizeof( inno_point ));
 }
+#endif
 
 template<> std::string app< snark::innovusion::null_output >::output_fields()
     { COMMA_THROW( comma::exception, "null data does not have output fields" ); }
@@ -280,10 +399,13 @@ int main( int argc, char** argv )
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
+        if( options.exists( "--debug" )) { comma::verbose.init( true, argv[0] ); }
 
         output_type = output_type_from_string( options.value< std::string >( "--output-type", default_output_type ));
         max_latency = options.value< unsigned int >( "--max-latency", default_max_latency ) * 1000; // µs
         bool checksum = options.exists( "--checksum" );
+
+        comma::verbose << "starting..." << std::endl;
 
         if( checksum )
         {

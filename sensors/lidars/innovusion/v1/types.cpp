@@ -109,7 +109,7 @@ output_data_full_t::output_data_full_t( const inno_frame* frame_, unsigned int i
     t = inno_time_to_ptime( frame_->ts_us_start, frame_->points[index].ts_100us, timeframe_offset_us );
 }
 
-std::string alarm_type_to_string( inno_alarm alarm_type )
+const std::string alarm_type_to_string( inno_alarm alarm_type )
 {
     switch( alarm_type )
     {
@@ -122,7 +122,7 @@ std::string alarm_type_to_string( inno_alarm alarm_type )
     }
 }
 
-std::string alarm_code_to_string( inno_alarm_code alarm_code )
+const std::string alarm_code_to_string( inno_alarm_code alarm_code )
 {
     switch( alarm_code )
     {
@@ -158,7 +158,7 @@ std::string alarm_code_to_string( inno_alarm_code alarm_code )
     }
 };
 
-std::string timestamp_sync_to_string( inno_timestamp_sync timestamp_sync )
+const std::string timestamp_sync_to_string( inno_timestamp_sync timestamp_sync )
 {
     switch( timestamp_sync )
     {

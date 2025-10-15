@@ -1,13 +1,18 @@
-// Copyright (c) 2021 Mission Systems Pty Ltd
+// Copyright (c) 2025 Mission Systems Pty Ltd
 
 #pragma once
 
-#include <inno_lidar_api.h>
+#include <sdk_common/inno_lidar_api.h>
 #include <comma/base/types.h>
 #include <comma/csv/format.h>
 #include <boost/crc.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
+
+// some convenient aliases of v1 types for v3
+
+typedef InnoTimestampUs inno_timestamp_us_t;
+typedef const InnoDataPacket inno_frame;
 
 namespace snark { namespace innovusion {
 
@@ -24,7 +29,7 @@ struct frame_t
     unsigned char timestamp_sync;
 
     frame_t();
-    frame_t( const inno_frame* frame );
+    frame_t( const InnoDataPacket* frame );
 };
 
 // representation of inno_point
@@ -34,7 +39,7 @@ struct point_t
     float y;
     float z;
     float radius;
-    comma::uint16 ts_100us;
+    comma::uint16 ts_10us;
     comma::uint16 value;                // reflectance or intensity: 1-255
     comma::uint16 flags;
     comma::uint16 channel;              // 0 upper, 1 lower
@@ -42,7 +47,7 @@ struct point_t
     comma::uint16 scan_idx;
 
     point_t();
-    point_t( const inno_point* point );
+    point_t( const InnoXyzPoint* point );
 };
 
 // subset of the point and frame data
@@ -57,7 +62,7 @@ struct output_data_t
     comma::uint16 value;                // reflectance or intensity
 
     output_data_t();
-    output_data_t( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us );
+    output_data_t( const InnoDataPacket* frame, unsigned int index, int64_t timeframe_offset_us );
 
     void to_bin( char* buf ) const;
 
@@ -83,7 +88,7 @@ struct output_data_full_t
     point_t point;
 
     output_data_full_t();
-    output_data_full_t( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us );
+    output_data_full_t( const InnoDataPacket* frame, unsigned int index, int64_t timeframe_offset_us );
 
     static const bool full_xpath = true;
 };
@@ -100,7 +105,7 @@ struct checksummed
     {
         calc_crc();
     }
-    checksummed( const inno_frame* frame, unsigned int index, int64_t timeframe_offset_us )
+    checksummed( const InnoDataPacket* frame, unsigned int index, int64_t timeframe_offset_us )
         : data( frame, index, timeframe_offset_us )
     {
         calc_crc();
@@ -120,8 +125,9 @@ private:
     }
 };
 
-std::string alarm_type_to_string( inno_alarm alarm_type );
-std::string alarm_code_to_string( inno_alarm_code alarm_code );
-std::string timestamp_sync_to_string( inno_timestamp_sync timestamp_sync );
+const std::string message_level_to_string( InnoMessageLevel type );
+const std::string message_code_to_string( InnoMessageCode code );
+const std::string confidence_level_to_string( InnoConfidenceLevel confidence_level );
+const std::string timestamp_sync_to_string( InnoTimeSyncType timestamp_sync );
 
 } } // namespace snark { namespace innovusion {
