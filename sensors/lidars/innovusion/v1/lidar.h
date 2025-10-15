@@ -7,6 +7,9 @@
 
 namespace snark { namespace innovusion {
 
+const std::string default_address( "172.168.1.10" );
+const unsigned int default_port( 8001 );
+
 // thin wrapper around the Innovusion API
 
 class lidar
