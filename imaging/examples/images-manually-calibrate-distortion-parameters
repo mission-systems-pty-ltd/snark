@@ -36,7 +36,7 @@ csv-sliders 'k1;min=-10;max=10;step=0.05;default=0' \
           echo "$0: on k: $k1 $k2 $k3 p: $p1 $p2" >&2
           _pinhole $k1 $k2 $k3 $p1 $p2 | name-value-convert --to json > pinhole.json
           ktext="text=k: $k1 $k2 $k3,20,$(( cheight - 5 )),red,,,scale=0.4"
-          ptext="text=p: $p1 $p2,$(( cwidth / 2 )),$(( cheight - 5 )),red,,,scale=0.4"
+          ptext="text=p: $p1 $p2,$(( rwidth / 2 )),$(( cheight - 5 )),red,,,scale=0.4"
           cv-cat --file $image "undistort=pinhole.json;resize=$rwidth,$rheight;canvas=$rwidth,$cheight;$ktext;$ptext"
       done \
     | cv-view --null ",$image,,0,0"
