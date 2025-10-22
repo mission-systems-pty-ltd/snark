@@ -12,7 +12,7 @@
 // some convenient aliases of v1 types for v3
 
 typedef InnoTimestampUs inno_timestamp_us_t;
-typedef const InnoDataPacket inno_frame;
+//typedef const InnoDataPacket inno_frame;
 
 namespace snark { namespace innovusion {
 
