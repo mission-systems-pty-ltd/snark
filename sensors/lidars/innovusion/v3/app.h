@@ -8,6 +8,7 @@
 #include "log.h"
 #include "types.h"
 #include <comma/application/signal_flag.h>
+#include <atomic>
 #include <thread>
 
 namespace snark { namespace innovusion {

@@ -336,6 +336,10 @@ CMAKE_DEPENDENT_OPTION( snark_build_web_feeds "snark: build web feeds" ON "snark
 CMAKE_DEPENDENT_OPTION( snark_build_batteries_braille "snark: build braille battery" OFF "snark_build_batteries" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_batteries_ocean "snark: build ocean battery" OFF "snark_build_batteries" OFF )
 
+if( snark_build_sensors_innovusion )
+    set( snark_build_sensors_innovusion_sdk_versions "1;3" CACHE STRING "list of Innovusion SDK versions to build" )
+endif()
+
 SET( snark_system_manager "auto" CACHE STRING "the system and service manager of the operating system, options are: auto init systemd" )
 IF( snark_system_manager STREQUAL "auto" )
     EXECUTE_PROCESS( COMMAND cat /proc/1/comm
