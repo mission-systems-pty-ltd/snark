@@ -22,10 +22,7 @@ if( WIN32 )
     message( FATAL_ERROR "not implemented (but could be)" )
 endif()
 
-# default to building all versions
-set( innovusion_build_versions "1;3" )
-
-foreach( innovusion_build_version IN LISTS innovusion_build_versions )
+foreach( innovusion_build_version IN LISTS snark_build_sensors_innovusion_sdk_versions )
     add_subdirectory(v${innovusion_build_version})
 endforeach()
 

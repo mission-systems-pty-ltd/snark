@@ -5,7 +5,7 @@ if( "${version_match}" STREQUAL "" )
         )
 endif()
 
-foreach( innovusion_build_version IN LISTS innovusion_build_versions )
+foreach( innovusion_build_version IN LISTS snark_build_sensors_innovusion_sdk_versions )
     message( STATUS "build innovusion-cat version ${innovusion_build_version}" )
 
     set( application_name innovusion-cat${innovusion_build_version} )
