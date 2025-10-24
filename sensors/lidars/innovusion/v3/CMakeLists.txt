@@ -10,11 +10,7 @@ set( TARGET_NAME snark_${PROJECT}${Innovusion_VERSION_MAJOR} )
 
 set( Innovusion_VERSION_DIR "v${Innovusion_VERSION_MAJOR}" )
 
-configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/../version.h.in
-                ${CMAKE_CURRENT_SOURCE_DIR}/version.h
-                @ONLY )
-
-file( GLOB source *.cpp )
+file( GLOB source *.cpp ../common/*.cpp )
 file( GLOB includes *.h )
 
 source_group( ${TARGET_NAME} FILES ${source} ${includes} )

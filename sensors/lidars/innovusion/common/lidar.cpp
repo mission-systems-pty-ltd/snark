@@ -1,14 +1,9 @@
 // Copyright (c) 2025 Mission Systems Pty Ltd
 
-#pragma once
-
-#include <cstdint>
+#include "lidar.h"
 
 namespace snark { namespace innovusion {
 
-extern int64_t timeframe_offset_us;
-
-struct raw_output {};
-struct null_output {};
+int64_t timeframe_offset_us = 0;
 
 } } // namespace snark { namespace innovusion {

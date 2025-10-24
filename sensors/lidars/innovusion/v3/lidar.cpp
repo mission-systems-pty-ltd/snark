@@ -6,8 +6,6 @@
 
 namespace snark { namespace innovusion {
 
-int64_t timeframe_offset_us = 0;
-
 lidar::lidar()
     : handle( 0 )
 {}

@@ -14,8 +14,7 @@ namespace snark { namespace innovusion {
 const std::string default_address( "172.168.1.10" );
 const unsigned int default_port( 8010 );
 const unsigned int default_udp_port( 8010 );
-
-extern int64_t timeframe_offset_us;
+const unsigned int default_max_latency( 0 );
 
 // thin wrapper around the Innovusion API
 
