@@ -6,15 +6,17 @@
 #include <inno_lidar_api.h>
 #include <comma/base/last_error.h>
 #include <comma/csv/stream.h>
+#include <tbb/concurrent_queue.h>
 #include <string>
+#include <thread>
 
 namespace snark { namespace innovusion {
 
 const std::string default_address( "172.168.1.10" );
 const unsigned int default_port( 8001 );
+const unsigned int default_max_latency( 0 );
 
-// TODO: probably could do this better
-extern int64_t timeframe_offset_us;
+static std::atomic< inno_timestamp_us_t > latest_frame_start_time;
 
 // thin wrapper around the Innovusion API
 
@@ -39,28 +41,30 @@ private:
 template< typename T >
 struct writer
 {
-    static void process()
+    static void process( tbb::concurrent_queue< inno_frame* >& queue
+                       , std::atomic< bool >& shutdown_requested
+                       , inno_timestamp_us_t max_latency )
     {
-        // while( !shutdown_requested )
-        // {
-        //     inno_frame* frame;
-        //     // non-blocking, as opposed to concurrent_bounded_queue::pop()
-        //     while( queue.try_pop( frame ) && !shutdown_requested )
-        //     {
-        //         // latest_frame is the latest frame received on the queue
-        //         // frame is the frame we are processing now
-        //         inno_timestamp_us_t latency = latest_frame_start_time - frame->ts_us_start;
-        //         if( comma::verbose )
-        //         {
-        //             if( latency > 0 ) { std::cerr << comma::verbose.app_name() << ": latency = " << latency << "µs"; }
-        //             if( latency > max_latency ) { std::cerr << "...dropping frame"; }
-        //             if( latency > 0 ) { std::cerr << std::endl; }
-        //         }
-        //         if( latency <= max_latency ) { output( frame ); }
-        //         free( (void*)frame );
-        //     }
-        //     std::this_thread::sleep_for( std::chrono::milliseconds( 40 ));
-        // }
+        while( !shutdown_requested )
+        {
+            inno_frame* frame;
+            // non-blocking, as opposed to concurrent_bounded_queue::pop()
+            while( queue.try_pop( frame ) && !shutdown_requested )
+            {
+                // latest_frame is the latest frame received on the queue
+                // frame is the frame we are processing now
+                inno_timestamp_us_t latency = latest_frame_start_time - frame->ts_us_start;
+                if( comma::verbose )
+                {
+                    if( latency > 0 ) { std::cerr << comma::verbose.app_name() << ": latency = " << latency << "µs"; }
+                    if( latency > max_latency ) { std::cerr << "...dropping frame"; }
+                    if( latency > 0 ) { std::cerr << std::endl; }
+                }
+                if( latency <= max_latency ) { output( frame ); }
+                free( (void*)frame );
+            }
+            std::this_thread::sleep_for( std::chrono::milliseconds( 40 ));
+        }
     }
 
     // We roll the output routine by hand rather than use comma::csv::binary_output_stream
@@ -94,7 +98,7 @@ struct writer
 
         if( frame->points_number * record_size > buf.size() )
         {
-            std::cerr << "innovusion-cat: received " << frame->points_number << " points, resizing output buffer" << std::endl;
+            std::cerr << comma::verbose.app_name() << ": received " << frame->points_number << " points, resizing output buffer" << std::endl;
             buf.resize( static_cast< size_t >( frame->points_number * record_size * 1.05 ));     // 5% buffer to minimise resizes
         }
 

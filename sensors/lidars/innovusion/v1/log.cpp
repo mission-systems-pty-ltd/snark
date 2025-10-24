@@ -36,19 +36,19 @@ void log::set_log_level( log::Level level )
     {
         case log::Level::warn:
             inno_lidar_set_log_level( INNO_LOG_WARNING_LEVEL );
-            log_level = INNO_LOG_WARNING_LEVEL;
+            msg_level = INNO_LOG_WARNING_LEVEL;
             break;
         case log::Level::info:
             inno_lidar_set_log_level( INNO_LOG_WARNING_LEVEL );
-            log_level = INNO_LOG_WARNING_LEVEL;
+            msg_level = INNO_LOG_WARNING_LEVEL;
             break;
         case log::Level::debug:
             inno_lidar_set_log_level( INNO_LOG_INFO_LEVEL );
-            log_level = INNO_LOG_INFO_LEVEL;
+            msg_level = INNO_LOG_INFO_LEVEL;
             break;
         case log::Level::all:
             inno_lidar_set_log_level( INNO_LOG_EVERYTHING_LEVEL );
-            log_level = INNO_LOG_EVERYTHING_LEVEL;
+            msg_level = INNO_LOG_EVERYTHING_LEVEL;
             break;
     }
 }

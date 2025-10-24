@@ -1,10 +1,8 @@
 // Copyright (c) 2021,2022,2025 Mission Systems Pty Ltd
 
+#include <comma/application/command_line_options.h>
 #include "app.h"
 #include "traits.h"
-#include "version.h"
-
-#include <comma/application/command_line_options.h>
 
 // Data
 // ----------------
@@ -29,21 +27,10 @@
 //
 // * the device will send messages via a callback set by inno_lidar_set_callbacks()
 
-const std::string default_output_type( "cooked" );
-const unsigned int default_max_latency( 0 );
-
 static void bash_completion( unsigned int const ac, char const* const* av )
 {
-    static const char* completion_options =
-        " --help -h --verbose -v --debug"
-        " --output-fields --output-format --output-type"
-        " --address --port --name"
-#if INNOVUSION_VERSION_MAJOR == 3
-        " --udp-port"
-#endif
-        " --max-latency --sample-data --time-offset --checksum"
-        ;
-    std::cout << completion_options << std::endl;
+    for( const auto& o : snark::innovusion::app<void>::available_options() ) { std::cout << " " << o; }
+    std::cout << std::endl;
     exit( 0 );
 }
 
@@ -54,22 +41,7 @@ static void usage( bool verbose = false )
     std::cerr << "\nUsage: " << comma::verbose.app_name() << " [<options>]";
     std::cerr << "\n";
     std::cerr << "\nOptions:";
-    std::cerr << "\n    --help,-h:             show this help";
-    std::cerr << "\n    --verbose,-v:          more output to stderr";
-    std::cerr << "\n    --debug:               even more output";
-    std::cerr << "\n    --address=<ip>:        device address; default=" << snark::innovusion::default_address;
-    std::cerr << "\n    --port=<num>:          device port; default=" << snark::innovusion::default_port;
-#if INNOVUSION_VERSION_MAJOR == 3
-    std::cerr << "\n    --udp-port=<num>:      device udp port; default=" << snark::innovusion::default_udp_port;
-#endif
-    std::cerr << "\n    --max-latency=<ms>:    maximum latency in ms; default=" << default_max_latency;
-    std::cerr << "\n    --name=<name>:         device name (max 32 chars); default="; // TODO: << default_name;
-    std::cerr << "\n    --checksum:            add crc checksum to output (cooked data only)";
-    std::cerr << "\n    --output-fields:       print output fields for cooked or full data and exit";
-    std::cerr << "\n    --output-format:       print output format for cooked or full data and exit";
-    std::cerr << "\n    --output-type=<type>:  one of none, raw, cooked, full; default=" << default_output_type;
-    std::cerr << "\n    --sample-data=[<dir>]: TODO: read saved data from <dir>";
-    std::cerr << "\n    --time-offset=[<sec>]: offset timestamps by given seconds";
+    for( const auto& o : snark::innovusion::app<void>::option_descriptions() ) { std::cerr << "\n    " << o; }
     std::cerr << "\n";
     std::cerr << "\nOutput types:";
     std::cerr << "\n    none:   no output, useful for benchmarking the underlying SDK";
@@ -111,17 +83,6 @@ output_type_t output_type_from_string( const std::string& output_type_str )
 }
 
 static output_type_t output_type = output_type_t::cooked;
-static inno_timestamp_us_t max_latency = 0;
-
-template<> std::string snark::innovusion::app< snark::innovusion::raw_output >::output_fields()
-    { COMMA_THROW( comma::exception, "raw data does not have output fields" ); }
-template<> std::string snark::innovusion::app< snark::innovusion::raw_output >::output_format()
-    { COMMA_THROW( comma::exception, "raw data does not have output format" ); }
-
-template<> std::string snark::innovusion::app< snark::innovusion::null_output >::output_fields()
-    { COMMA_THROW( comma::exception, "null data does not have output fields" ); }
-template<> std::string snark::innovusion::app< snark::innovusion::null_output >::output_format()
-    { COMMA_THROW( comma::exception, "null data does not have output format" ); }
 
 int main( int argc, char** argv )
 {
@@ -131,8 +92,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if( options.exists( "--debug" )) { comma::verbose.init( true, argv[0] ); }
 
-        output_type = output_type_from_string( options.value< std::string >( "--output-type", default_output_type ));
-        max_latency = options.value< unsigned int >( "--max-latency", default_max_latency ) * 1000; // µs
+        output_type = output_type_from_string( options.value< std::string >( "--output-type", snark::innovusion::default_output_type ));
         bool checksum = options.exists( "--checksum" );
 
         comma::verbose << "starting..." << std::endl;
@@ -141,7 +101,7 @@ int main( int argc, char** argv )
         {
             switch( output_type )
             {
-                case output_type_t::cooked: return snark::innovusion::app< snark::innovusion::checksummed< snark::innovusion::output_data_t > >::run( options );
+                case output_type_t::cooked: return snark::innovusion::app< snark::innovusion::checksummed< snark::innovusion::output_data_t > >().run( options );
                 default: std::cerr << "--checksum only supported for --output-type=cooked" << std::endl; return 1;
             }
         }
@@ -149,10 +109,10 @@ int main( int argc, char** argv )
         {
             switch( output_type )
             {
-                case output_type_t::raw:    return snark::innovusion::app< snark::innovusion::raw_output >::run( options );
-                case output_type_t::cooked: return snark::innovusion::app< snark::innovusion::output_data_t >::run( options );
-                case output_type_t::full:   return snark::innovusion::app< snark::innovusion::output_data_full_t >::run( options );
-                case output_type_t::none:   return snark::innovusion::app< snark::innovusion::null_output >::run( options );
+                case output_type_t::raw:    return snark::innovusion::app< snark::innovusion::raw_output >().run( options );
+                case output_type_t::cooked: return snark::innovusion::app< snark::innovusion::output_data_t >().run( options );
+                case output_type_t::full:   return snark::innovusion::app< snark::innovusion::output_data_full_t >().run( options );
+                case output_type_t::none:   return snark::innovusion::app< snark::innovusion::null_output >().run( options );
             }
         }
     }

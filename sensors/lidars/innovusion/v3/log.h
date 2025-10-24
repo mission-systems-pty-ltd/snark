@@ -4,25 +4,16 @@
 
 #pragma once
 
-#include <sdk_common/inno_lidar_api.h>
+#include "../common/log.h"
 
 namespace snark { namespace innovusion {
 
-class log
+class log : public log_base
 {
 public:
-    // define log levels in an app-centric way
-    // this differs from the api-level definitions
-    // see log.cpp for the mapping
-    enum class Level { warn, info, debug, all };
-
     log();
-    void set_logs();
-    void set_log_level( Level level );
-    bool publish_msg( InnoMessageLevel level ) const { return level <= msg_level; }
-
-private:
-    InnoMessageLevel msg_level;
+    void set_logs() override;
+    void set_log_level( Level level ) override;
 };
 
 } } // namespace snark { namespace innovusion {
