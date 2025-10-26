@@ -1107,7 +1107,7 @@ struct simple_blob_impl_ {
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
     const get_timestamp_functor get_timestamp_;
 
-    simple_blob_impl_< H >( const get_timestamp_functor& get_timestamp ) : get_timestamp_(get_timestamp) {}
+    simple_blob_impl_( const get_timestamp_functor& get_timestamp ) : get_timestamp_(get_timestamp) {}
     value_type operator()( const value_type& m, const cv::SimpleBlobDetector::Params& params, bool is_binary )
     {
         static cv::SimpleBlobDetector detector( params ); // quick and dirty
@@ -1126,7 +1126,7 @@ struct grab_impl_ {
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
     const get_timestamp_functor get_timestamp_;
 
-    grab_impl_< H >( const get_timestamp_functor& get_timestamp ) : get_timestamp_(get_timestamp) {}
+    grab_impl_( const get_timestamp_functor& get_timestamp ) : get_timestamp_(get_timestamp) {}
     value_type operator()( value_type m, const std::string& type, const boost::optional<int>& quality )
     {
         std::vector<int> params;
@@ -1142,7 +1142,7 @@ struct timestamp_impl_ {
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
     const get_timestamp_functor get_timestamp_;
 
-    timestamp_impl_< H >( const get_timestamp_functor& gt ) : get_timestamp_(gt) {}
+    timestamp_impl_( const get_timestamp_functor& gt ) : get_timestamp_(gt) {}
 
     value_type operator()( value_type m )
     {
