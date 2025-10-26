@@ -51,7 +51,7 @@ struct color
     color( comma::uint16 red, comma::uint16 green, comma::uint16 blue ) : red( red ), green( green ), blue( blue ) {};
 };
 
-template < unsigned int I > struct point;
+template < unsigned int Version > struct point;
 
 template <> struct point< 0 >
 {
@@ -66,8 +66,8 @@ template <> struct point< 0 >
     unsigned char user_data{0};
     comma::uint16 point_source_id{0};
 
-    point< 0 >() = default;
-    template < typename P > point< 0 >( const P& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset )
+    point() = default;
+    template < typename P > point( const P& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset )
         : coordinates( Eigen::Vector3d( factor.x() * p.coordinates.x()
                                       , factor.y() * p.coordinates.y()
                                       , factor.z() * p.coordinates.z() ) + offset )
@@ -88,7 +88,7 @@ template <> struct point< 1 > : public point< 0 >
 {
     double gps_time{0};
 
-    point() {}
+    point() = default;
     point( const snark::las::point< 1 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ) {}
 };
 
@@ -96,7 +96,7 @@ template <> struct point< 2 > : public point< 0 >
 {
     ::color color;
 
-    point() {}
+    point() = default;
     point( const snark::las::point< 2 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
 };
 
@@ -105,7 +105,7 @@ template <> struct point< 3 > : public point< 0 >
     double gps_time{0};
     ::color color;
 
-    point() {}
+    point() = default;
     point( const snark::las::point< 3 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
 };
 
@@ -117,7 +117,7 @@ template <> struct point< 6 > : public point< 0 >
 {
     double gps_time{0};
 
-    point() {}
+    point() = default;
     point( const snark::las::point< 6 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ) {}
 };
 
@@ -126,7 +126,7 @@ template <> struct point< 7 > : public point< 0 >
     double gps_time{0};
     ::color color;
 
-    point() {}
+    point() = default;
     point( const snark::las::point< 7 >& p, const Eigen::Vector3d& factor, const Eigen::Vector3d& offset ) : point< 0 >( p, factor, offset ), gps_time( p.gps_time() ), color( p.color.red(), p.color.green(), p.color.blue() ) {}
 };
 
