@@ -15,6 +15,7 @@ foreach( innovusion_build_version IN LISTS snark_build_sensors_innovusion_sdk_ve
     set_target_properties( ${application_name} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE )
     set_target_properties( ${application_name} PROPERTIES LINK_FLAGS_RELEASE -s )
     target_link_libraries( ${application_name} PRIVATE snark_innovusion${innovusion_build_version} )
+    target_include_directories( ${application_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/v${innovusion_build_version} )
 
     install( TARGETS ${application_name}
              RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR}
