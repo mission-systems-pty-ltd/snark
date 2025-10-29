@@ -5,12 +5,19 @@ if( "${version_match}" STREQUAL "" )
         )
 endif()
 
-source_group( innovusion-cat FILES innovusion-cat.cpp )
-add_executable( innovusion-cat innovusion-cat.cpp )
-set_target_properties( innovusion-cat PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE )
-set_target_properties( innovusion-cat PROPERTIES LINK_FLAGS_RELEASE -s )
-target_link_libraries( innovusion-cat snark_innovusion ${Innovusion_LIBRARIES} )
+foreach( innovusion_build_version IN LISTS snark_build_sensors_innovusion_sdk_versions )
+    message( STATUS "build innovusion-cat version ${innovusion_build_version}" )
 
-install( TARGETS innovusion-cat
-         RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR}
-         COMPONENT Runtime )
+    set( application_name innovusion-cat${innovusion_build_version} )
+
+    source_group( ${application_name} FILES innovusion-cat.cpp )
+    add_executable( ${application_name} innovusion-cat.cpp )
+    set_target_properties( ${application_name} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE )
+    set_target_properties( ${application_name} PROPERTIES LINK_FLAGS_RELEASE -s )
+    target_link_libraries( ${application_name} PRIVATE snark_innovusion${innovusion_build_version} )
+    target_include_directories( ${application_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/v${innovusion_build_version} )
+
+    install( TARGETS ${application_name}
+             RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR}
+             COMPONENT Runtime )
+endforeach()
