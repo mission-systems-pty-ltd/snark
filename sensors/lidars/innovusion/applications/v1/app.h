@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../common/app.h"
+#include "../app-base.h"
 #include "lidar.h"
 #include "log.h"
 #include "types.h"
