@@ -853,7 +853,8 @@ static typename impl::filters< H >::value_type threshold_impl_( typename impl::f
 {
     typename impl::filters< H >::value_type n;
     n.first = m.first;
-    cv::threshold( m.second, n.second, threshold, max_value, otsu ? type | CV_THRESH_OTSU : type );
+    static_assert( sizeof( std::uint32_t ) == sizeof( threshold_t::types ) );
+    cv::threshold( m.second, n.second, threshold, max_value, otsu ? std::uint32_t( type ) | std::uint32_t( CV_THRESH_OTSU ) : std::uint32_t( type ) );
     return n;
 }
 
