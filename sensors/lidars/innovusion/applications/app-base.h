@@ -10,6 +10,7 @@
 #include <comma/application/signal_flag.h>
 #include <comma/csv/format.h>
 #include <comma/csv/names.h>
+#include <atomic>
 #include <thread>
 
 namespace snark { namespace innovusion {
