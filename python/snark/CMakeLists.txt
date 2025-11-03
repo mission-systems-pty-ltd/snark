@@ -79,9 +79,14 @@ if( snark_build_python_use_pip )
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )" )
 else()
     add_custom_target( python_build_snark ) # add_custom_target( python_build_snark ALL ${PYTHON} ${SETUP_PY} build --build-base ${BUILD_BASE} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
+    file( COPY
+        ${CMAKE_CURRENT_SOURCE_DIR}/setup.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/snark
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    )
     install( CODE "EXECUTE_PROCESS(
              COMMAND ${PYTHON} ${SETUP_PY} install --prefix=${CMAKE_INSTALL_PREFIX} --force
-             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )" )
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )" )
     set_directory_properties( PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES build )
 endif()
 
