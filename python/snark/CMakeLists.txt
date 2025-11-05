@@ -78,16 +78,11 @@ if( snark_build_python_use_pip )
              COMMAND ${PIP3} install ${CMAKE_CURRENT_SOURCE_DIR} --no-index --no-deps --install-option --prefix=${CMAKE_INSTALL_PREFIX}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )" )
 else()
-    add_custom_target( python_build_snark ) # add_custom_target( python_build_snark ALL ${PYTHON} ${SETUP_PY} build --build-base ${BUILD_BASE} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
-    file( COPY
-        ${CMAKE_CURRENT_SOURCE_DIR}/setup.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/snark
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-    )
+    add_custom_target( python_build_snark ALL ${PYTHON} ${SETUP_PY} build --build-base ${BUILD_BASE}
+	               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
     install( CODE "EXECUTE_PROCESS(
              COMMAND ${PYTHON} ${SETUP_PY} install --prefix=${CMAKE_INSTALL_PREFIX} --force
-             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )" )
-    set_directory_properties( PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES build )
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build/lib )" )
 endif()
 
 if( ADD_PYTHON_PACKAGES_TO_RPM )

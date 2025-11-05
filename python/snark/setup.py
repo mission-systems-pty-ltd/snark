@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from distutils.core import setup
+import setuptools
 
-setup(
+setuptools.setup(
         name                = 'snark',
         version             = open('snark/version.py').readlines()[-1].strip().split()[-1].strip('\"'),
         description         = 'snark python utilties',
