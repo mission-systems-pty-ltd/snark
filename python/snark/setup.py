@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import setuptools
+import snark.version
 
 setuptools.setup(
         name                = 'snark',
-        version             = open('snark/version.py').readlines()[-1].strip().split()[-1].strip('\"'),
+        version             = snark.version.__version__,
         description         = 'snark python utilties',
         url                 = 'https://gitlab.com/orthographic/snark',
         license             = 'BSD 3-Clause',
