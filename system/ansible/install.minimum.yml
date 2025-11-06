@@ -30,14 +30,15 @@
       - qtbase5-dev-tools
       - qt3d5-dev
       - libassimp-dev
-      - python3-opencv
       - python3-pip
+      - python3-opencv
+      - python3-pysolar
       - libqt5charts5-dev
 
-  - pip:
-        name: "pysolar"
-        executable: pip3
-    become: true
+  # - pip:
+  #       name: "pysolar"
+  #       executable: pip3
+  #   become: true
 
   - name: "snark: make source directory at {{ base }}"
     file: path={{ base }}/{{ item }} state=directory
