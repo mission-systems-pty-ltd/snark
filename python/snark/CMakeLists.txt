@@ -26,7 +26,7 @@ MACRO( set_python_build_lib_directory )
         MESSAGE( STATUS "python build lib directory: ${PYTHON_BUILD_LIB_DIR}" )
     ELSE( MODULE_EXIT_CODE MATCHES 0 )
         MESSAGE( WARNING "failed to get python build lib directory" )
-        MESSAGE( STATUS "comma/python modules and scripts will not be installed" )
+        MESSAGE( STATUS "snark/python modules and scripts will not be installed" )
         disable_python_testing()
         RETURN()
     ENDIF( MODULE_EXIT_CODE MATCHES 0 )
@@ -70,7 +70,7 @@ ENDIF( PYTHON_PACKAGE_INSTALL_PREFIX )
 set( BUILD_BASE "${CMAKE_CURRENT_BINARY_DIR}/build" )
 
 set_python_build_lib_directory()
- 
+
 set( SETUP_PY "${CMAKE_CURRENT_SOURCE_DIR}/setup.py" ) # todo? use pip3 instead?
 
 if( snark_build_python_use_pip )
