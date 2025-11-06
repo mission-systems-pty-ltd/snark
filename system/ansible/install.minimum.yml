@@ -54,7 +54,7 @@
         update: yes
 
   - name: "snark: dependencies: install comma"
-    script: /usr/bin/ansible-playbook {{ base }}/src/comma/system/ansible/install.python3.yml
+    script: /usr/bin/ansible-playbook {{ base }}/src/comma/system/ansible/install.yml
 
   - name: "snark: clone"
     git:
