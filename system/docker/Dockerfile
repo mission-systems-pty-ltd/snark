@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt update \
     && apt install --yes apt-utils \
@@ -23,4 +23,4 @@ RUN apt-get update \
 RUN mkdir /root/src -p \
         && cd /root/src \
         && git clone https://gitlab.com/orthographic/snark.git \
-        && /bin/bash -c "ansible-playbook /root/src/snark/system/ansible/install.minimum.python3.yml"
+        && /bin/bash -c "ansible-playbook /root/src/snark/system/ansible/install.yml"
