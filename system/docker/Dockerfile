@@ -18,7 +18,7 @@ RUN apt-get update \
 #RUN mkdir /root/src -p \
 #        && cd /root/src \
 #        && git clone https://gitlab.com/orthographic/comma.git \
-#        && ansible-playbook /root/src/comma/system/ansible/install.python3.yml
+#        && ansible-playbook /root/src/comma/system/ansible/install.yml
 
 RUN mkdir /root/src -p \
         && cd /root/src \
