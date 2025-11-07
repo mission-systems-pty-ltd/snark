@@ -39,6 +39,8 @@ check_python_module( ${PYTHON3} dataclasses_json )
 check_python_module( ${PYTHON3} numpy )
 check_python_module( ${PYTHON3} cv2 )
 if( snark_build_ros )
+    # Note that ROS 1 Melodic (18.04) uses Python 2. ROS 1 Noetic (20.04) uses Python 3
+    # ROS 2 uses Python 3 across the board
     if( snark_build_ros_version_1 )
         if( EXISTS "/opt/ros/noetic" )
             # noetic uses Python3
@@ -72,6 +74,10 @@ set( BUILD_BASE "${CMAKE_CURRENT_BINARY_DIR}/build" )
 set_python_build_lib_directory()
 
 set( SETUP_PY "${CMAKE_CURRENT_SOURCE_DIR}/setup.py" ) # todo? use pip3 instead?
+
+# TODO: (maybe) fix for ROS 1 Melodic (18.04) installation
+#       on Melodic snark/ros needs to be installed in the Python 2 packages
+#       currently the below only supports Python 3 installation
 
 if( snark_build_python_use_pip )
     # although installing with python3 setup.py (else clause) prints deprecation message,
