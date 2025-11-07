@@ -9,6 +9,8 @@ setuptools.setup(
         description         = 'snark python utilties',
         url                 = 'https://gitlab.com/orthographic/snark',
         license             = 'BSD 3-Clause',
+        # should this be:
+        # packages = setuptools.find_packages()
         packages            = [ 'snark'
                               , 'snark.imaging'
                               , 'snark.imaging.cameras'
@@ -16,6 +18,8 @@ setuptools.setup(
                               , 'snark.imaging.cv.types'
                               , 'snark.math'
                               , 'snark.ros'
-                              , 'snark.ros2' ]
+                              , 'snark.ros.detail'
+                              , 'snark.ros2'
+                              , 'snark.ros2.detail' ]
         # namespace_packages  = [ 'snark' ] # deprecated
      )
