@@ -15,7 +15,7 @@ class resize
     public:
         typedef std::pair< H, cv::Mat > value_type;
 
-        resize( unsigned int width, unsigned int height, double width_factor, double height_factor, int interpolation );
+        resize( unsigned int width, unsigned int height, double width_factor, double height_factor, int interpolation = cv::INTER_LINEAR, bool by_orientation = false );
 
         value_type operator()( value_type );
         
@@ -29,6 +29,7 @@ class resize
         double _width_factor{1};
         double _height_factor{1};
         int _interpolation;
+        bool _by_orientation{0};
 };
 
 } } } // namespace snark { namespace cv_mat { namespace filters {
