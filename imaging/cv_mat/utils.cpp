@@ -333,4 +333,14 @@ void apply_color_range( const cv::Mat& in, cv::Mat& out, const std::pair< cv::Sc
     }
 }
 
+int interpolation( const std::string& name )
+{
+    if( name == "nearest" ) { return cv::INTER_NEAREST; }
+    if( name == "linear" ) { return cv::INTER_LINEAR; }
+    if( name == "area" ) { return cv::INTER_AREA; }
+    if( name == "cubic" ) { return cv::INTER_CUBIC; }
+    if( name == "lanczos4" ) { return cv::INTER_LANCZOS4; }
+    COMMA_THROW( comma::exception, "expected interpolation type, got: '" << name << "'" );
+}
+
 } }  // namespace snark { namespace cv_mat {

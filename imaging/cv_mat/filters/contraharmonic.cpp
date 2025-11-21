@@ -267,15 +267,18 @@ class circle {
 namespace snark { namespace cv_mat { namespace filters {
 
 template <typename T>
-struct handle {
+struct handle
+{
     handle(cv::Mat out, std::unique_ptr<kernels::kernel<T>> kernel, std::unique_ptr<kernels::operations::operation<T>> operation)
         : out_(out), kernel_(std::move(kernel)), filter_(std::move(operation)){};
 
-    void operator()(int start, int end) {
+    void operator()( int start, int end )
+    {
         for (int py = start; py != end; ++py) {
             T* row_ptr = out_.template ptr<T>(py);
             kernel_->set_y(py);
-            for (int px = 0; px != out_.cols; ++px) {
+            for (int px = 0; px != out_.cols; ++px)
+            {
                 kernel_->set_x(px);
                 kernel_->stride(*filter_);
                 const auto& result = filter_->get();
@@ -284,7 +287,6 @@ struct handle {
             }
         }
     };
-
     cv::Mat out_;
     std::unique_ptr<kernels::kernel<T>> kernel_;
     std::unique_ptr<kernels::operations::operation<T>> filter_;
@@ -292,47 +294,50 @@ struct handle {
 
 template <typename H>
 template <typename T>
-cv::Mat contraharmonic<H>::do_parallel(cv::Mat in) {
+cv::Mat contraharmonic<H>::do_parallel( cv::Mat in )
+{
     int sizes[]{in.rows, in.cols};
     cv::Mat out(in.dims, sizes, in.type());
-
-    tbb::parallel_for(size_t(0), size_t(in.rows), [=](size_t i) {
-        std::unique_ptr<kernels::kernel<T>> kernel;
-        std::unique_ptr<kernels::operations::operation<T>> operation(new kernels::operations::contraharmonic<T>(in.channels(), power_));
-        if (kernel_ == "square") { kernel.reset(new kernels::square<T>(in, side_)); }
-        handle<T>(out, std::move(kernel), std::move(operation))(i, i + 1);
+    tbb::parallel_for(size_t(0), size_t(in.rows), [&](size_t i)
+    {
+        std::unique_ptr< kernels::kernel< T > > kernel;
+        std::unique_ptr< kernels::operations::operation< T > > operation( new kernels::operations::contraharmonic< T >( in.channels(), power_ ) );
+        if( kernel_ == "square" ) { kernel.reset( new kernels::square< T >( in, side_ ) ); }
+        handle< T >( out, std::move( kernel ), std::move( operation ) )( i, i + 1 );
     });
     return out;
 }
 
 template <typename H>
 std::pair<H, cv::Mat> contraharmonic<H>::operator()(std::pair<H, cv::Mat> m) {
-    if (!m.second.isContinuous()) { COMMA_THROW(comma::exception, "matrix not continuous; non-continous image data not supported"); }
+    COMMA_ASSERT( m.second.isContinuous(), "matrix not continuous; non-continous image data not supported" );
     cv::Mat out;
-    switch (m.second.depth()) {
-        case CV_8U: out = do_parallel<unsigned char>(m.second); break;
-        case CV_8S: out = do_parallel<char>(m.second); break;
-        case CV_16U: out = do_parallel<comma::uint16>(m.second); break;
-        case CV_16S: out = do_parallel<comma::int16>(m.second); break;
-        case CV_32S: out = do_parallel<comma::int32>(m.second); break;
-        case CV_32F: out = do_parallel<float>(m.second); break;
-        case CV_64F: out = do_parallel<double>(m.second); break;
+    switch( m.second.depth() )
+    {
+        case CV_8U: out = do_parallel<unsigned char>( m.second ); break;
+        case CV_8S: out = do_parallel<char>( m.second ); break;
+        case CV_16U: out = do_parallel<comma::uint16>( m.second ); break;
+        case CV_16S: out = do_parallel<comma::int16>( m.second ); break;
+        case CV_32S: out = do_parallel<comma::int32>( m.second ); break;
+        case CV_32F: out = do_parallel<float>( m.second ); break;
+        case CV_64F: out = do_parallel<double>( m.second ); break;
         default: COMMA_THROW(comma::exception, "expected image data, got unsupported value: " << m.second.type());
     }
-    return std::make_pair(m.first, out);
+    return std::make_pair( m.first, out );
 }
 
 template <typename H>
-std::pair<typename contraharmonic<H>::functor_t, bool> contraharmonic<H>::make(const std::string& options) {
+std::pair<typename contraharmonic<H>::functor_t, bool> contraharmonic<H>::make(const std::string& options)
+{
     const auto& tokens = comma::split(options, ',');
-    if (tokens.size() < 2) { COMMA_THROW(comma::exception, "contraharmonic: expected options, got: '" << options << "'"); }
+    COMMA_ASSERT( tokens.size() > 1, "contraharmonic: expected options, got: '" << options << "'" );
     double power = 0;
     try { power = boost::lexical_cast<double>(tokens[0]); }
-    catch (std::exception& ex) { COMMA_THROW(comma::exception, "contraharmonic: expected <power>, got: '" << options << "'; " << ex.what()); }
-    if (tokens[1] == "square") {
-        if (tokens.size() < 3) { COMMA_THROW(comma::exception, "contraharmonic: expected <power>,square,<side>, got: '" << options << "'"); }
-        int side = boost::lexical_cast<double>(tokens[2]);
-        return std::make_pair(contraharmonic<H>(tokens[1], power, side), true);
+    catch ( std::exception& ex ) { COMMA_THROW(comma::exception, "contraharmonic: expected <power>, got: '" << options << "'; " << ex.what()); }
+    if( tokens[1] == "square" )
+    {
+        COMMA_ASSERT( tokens.size() > 2, "contraharmonic: expected <power>,square,<side>, got: '" << options << "'" );
+        return std::make_pair( contraharmonic< H >( tokens[1], power, boost::lexical_cast< double >( tokens[2] ) ), true );
         // return std::make_pair(contraharmonic<H, kernels::square >( power, side ), true);
         // return std::make_pair(contraharmonic<H >( power, kernels::square(), side ), true);
     }
@@ -340,8 +345,9 @@ std::pair<typename contraharmonic<H>::functor_t, bool> contraharmonic<H>::make(c
 }
 
 template <typename H>
-typename std::string contraharmonic<H>::usage(unsigned int indent) {
-    std::string offset(indent, ' ');
+typename std::string contraharmonic<H>::usage(unsigned int indent)
+{
+    std::string offset( indent, ' ' );
     std::ostringstream oss;
     oss << offset << "contraharmonic=<power>,<kernel_shape>,<kernel_geometry>, e.g: contraharmonic=3,square,5\n";
     oss << offset << "               <power>: order of the filter; positive values remove pepper noise;\n";

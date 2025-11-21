@@ -76,6 +76,7 @@
 #include "filters/ratio.h"
 #include "filters/remap.h"
 #include "filters/remove_speckles.h"
+#include "filters/resize.h"
 #include "filters/text.h"
 #include "filters/view.h"
 #include "filters/warp.h"
@@ -716,15 +717,6 @@ static typename impl::filters< H >::value_type flip_impl_( typename impl::filter
     typename impl::filters< H >::value_type n;
     n.first = m.first;
     cv::flip( m.second, n.second, how );
-    return n;
-}
-
-template < typename H >
-static typename impl::filters< H >::value_type resize_impl_( typename impl::filters< H >::value_type m, unsigned int width, unsigned int height, double w, double h, int interpolation )
-{
-    typename impl::filters< H >::value_type n;
-    n.first = m.first;
-    cv::resize( m.second, n.second, cv::Size( width ? width : m.second.cols * w, height ? height : m.second.rows * h ), 0, 0, interpolation );
     return n;
 }
 
@@ -1962,7 +1954,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     }
     if( e[0] == "convert-color" || e[0] == "convert_color" )
     {
-        if( e.size() == 1 ) { COMMA_THROW( comma::exception, "convert-color: please specify conversion" ); }
+        COMMA_ASSERT( e.size() > 1, "convert-color: please specify conversion" );
         return std::make_pair(boost::bind< value_type_t >( cvt_color_impl_< H >(), boost::placeholders::_1, cvt_color_type_from_string( e[1] ) ), true );
     }
     if( e[0] == "count" ) { return std::make_pair(count_impl_< H >(), false ); }
@@ -2299,66 +2291,21 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         std::string map = r[0];
         unsigned int width = boost::lexical_cast< unsigned int >( r[1] );
         unsigned int height = boost::lexical_cast< unsigned int >( r[2] );
-        int interpolation = cv::INTER_LINEAR;
-        if( r.size() > 3 )
-        {
-            if( r[3] == "nearest" ) { interpolation = cv::INTER_NEAREST; }
-            else if( r[3] == "linear" ) { interpolation = cv::INTER_LINEAR; }
-            else if( r[3] == "area" ) { interpolation = cv::INTER_AREA; }
-            else if( r[3] == "cubic" ) { interpolation = cv::INTER_CUBIC; }
-            else if( r[3] == "lanczos4" ) { interpolation = cv::INTER_LANCZOS4; }
-            else { COMMA_THROW( comma::exception, "remap: expected interpolation type, got: '" << r[1] << "'" ); }
-        }
+        int interpolation = r.size() > 3 ? cv_mat::interpolation( r[3] ) : cv::INTER_LINEAR;
         return std::make_pair( snark::cv_mat::filters::remap< H >( map, width, height, interpolation ), true );
     }
-    if( e[0] == "resize" )
-    {
-        unsigned int width = 0;
-        unsigned int height = 0;
-        double w = 0;
-        double h = 0;
-        const std::vector< std::string >& r = comma::split( e[1], ',' );
-        int interpolation = cv::INTER_LINEAR;
-        unsigned int size = r.size();
-        if( r.size() > 1 && r.back()[0] >= 'a' && r.back()[0] <= 'z' )
-        {
-            if( r.back() == "nearest" ) { interpolation = cv::INTER_NEAREST; }
-            else if( r.back() == "linear" ) { interpolation = cv::INTER_LINEAR; }
-            else if( r.back() == "area" ) { interpolation = cv::INTER_AREA; }
-            else if( r.back() == "cubic" ) { interpolation = cv::INTER_CUBIC; }
-            else if( r.back() == "lanczos4" ) { interpolation = cv::INTER_LANCZOS4; }
-            else { COMMA_THROW( comma::exception, "resize: expected interpolation type, got: \"" << e[1] << "\"" ); }
-            --size;
-        }
-        else if( r.size() == 3 ) { interpolation = boost::lexical_cast< int >( r[3] ); }
-        switch( size )
-        {
-            case 1:
-                w = h = boost::lexical_cast< double >( r[0] );
-                break;
-            case 2:
-            case 3:
-                try { width = boost::lexical_cast< unsigned int >( r[0] ); }
-                catch ( ... ) { w = boost::lexical_cast< double >( r[0] ); }
-                try { height = boost::lexical_cast< unsigned int >( r[1] ); }
-                catch ( ... ) { h = boost::lexical_cast< double >( r[1] ); }
-                break;
-            default:
-                COMMA_THROW( comma::exception, "expected resize=<width>,<height>, got: \"" << e[1] << "\"" );
-        }
-        return std::make_pair( boost::bind< value_type_t >( resize_impl_< H >, boost::placeholders::_1, width, height, w, h, interpolation ), true );
-    }
-    else if( e[0] == "timestamp" ) { return std::make_pair(timestamp_impl_< H >( get_timestamp ), true); }
-    else if( e[0] == "transpose" ) { return std::make_pair(transpose_impl_< H >, true); }
-    else if( e[0] == "split" ) { return std::make_pair(split_impl_< H >, true); }
-    else if( e[0] == "merge" )
+    if( e[0] == "resize" ) { return std::make_pair( filters::resize< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
+    if( e[0] == "timestamp" ) { return std::make_pair( timestamp_impl_< H >( get_timestamp ), true ); }
+    if( e[0] == "transpose" ) { return std::make_pair( transpose_impl_< H >, true ); }
+    if( e[0] == "split" ) { return std::make_pair( split_impl_< H >, true ); }
+    if( e[0] == "merge" )
     {
         unsigned int default_number_of_channels = 3;
         unsigned int nchannels = e.size() == 1 ? default_number_of_channels : boost::lexical_cast< unsigned int >( e[1] );
-        if ( nchannels == 0 ) { COMMA_THROW( comma::exception, "expected positive number of channels in merge filter, got " << nchannels ); }
+        COMMA_ASSERT( nchannels > 0, "expected positive number of channels in merge filter, got " << nchannels );
         return std::make_pair( boost::bind< value_type_t >( merge_impl_< H >, boost::placeholders::_1, nchannels ), true );
     }
-    else if( e[0] == "clone-channels" )
+    if( e[0] == "clone-channels" )
     {
         if( e.size() < 2 ) { COMMA_THROW( comma::exception, "clone-channels: please specify number of channels" ); }
         return std::make_pair( boost::bind< value_type_t >( clone_channels_impl_< H >, boost::placeholders::_1, boost::lexical_cast< unsigned int >( e[1] ) ), true );
@@ -2368,10 +2315,11 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     {
         if( e.size() == 1 ) { return std::make_pair( invert_impl_< H >, true ); }
         else if( e[1] == "brightness" ) { return std::make_pair( invert_brightness_impl_< H >, true ); } // quick and dirty, a secret option
+        COMMA_THROW( comma::exception, "expected 'invert' or 'invert=brightness', got: 'invert=" + e[1] + "'" );
     }
     if(e[0]=="normalize")
     {
-        if( e.size() < 2 ) { COMMA_THROW( comma::exception, "please specify parameter: expected normalize=<how>" ); }
+        COMMA_ASSERT( e.size() > 1, "please specify parameter: expected normalize=<how>" );
         const std::vector< std::string > w = comma::split( e[1], ',' );
         int norm_type = cv::NORM_INF;
         if( w.size() == 2 )
@@ -2383,8 +2331,8 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
             if( w[0] != "all" && norm_type != cv::NORM_INF ) { COMMA_THROW( comma::exception, "norm type \"" + w[1] + "\" implemented only for 'all'; todo" ); } // quick and dirty
         }
         if( w[0] == "max" ) { return std::make_pair( normalize_max_impl_< H >, true ); }
-        else if( w[0] == "sum" ) { return std::make_pair( normalize_sum_impl_< H >, true ); }
-        else if( w[0] == "all" ) { return std::make_pair( boost::bind( normalize_cv_impl_< H >, boost::placeholders::_1, norm_type ), true ); }
+        if( w[0] == "sum" ) { return std::make_pair( normalize_sum_impl_< H >, true ); }
+        if( w[0] == "all" ) { return std::make_pair( boost::bind( normalize_cv_impl_< H >, boost::placeholders::_1, norm_type ), true ); }
         COMMA_THROW( comma::exception, "expected all, max, or sum option for normalize, got: \"" << w[0] << "\"" );
     }
     if( e[0]=="equalize-histogram" ) { return std::make_pair( equalize_histogram_impl_< H >, true ); }
@@ -3024,22 +2972,7 @@ static std::string usage_impl_()
     oss << "    remap=<map-filename>,<width>,<height>[,<interpolation>]: remap, input image dimensions expected to match map dimentions\n";
     oss << "                                            see cv::remap() for details\n";
     oss << "        <interpolation>: nearest, linear, area, cubic, lanczos4; default: linear\n";
-    oss << "    resize=<factor>[,<interpolation>]; resize=<width>,<height>[,<interpolation>]\n";
-    oss << "        <interpolation>: nearest, linear, cubic, area, lanczos4; default: linear\n";
-    oss << "                         in format <width>,<height>,<interpolation> numeric values can be used for <interpolation>:\n";
-    oss << "                             " << cv::INTER_NEAREST << " - nearest; "
-                                           << cv::INTER_LINEAR << " - linear; "
-                                           << cv::INTER_CUBIC << " - cubic; "
-                                           << cv::INTER_AREA << " - area; "
-                                           << cv::INTER_LANCZOS4 << " - lanczos4\n";
-    oss << "        examples\n";
-    oss << "            resize=0.5,1024 : 50% of width; heigth 1024 pixels\n";
-    oss << "            resize=512,1024,cubic : resize to 512x1024 pixels, cubic interpolation\n";
-    oss << "            resize=0.2,0.4 : resize to 20% of width and 40% of height\n";
-    oss << "            resize=0.5 : resize proportionally to 50%\n";
-    oss << "            resize=0.5,1024 : 50% of width; heigth 1024 pixels\n";
-    oss << "        note: if no decimal dot '.', size is in pixels; if decimal dot present, size as a fraction\n";
-    oss << "              i.e. 5 means 5 pixels; 5.0 means 5 times\n";
+    oss << filters::resize< boost::posix_time::ptime >::usage(4);
     oss << "    remove-mean=<kernel_size>,<ratio>: simple high-pass filter removing <ratio> times the mean component\n";
     oss << "                                       on <kernel_size> scale\n";
     oss << "    remove-speckles=<x>,<y>: simple speckle remover: if kernel of size <x>,<y> and single solid colour\n";
