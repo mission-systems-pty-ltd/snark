@@ -48,7 +48,6 @@ typename resize< H >::value_type resize< H >::operator()( typename resize< H >::
         case by::width:
         case by::height:
         {
-            std::cerr << "==> a: cols: " << m.second.cols << " rows: " << m.second.rows << " _width: " << _width << std::endl;
             bool by_width{false};
             switch( _how ) // quick and dirty
             {
@@ -65,10 +64,8 @@ typename resize< H >::value_type resize< H >::operator()( typename resize< H >::
             }
             else
             {
-                std::cerr << "==> b" << std::endl;
                 width = double( m.second.cols ) * _width / m.second.rows;
                 height = _width;
-                std::cerr << "==> c: width: " << width << " height: " << height << std::endl;
             }
             break;
         }
