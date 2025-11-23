@@ -48,6 +48,7 @@ typename resize< H >::value_type resize< H >::operator()( typename resize< H >::
         case by::width:
         case by::height:
         {
+            std::cerr << "==> a: cols: " << m.second.cols << " rows: " << m.second.rows << " _width: " << _width << std::endl;
             bool by_width{false};
             switch( _how ) // quick and dirty
             {
@@ -64,8 +65,10 @@ typename resize< H >::value_type resize< H >::operator()( typename resize< H >::
             }
             else
             {
+                std::cerr << "==> b" << std::endl;
                 width = double( m.second.cols ) * _width / m.second.rows;
                 height = _width;
+                std::cerr << "==> c: width: " << width << " height: " << height << std::endl;
             }
             break;
         }
@@ -99,7 +102,7 @@ resize< H > resize< H >::make( const std::string& options )
     switch( size )
     {
         case 1:
-            if( how == resize::by::longest || how == resize::by::shortest ) { width = boost::lexical_cast< unsigned int >( r[0] ); } // quick and dirty
+            if( how == resize::by::longest || how == resize::by::shortest || how == resize::by::height || how == resize::by::width ) { width = boost::lexical_cast< unsigned int >( r[0] ); } // quick and dirty
             else { width_factor = height_factor = boost::lexical_cast< double >( r[0] ); } // quick and dirty: preserving backward compatibility
             break;
         case 2:
