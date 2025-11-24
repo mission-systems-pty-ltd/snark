@@ -25,7 +25,6 @@ typename rotate< H >::value_type rotate< H >::operator()( typename rotate< H >::
 {
     typename rotate< H >::value_type n{ m.first, cv::Mat() };
     cv::Point2f c( m.second.cols * _centre.first, m.second.rows * _centre.second );
-    std::cerr << "==> a: _centre: " << _centre.first << "," << _centre.second << " c: " << c.x << "," << c.y << " _rotation.empty(): " << _rotation.empty() << std::endl;
     cv::warpAffine( m.second, n.second, _rotation.empty() ? cv::getRotationMatrix2D( cv::Point2f( m.second.cols * _centre.first, m.second.rows * _centre.second ), _angle, 1 ) : _rotation, cv::Size( m.second.cols, m.second.rows ) );
     return n;
 }
