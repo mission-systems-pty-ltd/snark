@@ -10,9 +10,9 @@
 #include <comma/string/split.h>
 #include "../serialization.h"
 #include "../utils.h"
-#include "rotate.h"
+#include "affine.h"
 
-namespace snark { namespace cv_mat { namespace filters {
+namespace snark { namespace cv_mat { namespace filters { namespace affine {
     
 template < typename H >
 rotate< H >::rotate( const cv::Mat& rotation, int interpolation ): _rotation( rotation ), _interpolation( interpolation ) {}
@@ -85,7 +85,7 @@ std::string rotate< H >::usage( unsigned int indent )
     return oss.str();
 }
 
-template class snark::cv_mat::filters::rotate< boost::posix_time::ptime >;
-template class snark::cv_mat::filters::rotate< std::vector< char > >;
+template class snark::cv_mat::filters::affine::rotate< boost::posix_time::ptime >;
+template class snark::cv_mat::filters::affine::rotate< std::vector< char > >;
 
-} } } // namespace snark { namespace cv_mat { namespace filters {
+} } } } // namespace snark { namespace cv_mat { namespace filters { namespace affine {

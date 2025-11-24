@@ -7,7 +7,7 @@
 #include <comma/base/types.h>
 #include <opencv2/core/core.hpp>
 
-namespace snark { namespace cv_mat { namespace filters {
+namespace snark { namespace cv_mat { namespace filters { namespace affine {
     
 template < typename H >
 class rotate
@@ -32,4 +32,4 @@ class rotate
         int _interpolation{cv::INTER_CUBIC};
 };
 
-} } } // namespace snark { namespace cv_mat { namespace filters {
+} } } } // namespace snark { namespace cv_mat { namespace filters { namespace affine {

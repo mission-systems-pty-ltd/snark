@@ -55,6 +55,7 @@
 #include "depth_traits.h"
 #include "utils.h"
 #include "filters/accumulated.h"
+#include "filters/affine.h"
 #include "filters/arithmetic.h"
 #include "filters/bitwise.h"
 #include "filters/blank.h"
@@ -77,7 +78,6 @@
 #include "filters/remap.h"
 #include "filters/remove_speckles.h"
 #include "filters/resize.h"
-#include "filters/rotate.h"
 #include "filters/text.h"
 #include "filters/view.h"
 #include "filters/warp.h"
@@ -2296,7 +2296,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         return std::make_pair( snark::cv_mat::filters::remap< H >( map, width, height, interpolation ), true );
     }
     if( e[0] == "resize" ) { return std::make_pair( filters::resize< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
-    if( e[0] == "rotate" ) { return std::make_pair( filters::rotate< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
+    if( e[0] == "rotate" ) { return std::make_pair( filters::affine::rotate< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
     if( e[0] == "timestamp" ) { return std::make_pair( timestamp_impl_< H >( get_timestamp ), true ); }
     if( e[0] == "transpose" ) { return std::make_pair( transpose_impl_< H >, true ); }
     if( e[0] == "split" ) { return std::make_pair( split_impl_< H >, true ); }
@@ -2979,7 +2979,7 @@ static std::string usage_impl_()
     oss << "                                       on <kernel_size> scale\n";
     oss << "    remove-speckles=<x>,<y>: simple speckle remover: if kernel of size <x>,<y> and single solid colour\n";
     oss << "                             fully covers speckle of another color, fill the speckle with surrounding color\n";
-    oss << filters::rotate< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::affine::rotate< boost::posix_time::ptime >::usage( 4 );
     oss << "    rotate90[=n]: rotate image 90 degrees clockwise n times (default: 1); sign denotes direction\n";
     oss << "                  (convenience wrapper around { tranpose, flip, flop })\n";
     //oss << "    warp=<how>: todo: warp image\n";
