@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Vsevolod Vlaskine
+// Copyright (c) 2025 Vsevolod Vlaskine
 
 /// @author vsevolod vlaskine
 

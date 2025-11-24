@@ -77,6 +77,7 @@
 #include "filters/remap.h"
 #include "filters/remove_speckles.h"
 #include "filters/resize.h"
+#include "filters/rotate.h"
 #include "filters/text.h"
 #include "filters/view.h"
 #include "filters/warp.h"
@@ -2295,6 +2296,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         return std::make_pair( snark::cv_mat::filters::remap< H >( map, width, height, interpolation ), true );
     }
     if( e[0] == "resize" ) { return std::make_pair( filters::resize< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
+    if( e[0] == "rotate" ) { return std::make_pair( filters::rotate< H >::make( e.size() > 1 ? e[1] : "" ), true ); }
     if( e[0] == "timestamp" ) { return std::make_pair( timestamp_impl_< H >( get_timestamp ), true ); }
     if( e[0] == "transpose" ) { return std::make_pair( transpose_impl_< H >, true ); }
     if( e[0] == "split" ) { return std::make_pair( split_impl_< H >, true ); }
@@ -2871,7 +2873,7 @@ static std::string usage_impl_()
     oss << "             max: pixelwise image maximum\n";
     oss << "             moving-average,<window>: pixelwise moving average\n";
     oss << "                 <window>: number of images in sliding window\n";
-    oss << filters::colors::balance_white< boost::posix_time::ptime >::usage(4);
+    oss << filters::colors::balance_white< boost::posix_time::ptime >::usage( 4 );
     oss << "    bayer=<mode>: convert from bayer, <mode>=1-4 (see also convert-color)\n";
     oss << "    blur=<type>,<parameters>: apply a blur to the image (positive and odd kernel sizes)\n";
     oss << "        blur=box,<kernel_size> \n";
@@ -2889,9 +2891,9 @@ static std::string usage_impl_()
     oss << "    clahe=<clip_limit>,<tile_size_x>[,<tile_size_y>]: CLAHE, contrast limited adaptive histogram equalization\n";
     oss << "                                                      (see opencv documentation for more), e.g. try clahe=2.0,8,8\n";
     oss << "            kernel_size: size of the extended Sobel kernel; it must be 1, 3, 5 or 7\n";
-    oss << filters::canvas< boost::posix_time::ptime >::usage(4);
-    oss << filters::colors::map< boost::posix_time::ptime >::usage(4);
-    oss << filters::contraharmonic< boost::posix_time::ptime >::usage(4);
+    oss << filters::canvas< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::colors::map< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::contraharmonic< boost::posix_time::ptime >::usage( 4 );
     oss << "    count: write frame number on images\n";
     oss << "    convert-to,convert_to=<type>[,<scale>[,<offset>]]: convert to given type; should be the same number of channels\n";
     oss << "                                                       see opencv cvtColor() for details; values will not overflow\n";
@@ -2902,7 +2904,7 @@ static std::string usage_impl_()
     oss << "            <n>: index of color conversion, see color conversion enumeration in opencv2/improc/types_c.h\n";
     oss << "                 e.g: 'convert-color=6' is same as 'convert-color=BGR,GRAY'\n";
     oss << "                 quick and dirty for now, but allows dozens of conversions\n";
-    oss << filters::convolution< boost::posix_time::ptime >::usage(4);
+    oss << filters::convolution< boost::posix_time::ptime >::usage( 4 );
     oss << "    crop=[<x>,<y>],<width>,<height>: crop the portion of the image starting at x,y with size width x height\n";
     oss << "    crop-tile=<ncols>,<nrows>[,<i>,<j>,...[,horizontal]]: divide the image into a grid of tiles (ncols-by-nrows) and\n";
     oss << "                                                          output an image made of the croped tiles defined by i,j\n";
@@ -2917,7 +2919,7 @@ static std::string usage_impl_()
     oss << "            \"crop-tile=2,5,1,0,2,3,horizontal\": crop 2 tiles out of image split into 2x5 tiles;\n";
     oss << "                                                tile at 1,0 and at 2,3; arrange tiles horizontally\n";
     oss << "        deprecated: old syntax <i>,<j>,<ncols>,<nrows> is used for one tile if i < ncols and j < ncols\n";
-    oss << filters::encode< boost::posix_time::ptime >::usage(4);
+    oss << filters::encode< boost::posix_time::ptime >::usage( 4 );
     oss << "    equalize-histogram: equalize each channel by its histogram\n";
     oss << "    fft[=<options>]: do fft on a floating point image\n";
     oss << "        options: inverse: do inverse fft\n";
@@ -2929,11 +2931,11 @@ static std::string usage_impl_()
     oss << "                      \"split;crop-tile=2,5,0,0,1,3;convert-to=f,0.0039;fft=magnitude;convert-to=f,40000;view;null\"\n";
     oss << "    flip: flip vertically\n";
     oss << "    flop: flip horizontally\n";
-    oss << filters::gamma<>::usage(4);
+    oss << filters::gamma<>::usage( 4 );
     oss << "    grab=<format>[,<quality>]: write an image to file with timestamp as name in the specified format\n";
     oss << "                               <format>: jpg|ppm|png|tiff..., if no timestamp, system time is used\n";
     oss << "                               <quality>: for jpg files, compression quality from 0 (smallest) to 100 (best)\n";
-    oss << filters::hard_edge< boost::posix_time::ptime >::usage(4);
+    oss << filters::hard_edge< boost::posix_time::ptime >::usage( 4 );
     oss << "    head=<n>: output <n> frames and exit\n";
     oss << "    inrange=<lower>,<upper>: a band filter on r,g,b or greyscale image\n";
     oss << "                             for rgb: <lower>::=<r>,<g>,<b>; <upper>::=<r>,<g>,<b>; see cv::inRange() for detail\n";
@@ -2965,25 +2967,26 @@ static std::string usage_impl_()
     oss << "        <format>: output pixel formats in quadbits\n";
     oss << "            where 'a' is high quadbit of byte 0, 'b' is low quadbit of byte 0, 'c' is high quadbit of byte 1, etc...\n";
     oss << "            and '0' means quadbit zero\n";
-    oss << filters::partitions::partition< boost::posix_time::ptime >::usage(4);
-    oss << filters::partitions::reduce< boost::posix_time::ptime >::usage(4);
+    oss << filters::partitions::partition< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::partitions::reduce< boost::posix_time::ptime >::usage( 4 );
     oss << "    pow,power=<value>; each image channel power, currently plain wrapper of opencv pow(), thus may be slow\n";
     oss << "                       todo? parallelize and/or implement mapping with interpolation\n";
     oss << "    remap=<map-filename>,<width>,<height>[,<interpolation>]: remap, input image dimensions expected to match map dimentions\n";
     oss << "                                            see cv::remap() for details\n";
     oss << "        <interpolation>: nearest, linear, area, cubic, lanczos4; default: linear\n";
-    oss << filters::resize< boost::posix_time::ptime >::usage(4);
+    oss << filters::resize< boost::posix_time::ptime >::usage( 4 );
     oss << "    remove-mean=<kernel_size>,<ratio>: simple high-pass filter removing <ratio> times the mean component\n";
     oss << "                                       on <kernel_size> scale\n";
     oss << "    remove-speckles=<x>,<y>: simple speckle remover: if kernel of size <x>,<y> and single solid colour\n";
     oss << "                             fully covers speckle of another color, fill the speckle with surrounding color\n";
+    oss << filters::rotate< boost::posix_time::ptime >::usage( 4 );
     oss << "    rotate90[=n]: rotate image 90 degrees clockwise n times (default: 1); sign denotes direction\n";
     oss << "                  (convenience wrapper around { tranpose, flip, flop })\n";
     //oss << "    warp=<how>: todo: warp image\n";
     //oss << "    unwarp=<how>: todo: unwarp image\n";
     //oss << "        <how>: todo\n";
-    oss << filters::pad::pad< boost::posix_time::ptime >::usage(4);
-    oss << filters::text< boost::posix_time::ptime >::usage(4);
+    oss << filters::pad::pad< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::text< boost::posix_time::ptime >::usage( 4 );
     oss << "    threshold=<threshold|otsu>[,<maxval>[,<type>]]: threshold image; same semantics as cv::threshold()\n";
     oss << "        <threshold|otsu>: threshold value; if 'otsu' then the optimum threshold value using the\n";
     oss << "                                           Otsu's algorithm is used (only for 8-bit images)\n";
@@ -3024,12 +3027,12 @@ static std::string usage_impl_()
     oss << "                                                   | cv-cat --input 'no-header;rows=1280;cols=64;type=ub' \\\n";
     oss << "                                                                    'untile=5,4;encode=png' > untiled.png\n";
     oss << "                                             $ eog untiled.png\n";
-    oss << filters::view< boost::posix_time::ptime >::usage(4);
+    oss << filters::view< boost::posix_time::ptime >::usage( 4 );
     oss << "\n";
     oss << "file read/write operations or generating images:\n";
     oss << "    blank=<rows>,<cols>,<type>: create black image of a given size and type\n";
-    oss << filters::file< boost::posix_time::ptime >::usage(4);
-    oss << filters::frame_rate< boost::posix_time::ptime >::usage(4);
+    oss << filters::file< boost::posix_time::ptime >::usage( 4 );
+    oss << filters::frame_rate< boost::posix_time::ptime >::usage( 4 );
     oss << "    load=<filename>: load image from file instead of taking an image on stdin\n";
     oss << "                     the main meaningful use would be in association with 'forked' image processing\n";
     oss << "        supported file types by filename extension:\n";
@@ -3164,7 +3167,7 @@ static std::string usage_impl_()
     oss << "    rows-to-channels=1,4,5[,pad:value,repeat:step]; same as cols-to-channels but operates on rows\n";
     oss << "\n";
     oss << "drawing on images\n";
-    oss << filters::draw< boost::posix_time::ptime >::usage(4);
+    oss << filters::draw< boost::posix_time::ptime >::usage( 4 );
     oss << "\n";
     oss << "morphology operations\n";
     oss << "    opencv morphology operations\n";

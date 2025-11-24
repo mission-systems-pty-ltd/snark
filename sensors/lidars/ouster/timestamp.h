@@ -4,7 +4,6 @@
 
 #include "config.h"
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <optional>
 
 namespace snark { namespace ouster { namespace lidar {
 
