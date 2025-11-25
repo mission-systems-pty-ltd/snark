@@ -46,6 +46,17 @@ typename remap< H >::value_type remap< H >::operator()( value_type m ) const
 }
 
 template < typename H >
+std::string remap< H >::usage( unsigned int indent )
+{
+    std::string i( indent, ' ' );
+    std::ostringstream oss;
+    oss << i << "remap=<map-filename>,<width>,<height>[,<interpolation>]: remap, input image dimensions\n";
+    oss << i << "    expected to match map dimentions; see cv::remap() for details\n";
+    oss << i << "    <interpolation>: nearest, linear, cubic, area, lanczos4; default: linear\n";
+    return oss.str();
+}
+
+template < typename H >
 undistort< H >::undistort( const std::string& filename, bool do_remap, int interpolation )
     : distortion_coefficients_( 0, 0, 0, 0, 0 )
     , interpolation_( interpolation )

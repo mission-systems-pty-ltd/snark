@@ -130,12 +130,12 @@ std::string resize< H >::usage( unsigned int indent )
     oss << i << "        <options>\n";
     oss << i << "            <factor>[,<interpolation>][,by-<what>]\n";
     oss << i << "            <width>,<height>[,<interpolation>][,by-orientation]\n";
-    oss << i << "        <interpolation>";
-    oss << i << "            nearest ("  << cv::INTER_NEAREST  << ")\n";
-    oss << i << "            linear ("   << cv::INTER_LINEAR   << ") - default\n";
-    oss << i << "            cubic ("    << cv::INTER_CUBIC    << ")\n";
-    oss << i << "            area ("     << cv::INTER_AREA     << ")\n";
-    oss << i << "            lanczos4 (" << cv::INTER_LANCZOS4 << ")\n";
+    oss << i << "        <interpolation>\n";
+    oss << i << "            nearest  ("  << cv::INTER_NEAREST  << ")\n";
+    oss << i << "            linear   ("  << cv::INTER_LINEAR   << "), default\n";
+    oss << i << "            cubic    ("  << cv::INTER_CUBIC    << ")\n";
+    oss << i << "            area     ("  << cv::INTER_AREA     << ")\n";
+    oss << i << "            lanczos4 ("  << cv::INTER_LANCZOS4 << ")\n";
     oss << i << "        <width>,<height>";
     oss << i << "            if no decimal dot '.', size is in pixels\n";
     oss << i << "            if decimal dot present, size as a fraction\n";

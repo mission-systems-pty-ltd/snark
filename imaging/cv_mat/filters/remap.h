@@ -22,6 +22,8 @@ class remap
 
         value_type operator()( value_type ) const;
 
+        static std::string usage( unsigned int indent = 0 );
+
     private:
         int interpolation_;
         cv::Mat x_;

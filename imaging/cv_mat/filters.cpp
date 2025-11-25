@@ -2971,9 +2971,7 @@ static std::string usage_impl_()
     oss << filters::partitions::reduce< boost::posix_time::ptime >::usage( 4 );
     oss << "    pow,power=<value>; each image channel power, currently plain wrapper of opencv pow(), thus may be slow\n";
     oss << "                       todo? parallelize and/or implement mapping with interpolation\n";
-    oss << "    remap=<map-filename>,<width>,<height>[,<interpolation>]: remap, input image dimensions expected to match map dimentions\n";
-    oss << "                                            see cv::remap() for details\n";
-    oss << "        <interpolation>: nearest, linear, area, cubic, lanczos4; default: linear\n";
+    oss << filters::remap< boost::posix_time::ptime >::usage( 4 );
     oss << filters::resize< boost::posix_time::ptime >::usage( 4 );
     oss << "    remove-mean=<kernel_size>,<ratio>: simple high-pass filter removing <ratio> times the mean component\n";
     oss << "                                       on <kernel_size> scale\n";

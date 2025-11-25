@@ -75,12 +75,12 @@ std::string rotate< H >::usage( unsigned int indent )
     oss << i << "                <centre/x>,<centre/y>: rotation centre\n";
     oss << i << "                relative             : rotation centre as ratio of image size\n";
     oss << i << "                                       otherwise rotation centre in pixels\n";
-    oss << i << "        <interpolation>";
-    oss << i << "            nearest ("  << cv::INTER_NEAREST  << ")\n";
-    oss << i << "            linear ("   << cv::INTER_LINEAR   << ") - default\n";
-    oss << i << "            cubic ("    << cv::INTER_CUBIC    << ")\n";
-    oss << i << "            area ("     << cv::INTER_AREA     << ")\n";
-    oss << i << "            lanczos4 (" << cv::INTER_LANCZOS4 << ")\n";
+    oss << i << "        <interpolation>\n";
+    oss << i << "            nearest  ("  << cv::INTER_NEAREST  << ")\n";
+    oss << i << "            linear   ("  << cv::INTER_LINEAR   << "), default\n";
+    oss << i << "            cubic    ("  << cv::INTER_CUBIC    << ")\n";
+    oss << i << "            area     ("  << cv::INTER_AREA     << ")\n";
+    oss << i << "            lanczos4 ("  << cv::INTER_LANCZOS4 << ")\n";
     return oss.str();
 }
 
