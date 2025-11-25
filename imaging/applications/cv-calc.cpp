@@ -35,6 +35,7 @@
 #include "../../imaging/cv_mat/serialization.h"
 #include "../../imaging/cv_mat/traits.h"
 #include "../../visiting/eigen.h"
+#include "cv_calc/grep.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
 #include "cv_calc/graph.h"
@@ -42,6 +43,7 @@
 #include "cv_calc/life.h"
 #include "cv_calc/optical_flow.h"
 #include "cv_calc/polar_map.h"
+#include "cv_calc/stride.h"
 #include "cv_calc/unstride.h"
 
 const char* name = "cv-calc: ";
@@ -235,15 +237,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "        fields: t,rows,cols,type,rectangles" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    stride" << std::endl;
-    std::cerr << "        --filter,--filters=[<filters>]; see grep operation; added to stride for performance" << std::endl;
-    std::cerr << "        --fit-last; fit last stride exactly to the image size, i.e. last stride may be irregular" << std::endl;
-    std::cerr << "        --input=[<options>]; input options; run cv-cat --help --verbose for details" << std::endl;
-    std::cerr << "        --non-zero=[<what>]; see grep operation; added to stride for performance" << std::endl;
-    std::cerr << "        --output=[<options>]; output options; run cv-cat --help --verbose for details" << std::endl;
-    std::cerr << "        --padding=[<padding>]; padding, 'same' or 'valid' (see e.g. tensorflow for the meaning); default: valid" << std::endl;
-    std::cerr << "        --shape,--kernel,--size=<x>,<y>; image size" << std::endl;
-    std::cerr << "        --strides=[<x>,<y>]; stride size; default: 1,1" << std::endl;
+    std::cerr << "    stride" << snark::cv_calc::stride::options() << std::endl;
     std::cerr << std::endl;
     std::cerr << "    thin" << std::endl;
     std::cerr << "        by thinning rate" << std::endl;
@@ -960,72 +954,6 @@ template <> struct traits< chessboard_corner_t >
 
 } } // namespace comma { namespace visiting {
 
-namespace grep {
-
-class non_zero
-{
-    public:
-        non_zero() {}
-        non_zero( const std::string& s )
-        {
-            if( s.empty() ) { return; }
-            const std::vector< std::string >& v = comma::split( s, ',' );
-            if( v[0] == "ratio" )
-            {
-                if( v.size() < 2 ) { COMMA_THROW( comma::exception, "expected --non-zero=ratio,<min>,<max>; got --non-zero=ratio" ); }
-                if( !v[1].empty() ) { ratio_.first = boost::lexical_cast< double >( v[1] ); }
-                if( v.size() > 2 && !v[2].empty() ) { ratio_.second = boost::lexical_cast< double >( v[2] ); }
-                return;
-            }
-            if( v[0] == "size" )
-            {
-                if( v.size() < 2 ) { COMMA_THROW( comma::exception, "expected --non-zero=size,<min>,<max>; got --non-zero=size" ); }
-                if( !v[1].empty() ) { size_.first = boost::lexical_cast< unsigned int >( v[1] ); }
-                if( v.size() > 2 && !v[2].empty() ) { size_.second = boost::lexical_cast< unsigned int >( v[2] ); }
-                return;
-            }
-            COMMA_THROW( comma::exception, "--non-zero: expected 'ratio' or 'size', got: '" << v[0] << "'" );
-        }
-        operator bool() const { return static_cast< bool >( ratio_.first ) || static_cast< bool >( ratio_.second ) || static_cast< bool >( size_.first ) || static_cast< bool >( size_.second ); }
-        void size( unsigned int image_size )
-        {
-            if( ratio_.first ) { size_.first = image_size * *ratio_.first; }
-            if( ratio_.second ) { size_.second = image_size * *ratio_.second; }
-        }
-        bool keep( unsigned int count ) const { return ( !size_.first || *size_.first <= count ) && ( !size_.second || count < *size_.second ); }
-        bool keep( const cv::Mat& m ) const { return keep( count( m ) ); }
-        unsigned int count( const cv::Mat& m ) const
-        {
-            static std::vector< char > zero_pixel( m.elemSize(), 0 );
-            std::vector< unsigned int > counts( m.rows, 0 );
-            tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, m.rows )
-                                , [&]( const tbb::blocked_range< std::size_t >& r )
-                                {
-                                    for( unsigned int i = r.begin(); i < r.end(); ++i )
-                                    {
-                                        for( const unsigned char* ptr = m.ptr( i ); ptr < m.ptr( i + 1 ); ptr += m.elemSize() )
-                                        {
-                                            if( ::memcmp( ptr, &zero_pixel[0], zero_pixel.size() ) != 0 ) { ++counts[i]; }
-                                        }
-                                    }
-                                } );
-            return std::accumulate( counts.begin(), counts.end(), 0 );
-        }
-        const uchar* ptr;
-
-    private:
-        std::pair< boost::optional< double >, boost::optional< double > > ratio_;
-        std::pair< boost::optional< unsigned int >, boost::optional< unsigned int > > size_;
-        bool empty_;
-        bool keep_counting_( unsigned int count ) const
-        {
-            if( size_.second ) { return *size_.second < count; }
-            return size_.first && ( count < *size_.first );
-        }
-};
-
-} // namespace grep {
-
 namespace thin {
 
 class keep
@@ -1249,7 +1177,7 @@ int main( int ac, char** av )
             // Need to be created inside, some operation (roi) has other default fields. If not using --binary also requires --fields
             snark::cv_mat::serialization input_serialization( input_options );
             snark::cv_mat::serialization output_serialization( output_options );
-            grep::non_zero non_zero( options.value< std::string >( "--non-zero", "" ) );
+            snark::cv_calc::grep::non_zero non_zero( options.value< std::string >( "--non-zero", "" ) );
             const std::vector< snark::cv_mat::filter >& filters = snark::cv_mat::impl::filters<>::make( options.value< std::string >( "--filter,--filters", "" ) );
             if( !non_zero && !filters.empty() ) { std::cerr << "cv-calc: grep: warning: --filters specified, but --non-zero is not; --filters will have no effect" << std::endl; }
             while( std::cin.good() && !std::cin.eof() )
@@ -1350,86 +1278,7 @@ int main( int ac, char** av )
         }
         if( operation == "optical-flow-farneback" ) { return snark::cv_calc::optical_flow::farneback::run( options ); }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
-        if( operation == "stride" )
-        {
-            snark::cv_mat::serialization input_serialization( input_options );
-            snark::cv_mat::serialization output_serialization( output_options );
-            bool fit_last = options.exists( "--fit-last" );
-            const std::vector< std::string >& strides_vector = comma::split( options.value< std::string >( "--strides", "1,1" ), ',' );
-            if( strides_vector.size() != 2 ) { std::cerr << "cv-calc: stride: expected strides as <x>,<y>, got: \"" << options.value< std::string >( "--strides" ) << std::endl; return 1; }
-            std::pair< unsigned int, unsigned int > strides( boost::lexical_cast< unsigned int >( strides_vector[0] ), boost::lexical_cast< unsigned int >( strides_vector[1] ) );
-            const std::vector< std::string >& shape_vector = comma::split( options.value< std::string >( "--shape,--size,--kernel" ), ',' );
-            if( shape_vector.size() != 2 ) { std::cerr << "cv-calc: stride: expected shape as <x>,<y>, got: \"" << options.value< std::string >( "--shape,--size,--kernel" ) << std::endl; return 1; }
-            std::pair< unsigned int, unsigned int > shape( boost::lexical_cast< unsigned int >( shape_vector[0] ), boost::lexical_cast< unsigned int >( shape_vector[1] ) );
-            unsigned int shape_size = shape.first * shape.second;
-            struct padding_types { enum values { same, valid }; };
-            std::string padding_string = options.value< std::string >( "--padding", "valid" );
-            padding_types::values padding = padding_types::same;
-            if( padding_string == "same" || padding_string == "SAME" ) { padding = padding_types::same; std::cerr << "cv-calc: stride: padding 'same' not implemented; please use --padding=valid" << std::endl; return 1; }
-            else if( padding_string == "valid" || padding_string == "VALID" ) { padding = padding_types::valid; }
-            else { std::cerr << "cv-calc: stride: expected padding type, got: \"" << padding_string << "\"" << std::endl; return 1; }
-            grep::non_zero non_zero( options.value< std::string >( "--non-zero", "" ) );
-            typedef snark::cv_mat::serialization::header::buffer_t first_t; // typedef boost::posix_time::ptime first_t;
-            typedef std::pair< first_t, cv::Mat > pair_t;
-            typedef snark::cv_mat::filter_with_header filter_t; // typedef snark::cv_mat::filter filter_t;
-            typedef snark::cv_mat::filters_with_header filters_t; // typedef snark::cv_mat::filters filters_t;
-            const comma::csv::binary< snark::cv_mat::serialization::header >* binary = input_serialization.header_binary();
-            auto get_timestamp_from_header = [&]( const snark::cv_mat::serialization::header::buffer_t& h )->boost::posix_time::ptime
-            {
-                if( h.empty() || !binary ) { return boost::posix_time::not_a_date_time; }
-                snark::cv_mat::serialization::header d;
-                return binary->get( d, &h[0] ).timestamp;
-            };
-            const std::vector< filter_t >& filters = filters_t::make( options.value< std::string >( "--filter,--filters", "" ), get_timestamp_from_header );
-            if( !non_zero && !filters.empty() ) { std::cerr << "cv-calc: stride: warning: --filters specified, but --non-zero is not; --filters will have no effect" << std::endl; }
-            while( std::cin.good() && !std::cin.eof() )
-            {
-                pair_t p = input_serialization.read< first_t >( std::cin );
-                if( p.second.empty() ) { return 0; }
-                pair_t filtered;
-                if( !filters.empty() )
-                {
-                    p.second.copyTo( filtered.second );
-                    for( auto& filter: filters ) { filtered = filter( filtered ); }
-                    if( filtered.second.rows != p.second.rows || filtered.second.cols != p.second.cols ) { std::cerr << "cv-calc: stride: expected original and filtered images of the same size, got " << p.second.rows << "," << p.second.cols << " vs " << filtered.second.rows << "," << filtered.second.cols << std::endl; return 1; }
-                }
-                switch( padding )
-                {
-                    case padding_types::same: // todo
-                        break;
-                    case padding_types::valid:
-                    {
-                        if( p.second.cols < int( shape.first ) || p.second.rows < int( shape.second ) ) { std::cerr << "cv-calc: stride: expected image greater than rows: " << shape.second << " cols: " << shape.first << "; got rows: " << p.second.rows << " cols: " << p.second.cols << std::endl; return 1; }
-                        pair_t q;
-                        q.first = p.first;
-                        bool is_last_row = false;
-                        for( unsigned int j = 0; !is_last_row; j += strides.second )
-                        {
-                            if( fit_last && int( j ) < p.second.rows && j > p.second.rows - shape.second ) { j = p.second.rows - shape.second; is_last_row = true; }
-                            if( j >= ( p.second.rows + 1 - shape.second ) ) { break; }
-                            bool is_last_col = false;
-                            for( unsigned int i = 0; !is_last_col; i += strides.first )
-                            {
-                                if( fit_last && int( i ) < p.second.cols && i > p.second.cols - shape.first ) { i = p.second.cols - shape.first; is_last_col = true; }
-                                if( i >= ( p.second.cols + 1 - shape.first ) ) { break; }
-                                if( !filtered.second.empty() )
-                                {
-                                    filtered.second( cv::Rect( i, j, shape.first, shape.second ) ).copyTo( q.second );
-                                    non_zero.size( shape_size );
-                                    if( !non_zero.keep( q.second ) ) { continue; }
-                                }
-                                p.second( cv::Rect( i, j, shape.first, shape.second ) ).copyTo( q.second );
-                                output_serialization.write_to_stdout( q, csv.flush );
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
-            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
-            return 0;
-        }
+        if( operation == "stride" ) { return snark::cv_calc::stride::run( options, input_options, output_options ); }
         if( operation == "unstride" ) { return snark::cv_calc::unstride::run( options, input_options, output_options ); }
         if( operation == "thin" )
         {
