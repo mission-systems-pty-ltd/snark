@@ -26,14 +26,14 @@ remap< H >::remap( const std::string& filename, unsigned int width, unsigned int
     , y_( int( height ), int( width ), CV_32FC1 )
 {
     std::ifstream ifs( filename );
-    if( !ifs.is_open() ) { COMMA_THROW( comma::exception, "failed to open '" << filename << "'" ); }
+    COMMA_ASSERT( ifs.is_open(), "failed to open '" << filename << "'" );
     unsigned int size = width * height * 4;
     ifs.read( reinterpret_cast< char* >( x_.ptr() ), size );
-    if( ifs.gcount() != int( size ) ) { COMMA_THROW( comma::exception, "on reading x map: expected " << size << " bytes, got: " << ifs.gcount() ); }
+    COMMA_ASSERT( ifs.gcount() == int( size ), "on reading x map: expected " << size << " bytes, got: " << ifs.gcount() );
     ifs.read( reinterpret_cast< char* >( y_.ptr() ), size );
-    if( ifs.gcount() != int( size ) ) { COMMA_THROW( comma::exception, "on reading y map: expected " << size << " bytes, got: " << ifs.gcount() ); }
+    COMMA_ASSERT( ifs.gcount() == int( size ), "on reading y map: expected " << size << " bytes, got: " << ifs.gcount() );
     ifs.peek(); // quick and dirty
-    if( !ifs.eof() ) { COMMA_THROW( comma::exception, "expected " << ( size * 2 ) << " bytes in \"" << filename << "\", got more bytes; invalid map size" ); }
+    COMMA_ASSERT( ifs.eof(), "expected " << ( size * 2 ) << " bytes in \"" << filename << "\", got more bytes; invalid map size" );
 }
 
 template < typename H >
