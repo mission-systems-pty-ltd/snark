@@ -156,13 +156,19 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     {
         pair_t p = input_serialization.read< first_t >( std::cin );
         if( p.second.empty() ) { return 0; }
-        if( last ) { for( unsigned int i = 0; i < last->count; ++i ) { output_serialization.write_to_stdout( filtered( p, last->filters, get_timestamp ), csv.flush ); } }
+        if( last )
+        {
+            auto f = filtered( p, last->filters, get_timestamp );
+            for( unsigned int i = 0; i < last->count; ++i ) { output_serialization.write_to_stdout( f, csv.flush ); }
+        }
         while( is->good() )
         {
             auto r = reader.read( *is );
             if( !r ) { return 0; }
             if( last && !r->same_as( *last ) ) { last = *r; break; }
-            for( unsigned int i = 0; i < r->count; ++i ) { output_serialization.write_to_stdout( filtered( p, r->filters, get_timestamp ), csv.flush ); }
+            last = *r;
+            auto f = filtered( p, r->filters, get_timestamp );
+            for( unsigned int i = 0; i < r->count; ++i ) { output_serialization.write_to_stdout( f, csv.flush ); }
         }
     }
     if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
