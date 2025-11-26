@@ -34,6 +34,9 @@ namespace snark { namespace cv_calc { namespace filter {
 std::string options()
 {
     return R"(
+
+        todo
+
         --filters=<filters>[;<csv-options>]
             <filters>: filters filename, or socket, etc
             <csv-options>: ascii only for now; 'filters'
@@ -129,10 +132,11 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     snark::cv_mat::serialization output_serialization( output_options );
     const comma::csv::binary< snark::cv_mat::serialization::header >* binary = input_serialization.header_binary();
     comma::csv::options csv( options );
-    comma::csv::options filters_csv( comma::name_value::parser().get< comma::csv::options >( options.value< std::string >( "--filters" ) ) );
+    comma::csv::options filters_csv( comma::name_value::parser( "filename" ).get< comma::csv::options >( options.value< std::string >( "--filters" ) ) );
     if( filters_csv.fields.empty() ) { filters_csv.fields = "filters"; }
     COMMA_ASSERT_BRIEF( !filters_csv.binary(), "--filters='...;binary=...': todo" );
     comma::io::istream is( filters_csv.filename, filters_csv.binary() ? comma::io::mode::binary : comma::io::mode::ascii );
+    COMMA_ASSERT_BRIEF( is->good(), "failed to open '" << filters_csv.filename << "'" );
     filter::reader reader( filters_csv );
     boost::optional< filter::reader::record > last = comma::silent_none< filter::reader::record >();
     auto get_timestamp = [&]( const snark::cv_mat::serialization::header::buffer_t& h )->boost::posix_time::ptime

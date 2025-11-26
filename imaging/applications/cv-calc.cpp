@@ -68,6 +68,7 @@ static void usage( bool verbose=false )
     std::cerr << "    draw: draw on the image primitives defined in the image header; skip a primitive if its dimensions are zero" << std::endl;
     std::cerr << "    enumerate: replace image timestamp with an 64-bit integer counter (convenience operation)" << std::endl;
     std::cerr << "    equirectangular-map: output equirectangular-to-rectilinear map for a given orientation or 6 cube faces" << std::endl;
+    std::cerr << "    filter: apply variable custom filters to a stream of images" << std::endl;
     std::cerr << "    format: output header and data format string in ascii" << std::endl;
     std::cerr << "    graph: view graphviz graph as svg, read states on stdin, highlight respective graph nodes" << std::endl;
     std::cerr << "    grep: output only images that satisfy conditions" << std::endl;
@@ -162,7 +163,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "    enumerate" << std::endl << snark::cv_calc::enumerate::options() << std::endl;
     std::cerr << "    equirectangular-map" << std::endl << snark::cv_calc::equirectangular_map::options() << std::endl;
-    // todo: std::cerr << "    filter" << std::endl << snark::cv_calc::filter::options() << std::endl;
+    std::cerr << "    filter" << std::endl << snark::cv_calc::filter::options() << std::endl;
     std::cerr << "    graph" << std::endl << snark::cv_calc::graph::options() << std::endl;
     std::cerr << "    grep" << std::endl << snark::cv_calc::grep::options() << std::endl;
     std::cerr << "    header" << std::endl;
