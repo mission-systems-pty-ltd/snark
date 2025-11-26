@@ -44,7 +44,11 @@ std::string options()
                            default fields: 'filters', then
                            all filters will be applied to
                            the first input image (i.e. block 0)
-                fields: t,block,filters)";
+                fields: t,block,count,filters
+                    t      : timestamp
+                    block  : number of input image to apply to
+                    count  : number of times to output image
+                    filters: sequence of filters as in cv-cat )";
 }
 
 class reader
@@ -54,6 +58,7 @@ class reader
         {
             boost::posix_time::ptime t;
             std::uint32_t block{0};
+            std::uint32_t count{1};
             std::string filters;
 
             bool same_as( const record& rhs ) const { return t == rhs.t && block == rhs.block; }
@@ -97,12 +102,14 @@ template <> struct traits< snark::cv_calc::filter::reader::record >
     {
         v.apply( "t", p.t );
         v.apply( "block", p.block );
+        v.apply( "count", p.count );
     }
 
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::filter::reader::record& p, Visitor& v )
     {
         v.apply( "t", p.t );
         v.apply( "block", p.block );
+        v.apply( "count", p.count );
     }
 };
 
@@ -149,13 +156,13 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     {
         pair_t p = input_serialization.read< first_t >( std::cin );
         if( p.second.empty() ) { return 0; }
-        if( last ) { output_serialization.write_to_stdout( filtered( p, last->filters, get_timestamp ), csv.flush ); }
+        if( last ) { for( unsigned int i = 0; i < last->count; ++i ) { output_serialization.write_to_stdout( filtered( p, last->filters, get_timestamp ), csv.flush ); } }
         while( is->good() )
         {
             auto r = reader.read( *is );
             if( !r ) { return 0; }
             if( last && !r->same_as( *last ) ) { last = *r; break; }
-            output_serialization.write_to_stdout( filtered( p, r->filters, get_timestamp ), csv.flush );
+            for( unsigned int i = 0; i < r->count; ++i ) { output_serialization.write_to_stdout( filtered( p, r->filters, get_timestamp ), csv.flush ); }
         }
     }
     if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
