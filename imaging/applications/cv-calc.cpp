@@ -38,6 +38,7 @@
 #include "cv_calc/grep.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
+#include "cv_calc/filter.h"
 #include "cv_calc/graph.h"
 #include "cv_calc/interpolate.h"
 #include "cv_calc/life.h"
@@ -161,6 +162,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "    enumerate" << std::endl << snark::cv_calc::enumerate::options() << std::endl;
     std::cerr << "    equirectangular-map" << std::endl << snark::cv_calc::equirectangular_map::options() << std::endl;
+    // todo: std::cerr << "    filter" << std::endl << snark::cv_calc::filter::options() << std::endl;
     std::cerr << "    graph" << std::endl << snark::cv_calc::graph::options() << std::endl;
     std::cerr << "    grep" << std::endl;
     std::cerr << "        --filter,--filters=[<filters>]; apply --non-zero logic to the image with filters applied, not to image itself" << std::endl;
@@ -1011,8 +1013,8 @@ int main( int ac, char** av )
         verbose = options.exists( "--verbose,-v" );
         //std::vector< std::string > unnamed = options.unnamed("-h,--help,-v,--verbose,--flush,--input-fields,--input-format,--output-fields,--output-format,--show-partial", "--fields,--binary,--input,--output,--strides,--padding,--shape,--size,--kernel");
         std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u,--status,--use-initial-flow,--use-gaussian,--gaussian", "-.*" );
-        if( unnamed.empty() ) { std::cerr << name << "please specify operation" << std::endl; return 1; }
-        if( unnamed.size() > 1 ) { std::cerr << name << "please specify only one operation, got " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify operation" );
+        COMMA_ASSERT_BRIEF( unnamed.size() == 1, "please specify only one operation, got " << comma::join( unnamed, ' ' ) );
         std::string operation = unnamed.front();
         const snark::cv_mat::serialization::options input_parsed = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--input", "" ) );
         snark::cv_mat::serialization::options input_options = handle_fields_and_format(csv, input_parsed );
@@ -1020,11 +1022,11 @@ int main( int ac, char** av )
         snark::cv_mat::serialization::options output_options = output_options_string.empty() ? input_options : comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( output_options_string );
         if( input_options.no_header && !output_options.fields.empty() && input_options.fields != output_options.fields )
         {
-            if( output_options.fields != snark::cv_mat::serialization::header::default_fields() ) { std::cerr << "cv-calc: when --input has no-header option, --output fields can only be fields=" << snark::cv_mat::serialization::header::default_fields() << ", got: " << output_options.fields << std::endl; return 1; }
+            COMMA_ASSERT_BRIEF( output_options.fields == snark::cv_mat::serialization::header::default_fields(), "when --input has no-header option, --output fields can only be fields=" << snark::cv_mat::serialization::header::default_fields() << ", got: " << output_options.fields );
         }
         else
         {
-            if( !output_options.fields.empty() && input_options.fields != output_options.fields ) { std::cerr << "cv-calc: customised output header fields not supported (todo); got: input fields: \"" << input_options.fields << "\" output fields: \"" << output_options.fields << "\"" << std::endl; return 1; }
+            COMMA_ASSERT_BRIEF( output_options.fields.empty() || input_options.fields == output_options.fields, "customised output header fields not supported (todo); got: input fields: \"" << input_options.fields << "\" output fields: \"" << output_options.fields << "\"" );
         }
         if( output_options.fields.empty() ) { output_options.fields = input_options.fields; } // output fields and format will be empty when the user specifies only --output no-header or --output header-only
         if( !output_options.format.elements().empty() && input_options.format.string() != output_options.format.string() ) { std::cerr << "cv-calc: customised output header format not supported (todo); got: input format: \"" << input_options.format.string() << "\" output format: \"" << output_options.format.string() << "\"" << std::endl; return 1; }
@@ -1152,9 +1154,8 @@ int main( int ac, char** av )
             snark::cv_mat::serialization input_serialization( input_options );
             snark::cv_mat::serialization output_serialization( output_options );
             auto binary = csv.binary()
-                ? comma::csv::binary< draw::shapes::header_shapes >( csv, sample.hdr_shapes )
-                : comma::csv::binary< draw::shapes::header_shapes >(); // todo: sample seems not to take effect; debug
-
+               ? comma::csv::binary< draw::shapes::header_shapes >( csv, sample.hdr_shapes )
+               : comma::csv::binary< draw::shapes::header_shapes >(); // todo: sample seems not to take effect; debug
             while( std::cin.good() )
             {
                 auto p = input_serialization.read< snark::cv_mat::serialization::header::buffer_t >( std::cin );
@@ -1276,6 +1277,7 @@ int main( int ac, char** av )
             if( !serialization.last_error().empty() ) { comma::say() << serialization.last_error() << std::endl; }
             return 0;
         }
+        if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
         if( operation == "optical-flow-farneback" ) { return snark::cv_calc::optical_flow::farneback::run( options ); }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
         if( operation == "stride" ) { return snark::cv_calc::stride::run( options, input_options, output_options ); }
@@ -1304,12 +1306,10 @@ int main( int ac, char** av )
         {
             stride_positions_t input( options );
             positions_t output( options );
-
             if( options.exists("--input-fields") ) { std::cout << comma::join( comma::csv::names< stride_positions_t >( true, input ), ',' ) << std::endl; return 0; }
             if( options.exists("--input-format") ) { std::cout << comma::csv::format::value< stride_positions_t >( "", true, input ) << std::endl; return 0; }
             if( options.exists("--output-fields") ) { std::cout << comma::join( comma::csv::names< positions_t >( true, output ), ',' ) << std::endl; return 0; }
             if( options.exists("--output-format") ) { std::cout << comma::csv::format::value< positions_t >( "", true, output ) << std::endl; return 0; }
-
             const std::vector< std::string >& unstrided_vector = comma::split( options.value< std::string >( "--unstrided-size,--unstrided" ), ',' );
             if( unstrided_vector.size() != 2 ) { std::cerr << "cv-calc: unstride-positions: expected --unstrided-size as <width>,<height>, got: \"" << options.value< std::string >( "--unstrided-size,--unstrided" ) << std::endl; return 1; }
             cv::Point2i unstrided( boost::lexical_cast< unsigned int >( unstrided_vector[0] ), boost::lexical_cast< unsigned int >( unstrided_vector[1] ) );
@@ -1441,12 +1441,7 @@ int main( int ac, char** av )
                     for( const auto& ext : hdr_shapes.rectangles )
                     {
                         auto result = ext.validate( mat.rows, mat.cols, permissive );
-                        if( roi::status::error == result.first )
-                        {
-                            std::cerr << name << "roi's width and height can not be negative; failed on image/frame number " << count
-                                << ", min: " << ext.min << ", max: " <<  ext.max << ", width: " << result.second.width << ", height: " << result.second.height << std::endl;
-                            return 1;
-                        }
+                        COMMA_ASSERT_BRIEF( roi::status::error == result.first, "roi's width and height can not be negative; failed on image/frame number " << count << ", min: " << ext.min << ", max: " <<  ext.max << ", width: " << result.second.width << ", height: " << result.second.height );
                         if( roi::status::ignore == result.first ) { continue; }
                         if( crop )
                         {
@@ -1519,7 +1514,7 @@ int main( int ac, char** av )
                     }
                     int width = ext.max.x - ext.min.x;
                     int height = ext.max.y - ext.min.y;
-                    if( width < 0 || height < 0 ) { std::cerr << name << "roi's width and height can not be negative; failed on image/frame number " << count << ", min: " << ext.min << ", max: " << ext.max << ", width: " << width << ", height: " << height << std::endl; return 1; }
+                    COMMA_ASSERT_BRIEF( width >= 0 && height >= 0, "roi's width and height can not be negative; failed on image/frame number " << count << ", min: " << ext.min << ", max: " << ext.max << ", width: " << width << ", height: " << height );
                     if( ext.min.x >= 0 && ext.min.y >=0 && ext.max.x <= mat.cols && ext.max.y <= mat.rows )
                     {
                         if( crop )
@@ -1542,7 +1537,7 @@ int main( int ac, char** av )
             }
             return 0;
         }
-        comma::say() << " unknown operation: '" << operation << "'" << std::endl;
+        comma::say() << "expected operation; got: '" << operation << "'" << std::endl;
     }
     catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }
     catch( ... ) { comma::say() << "unknown exception" << std::endl; }

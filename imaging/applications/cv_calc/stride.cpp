@@ -43,10 +43,10 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     snark::cv_mat::serialization output_serialization( output_options );
     bool fit_last = options.exists( "--fit-last" );
     const std::vector< std::string >& strides_vector = comma::split( options.value< std::string >( "--strides", "1,1" ), ',' );
-    if( strides_vector.size() != 2 ) { std::cerr << "cv-calc: stride: expected strides as <x>,<y>, got: \"" << options.value< std::string >( "--strides" ) << std::endl; return 1; }
+    COMMA_ASSERT_BRIEF( strides_vector.size() == 2, "stride: expected strides as <x>,<y>, got: '" << options.value< std::string >( "--strides" ) << "'" );
     std::pair< unsigned int, unsigned int > strides( boost::lexical_cast< unsigned int >( strides_vector[0] ), boost::lexical_cast< unsigned int >( strides_vector[1] ) );
     const std::vector< std::string >& shape_vector = comma::split( options.value< std::string >( "--shape,--size,--kernel" ), ',' );
-    if( shape_vector.size() != 2 ) { std::cerr << "cv-calc: stride: expected shape as <x>,<y>, got: \"" << options.value< std::string >( "--shape,--size,--kernel" ) << std::endl; return 1; }
+    COMMA_ASSERT_BRIEF( shape_vector.size() == 2, "stride: expected shape as <x>,<y>, got: \"" << options.value< std::string >( "--shape,--size,--kernel" ) );
     std::pair< unsigned int, unsigned int > shape( boost::lexical_cast< unsigned int >( shape_vector[0] ), boost::lexical_cast< unsigned int >( shape_vector[1] ) );
     unsigned int shape_size = shape.first * shape.second;
     struct padding_types { enum values { same, valid }; };
@@ -87,7 +87,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
                 break;
             case padding_types::valid:
             {
-                if( p.second.cols < int( shape.first ) || p.second.rows < int( shape.second ) ) { std::cerr << "cv-calc: stride: expected image greater than rows: " << shape.second << " cols: " << shape.first << "; got rows: " << p.second.rows << " cols: " << p.second.cols << std::endl; return 1; }
+                COMMA_ASSERT_BRIEF( p.second.cols >= int( shape.first ) && p.second.rows >= int( shape.second ), "stride: expected image greater than rows: " << shape.second << " cols: " << shape.first << "; got rows: " << p.second.rows << " cols: " << p.second.cols );
                 pair_t q;
                 q.first = p.first;
                 bool is_last_row = false;
