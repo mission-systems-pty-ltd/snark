@@ -2,6 +2,7 @@
 
 /// @author vsevolod vlaskine
 
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <boost/optional.hpp>
@@ -15,6 +16,7 @@
 #endif
 #include <tbb/parallel_for.h>
 #include <comma/base/exception.h>
+#include <comma/base/none.h>
 #include <comma/csv/ascii.h>
 #include <comma/csv/binary.h>
 #include <comma/csv/options.h>
@@ -25,8 +27,7 @@
 #include <comma/visiting/traits.h>
 #include "../../../imaging/cv_mat/filters.h"
 #include "../../../imaging/cv_mat/traits.h"
-#include "grep.h"
-#include "stride.h"
+#include "filter.h"
 
 namespace snark { namespace cv_calc { namespace filter {
     
@@ -51,6 +52,8 @@ class reader
             boost::posix_time::ptime t;
             std::uint32_t block{0};
             std::string filters;
+
+            bool same_as( const record& rhs ) const { return t == rhs.t && block == rhs.block; }
         };
 
         reader( const comma::csv::options& csv )
@@ -64,16 +67,15 @@ class reader
             COMMA_ASSERT_BRIEF( _index == v.size() - 1, "currently, only the last field can be 'filters'; got: '" << csv.fields << "'" );
         }
 
-        boost::optional< record > read( std::istream& is )
+        boost::optional< record > read( std::istream& is ) const
         {
             std::string line;
             for( ; is.good() && line.empty(); std::getline( is, line ) );
             if( line.empty() ) { return boost::none; }
+            if( _index == 0 ) { return boost::optional< record >( record{block: 0, filters: line} ); }
             boost::optional< record > r = _ascii.get( line );
-            
-            // todo
-            //comma::join( comma::split( line, ',' )
-            
+            const auto& s = comma::split( line, ',' );
+            r->filters = comma::strip( comma::join( s.begin() + _index, s.end(), ',' ), "\"" ); // quick and dirty; todo: implement in comma::string or alike
             return r;
         }
 
@@ -105,43 +107,52 @@ template <> struct traits< snark::cv_calc::filter::reader::record >
 
 namespace snark { namespace cv_calc { namespace filter {
 
+typedef snark::cv_mat::serialization::header::buffer_t first_t; // typedef boost::posix_time::ptime first_t;
+typedef std::pair< first_t, cv::Mat > pair_t;
+typedef snark::cv_mat::filter_with_header filter_t; // typedef snark::cv_mat::filter filter_t;
+typedef snark::cv_mat::filters_with_header filters_t; // typedef snark::cv_mat::filters filters_t;
+typedef std::function< boost::posix_time::ptime( const snark::cv_mat::serialization::header::buffer_t& ) > get_timestamp_t;
+
+static pair_t filtered( const pair_t p, const std::string& filter_string, const get_timestamp_t& get_timestamp )
+{
+    const std::vector< filter_t >& filters = filters_t::make( filter_string, get_timestamp );
+    pair_t r;
+    r.first = p.first;
+    p.second.copyTo( r.second );
+    for( auto& f: filters ) { r = f( r ); }
+    return r;
+}
+
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization& input_options, const snark::cv_mat::serialization& output_options )
 {
     snark::cv_mat::serialization input_serialization( input_options );
     snark::cv_mat::serialization output_serialization( output_options );
-    typedef snark::cv_mat::serialization::header::buffer_t first_t; // typedef boost::posix_time::ptime first_t;
-    typedef std::pair< first_t, cv::Mat > pair_t;
-    typedef snark::cv_mat::filter_with_header filter_t; // typedef snark::cv_mat::filter filter_t;
-    typedef snark::cv_mat::filters_with_header filters_t; // typedef snark::cv_mat::filters filters_t;
     const comma::csv::binary< snark::cv_mat::serialization::header >* binary = input_serialization.header_binary();
     comma::csv::options csv( options );
     comma::csv::options filters_csv( comma::name_value::parser().get< comma::csv::options >( options.value< std::string >( "--filters" ) ) );
     if( filters_csv.fields.empty() ) { filters_csv.fields = "filters"; }
     COMMA_ASSERT_BRIEF( !filters_csv.binary(), "--filters='...;binary=...': todo" );
     comma::io::istream is( filters_csv.filename, filters_csv.binary() ? comma::io::mode::binary : comma::io::mode::ascii );
-
-    auto get_timestamp_from_header = [&]( const snark::cv_mat::serialization::header::buffer_t& h )->boost::posix_time::ptime
+    filter::reader reader( filters_csv );
+    boost::optional< filter::reader::record > last = comma::silent_none< filter::reader::record >();
+    auto get_timestamp = [&]( const snark::cv_mat::serialization::header::buffer_t& h )->boost::posix_time::ptime
     {
         if( h.empty() || !binary ) { return boost::posix_time::not_a_date_time; }
         snark::cv_mat::serialization::header d;
         return binary->get( d, &h[0] ).timestamp;
     };
-
-    // todo...
-
-    const std::vector< filter_t >& filters = filters_t::make( options.value< std::string >( "--filters", "" ), get_timestamp_from_header );
-    
     while( std::cin.good() && !std::cin.eof() )
     {
         pair_t p = input_serialization.read< first_t >( std::cin );
         if( p.second.empty() ) { return 0; }
-        pair_t filtered;
-        if( !filters.empty() )
+        if( last ) { output_serialization.write_to_stdout( filtered( p, last->filters, get_timestamp ), csv.flush ); }
+        while( is->good() )
         {
-            p.second.copyTo( filtered.second );
-            for( auto& filter: filters ) { filtered = filter( filtered ); }
+            auto r = reader.read( *is );
+            if( !r ) { return 0; }
+            if( last && !r->same_as( *last ) ) { last = *r; break; }
+            output_serialization.write_to_stdout( filtered( p, r->filters, get_timestamp ), csv.flush );
         }
-        output_serialization.write_to_stdout( filtered, csv.flush );
     }
     if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
     if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
