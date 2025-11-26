@@ -164,22 +164,7 @@ static void usage( bool verbose=false )
     std::cerr << "    equirectangular-map" << std::endl << snark::cv_calc::equirectangular_map::options() << std::endl;
     // todo: std::cerr << "    filter" << std::endl << snark::cv_calc::filter::options() << std::endl;
     std::cerr << "    graph" << std::endl << snark::cv_calc::graph::options() << std::endl;
-    std::cerr << "    grep" << std::endl;
-    std::cerr << "        --filter,--filters=[<filters>]; apply --non-zero logic to the image with filters applied, not to image itself" << std::endl;
-    std::cerr << "                                        run cv-cat --help --verbose for filters available" << std::endl;
-    std::cerr << "        --non-zero=[<what>]; output only images that have non-zero pixels" << std::endl;
-    std::cerr << "            <what>" << std::endl;
-    std::cerr << "                ratio,[<min>][,<max>]: output only images with number of non-zero pixels within the limits of given ratios, e.g:" << std::endl;
-    std::cerr << "                                           --non-zero=ratio,0.2,0.8: output images that have from 20 to 80% of non-zero pixels" << std::endl;
-    std::cerr << "                                           --non-zero=ratio,,0.8: output images that have up to 80% of non-zero pixels" << std::endl;
-    std::cerr << "                                           --non-zero=ratio,0.8: output images that have at least 80% of non-zero pixels" << std::endl;
-    std::cerr << "                size,[<min>][,<max>]: output only images with number of non-zero pixels within given limits" << std::endl;
-    std::cerr << "                                      lower limit inclusive, upper limit exclusive; e.g" << std::endl;
-    std::cerr << "                                          --non-zero=size,10,1000: output images that have from 10 to 999 non-zero pixels" << std::endl;
-    std::cerr << "                                          --non-zero=size,10: output images that have at least 10 non-zero pixels" << std::endl;
-    std::cerr << "                                          --non-zero=size,,1000: output images that have not more than 999 non-zero pixels" << std::endl;
-    std::cerr << "                                          --non-zero=size,,1: output images with all pixels zero (makes sense only when used with --filters" << std::endl;
-    std::cerr << std::endl;
+    std::cerr << "    grep" << std::endl << snark::cv_calc::grep::options() << std::endl;
     std::cerr << "    header" << std::endl;
     std::cerr << "        --header-fields; output header fields and exit" << std::endl;
     std::cerr << "        --header-format; output header format and exit" << std::endl;
@@ -1172,30 +1157,9 @@ int main( int ac, char** av )
         }
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
+        if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
         if( operation == "graph" ) { return snark::cv_calc::graph::run( options ); }
-        if( operation == "grep" )
-        {
-            // Need to be created inside, some operation (roi) has other default fields. If not using --binary also requires --fields
-            snark::cv_mat::serialization input_serialization( input_options );
-            snark::cv_mat::serialization output_serialization( output_options );
-            snark::cv_calc::grep::non_zero non_zero( options.value< std::string >( "--non-zero", "" ) );
-            const std::vector< snark::cv_mat::filter >& filters = snark::cv_mat::impl::filters<>::make( options.value< std::string >( "--filter,--filters", "" ) );
-            if( !non_zero && !filters.empty() ) { std::cerr << "cv-calc: grep: warning: --filters specified, but --non-zero is not; --filters will have no effect" << std::endl; }
-            while( std::cin.good() && !std::cin.eof() )
-            {
-                std::pair< boost::posix_time::ptime, cv::Mat > p = input_serialization.read< boost::posix_time::ptime >( std::cin );
-                if( p.second.empty() ) { return 0; }
-                std::pair< boost::posix_time::ptime, cv::Mat > filtered;
-                if( filters.empty() ) { filtered = p; } else { p.second.copyTo( filtered.second ); }
-                for( auto& filter: filters ) { filtered = filter( filtered ); }
-                non_zero.size( filtered.second.rows * filtered.second.cols );
-                if( non_zero.keep( filtered.second ) ) { output_serialization.write_to_stdout( p ); }
-                std::cout.flush();
-            }
-            if( !input_serialization.last_error().empty() ) { comma::say() << input_serialization.last_error() << std::endl; }
-            if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
-            return 0;
-        }
+        if( operation == "grep" ) { return snark::cv_calc::grep::run( options, input_options, output_options ); }
         if( operation == "histogram" )
         {
             if( options.exists("--output-fields") ) { std::cout << "t,rows,cols,type,histogram" << std::endl;  exit(0); }
@@ -1277,7 +1241,6 @@ int main( int ac, char** av )
             if( !serialization.last_error().empty() ) { comma::say() << serialization.last_error() << std::endl; }
             return 0;
         }
-        if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
         if( operation == "optical-flow-farneback" ) { return snark::cv_calc::optical_flow::farneback::run( options ); }
         if( operation == "polar-map" ) { return snark::cv_calc::polar_map::run( options ); }
         if( operation == "stride" ) { return snark::cv_calc::stride::run( options, input_options, output_options ); }

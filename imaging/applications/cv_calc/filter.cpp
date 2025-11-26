@@ -46,6 +46,9 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         snark::cv_mat::serialization::header d;
         return binary->get( d, &h[0] ).timestamp;
     };
+
+    // todo...
+
     const std::vector< filter_t >& filters = filters_t::make( options.value< std::string >( "--filters", "" ), get_timestamp_from_header );
     while( std::cin.good() && !std::cin.eof() )
     {
