@@ -69,7 +69,7 @@ std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::str
     if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
     if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
     // std::cerr << "==> A: " << cv::getBuildInformation() << std::endl;
-    #if defined( CV_VERSION_MAJOR ) && CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR > 4 // pain!!!
+    #if defined( SNARK_OPENCV_HAS_OPENGL )
         auto window_type = cv::WINDOW_OPENGL; // pain!!!!!
     #else
         auto window_type = cv::WINDOW_NORMAL;

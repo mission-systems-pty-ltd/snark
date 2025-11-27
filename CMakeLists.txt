@@ -50,6 +50,22 @@ ELSE() # Probably windows; gets hardcoded patch version
 ENDIF()
 
 # ---------------------------------------------------------------------------
+# macros
+
+MACRO( check_python_module python module )
+    EXECUTE_PROCESS( COMMAND ${python} -c "import ${module}; print( hasattr( ${module}, '__version__' ) and ${module}.__version__ or 'unknown' );"
+        RESULT_VARIABLE MODULE_EXIT_CODE
+        OUTPUT_VARIABLE MODULE_VERSION_STRING
+        ERROR_VARIABLE MODULE_ERROR
+        OUTPUT_STRIP_TRAILING_WHITESPACE )
+    IF( MODULE_EXIT_CODE MATCHES 0 )
+        MESSAGE( STATUS "found ${python} ${module} module version ${MODULE_VERSION_STRING}" )
+    ELSE( MODULE_EXIT_CODE MATCHES 0 )
+        MESSAGE( FATAL_ERROR "${python} ${module} module not found; install it or disable ${PROJECT}" )
+    ENDIF( MODULE_EXIT_CODE MATCHES 0 )
+ENDMACRO( check_python_module )
+
+# ---------------------------------------------------------------------------
 # set compiler and linker flags and variables
 
 if( NOT CMAKE_BUILD_TYPE )
