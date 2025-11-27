@@ -1869,7 +1869,7 @@ struct make_filter {
     typedef boost::function< input_type( input_type ) > functor_type;
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
 
-static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp, bool allow_parallelisation )
+static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp )
 {
     if( e[0] == "accumulate" )
     {
@@ -2491,18 +2491,7 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         if( s.size() == 3 ) { x = boost::lexical_cast< int >( s[1] ); y = boost::lexical_cast< int >( s[2] ); }
         return std::make_pair( overlay_impl_ < H >( s[0], x, y ), true );
     }
-    if( e[0] == "view" )
-    {
-        if( allow_parallelisation ) {} // todo
-
-        // if( i < v.size() - 1 )
-        // {
-        //     std::string next_filter = comma::split( v[i+1], '=' )[0];
-        //     if( next_filter != "null" && next_filter != "encode" && next_filter != "file") { COMMA_THROW( comma::exception, "cannot have a filter after head unless next filter is 'null' or 'encode' or 'file'" ); }
-        // }
-
-        return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp );
-    }
+    if( e[0] == "view" ) { return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
     boost::function< value_type_t( value_type_t ) > functor = imaging::vegetation::impl::filters< H >::make_functor( e );
     if( functor ) { return std::make_pair( functor, true ); }
     COMMA_THROW( comma::exception, "expected filter, got: \"" << comma::join( e, '=' ) << "\"" );
@@ -2511,23 +2500,17 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
 class maker
 {
     public:
-        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=', bool allow_parallelisation = false )
-            : get_timestamp_( get_timestamp )
-            , separator_( separator )
-            , equal_sign_( equal_sign )
-            , allow_parallelisation_( allow_parallelisation )
-        {
-        }
+        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' ): get_timestamp_( get_timestamp ) , separator_( separator ) , equal_sign_( equal_sign ) {}
         
         std::pair< functor_type, bool > operator()( const std::string & s ) const
         {
             const std::vector< std::string > & w = comma::split( s, separator_ );
-            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_, allow_parallelisation_ );
+            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_ );
             auto functor = g.first;
             bool parallel = g.second;
             for( unsigned int k = 1; k < w.size(); ++k )
             {
-                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_, allow_parallelisation_ );
+                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_ );
                 if( b.second == false ) { parallel = false; } // If any filter must be serial, then turn parallel off
                 functor = boost::bind( b.first , boost::bind( functor, boost::placeholders::_1 ) );
             }
@@ -2538,7 +2521,6 @@ class maker
         const get_timestamp_functor& get_timestamp_;
         char separator_{';'};
         char equal_sign_{'='};
-        bool allow_parallelisation_{false};
 };
 
 struct composer
@@ -2589,11 +2571,31 @@ template <> struct time_traits< boost::posix_time::ptime >
     static boost::posix_time::ptime pass_time( const boost::posix_time::ptime& t ) { return t; }
 };
 
-template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, bool allow_parallelisation ) { return impl::filters< H >::make( how, &time_traits< H >::pass_time, allow_parallelisation ); }
+static bool _parallelisable( const std::string& how, char separator, char equal_sign )
+{
+    if( how == "" ) { return true; }
+    const std::vector< std::string >& v = comma::split_bracketed( how, separator, '(', ')', false ); // std::vector< std::string > v = comma::split( how, ';' );
+    for( std::size_t i = 0; i < v.size(); ++i )
+    {
+        std::vector< std::string > e = comma::split( v[i], equal_sign );
+        if( e[0] == "view" ) { return false; }
+        if( e[0] == "mask" || e[0] == "tee" || e[0] == "multiply" || e[0] == "divide" || e[0] == "add" || e[0] == "subtract" || e[0] == "absdiff" || e[0] == "minimum" || e[0] == "maximum" || e[0] == "bitwise" )
+        {
+            COMMA_ASSERT( e.size() != 1, e[0] << ": invalid operation: parameters missing" );
+            if( !_parallelisable( e[1], '|', ':' ) ) { return false; }
+        }
+    }
+    return true;
+}
 
 template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp, bool allow_parallelisation )
+bool impl::filters< H >::parallelisable( const std::string& how ) { return _parallelisable( how, ';', '=' ); }
+
+template < typename H >
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how ) { return impl::filters< H >::make( how, &time_traits< H >::pass_time ); }
+
+template < typename H >
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp )
 {
     typedef typename impl::filters< H >::value_type value_type_t;
     typedef typename impl::filters< H >::filter_type filter_type;
@@ -2612,20 +2614,20 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         std::vector< std::string > e = comma::split( v[i], '=' );
         if( e[0] == "mask" )
         {
-             COMMA_ASSERT( e.size() != 1, "mask: please specify mask filters" );
+             COMMA_ASSERT( e.size() > 1, "mask: please specify mask filters" );
              COMMA_ASSERT( e.size() <= 2, "mask: expected 1 parameter; got: '" << comma::join( e, '=' ) << "'" );
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
+             maker_t m( get_timestamp, '|', ':' );
              composer_t c( m );
              auto g = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( mask_impl_< H >( g.first ), boost::placeholders::_1 ), g.second ) );
         }
         else if( e[0] == "tee" )
         {
-             COMMA_ASSERT( e.size() != 1, "tee: please specify mask filters" );
+             COMMA_ASSERT( e.size() > 1, "tee: please specify mask filters" );
              COMMA_ASSERT( e.size() <= 2, "tee: expected 1 parameter; got: '" << comma::join( e, '=' ) << "'" );
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
+             maker_t m( get_timestamp, '|', ':' );
              composer_t c( m );
              auto g = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( tee_impl_< H >( g.first ), boost::placeholders::_1 ), g.second ) );
@@ -2635,7 +2637,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
              if( e.size() == 1 ) { COMMA_THROW( comma::exception, e[0] << ": please specify " << e[0] << " filters" ); }
              if( e.size() > 2 ) { COMMA_THROW( comma::exception, e[0] << ": expected 1 parameter; got: " << comma::join( e, '=' ) ); }
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
+             maker_t m( get_timestamp, '|', ':' );
              composer_t c( m );
              auto operand_filters = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              auto op = cv_mat::filters::arithmetic< H >::str_to_operation(e[0]);
@@ -2643,10 +2645,10 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         }
         else if( e[0] == "bitwise" )
         {
-             if( e.size() == 1 ) { COMMA_THROW( comma::exception, e[0] << ": please specify " << e[0] << " filters" ); }
+             COMMA_ASSERT( e.size() > 1, "bitwise: please specify mask filters" );
              if( e.size() > 2 ) { COMMA_THROW( comma::exception, e[0] << ": expected 1 parameter; got: " << comma::join( e, '=' ) ); }
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
+             maker_t m( get_timestamp, '|', ':' );
              composer_t c( m );
              auto operand_filters = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( bitwise_impl_< H >( operand_filters.first ), boost::placeholders::_1 ), operand_filters.second ) );
@@ -2832,11 +2834,11 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
                 case 3: filters = { "transpose", "flip" };  break;
                 default: break;
             }
-            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp, allow_parallelisation ) ) ); } // they are all parallel=true
+            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp ) ) ); } // they are all parallel=true
         }
         else
         {
-            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp, allow_parallelisation ) ) );
+            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp ) ) );
         }
         modified = e[0] != "view" && e[0] != "tee" && e[0] != "split" && e[0] != "unpack12"; // do we even need it?
     }

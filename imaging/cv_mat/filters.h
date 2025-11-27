@@ -68,10 +68,13 @@ struct filters
     typedef boost::function< boost::posix_time::ptime( const H& ) > get_timestamp_functor;
     
     /// return filters from name-value string
-    static std::vector< filter_type > make( const std::string& how, const get_timestamp_functor& get_timestamp, bool allow_parallelisation = false );
+    static std::vector< filter_type > make( const std::string& how, const get_timestamp_functor& get_timestamp );
     
     /// return filters from name-value string, backward compatible, supports H=boost::posix_time::ptime only
-    static std::vector< filter_type > make( const std::string& how, bool allow_parallelisation = false );
+    static std::vector< filter_type > make( const std::string& how );
+
+    /// return true if filters allow parallelisation; specifically, 'view' needs to be run on the main thread and thus does not allow parallelisation
+    static bool parallelisable( const std::string& how );
     
     /// apply filters (a helper)
     static value_type apply( std::vector< filter_type >& filters, value_type m );
