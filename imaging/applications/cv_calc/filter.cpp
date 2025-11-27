@@ -80,7 +80,7 @@ class reader
             std::string line;
             for( ; is.good() && line.empty(); std::getline( is, line ) );
             if( line.empty() ) { return boost::none; }
-            if( _index == 0 ) { return boost::optional< record >( record{block: 0, filters: line} ); }
+            if( _index == 0 ) { return boost::optional< record >( record{boost::posix_time::ptime(), 0, 1, line} ); }
             boost::optional< record > r = _ascii.get( line );
             const auto& s = comma::split( line, ',' );
             r->filters = comma::strip( comma::join( s.begin() + _index, s.end(), ',' ), "\"" ); // quick and dirty; todo: implement in comma::string or alike
