@@ -1869,7 +1869,7 @@ struct make_filter {
     typedef boost::function< input_type( input_type ) > functor_type;
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
 
-static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp )
+static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp, bool allow_parallelisation )
 {
     if( e[0] == "accumulate" )
     {
@@ -2484,69 +2484,98 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
     if( e[0] == "meet" ) { return std::make_pair( boost::bind< value_type_t >( morphology::meet< H >( snark::cv_mat::morphology::parameters( e ) ), boost::placeholders::_1 ), true ); }
     if( e[0] == "overlay" )
     {
-        if( e.size() != 2 ) { COMMA_THROW( comma::exception, "expected file name (and optional x,y) with the overlay, e.g. overlay=a.svg" ); }
+        COMMA_ASSERT( e.size() == 2, "overlay: expected file name (and optional x ,y) with the overlay, e.g. overlay=a.svg" );
         std::vector< std::string > s = comma::split( e[1], ',' );
-        if(s.size()!=1 && s.size()!=3) { COMMA_THROW( comma::exception, "expected one or three parameters (file[,x,y]); found " << s.size() ); }
-        int x=0, y=0;
-        if(s.size()>1)
-        {
-            x=boost::lexical_cast<int>(s[1]);
-            y=boost::lexical_cast<int>(s[2]);
-        }
+        COMMA_ASSERT( s.size() == 1 || s.size() == 3, "expected one or three parameters overlay=<file>[,<x>,<y>]; got: '" << e[1] << "'" );
+        int x = 0, y = 0;
+        if( s.size() == 3 ) { x = boost::lexical_cast< int >( s[1] ); y = boost::lexical_cast< int >( s[2] ); }
         return std::make_pair( overlay_impl_ < H >( s[0], x, y ), true );
     }
-    if( e[0] == "view" ) { return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
+    if( e[0] == "view" )
+    {
+        if( allow_parallelisation ) {} // todo
+
+        // if( i < v.size() - 1 )
+        // {
+        //     std::string next_filter = comma::split( v[i+1], '=' )[0];
+        //     if( next_filter != "null" && next_filter != "encode" && next_filter != "file") { COMMA_THROW( comma::exception, "cannot have a filter after head unless next filter is 'null' or 'encode' or 'file'" ); }
+        // }
+
+        return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp );
+    }
     boost::function< value_type_t( value_type_t ) > functor = imaging::vegetation::impl::filters< H >::make_functor( e );
     if( functor ) { return std::make_pair( functor, true ); }
     COMMA_THROW( comma::exception, "expected filter, got: \"" << comma::join( e, '=' ) << "\"" );
 }
 
-    struct maker
-    {
-        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' ): get_timestamp_( get_timestamp ), separator_( separator ), equal_sign_( equal_sign ) {}
+class maker
+{
+    public:
+        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=', bool allow_parallelisation = false )
+            : get_timestamp_( get_timestamp )
+            , separator_( separator )
+            , equal_sign_( equal_sign )
+            , allow_parallelisation_( allow_parallelisation )
+        {
+        }
+        
         std::pair< functor_type, bool > operator()( const std::string & s ) const
         {
             const std::vector< std::string > & w = comma::split( s, separator_ );
-            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_ );
+            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_, allow_parallelisation_ );
             auto functor = g.first;
             bool parallel = g.second;
             for( unsigned int k = 1; k < w.size(); ++k )
             {
-                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_ );
+                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_, allow_parallelisation_ );
                 if( b.second == false ) { parallel = false; } // If any filter must be serial, then turn parallel off
                 functor = boost::bind( b.first , boost::bind( functor, boost::placeholders::_1 ) );
             }
             return std::make_pair( functor, parallel );
         }
 
-        private:
-            const get_timestamp_functor & get_timestamp_;
-            char separator_, equal_sign_;
-    };
+    private:
+        const get_timestamp_functor& get_timestamp_;
+        char separator_{';'};
+        char equal_sign_{'='};
+        bool allow_parallelisation_{false};
+};
 
-    struct composer
+struct composer
+{
+    composer( const maker & m ) : m_( m ) {}
+    
+    const maker & m_;
+    
+    typedef typename boost::static_visitor< std::pair< functor_type, bool > >::result_type result_type;
+    
+    result_type term( const std::string & s ) const { return m_( s ); };
+    
+    result_type op_and( const result_type & opl, const result_type & opr ) const
     {
-        composer( const maker & m ) : m_( m ) {}
-        const maker & m_;
+        return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second & r.second ); }, opl.second && opr.second );
+    }
+    
+    result_type op_or( const result_type & opl, const result_type & opr ) const
+    {
+        return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second | r.second ); }, opl.second && opr.second );
+    }
+    
+    result_type op_xor( const result_type & opl, const result_type & opr ) const
+    {
+        return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second ^ r.second ); }, opl.second && opr.second );
+    }
 
-        typedef typename boost::static_visitor< std::pair< functor_type, bool > >::result_type result_type;
+    result_type op_not( const result_type & op ) const
+    {
+        return std::make_pair( [ op ]( const input_type & i ) -> input_type { const input_type & o = op.first( i ); composer::assert_integer( o ); return std::make_pair( i.first, ~o.second ); }, op.second );
+    }
 
-        result_type term( const std::string & s ) const { return m_( s ); };
-        result_type op_and( const result_type & opl, const result_type & opr ) const {
-            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second & r.second ); }, opl.second && opr.second ); }
-        result_type op_or( const result_type & opl, const result_type & opr ) const {
-            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second | r.second ); }, opl.second && opr.second );
-        }
-        result_type op_xor( const result_type & opl, const result_type & opr ) const {
-            return std::make_pair([ opl, opr ]( const input_type & i ) -> input_type { const input_type & l = opl.first( i ); const input_type & r = opr.first( i ); composer::assert_integer( l ); composer::assert_integer( r ); return std::make_pair( i.first, l.second ^ r.second ); }, opl.second && opr.second );
-        }
-        result_type op_not( const result_type & op ) const { return std::make_pair( [ op ]( const input_type & i ) -> input_type { const input_type & o = op.first( i ); composer::assert_integer( o ); return std::make_pair( i.first, ~o.second ); }, op.second ); }
-
-        static void assert_integer( const input_type & i )
-        {
-            if ( i.second.depth() == CV_32F || i.second.depth() == CV_64F ) { COMMA_THROW( comma::exception, "bitwise operations shall be done on integer inputs" ); }
-        }
-    };
+    static void assert_integer( const input_type & i )
+    {
+        COMMA_ASSERT( i.second.depth() != CV_32F && i.second.depth() != CV_64F, "bitwise operations shall be done on integer inputs" );
+    }
+};
 
 };
 
@@ -2561,10 +2590,10 @@ template <> struct time_traits< boost::posix_time::ptime >
 };
 
 template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how ) { return impl::filters< H >::make( how, &time_traits< H >::pass_time ); }
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, bool allow_parallelisation ) { return impl::filters< H >::make( how, &time_traits< H >::pass_time, allow_parallelisation ); }
 
 template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp )
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp, bool allow_parallelisation )
 {
     typedef typename impl::filters< H >::value_type value_type_t;
     typedef typename impl::filters< H >::filter_type filter_type;
@@ -2584,19 +2613,19 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         if( e[0] == "mask" )
         {
              COMMA_ASSERT( e.size() != 1, "mask: please specify mask filters" );
-             COMMA_ASSERT( e.size() <= 2, "mask: expected 1 parameter; got: " << comma::join( e, '=' ) );
+             COMMA_ASSERT( e.size() <= 2, "mask: expected 1 parameter; got: '" << comma::join( e, '=' ) << "'" );
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':' );
+             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
              composer_t c( m );
              auto g = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( mask_impl_< H >( g.first ), boost::placeholders::_1 ), g.second ) );
         }
         else if( e[0] == "tee" )
         {
-             if( e.size() == 1 ) { COMMA_THROW( comma::exception, "tee: please specify tee filters" ); }
-             if( e.size() > 2 ) { COMMA_THROW( comma::exception, "tee: expected 1 parameter; got: " << comma::join( e, '=' ) ); }
+             COMMA_ASSERT( e.size() != 1, "tee: please specify mask filters" );
+             COMMA_ASSERT( e.size() <= 2, "tee: expected 1 parameter; got: '" << comma::join( e, '=' ) << "'" );
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':' );
+             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
              composer_t c( m );
              auto g = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( tee_impl_< H >( g.first ), boost::placeholders::_1 ), g.second ) );
@@ -2606,7 +2635,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
              if( e.size() == 1 ) { COMMA_THROW( comma::exception, e[0] << ": please specify " << e[0] << " filters" ); }
              if( e.size() > 2 ) { COMMA_THROW( comma::exception, e[0] << ": expected 1 parameter; got: " << comma::join( e, '=' ) ); }
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':' );
+             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
              composer_t c( m );
              auto operand_filters = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              auto op = cv_mat::filters::arithmetic< H >::str_to_operation(e[0]);
@@ -2617,7 +2646,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
              if( e.size() == 1 ) { COMMA_THROW( comma::exception, e[0] << ": please specify " << e[0] << " filters" ); }
              if( e.size() > 2 ) { COMMA_THROW( comma::exception, e[0] << ": expected 1 parameter; got: " << comma::join( e, '=' ) ); }
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
-             maker_t m( get_timestamp, '|', ':' );
+             maker_t m( get_timestamp, '|', ':', allow_parallelisation );
              composer_t c( m );
              auto operand_filters = boost::apply_visitor( snark::cv_mat::bitwise::visitor< input_type, input_type, composer_t >( c ), result );
              f.push_back( filter_type( boost::bind< value_type_t >( bitwise_impl_< H >( operand_filters.first ), boost::placeholders::_1 ), operand_filters.second ) );
@@ -2642,8 +2671,8 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
 //         }
         else if( e[0] == "pack" )
         {
-            if( e.size() < 2 ) { COMMA_THROW( comma::exception, "pack: missing arguments" ); }
-            std::vector< std::string > args = comma::split( e[1], ',' );
+            COMMA_ASSERT( e.size() >= 2, "pack: please specify pack parameters" );
+            const std::vector< std::string >& args = comma::split( e[1], ',' );
             if( args[0] == "12" )
             {
                 if( args.size() != 4 ) { COMMA_THROW( comma::exception, "12-bit pack expects 3 formats, got: " << args.size() - 1 ); }
@@ -2657,7 +2686,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         else if( e[0] == "unpack" )
         {
             if( e.size() < 2 ) { COMMA_THROW( comma::exception, "unpack: missing arguments"); }
-            std::vector< std::string > args = comma::split( e[1], ',' );
+            const std::vector< std::string >& args = comma::split( e[1], ',' );
             if( args[0] == "12" )
             {
                 if( args.size() != 3 ) { COMMA_THROW( comma::exception, "12-bit unpack expects 2 formats, got: " << args.size() - 1 ); }
@@ -2803,11 +2832,11 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
                 case 3: filters = { "transpose", "flip" };  break;
                 default: break;
             }
-            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp ) ) ); } // they are all parallel=true
+            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp, allow_parallelisation ) ) ); } // they are all parallel=true
         }
         else
         {
-            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp ) ) );
+            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp, allow_parallelisation ) ) );
         }
         modified = e[0] != "view" && e[0] != "tee" && e[0] != "split" && e[0] != "unpack12"; // do we even need it?
     }

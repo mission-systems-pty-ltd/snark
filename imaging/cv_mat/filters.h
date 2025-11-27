@@ -68,10 +68,10 @@ struct filters
     typedef boost::function< boost::posix_time::ptime( const H& ) > get_timestamp_functor;
     
     /// return filters from name-value string
-    static std::vector< filter_type > make( const std::string& how, const get_timestamp_functor& get_timestamp );
+    static std::vector< filter_type > make( const std::string& how, const get_timestamp_functor& get_timestamp, bool allow_parallelisation = false );
     
     /// return filters from name-value string, backward compatible, supports H=boost::posix_time::ptime only
-    static std::vector< filter_type > make( const std::string& how );
+    static std::vector< filter_type > make( const std::string& how, bool allow_parallelisation = false );
     
     /// apply filters (a helper)
     static value_type apply( std::vector< filter_type >& filters, value_type m );
