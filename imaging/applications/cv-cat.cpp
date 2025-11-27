@@ -191,6 +191,7 @@ int main( int argc, char** argv )
             ( "discard,d", "discard frames, if cannot keep up; same as --buffer=1" )
             ( "file", boost::program_options::value< std::string >( &name ), "image or video file name" )
             ( "files", boost::program_options::value< std::string >( &files ), "file with list of image filenames (videos not supported, yet)" )
+            ( "force", "treat some fatal errors as warnings and run anyway" )
             ( "fps", boost::program_options::value< double >( &fps )->default_value( 0 ), "specify max fps ( useful for files, may block if used with cameras ) " )
             ( "id", boost::program_options::value< int >( &device ), "specify specific device by id ( OpenCV-supported camera )" )
             ( "image-format", boost::program_options::value< comma::uint32 >(& image_type ), "get image format from type enumeration" )
@@ -211,7 +212,7 @@ int main( int argc, char** argv )
         if( vm.count( "image-format" ) ) { std::cout << snark::cv_mat::format_from_type( image_type ) << std::endl; return 0; }
         if( vm.count( "image-type" ) ) { std::cout << snark::cv_mat::type_from_string( image_format ) << std::endl; return 0; }
         if( vm.count( "image-types" ) ) { std::cout << snark::cv_mat::all_image_types(); return 0; }
-        if ( vm.count( "help" ) )
+        if( vm.count( "help" ) )
         {
             std::string command = vm[ "help" ].as< std::string >();
             if ( ! command.empty() ) { std::cerr << snark::cv_mat::command_specific_help( "cv-cat", command ) << std::endl; return 0; }
@@ -308,7 +309,7 @@ int main( int argc, char** argv )
         COMMA_ASSERT_BRIEF( input_options.fields.empty() || !has_custom_fields( input_options.fields ) || !input_options.format.elements().empty()
                           , "non default field detected in --input, please specify binary format for fields: " << input_options.fields );
         const std::string& filters_string = comma::join( boost::program_options::collect_unrecognized( parsed.options, boost::program_options::include_positional ), ';' );
-        if( filters_string.find( "encode" ) != filters_string.npos && !output_options.no_header ) { std::cerr << "cv-cat: warning: encoding image and not using no-header, are you sure?" << std::endl; }
+        if( filters_string.find( "encode=" ) != filters_string.npos && !output_options.no_header ) { std::cerr << "cv-cat: warning: encoding image and not using no-header, are you sure?" << std::endl; }
         if( vm.count( "camera" ) ) { device = 0; }
         rate_limit rate( fps );
         std::unique_ptr< cv::VideoCapture > video_capture;
@@ -318,8 +319,7 @@ int main( int argc, char** argv )
         std::pair< boost::posix_time::ptime, cv::Mat > p;
         typedef snark::imaging::applications::pipeline_with_header pipeline_with_header;
         typedef snark::cv_mat::filters_with_header filters_with_header;
-        const unsigned int default_delay = vm.count( "file" ) == 0 ? 1 : 200; // HACK to make view work on single files
-        const auto& filters = filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, boost::placeholders::_1, input.header_binary() ), default_delay );
+        const auto& filters = filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, boost::placeholders::_1, input.header_binary() ) );
         if( vm.count( "file" ) )
         {
             if( !vm.count( "video" ) )

@@ -83,66 +83,67 @@
 #include "filters/warp.h"
 
 namespace {
-    struct normalization
+
+struct normalization
+{
+    typedef std::pair< int, int > key_t;            // from type, to type
+    typedef std::pair< double, double > scaling_t;  // scale, offset
+    typedef boost::unordered_map< key_t, scaling_t > map_t;
+    template < int From, int To >
+    struct factors
     {
-        typedef std::pair< int, int > key_t;            // from type, to type
-        typedef std::pair< double, double > scaling_t;  // scale, offset
-        typedef boost::unordered_map< key_t, scaling_t > map_t;
-        template < int From, int To >
-        struct factors
-        {
-            typedef snark::cv_mat::depth_traits< From > from;
-            typedef snark::cv_mat::depth_traits< To > to;
-            static double scale() {
-                return ( to::max_value() - to::min_value() ) / ( from::max_value() - from::min_value() );
-            }
-            static double offset() {
-                return ( to::min_value() * from::max_value() - to::max_value() * from::min_value() ) / ( from::max_value() - from::min_value() );
-            }
-        };
-        template< int From >
-        struct factors< From, From >
-        {
-            static double scale() { return 1.0; }
-            static double offset() { return 0.0; }
-        };
-        typedef boost::mpl::list< snark::cv_mat::depth_traits< CV_8U >::value_t
-                                , snark::cv_mat::depth_traits< CV_8S >::value_t
-                                , snark::cv_mat::depth_traits< CV_16U >::value_t
-                                , snark::cv_mat::depth_traits< CV_16S >::value_t
-                                , snark::cv_mat::depth_traits< CV_32S >::value_t
-                                , snark::cv_mat::depth_traits< CV_32F >::value_t
-                                , snark::cv_mat::depth_traits< CV_64F >::value_t > data_types;
-        template< int from >
-        struct inner
-        {
-            inner( map_t & m ) : m_( m ) {}
-            template< typename kind >
-            void operator()( kind )
-            {
-                enum { value = snark::cv_mat::traits_to_depth< kind >::value };
-                m_[ std::make_pair( from, int( value ) ) ] = std::make_pair( factors< from, int( value ) >::scale(), factors< from, int( value ) >::offset() );
-            }
-            map_t & m_;
-        };
-        struct outer
-        {
-            outer( map_t & m ) : m_( m ) {}
-            template< typename kind >
-            void operator()( kind )
-            {
-                enum { value = snark::cv_mat::traits_to_depth< kind >::value };
-                boost::mpl::for_each< data_types >( inner< int( value ) >( m_ ) );
-            }
-            map_t & m_;
-        };
-        static map_t create_map()
-        {
-            map_t m;
-            boost::mpl::for_each< data_types >( outer( m ) );
-            return m;
+        typedef snark::cv_mat::depth_traits< From > from;
+        typedef snark::cv_mat::depth_traits< To > to;
+        static double scale() {
+            return ( to::max_value() - to::min_value() ) / ( from::max_value() - from::min_value() );
+        }
+        static double offset() {
+            return ( to::min_value() * from::max_value() - to::max_value() * from::min_value() ) / ( from::max_value() - from::min_value() );
         }
     };
+    template< int From >
+    struct factors< From, From >
+    {
+        static double scale() { return 1.0; }
+        static double offset() { return 0.0; }
+    };
+    typedef boost::mpl::list< snark::cv_mat::depth_traits< CV_8U >::value_t
+                            , snark::cv_mat::depth_traits< CV_8S >::value_t
+                            , snark::cv_mat::depth_traits< CV_16U >::value_t
+                            , snark::cv_mat::depth_traits< CV_16S >::value_t
+                            , snark::cv_mat::depth_traits< CV_32S >::value_t
+                            , snark::cv_mat::depth_traits< CV_32F >::value_t
+                            , snark::cv_mat::depth_traits< CV_64F >::value_t > data_types;
+    template< int from >
+    struct inner
+    {
+        inner( map_t & m ) : m_( m ) {}
+        template< typename kind >
+        void operator()( kind )
+        {
+            enum { value = snark::cv_mat::traits_to_depth< kind >::value };
+            m_[ std::make_pair( from, int( value ) ) ] = std::make_pair( factors< from, int( value ) >::scale(), factors< from, int( value ) >::offset() );
+        }
+        map_t & m_;
+    };
+    struct outer
+    {
+        outer( map_t & m ) : m_( m ) {}
+        template< typename kind >
+        void operator()( kind )
+        {
+            enum { value = snark::cv_mat::traits_to_depth< kind >::value };
+            boost::mpl::for_each< data_types >( inner< int( value ) >( m_ ) );
+        }
+        map_t & m_;
+    };
+    static map_t create_map()
+    {
+        map_t m;
+        boost::mpl::for_each< data_types >( outer( m ) );
+        return m;
+    }
+};
 
 } // anonymous
 
@@ -1868,7 +1869,7 @@ struct make_filter {
     typedef boost::function< input_type( input_type ) > functor_type;
     typedef typename impl::filters< H >::get_timestamp_functor get_timestamp_functor;
 
-static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp, unsigned int default_delay )
+static std::pair< functor_type, bool > make_filter_functor( const std::vector< std::string >& e, const get_timestamp_functor& get_timestamp )
 {
     if( e[0] == "accumulate" )
     {
@@ -2495,25 +2496,6 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
         return std::make_pair( overlay_impl_ < H >( s[0], x, y ), true );
     }
     if( e[0] == "view" ) { return filters::view< H >::make( e.size() > 1 ? e[1] : "", get_timestamp ); }
-    // if( e[0] == "view" )
-    // {
-    //     double default_delay = 0.001; // todo!
-    //     double delay = default_delay;
-    //     std::string n;
-    //     std::string suffix="ppm";
-    //     boost::optional< std::pair< int, int > > position;
-    //     boost::optional< std::pair< int, int > > size;
-    //     if( e.size() > 1 )
-    //     {
-    //         const std::vector< std::string >& w = comma::split( e[1], ',' );
-    //         if( w.size() > 0 && !w[0].empty() ) { delay = w[0] == "stay" ? -1 : boost::lexical_cast< double >( w[0] ); }
-    //         if( w.size() > 1 && !w[1].empty() ) { n = w[1]; }
-    //         if( w.size() > 2 && !w[2].empty() ) { suffix = w[2]; }
-    //         if( w.size() > 4 && !w[3].empty() && !w[4].empty() ) { position = std::make_pair( boost::lexical_cast< int >( w[3] ), boost::lexical_cast< int >( w[4] ) ); }
-    //         if( w.size() > 6 && !w[5].empty() && !w[6].empty() ) { size = std::make_pair( boost::lexical_cast< int >( w[5] ), boost::lexical_cast< int >( w[6] ) ); }
-    //     }
-    //     return std::make_pair( boost::bind< value_type_t >( view_impl_< H >( get_timestamp, n, delay, suffix, position, size ), boost::placeholders::_1 ), false );
-    // }
     boost::function< value_type_t( value_type_t ) > functor = imaging::vegetation::impl::filters< H >::make_functor( e );
     if( functor ) { return std::make_pair( functor, true ); }
     COMMA_THROW( comma::exception, "expected filter, got: \"" << comma::join( e, '=' ) << "\"" );
@@ -2521,17 +2503,16 @@ static std::pair< functor_type, bool > make_filter_functor( const std::vector< s
 
     struct maker
     {
-        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' )
-            : get_timestamp_( get_timestamp ), separator_( separator ), equal_sign_( equal_sign ) {}
+        maker( const get_timestamp_functor & get_timestamp, char separator = ';', char equal_sign = '=' ): get_timestamp_( get_timestamp ), separator_( separator ), equal_sign_( equal_sign ) {}
         std::pair< functor_type, bool > operator()( const std::string & s ) const
         {
             const std::vector< std::string > & w = comma::split( s, separator_ );
-            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_, 1 );
+            std::pair< functor_type, bool > g = make_filter< O, H >::make_filter_functor( comma::split( w[0], equal_sign_ ), get_timestamp_ );
             auto functor = g.first;
             bool parallel = g.second;
             for( unsigned int k = 1; k < w.size(); ++k )
             {
-                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_, 1 );
+                auto b = make_filter< O, H >::make_filter_functor( comma::split( w[k], equal_sign_ ), get_timestamp_ );
                 if( b.second == false ) { parallel = false; } // If any filter must be serial, then turn parallel off
                 functor = boost::bind( b.first , boost::bind( functor, boost::placeholders::_1 ) );
             }
@@ -2580,13 +2561,10 @@ template <> struct time_traits< boost::posix_time::ptime >
 };
 
 template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, unsigned int default_delay )
-{
-    return impl::filters< H >::make( how, &time_traits< H >::pass_time, default_delay );
-}
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how ) { return impl::filters< H >::make( how, &time_traits< H >::pass_time ); }
 
 template < typename H >
-std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp, unsigned int default_delay )
+std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make( const std::string& how, const get_timestamp_functor& get_timestamp )
 {
     typedef typename impl::filters< H >::value_type value_type_t;
     typedef typename impl::filters< H >::filter_type filter_type;
@@ -2605,8 +2583,8 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
         std::vector< std::string > e = comma::split( v[i], '=' );
         if( e[0] == "mask" )
         {
-             if( e.size() == 1 ) { COMMA_THROW( comma::exception, "mask: please specify mask filters" ); }
-             if( e.size() > 2 ) { COMMA_THROW( comma::exception, "mask: expected 1 parameter; got: " << comma::join( e, '=' ) ); }
+             COMMA_ASSERT( e.size() != 1, "mask: please specify mask filters" );
+             COMMA_ASSERT( e.size() <= 2, "mask: expected 1 parameter; got: " << comma::join( e, '=' ) );
              snark::cv_mat::bitwise::expr result = snark::cv_mat::bitwise::parse( e[1] );
              maker_t m( get_timestamp, '|', ':' );
              composer_t c( m );
@@ -2671,7 +2649,10 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
                 if( args.size() != 4 ) { COMMA_THROW( comma::exception, "12-bit pack expects 3 formats, got: " << args.size() - 1 ); }
                 f.push_back( filter_type( pixel_format_impl_< H, 2, CV_16UC1, 3, CV_8UC1 >( e[0], { args[1], args[2], args[3] } ) ) );
             }
-            else { COMMA_THROW( comma::exception, "pack size not implemented: " << args[0] ); }
+            else
+            {
+                COMMA_THROW( comma::exception, "pack size not implemented: " << args[0] );
+            }
         }
         else if( e[0] == "unpack" )
         {
@@ -2682,12 +2663,15 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
                 if( args.size() != 3 ) { COMMA_THROW( comma::exception, "12-bit unpack expects 2 formats, got: " << args.size() - 1 ); }
                 f.push_back( filter_type( pixel_format_impl_< H, 3, CV_8UC1, 2, CV_16UC1 >( e[0], { args[1], args[2] } ) ) );
             }
-            else { COMMA_THROW( comma::exception, "unpack size not implemented: " << args[0] ); }
+            else
+            {
+                COMMA_THROW( comma::exception, "unpack size not implemented: " << args[0] );
+            }
         }
         else if( e[0] == "unpack12" )
         {
             if( modified ) { COMMA_THROW( comma::exception, "cannot covert from 12 bit packed after transforms: " << name ); }
-            if(e.size()!=1) { COMMA_THROW( comma::exception, "unexpected arguement: "<<e[1]); }
+            if( e.size() != 1 ) { COMMA_THROW( comma::exception, "unexpected arguement: " << e[1] ); }
             f.push_back( filter_type( boost::bind< value_type_t >( unpack12_impl_< H >, boost::placeholders::_1 ) ) );
         }
         else if( e[0] == "log" ) // todo: rotate log by size: expose to user
@@ -2802,7 +2786,7 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
             if( i < v.size() - 1 )
             {
                 std::string next_filter = comma::split( v[i+1], '=' )[0];
-                if( next_filter != "null" && next_filter != "encode" && next_filter != "file") { COMMA_THROW( comma::exception, "cannot have a filter after head unless next filter is null or encode or file" ); }
+                if( next_filter != "null" && next_filter != "encode" && next_filter != "file") { COMMA_THROW( comma::exception, "cannot have a filter after head unless next filter is 'null' or 'encode' or 'file'" ); }
             }
             unsigned int n = e.size() < 2 ? 1 : boost::lexical_cast< unsigned int >( e[1] );
             f.push_back( filter_type( boost::bind< value_type_t >( head_impl_< H >, boost::placeholders::_1, n ), false ) );
@@ -2819,11 +2803,11 @@ std::vector< typename impl::filters< H >::filter_type > impl::filters< H >::make
                 case 3: filters = { "transpose", "flip" };  break;
                 default: break;
             }
-            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp, default_delay ) ) ); } // they are all parallel=true
+            for( std::string s : filters ) { f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( { s }, get_timestamp ) ) ); } // they are all parallel=true
         }
         else
         {
-            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp, default_delay ) ) );
+            f.push_back( filter_type( make_filter< cv::Mat, H >::make_filter_functor( e, get_timestamp ) ) );
         }
         modified = e[0] != "view" && e[0] != "tee" && e[0] != "split" && e[0] != "unpack12"; // do we even need it?
     }
