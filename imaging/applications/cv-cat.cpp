@@ -305,12 +305,38 @@ int main( int argc, char** argv )
         if( output_options.fields.empty() ) { output_options.fields = input_options.fields; }
         if( !output_options.format.elements().empty() && input_options.format.string() != output_options.format.string() ) { std::cerr << "cv-cat: customised output header format not supported (todo); got: input format: \"" << input_options.format.string() << "\" output format: \"" << output_options.format.string() << "\"" << std::endl; return 1; }
         if( output_options.format.elements().empty() ) { output_options.format = input_options.format; };
-        // This is needed because if binary is not set, serialization assumes standard fields and guess every field to be ui, very confusing for the user
+        // this is needed because if binary is not set, serialization assumes standard fields and guess every field to be ui, very confusing for the user
         COMMA_ASSERT_BRIEF( input_options.fields.empty() || !has_custom_fields( input_options.fields ) || !input_options.format.elements().empty()
                           , "non default field detected in --input, please specify binary format for fields: " << input_options.fields );
+        if( vm.count( "camera" ) ) { device = 0; }
         const std::string& filters_string = comma::join( boost::program_options::collect_unrecognized( parsed.options, boost::program_options::include_positional ), ';' );
         if( filters_string.find( "encode=" ) != filters_string.npos && !output_options.no_header ) { std::cerr << "cv-cat: warning: encoding image and not using no-header, are you sure?" << std::endl; }
-        if( vm.count( "camera" ) ) { device = 0; }
+        bool parallelisable = snark::cv_mat::filters_with_header::parallelisable( filters_string );
+        if( !parallelisable )
+        {
+            std::vector< std::string > v = comma::split( filters_string, ';' ); // hyper-quick and dirty for now; todo: move somewhere to the libraries; also, see todo comments in filters/view.cpp
+            bool view_only = v.size() == 1 || ( v.size() == 2 && v[1] == "null" ); // quick and dirty for now
+            if( !view_only && vm.count( "force" ) == 0 )
+            {
+                std::cerr << std::endl;
+                comma::say() << R"(encountered 'view' in filters, cannot run parallelised filters
+
+        - either run: cv-cat ... --force: will run filters serially; watch performance: may
+                                          be much slower, but easy to make things going
+        - or replace: cv-cat 'filter1;filter2;view;filter3;...'
+                with: cv-cat 'filter1;filter2' | cv-cat view | cv-cat 'filter3;...'
+        
+        it all should work, but if you find some features of cv-cat view unstable, please use
+        cv-view instead, which has all the features of cv-cat view - we are working on fixing any
+        known problems   
+
+        the reason is that at some point, it became a requirement in OpenCV that cv::imview() runs on
+        the main thread; we may address this limitation and then using --force will become deprecated
+        with backward compatibility preserved
+)" << std::endl;
+                return 1;
+            }
+        }
         rate_limit rate( fps );
         std::unique_ptr< cv::VideoCapture > video_capture;
         snark::cv_mat::serialization input( input_options );
@@ -318,8 +344,7 @@ int main( int argc, char** argv )
         boost::scoped_ptr< snark::tbb::bursty_reader< pair_t > > reader;
         std::pair< boost::posix_time::ptime, cv::Mat > p;
         typedef snark::imaging::applications::pipeline_with_header pipeline_with_header;
-        typedef snark::cv_mat::filters_with_header filters_with_header;
-        const auto& filters = filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, boost::placeholders::_1, input.header_binary() ) );
+        const auto& filters = snark::cv_mat::filters_with_header::make( filters_string, boost::bind( &get_timestamp_from_header, boost::placeholders::_1, input.header_binary() ) );
         if( vm.count( "file" ) )
         {
             if( !vm.count( "video" ) )
@@ -383,8 +408,17 @@ int main( int argc, char** argv )
             reader.reset( new snark::tbb::bursty_reader< pair_t >( boost::bind( &read, boost::ref( input ), boost::ref( rate ) ), discard, capacity ) );
         }
         pipeline_with_header pipeline( output, filters, *reader, number_of_threads );
-        comma::saymore() << "starting processing pipeline..." << std::endl;
-        pipeline.run();
+        if( parallelisable )
+        {
+            comma::saymore() << "starting processing pipeline..." << std::endl;
+            pipeline.run();
+        }
+        else
+        {
+            comma::saymore() << "starting processing pipeline serially since 'view' filter and --force are present..." << std::endl;
+            pipeline.run_serially();
+        }
+        comma::saymore() << "processing pipeline done" << std::endl;
         COMMA_ASSERT_BRIEF( input.last_error().empty(), input.last_error() );
         COMMA_ASSERT_BRIEF( output.last_error().empty(), output.last_error() );
         if( vm.count( "stay" ) )
@@ -392,6 +426,7 @@ int main( int argc, char** argv )
             comma::say() << "stopped; asked to --stay...; press any key to exit" << std::endl;
             while( !is_shutdown && cv::waitKey( 1000 ) == -1 ); // todo: handle ' ' for screenshot - need access to the last image in view
         }
+        comma::saymore() << "all done; exiting" << std::endl;
         return 0;
     }
     catch( std::exception& ex ) { comma::say() << ex.what() << std::endl; }

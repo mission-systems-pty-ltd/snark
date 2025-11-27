@@ -101,6 +101,31 @@ void pipeline< H >::run()
     m_reader.join();
 }
 
+template < typename H >
+void pipeline< H >::run_serially()
+{
+    unsigned int size = 0;
+    for( ; size < m_filters.size() && m_filters[size].filter_function; ++size );
+    bool has_null = size < m_filters.size();
+    try
+    {
+        while( true )
+        {
+            pair r = m_reader.read();
+            if( r.second.empty() ) { break; }
+            for( unsigned int i = 0; i < size && !r.second.empty(); ++i ) { r = m_filters[i]( r ); }
+            if( r.second.empty() ) { break; }
+            if( !has_null ) { write_( r ); }
+        }
+    }
+    catch( const comma::exception& ex )
+    {
+        m_error = ex.what();
+    }
+    m_reader.stop(); 
+    m_reader.join();
+}
+
 template class pipeline< boost::posix_time::ptime >;
 template class pipeline< snark::cv_mat::serialization::header::buffer_t >;
 

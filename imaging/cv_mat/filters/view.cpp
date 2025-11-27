@@ -44,6 +44,15 @@ namespace snark { namespace cv_mat { namespace filters {
 // but this (and any image stream) blocks on imshow:
 //
 // cv-cat --camera 'count;view;null'
+//
+// conclusion
+// - for now, if 'view' present in filters
+//   - require --force with a clear error
+//   - run sequentially, not in parallel
+// - todo? make view class push images to the main thread
+//         using conditions, producer/consumer, or alike
+//         if it works, remove --force requirement
+// 
 
 template < typename H >
 std::pair< typename view< H >::functor_t, bool > view< H >::make( const std::string& options, const timestamp_functor_t& get_timestamp )
@@ -90,6 +99,7 @@ static void _make_window( const std::string& name
                         , const boost::optional< std::pair< int, int > >& window_size )
 {
     #if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // pain
+        (void) flags; (void) window_position; (void) window_size;
         cv::namedWindow( title.empty() ? &name[0] : &title[0] );
     #else
         cv::namedWindow( &name[0], flags );
@@ -139,13 +149,11 @@ std::pair< H, cv::Mat > view< H >::operator()( std::pair< H, cv::Mat > m )
     // if( !_window_created ) { _make_window( _name, _flags, _title, _window_position, _window_size ); _window_created = true; }
     if( m.second.rows == 0 && m.second.cols == 0 ) { return m; } // todo: capture on exit does not work because tbb pipeline exits upstream and never gets here
     if( _capture_on_exit ) { _last.first = _get_timestamp( m.first ); m.second.copyTo( _last.second ); } // todo: quick and dirty, watch performance
-    //std::cerr << "==> c: name: " << _name << std::endl;
     cv::imshow( &_name[0], m.second );
-    //std::cerr << "==> d" << std::endl;
     char c = cv::waitKey( _delay );
     if( c == 27 || c == 119 ) { return std::pair< H, cv::Mat >(); } // HACK: <esc> or ctrl-w to notify application to exit
     if( c == ' ' || c == 'p' ) { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix ), m.second ); }
-    else if( c>='0' && c<='9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
+    else if( c >= '0' && c <= '9') { cv::imwrite( snark::cv_mat::make_filename( _get_timestamp( m.first ), _suffix, unsigned( c - '0' ) ), m.second ); }
     else if( c == 's' ) { cv::waitKey( -1 ); }
     return m;
 }

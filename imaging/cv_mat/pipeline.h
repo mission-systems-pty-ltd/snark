@@ -56,6 +56,8 @@ class pipeline
 
         void run();
 
+        void run_serially();
+
         const std::string& error() { return m_error; }
 
     protected:

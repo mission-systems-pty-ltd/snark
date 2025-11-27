@@ -44,6 +44,8 @@ class bursty_reader
 
         const ::tbb::concurrent_bounded_queue< T >& queue() { return _queue; }
 
+        T read();
+
     private:
         T _read( ::tbb::flow_control& flow );
         void _produce_loop();
@@ -90,6 +92,25 @@ template < typename T > inline T bursty_reader< T >::_read( ::tbb::flow_control&
     catch( ::tbb::user_abort& ) {}
     catch( ... ) { flow.stop() ; throw ; }
     flow.stop();
+    return T();
+}
+
+template < typename T > inline T bursty_reader< T >::read()
+{
+    if( _on_demand && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
+    try
+    {
+        while( true )
+        {
+            T t = T();
+            _queue.pop( t );
+            if( !bursty_reader_traits< T >::valid( t ) ) { stop(); return T(); }
+            if( _size == 0 || _queue.size() < _size ) { return t; }
+        }
+    }
+    catch( ::tbb::user_abort& ) {}
+    catch( ... ) { stop() ; throw ; }
+    stop();
     return T();
 }
 
