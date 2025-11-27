@@ -35,6 +35,21 @@ if( snark_build_imaging_opencv_contrib )
     add_definitions( -DSNARK_OPENCV_CONTRIB )
 endif()
 
+# Check if OpenCV has been built with OpenGL support
+# On Ubuntu OpenGL support is not available in 20.04 and 22.04, but is available in 24.04
+# We set a compile flag SNARK_OPENCV_HAS_OPENGL if it's supported
+find_package( Python3 COMPONENTS Interpreter REQUIRED )
+check_python_module( ${Python3_EXECUTABLE} cv2 )
+execute_process( COMMAND ${Python3_EXECUTABLE} -c "import cv2; print( cv2.getBuildInformation() )"
+                 OUTPUT_VARIABLE OPENCV_BUILD_INFO )
+
+# we make sure there are two spaces before "OpenGL" so that we don't match "QT OpenGL"
+string( REGEX MATCH "  OpenGL support:[ \t]*(YES|NO)" _match "${OPENCV_BUILD_INFO}" )
+if( _match MATCHES "YES" )
+    message( STATUS "building ${PROJECT} with OpenGL support" )
+    add_definitions( -DSNARK_OPENCV_HAS_OPENGL )
+endif()
+
 ADD_LIBRARY( ${TARGET_NAME} ${source} ${includes}
                             ${camera_source} ${camera_includes}
                             ${color_source} ${color_includes}
