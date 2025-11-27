@@ -3,6 +3,19 @@ MACRO( disable_python_testing )
     MESSAGE( STATUS "disabled file has been dropped in ${CMAKE_CURRENT_SOURCE_DIR}: testing python modules and applications is disabled" )
 ENDMACRO( disable_python_testing )
 
+MACRO( check_python_module python module )
+    EXECUTE_PROCESS( COMMAND ${python} -c "import ${module}; print( hasattr( ${module}, '__version__' ) and ${module}.__version__ or 'unknown' );"
+        RESULT_VARIABLE MODULE_EXIT_CODE
+        OUTPUT_VARIABLE MODULE_VERSION_STRING
+        ERROR_VARIABLE MODULE_ERROR
+        OUTPUT_STRIP_TRAILING_WHITESPACE )
+    IF( MODULE_EXIT_CODE MATCHES 0 )
+        MESSAGE( STATUS "found ${python} ${module} module version ${MODULE_VERSION_STRING}" )
+    ELSE( MODULE_EXIT_CODE MATCHES 0 )
+        MESSAGE( FATAL_ERROR "${python} ${module} module not found; install it or disable BUILD_PYTHON_PACKAGES" )
+    ENDIF( MODULE_EXIT_CODE MATCHES 0 )
+ENDMACRO( check_python_module )
+
 MACRO( set_python_build_lib_directory )
     EXECUTE_PROCESS( COMMAND ${PYTHON3} -c "from distutils.dist import Distribution as D; from distutils.command.build import build as B; b = B(D()); b.finalize_options(); print( b.build_lib.split('/',1)[-1] );"
         RESULT_VARIABLE MODULE_EXIT_CODE
