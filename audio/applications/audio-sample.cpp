@@ -70,16 +70,17 @@ struct input
     unsigned int segment( double t )
     {
         double x{ t / duration };
-        for( unsigned int i = 1; i < amplitude_profile.size(); ++i ) { if( x < amplitude_profile[i].x ) { return i; } }
-        return amplitude_profile.size();
+        unsigned int i = 0;
+        for( ; i < amplitude_profile.size() && x >= amplitude_profile[i].x; ++i );
+        return i;
     }
 
     double amplitude_factor( double t, unsigned int i ) // todo! use exponential decay
     {
         const auto& p = i == 0 ? point{0, 0} : amplitude_profile[ i - 1 ]; 
         const auto& q = i < amplitude_profile.size() ? amplitude_profile[i] : point{1, 0};
-        //std::cerr << "==> a: i: " << i << " t: " << t << " t/d: " << ( t / duration ) << " p: " << p.x << "," << p.y << " q: " << q.x << "," << q.y << std::endl;
-        //std::cerr << "==> b: factor: " << ( p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ) ) << std::endl;
+        // std::cerr << "==> a: i: " << i << " t: " << t << " t/d: " << ( t / duration ) << " p: " << p.x << "," << p.y << " q: " << q.x << "," << q.y << std::endl;
+        // std::cerr << "==> b: factor: " << ( p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ) ) << std::endl;
         return p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ); // todo: calculate coefficients once - or tabulate
     }
 
