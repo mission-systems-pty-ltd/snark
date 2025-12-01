@@ -24,17 +24,19 @@ static void usage( bool verbose )
     std::cerr << std::endl;
     std::cerr << "options" << std::endl;
     std::cerr << "    --help,-h: --help --verbose for more help" << std::endl;
-    std::cerr << "    --amplitude,--volume=[<value>]: if amplitude field absent, use this amplitude for all the samples" << std::endl;
+    std::cerr << "    --amplitude=[<value>]: if amplitude field absent, use this amplitude for all the samples" << std::endl;
+    std::cerr << "    --amplitude-profile=[<profile>]: amplitude profile as relative duration-amplitude pairs" << std::endl;
+    std::cerr << "                                     e.g: --amplitude-profile=0.1,1;0.2,0.5;0.6,0.5 for 2-second duration means" << std::endl;
+    std::cerr << "                                          attack : 0.2 second from 0 to desired amplitude" << std::endl;
+    std::cerr << "                                          decay  : 0.2-0.4 seconds max amplitude to 0.5 amplitude" << std::endl;
+    std::cerr << "                                          sustain: 0.4-1.2 seconds at 0.5 amplitude" << std::endl;
+    std::cerr << "                                          release: 1.2-2 seconds from 0.5 amplitude to zero" << std::endl;
     //std::cerr << "    --attenuation=[<rate>]: attenuation rate per second (currently square root only; todo: implement properly)" << std::endl;
     std::cerr << "    --anticlick; smoothen clicks; lame, but helps a bit" << std::endl;
-    std::cerr << "    --attack=<duration>: attack/decline duration, quick and dirty, simple linear attack used; default 0" << std::endl;
     std::cerr << "    --duration=[<seconds>]: if duration field absent, use this duration for all the samples" << std::endl;
     std::cerr << "    --frequency=[<frequency>]: if frequency field absent, use this frequency for all the samples" << std::endl;
     std::cerr << "    --input-fields: print input fields and exit" << std::endl;
     std::cerr << "    --rate=[<value>]: samples per second" << std::endl;
-    #ifndef WIN32
-    //std::cerr << "    --realtime: output sample until next block available on stdin" << std::endl;
-    #endif // #ifndef WIN32
     std::cerr << "    --verbose,-v: more output" << std::endl;
     std::cerr << std::endl << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
     std::cerr << std::endl;
@@ -52,17 +54,54 @@ static void usage( bool verbose )
 
 struct input
 {
-    //boost::posix_time::ptime time;
-    double frequency;
-    double amplitude;
-    double duration;
-    comma::uint32 block;
+    struct point // quick and dirty; reuse from a library
+    {
+        double x{0};
+        double y{0};
+    };
 
-    input() : block( 0 ) {}
-    input( double frequency, double amplitude, double duration, comma::uint32 block = 0 ) : frequency( frequency ), amplitude( amplitude ), duration( duration ), block( block ) {}
+    //boost::posix_time::ptime time;
+    double frequency{0};
+    double amplitude{0};
+    double duration{0};
+    comma::uint32 block{0};
+    std::vector< point > amplitude_profile; // todo: validate profile: x monotonous, x and y between 0 and 1
+
+    unsigned int segment( double t )
+    {
+        double x{ t / duration };
+        for( unsigned int i = 1; i < amplitude_profile.size(); ++i ) { if( x < amplitude_profile[i].x ) { return i; } }
+        return amplitude_profile.size();
+    }
+
+    double amplitude_factor( double t, unsigned int i ) // todo! use exponential decay
+    {
+        const auto& p = i == 0 ? point{0, 0} : amplitude_profile[ i - 1 ]; 
+        const auto& q = i < amplitude_profile.size() ? amplitude_profile[i] : point{1, 0};
+        //std::cerr << "==> a: i: " << i << " t: " << t << " t/d: " << ( t / duration ) << " p: " << p.x << "," << p.y << " q: " << q.x << "," << q.y << std::endl;
+        //std::cerr << "==> b: factor: " << ( p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ) ) << std::endl;
+        return p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ); // todo: calculate coefficients once - or tabulate
+    }
+
+    double amplitude_factor( double t ) { return amplitude_profile.empty() ? 1. : amplitude_factor( t, segment( t ) ); } // todo! watch performance; e.g. use std::map
 };
 
 namespace comma { namespace visiting {
+
+template <> struct traits< input::point >
+{
+    template < typename K, typename V > static void visit( const K&, input::point& n, V& v )
+    {
+        v.apply( "x", n.x );
+        v.apply( "y", n.y );
+    }
+
+    template < typename K, typename V > static void visit( const K&, const input::point& n, V& v )
+    {
+        v.apply( "x", n.x );
+        v.apply( "y", n.y );
+    }
+};
 
 template <> struct traits< input >
 {
@@ -73,6 +112,7 @@ template <> struct traits< input >
         v.apply( "amplitude", n.amplitude );
         v.apply( "duration", n.duration );
         v.apply( "block", n.block );
+        v.apply( "amplitude-profile", n.amplitude_profile );
     }
 
     template < typename K, typename V > static void visit( const K&, const input& n, V& v )
@@ -82,6 +122,7 @@ template <> struct traits< input >
         v.apply( "amplitude", n.amplitude );
         v.apply( "duration", n.duration );
         v.apply( "block", n.block );
+        v.apply( "amplitude-profile", n.amplitude_profile );
     }
 };
 
@@ -95,6 +136,13 @@ struct value
     value( double frequency = 0, double phase = 0 ): frequency( frequency ), phase( phase - int( phase ) ) {}
 };
 
+static std::string _replace( const std::string& s, char in, char out ) // quick and dirty
+{
+    std::string t = s;
+    for( auto& c: t ) { c = c == in ? out : c; }
+    return t;
+} 
+
 int main( int ac, char** av )
 {
     try
@@ -103,11 +151,15 @@ int main( int ac, char** av )
         if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >( false ), ',' ) << std::endl; return 0; }
         bool verbose = options.exists( "--verbose,-v" );
         unsigned int rate = options.value< unsigned int >( "--rate,-r" );
-        //double attenuation = options.value( "--attenuation", 1.0 );
         comma::csv::options csv( options );
-        csv.full_xpath = false;
-        input default_input( options.value( "--frequency", 0.0 ), options.value( "--amplitude,--volume", 0.0 ), options.value( "--duration", 0.0 ) );
-        double attack = options.value< double >( "--attack", 0 );
+        // csv.full_xpath = false;
+        std::istringstream amplitude_profile( _replace( options.value< std::string >( "--amplitude-profile", "" ), ';', '\n' ) );
+        input default_input{ options.value( "--frequency", 0.0 )
+                           , options.value( "--amplitude", 0.0 )
+                           , options.value( "--duration", 0.0 )
+                           , 0
+                           , comma::csv::read_as< std::vector< input::point > >( amplitude_profile ) };
+        COMMA_ASSERT_BRIEF( !options.exists( "--attack" ), "--attack removed; use --amplitude-profile" );
         bool anticlick = options.exists( "--anticlick" );
         bool realtime = options.exists( "--realtime" );
         #ifdef WIN32
@@ -147,7 +199,7 @@ int main( int ac, char** av )
                 for( double t = 0; t < v[0].duration; t += step )
                 {
                     double a = 0;
-                    double factor = t < attack ? t / attack : ( v[0].duration - t ) < attack ? ( v[0].duration - t ) / attack : 1;
+                    double factor = v[0].amplitude_factor( t );
                     for( unsigned int i = 0; i < v.size(); ++i )
                     {
                         if( t > start[i] && t < finish[i] ) { a += v[i].amplitude * factor * std::sin( M_PI * 2 * ( phases[i] + v[i].frequency * t ) ); }
