@@ -9,6 +9,7 @@
 #include <comma/base/exception.h>
 #include <comma/base/types.h>
 #include "../../timing/time.h"
+#include "depth_traits.h"
 #include "utils.h"
 
 namespace snark{ namespace cv_mat {
@@ -341,6 +342,13 @@ int interpolation( const std::string& name )
     if( name == "cubic" ) { return cv::INTER_CUBIC; }
     if( name == "lanczos4" ) { return cv::INTER_LANCZOS4; }
     COMMA_THROW( comma::exception, "expected interpolation type, got: '" << name << "'" );
+}
+
+double normalised( double value, int depth )
+{
+    double min = min_value( depth );
+    double max = max_value( depth );
+    return ( value - min ) / ( max - min );
 }
 
 } }  // namespace snark { namespace cv_mat {

@@ -39,6 +39,8 @@ void set_channel( unsigned char* channel, T value, int depth );
 template < typename T >
 T get_channel( unsigned char* channel, int depth );
 
+double normalised( double value, int depth );
+
 int interpolation( const std::string& name );
 
 } }  // namespace snark { namespace cv_mat {

@@ -1655,26 +1655,11 @@ static typename impl::filters< H >::value_type ratio_impl_( const typename impl:
     COMMA_THROW( comma::exception, opname << ": unrecognised input image type " << m.second.type() );
 }
 
-static double max_value(int depth)
-{
-    switch(depth)
-    {
-        case CV_8U : return depth_traits< CV_8U  >::max_value();
-        case CV_8S : return depth_traits< CV_8S  >::max_value();
-        case CV_16U: return depth_traits< CV_16U >::max_value();
-        case CV_16S: return depth_traits< CV_16S >::max_value();
-        case CV_32S: return depth_traits< CV_32S >::max_value();
-        case CV_32F: return depth_traits< CV_32F >::max_value();
-        case CV_64F: return depth_traits< CV_64F >::max_value();
-        default: { COMMA_THROW(comma::exception, "invalid depth: "<<depth ); }
-    }
-}
-
 static cv::Mat convert_and_scale(const cv::Mat& m, int depth)
 {
     cv::Mat result;
-    double scale=max_value(depth)/max_value(m.depth());
-    m.convertTo(result, CV_MAKETYPE(depth, m.channels()), scale);
+    double scale = cv_mat::max_value( depth ) / cv_mat::max_value( m.depth() );
+    m.convertTo( result, CV_MAKETYPE( depth, m.channels() ), scale );
     return result;
 }
 

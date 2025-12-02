@@ -110,12 +110,13 @@ options
     --verbose,-v: more output
 
 fields
-    basic fields: t,x,y,r,g,b,block,weight or t,x,y,grey,block,weight
+    basic fields: t,x,y,r,g,b,a,block,weight or t,x,y,grey,block,weight
     all fields
         t: image timestamp, optional
         x,y: pixel coordinates, if double, will get rounded to the nearest integer
         size/x,size/y: primitive size (currently used only for rectangles)
-        r,g,b: red, green, blue values
+        r,g,b,a: red, green, blue, alpha values; alpha: currently supported only for filled rectangles
+                                                        can be slow on a large number of rectangles
         grey: greyscale value
         channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr
                                             if only channels[0] given, it is the same as specifying grey field
@@ -176,8 +177,8 @@ fields
               echo 500,120,100,600,0,255,0,2,world; \
               echo 400,350,600,150,0,255,255,3,jupiter ) \
                 | image-from-csv --fields x,y,size,r,g,b,weight,label \
-                                --shape rectangle \
-                                --output 'rows=800;cols=1200;type=3ub' \
+                                 --shape rectangle \
+                                 --output 'rows=800;cols=1200;type=3ub' \
                 | cv-cat 'view=stay;null'
     3D projections, binary feeds, autoscaling
         basic
@@ -317,10 +318,11 @@ struct input
     std::vector< double > channels;
     comma::uint32 block{0};
     comma::uint32 id{0};
-    comma::uint32 weight{1};
+    comma::int32 weight{1}; // can be negative, e.g. -1 for rectangle fill
     std::string label;
     
     input() : x( 0 ), y( 0 ), block( 0 ) {}
+
     cv::Scalar color() const { cv::Scalar c; for( unsigned int j = 0; j < channels.size(); ++j ) { c[j] = channels[j]; } return c; }
 };
 
@@ -572,7 +574,18 @@ class shape // todo: quick and dirty, make polymorphic
                 {
                     int x1 = std::floor( ( v.x + v.size.x - offset.first ) * scale.first * factor + 0.5 ) + extra_offset.first;
                     int y1 = std::floor( ( v.y + v.size.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
-                    cv::rectangle( m, origin, cv::Point( x1, y1 ), color, v.weight );
+                    if( v.channels.size() == 4 && v.weight == -1 ) // currently alpha supported only on rectangle fill
+                    {
+                        cv::Mat overlay;
+                        m.copyTo( overlay ); // todo! watch performance!
+                        cv::rectangle( overlay, origin, cv::Point( x1, y1 ), color, v.weight );
+                        double alpha = snark::cv_mat::normalised( v.channels[3], m.depth() );
+                        cv::addWeighted( m, 1 - alpha, overlay, alpha, 0, m );
+                    }
+                    else
+                    {
+                        cv::rectangle( m, origin, cv::Point( x1, y1 ), color, v.weight );
+                    }
                     label_offset = cv::Point( 7 + v.weight, 19 + v.weight ); 
                 }
             }
