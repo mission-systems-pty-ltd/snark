@@ -116,7 +116,8 @@ fields
         x,y: pixel coordinates, if double, will get rounded to the nearest integer
         size/x,size/y: primitive size (currently used only for rectangles)
         r,g,b,a: red, green, blue, alpha values; alpha: currently supported only for filled rectangles
-                                                        can be slow on a large number of rectangles
+                                                        and points with weight > 1 (i.e. filled circles)
+                                                        can be slow on a large number of rectangles or points
         grey: greyscale value
         channels[0],channels[1],channels[2]: blue, green, red values; notice that the order is bgr
                                             if only channels[0] given, it is the same as specifying grey field
@@ -155,11 +156,17 @@ fields
             | cv-cat 'view;null'
     shapes
         point
-            csv-paste 'line-number;shape=5,10' value=255,0,255 line-number line-number --head=50 \
-                | csv-eval --fields x,y,r,g,b,w 'x=200+x*100;y=150+y*100;w=1+round(w/2)' \
-                | image-from-csv --fields y,x,r,g,b,weight,label \
-                                 --output 'rows=800;cols=1200;type=3ub' \
-                | cv-cat 'view=stay;null'
+            basics
+                csv-paste 'line-number;shape=5,10' value=255,0,255 line-number line-number --head=50 \
+                    | csv-eval --fields x,y,r,g,b,w 'x=200+x*100;y=150+y*100;w=1+round(w/2)' \
+                    | image-from-csv --fields y,x,r,g,b,weight,label \
+                                     --output 'rows=800;cols=1200;type=3ub' \
+                    | cv-cat 'view=stay;null'
+            circles, transparency (alpha channel)
+                ( echo 400,540,255,128,128,64,600; echo 600,540,128,255,128,64,600; echo 500,367,128,128,255,64,600; ) \
+                    | image-from-csv --fields x,y,r,g,b,a,weight --output 'rows=1000;cols=1000;type=4ub' \
+                    | cv-cat brightness=3 \
+                    | cv-cat 'view=stay;null'
         lines
             ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 ) \
                 | image-from-csv --fields x,y,r,g,b --shape=lines --autoscale --output 'rows=1000;cols=1000;type=3ub' \
@@ -547,8 +554,27 @@ class shape // todo: quick and dirty, make polymorphic
             switch( _type ) // todo: quick and dirty, make polymorphic, move to traits
             {
                 case types::point:
-                    if( v.weight == 1 ) { snark::cv_mat::set( m, y, x, v.channels ); }
-                    else { cv::circle( m, origin, v.weight, color, cv::FILLED ); }
+                    if( v.weight == 1 )
+                    {
+                        snark::cv_mat::set( m, y, x, v.channels );
+                    }
+                    else
+                    {
+                        int radius = v.weight / 2 + 1;
+                        if( v.channels.size() == 4 ) // todo! watch performance on a large number of circles! support fixed alpha across the block
+                        {
+                            cv::Mat cropped = m( cv::Rect( origin.x - radius, origin.y - radius, radius * 2, radius * 2 ) ); // todo! check that circle is inside the image
+                            cv::Mat overlay;
+                            cropped.copyTo( overlay );
+                            cv::circle( overlay, cv::Point( radius, radius ), radius, color, cv::FILLED ); // todo: debug and fix exact centre offest
+                            double alpha = snark::cv_mat::normalised( v.channels[3], m.depth() );
+                            cv::addWeighted( cropped, 1 - alpha, overlay, alpha, 0, cropped );
+                        }
+                        else
+                        {
+                            cv::circle( m, origin, radius, color, cv::FILLED );
+                        }
+                    }
                     label_offset = cv::Point( -4, -3 - v.weight );
                     break;
                 case types::lines:
@@ -576,11 +602,10 @@ class shape // todo: quick and dirty, make polymorphic
                     int y1 = std::floor( ( v.y + v.size.y - offset.second ) * scale.second * factor + 0.5 ) + extra_offset.second;
                     if( v.channels.size() == 4 && v.weight == -1 ) // currently alpha supported only on rectangle fill
                     {
-                        cv::Mat overlay;
-                        m.copyTo( overlay ); // todo! watch performance!
-                        cv::rectangle( overlay, origin, cv::Point( x1, y1 ), color, v.weight );
+                        cv::Mat cropped = m( cv::Rect( origin.x, origin.y, x1 - origin.x, y1 - origin.y ) );
+                        cv::Mat overlay( cropped.rows, cropped.cols, cropped.type(), color );
                         double alpha = snark::cv_mat::normalised( v.channels[3], m.depth() );
-                        cv::addWeighted( m, 1 - alpha, overlay, alpha, 0, m );
+                        cv::addWeighted( cropped, 1 - alpha, overlay, alpha, 0, cropped );
                     }
                     else
                     {
