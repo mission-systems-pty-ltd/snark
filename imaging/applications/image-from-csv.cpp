@@ -824,7 +824,7 @@ int main( int ac, char** av )
         siam::timestamping t( options.value< std::string >( "--timestamp", "first" ) );
         std::unique_ptr< siam::stream > background;
         options.assert_mutually_exclusive( "--background-colour,--background-color", "--background" );
-        COMMA_ASSERT_BRIEF( !( options.exists( "--background" ) && options.exists( "--output" ) ), "both --background and --output given: currently not supported - just ask" );
+        COMMA_ASSERT_BRIEF( !( options.exists( "--background" ) && options.exists( "--output" ) ), "both --background and --output given: currently not supported - just ask (for now, just remove --output)" );
         auto opacity = options.optional< double >( "--opacity" );
         snark::cv_mat::serialization::options output_options;
         if( options.exists( "--background" ) )
