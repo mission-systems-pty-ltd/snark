@@ -165,7 +165,7 @@ fields
             circles, transparency (alpha channel)
                 ( echo 400,540,255,128,128,64,600; echo 600,540,128,255,128,64,600; echo 500,367,128,128,255,64,600; ) \
                     | image-from-csv --fields x,y,r,g,b,a,weight --output 'rows=1000;cols=1000;type=4ub' \
-                    | cv-cat brightness=3 \
+                    | cv-cat brightness=2 \
                     | cv-cat 'view=stay;null'
         lines
             ( echo 0,0,255,0,0; echo 1,1,255,0,0; echo 1,0.5,255,0,0; echo 0.5,1.5,255,0,0 ) \
@@ -180,12 +180,12 @@ fields
                                  --shape=lines \
                 | cv-cat 'view=stay;null'
         rectangle
-            ( echo 200,100,250,150,255,0,0,5,hello; \
-              echo 500,120,100,600,0,255,0,2,world; \
-              echo 400,350,600,150,0,255,255,3,jupiter ) \
-                | image-from-csv --fields x,y,size,r,g,b,weight,label \
-                                 --shape rectangle \
-                                 --output 'rows=800;cols=1200;type=3ub' \
+            ( echo 200,100,250,150,255,0,0,128,5,hello \
+              echo 500,120,100,600,0,255,0,128,-1,world \
+              echo 400,350,600,150,0,255,255,128,-1,jupiter ) \
+                  | image-from-csv --fields x,y,size,r,g,b,a,weight,label \
+                                   --shape rectangle \
+                                   --output 'rows=800;cols=1200;type=3ub' \
                 | cv-cat 'view=stay;null'
     3D projections, binary feeds, autoscaling
         basic
