@@ -76,9 +76,16 @@ options
     --flip-y,--flip; convenience option for 2D graph plotting: multiply y by -1
     --from,--begin,--origin=[<x>,<y>]: offset pixel coordinates by a given offset; default: 0,0
     --number-of-blocks,--block-count=[<count>]; if --output-on-missing-blocks, expected number of input blocks
+    --opacity=<alpha>; default: 1; draw everything with a given opacity (alpha); this is a convenience option
+                                   that is different from the alpha channel in three ways
+                                   - opacity/alpha is applied to all primitives; it is convenient and more
+                                     cpu-efficient than applying alpha per primitive 
+                                   - it can be used on grey-scale images, whereas the alpha channel works
+                                     only on four-channel rgba images
+                                   - <value> is between 0 and 1, whereas alpha channel takes value a range
+                                     for a given pixel depth, e.g. 0 to 255 for 4ub output 
     --output=[<properties>]: output options, same as --input for image-from-csv or cv-cat (see --help --verbose)
-                             if --output not present and --background given, properties will be taken from
-                             background image
+                             if --background given, properties will be taken from background image
     --output-on-missing-blocks: output empty images on missing input blocks; input blocks expected ordered
     --output-on-empty-input,--output-on-empty: output empty image on empty input
     --scale=<factor>; default=1; extra scale factor
@@ -180,8 +187,8 @@ fields
                                  --shape=lines \
                 | cv-cat 'view=stay;null'
         rectangle
-            ( echo 200,100,250,150,255,0,0,128,5,hello \
-              echo 500,120,100,600,0,255,0,128,-1,world \
+            ( echo 200,100,250,150,255,0,0,128,5,hello; \
+              echo 500,120,100,600,0,255,0,128,-1,world; \
               echo 400,350,600,150,0,255,255,128,-1,jupiter ) \
                   | image-from-csv --fields x,y,size,r,g,b,a,weight,label \
                                    --shape rectangle \
@@ -272,7 +279,6 @@ fields
                 | csv-blocks index --fields block \
                 | image-from-csv --fields block,id,y,x \
                                  --shape lines \
-                                 --output 'rows=380;cols=400;type=3ub' \
                                  --colours="magenta;cyan;yellow;red" \
                                  --background background.png \
                 | cv-cat view null
@@ -421,27 +427,27 @@ class axis // keeping consistent with csv-plot
 
 } } } } // namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
 
+namespace siam = snark::imaging::applications::image_from_csv;
+
 namespace comma { namespace visiting {
 
-template <> struct traits< snark::imaging::applications::image_from_csv::input::point >
+template <> struct traits< siam::input::point >
 {
-    typedef snark::imaging::applications::image_from_csv::input::point value_t;
-    template < typename K, typename V > static void visit( const K&, value_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, siam::input::point& r, V& v )
     {
         v.apply( "x", r.x );
         v.apply( "y", r.y );
     }
-    template < typename K, typename V > static void visit( const K&, const value_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, const siam::input::point& r, V& v )
     {
         v.apply( "x", r.x );
         v.apply( "y", r.y );
     }
 };
 
-template <> struct traits< snark::imaging::applications::image_from_csv::input >
+template <> struct traits< siam::input >
 {
-    typedef snark::imaging::applications::image_from_csv::input input_t;
-    template < typename K, typename V > static void visit( const K&, input_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, siam::input& r, V& v )
     {
         v.apply( "t", r.t );
         v.apply( "x", r.x );
@@ -453,7 +459,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
         v.apply( "weight", r.weight );
         v.apply( "label", r.label );
     }
-    template < typename K, typename V > static void visit( const K&, const input_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, const siam::input& r, V& v )
     {
         v.apply( "t", r.t );
         v.apply( "x", r.x );
@@ -467,10 +473,9 @@ template <> struct traits< snark::imaging::applications::image_from_csv::input >
     }
 };
 
-template <> struct traits< snark::imaging::applications::image_from_csv::autoscale >
+template <> struct traits< siam::autoscale >
 {
-    typedef snark::imaging::applications::image_from_csv::autoscale autoscale_t;
-    template < typename K, typename V > static void visit( const K&, autoscale_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, siam::autoscale& r, V& v )
     {
         v.apply( "once", r.once );
         v.apply( "proportional", r.proportional );
@@ -478,7 +483,7 @@ template <> struct traits< snark::imaging::applications::image_from_csv::autosca
         v.apply( "grow", r.grow );
         v.apply( "shrink", r.shrink );
     }
-    template < typename K, typename V > static void visit( const K&, const autoscale_t& r, V& v )
+    template < typename K, typename V > static void visit( const K&, const siam::autoscale& r, V& v )
     {
         v.apply( "once", r.once );
         v.apply( "proportional", r.proportional );
@@ -488,9 +493,9 @@ template <> struct traits< snark::imaging::applications::image_from_csv::autosca
     }
 };
 
-template <> struct traits< snark::imaging::applications::image_from_csv::axis::tick >
+template <> struct traits< siam::axis::tick >
 {
-    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::tick& t, V& v )
+    template< typename K, typename V > static void visit( const K&, siam::axis::tick& t, V& v )
     {
         v.apply( "anchor", t.anchor );
         v.apply( "interval", t.interval );
@@ -498,17 +503,17 @@ template <> struct traits< snark::imaging::applications::image_from_csv::axis::t
     }
 };
 
-template <> struct traits< snark::imaging::applications::image_from_csv::axis::label >
+template <> struct traits< siam::axis::label >
 {
-    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::label& t, V& v )
+    template< typename K, typename V > static void visit( const K&, siam::axis::label& t, V& v )
     {
         v.apply( "format", t.format );
     }
 };
 
-template <> struct traits< snark::imaging::applications::image_from_csv::axis::config >
+template <> struct traits< siam::axis::config >
 {
-    template< typename K, typename V > static void visit( const K&, snark::imaging::applications::image_from_csv::axis::config& t, V& v )
+    template< typename K, typename V > static void visit( const K&, siam::axis::config& t, V& v )
     { 
         v.apply( "title", t.title );
         v.apply( "tick", t.tick );
@@ -761,6 +766,15 @@ stream::pair_t stream::operator++()
     return _pair;
 }
 
+static std::pair< boost::posix_time::ptime, cv::Mat > faded( std::pair< boost::posix_time::ptime, cv::Mat >& pair, const cv::Mat& underlay, const boost::optional< double >& opacity )
+{
+    if( !opacity ) { return pair; }
+    std::pair< boost::posix_time::ptime, cv::Mat > p;
+    p.first = pair.first;
+    cv::addWeighted( underlay, 1 - *opacity, pair.second, *opacity, 0, p.second );
+    return p;
+} 
+
 } } } } // namespace snark { namespace imaging { namespace applications { namespace image_from_csv {
 
 int main( int ac, char** av )
@@ -771,13 +785,13 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         COMMA_ASSERT_BRIEF( !csv.fields.empty(), "please specify --fields" );
         options.assert_mutually_exclusive( "--offset", "--scale-auto,--autoscale" );
-        auto autoscale = comma::silent_none< snark::imaging::applications::image_from_csv::autoscale >();
-        if( options.exists( "--scale-auto,--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< snark::imaging::applications::image_from_csv::autoscale >( options.value< std::string >( "--scale-auto,--autoscale" ) ); autoscale->validate(); }
+        auto autoscale = comma::silent_none< siam::autoscale >();
+        if( options.exists( "--scale-auto,--autoscale" ) ) { autoscale = comma::name_value::parser( ';', '=' ).get< siam::autoscale >( options.value< std::string >( "--scale-auto,--autoscale" ) ); autoscale->validate(); }
         const auto& c = comma::split( options.value< std::string >( "--colours,--colors", "" ), ';', true );
         float y_sign = options.exists( "--flip-y,--flip" ) ? -1 : 1;
         std::vector< snark::render::colour< unsigned char > > colours( c.size() );
         for( unsigned int i = 0; i < colours.size(); ++i ) { colours[i] = snark::render::colours::named< unsigned char >::from_string( c[i] ); }
-        snark::imaging::applications::image_from_csv::input sample;
+        siam::input sample;
         bool is_greyscale = colours.empty();
         bool has_alpha = false;
         sample.weight = options.value( "--weight", 1u );
@@ -800,20 +814,22 @@ int main( int ac, char** av )
         auto number_of_blocks = options.optional< unsigned int >( "--number-of-blocks,--block-count" );
         const auto& w = comma::split_as< double >( offset_string, ',' );
         COMMA_ASSERT_BRIEF( w.size() == 2, "image-from-csv: --from: expected <x>,<y>; got: '" << offset_string << "'" );
-        auto shape = snark::imaging::applications::image_from_csv::shape::make( options.value< std::string >( "--shape", "point" ) );
+        auto shape = siam::shape::make( options.value< std::string >( "--shape", "point" ) );
         std::pair< double, double > offset( w[0], w[1] ); // todo: quick and dirty; use better types like cv::Point
         const auto& s = comma::split( options.value< std::string >( "--scale", "1" ), ',' );
         std::pair< double, double > scale{ boost::lexical_cast< double >( s[0] ), boost::lexical_cast< double >( s[ s.size() == 1 ? 0 : 1 ] ) };
         double scale_factor = options.value( "--scale-factor,--zoom", 1. );
-        comma::csv::input_stream< snark::imaging::applications::image_from_csv::input > is( std::cin, csv, sample );
-        boost::optional< snark::imaging::applications::image_from_csv::input > last;
-        snark::imaging::applications::image_from_csv::timestamping t( options.value< std::string >( "--timestamp", "first" ) );
-        std::unique_ptr< snark::imaging::applications::image_from_csv::stream > background;
+        comma::csv::input_stream< siam::input > is( std::cin, csv, sample );
+        boost::optional< siam::input > last;
+        siam::timestamping t( options.value< std::string >( "--timestamp", "first" ) );
+        std::unique_ptr< siam::stream > background;
         options.assert_mutually_exclusive( "--background-colour,--background-color", "--background" );
+        COMMA_ASSERT_BRIEF( !( options.exists( "--background" ) && options.exists( "--output" ) ), "both --background and --output given: currently not supported - just ask" );
+        auto opacity = options.optional< double >( "--opacity" );
         snark::cv_mat::serialization::options output_options;
         if( options.exists( "--background" ) )
         {
-            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background" ) ) );
+            background.reset( new siam::stream( options.value< std::string >( "--background" ) ) );
             output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--output", "" ) );
             output_options.rows = background->options().rows;
             output_options.cols = background->options().cols;
@@ -823,18 +839,19 @@ int main( int ac, char** av )
         else
         {
             output_options = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--output" ) );
-            background.reset( new snark::imaging::applications::image_from_csv::stream( options.value< std::string >( "--background-colour,--background-color", "0,0,0" ), output_options ) );
+            background.reset( new siam::stream( options.value< std::string >( "--background-colour,--background-color", "0,0,0" ), output_options ) );
         }
         snark::cv_mat::serialization output( output_options ); // todo: check whether output type matches fields
-        typedef snark::imaging::applications::image_from_csv::axis axis_t;
+        typedef siam::axis axis_t;
         std::pair< axis_t, axis_t > axes{ axis_t( comma::name_value::parser( ';', '=' ).get< axis_t::config >( options.value< std::string >( "--axis-x", "" ) ), false )
                                         , axis_t( comma::name_value::parser( ';', '=' ).get< axis_t::config >( options.value< std::string >( "--axis-y", "" ) ), true  ) };
         std::pair< boost::posix_time::ptime, cv::Mat > pair;
-        std::vector< snark::imaging::applications::image_from_csv::input > inputs;        
+        cv::Mat underlay;
+        std::vector< siam::input > inputs;        
         bool first_block{true};
         while( is.ready() || std::cin.good() )
         {
-            const snark::imaging::applications::image_from_csv::input* p = is.read();
+            const siam::input* p = is.read();
             bool block_done = !p || ( last && p->block != last->block );
             if( last ) { t.update( last->t, block_done ); }
             if( !last || block_done )
@@ -907,11 +924,12 @@ int main( int ac, char** av )
                 {
                     pair.first = t.value();
                     t.reset();
-                    output.write( std::cout, pair );
+                    output.write( std::cout, siam::faded( pair, underlay, opacity ) );
                     std::cout.flush();
                 }
                 shape.clear();
                 ( *background )().second.copyTo( pair.second );
+                if( opacity ) { ( *background )().second.copyTo( underlay ); }
                 if( !autoscale )
                 {
                     axes.first.draw( pair.second, offset, scale, scale_factor );
@@ -926,12 +944,12 @@ int main( int ac, char** av )
                     else { gap = 0; }
                     COMMA_ASSERT_BRIEF( gap >= 0, "expected incrementing block numbers, got: " << p->block << " after " << last->block );
                     if( number_of_blocks && p && p->block >= *number_of_blocks ) { comma::say() << "expecting block number less than number-of-blocks (" << *number_of_blocks << "), got: " << p->block << std::endl; exit( 1 ); }
-                    for( int i = 0; i < gap; ++i ) { output.write( std::cout, pair ); }
+                    for( int i = 0; i < gap; ++i ) { output.write( std::cout, siam::faded( pair, underlay, opacity ) ); } // todo: get faded once, not <gap> times
                     std::cout.flush();
                 }
             }
             if( !p ) { break; }
-            snark::imaging::applications::image_from_csv::input q = *p; // todo! watch performance!
+            siam::input q = *p; // todo! watch performance!
             q.y *= y_sign; // quick and dirty
             for( unsigned int i = 0; !colours.empty() && i < colours[0].size() && i < q.channels.size(); ++i ) { q.channels[i] = colours[ q.id % colours.size() ][i]; }
             if( !colours.empty() ) // // todo! watch performance! handle non-unsigned char channel types!
@@ -946,7 +964,7 @@ int main( int ac, char** av )
             else { shape.draw( pair.second, q, offset, scale, scale_factor ); }
             last = q;
         }
-        if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, pair ); }
+        if( output_on_empty_input && !output_on_missing_blocks && !last ) { output.write( std::cout, siam::faded( pair, underlay, opacity ) ); }
         return 0;
     }
     catch( std::exception& ex ) { comma::say() << "" << ex.what() << std::endl; }
