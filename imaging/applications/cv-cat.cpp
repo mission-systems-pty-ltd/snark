@@ -415,7 +415,7 @@ int main( int argc, char** argv )
         }
         else
         {
-            comma::saymore() << "starting processing pipeline serially since 'view' filter and --force are present..." << std::endl;
+            comma::saymore() << "starting processing pipeline serially since 'view' filter and --force are present or view is the only filter..." << std::endl;
             pipeline.run_serially();
         }
         comma::saymore() << "processing pipeline done" << std::endl;

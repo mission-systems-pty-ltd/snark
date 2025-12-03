@@ -10,6 +10,8 @@
 #include <tbb/concurrent_queue.h>
 #include "types.h"
 
+#include <iostream>
+
 namespace snark { namespace tbb {
 
 /// the user can provide a method to validate the data,
@@ -78,7 +80,7 @@ template < typename T > inline void bursty_reader< T >::join() { stop(); _thread
 
 template < typename T > inline T bursty_reader< T >::_read( ::tbb::flow_control& flow )
 {
-    if( _on_demand && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
+    if( _on_demand && _running && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
     try
     {
         while( true )
@@ -97,10 +99,10 @@ template < typename T > inline T bursty_reader< T >::_read( ::tbb::flow_control&
 
 template < typename T > inline T bursty_reader< T >::read()
 {
-    if( _on_demand && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
+    if( _on_demand && _running && !_thread ) { _thread.reset( new boost::thread( boost::bind( &bursty_reader< T >::_produce_loop, this ) ) ); }
     try
     {
-        while( true )
+        while( _running )
         {
             T t = T();
             _queue.pop( t );
@@ -109,7 +111,7 @@ template < typename T > inline T bursty_reader< T >::read()
         }
     }
     catch( ::tbb::user_abort& ) {}
-    catch( ... ) { stop() ; throw ; }
+    catch( ... ) { stop(); throw; }
     stop();
     return T();
 }
@@ -121,14 +123,14 @@ template < typename T > inline void bursty_reader< T >::_produce_loop()
         for( bool done{false}; _running && !done; )
         {
             T t = _produce(); // attention: if produce is blocking, it may, well, block on join(), if no new data is coming... something to fix or parametrize (e.g. with timed wait)?
-            if( !_running ) { _queue.push( T() ); break; }
+            if( !_running ) { break; } // if( !_running ) { _queue.push( T() ); break; } // push() will block if the queue is full
             _queue.push( t );
             if( !bursty_reader_traits< T >::valid( t ) ) { break; }
         }
     }
     catch( ::tbb::user_abort& ) {}
-    catch( ... ) { _queue.push( T() ); throw; }
-    _queue.push( T() );
+    catch( ... ) { _queue.try_push( T() ); throw; } // push() will block if the queue is full
+    _queue.try_push( T() ); // if( _running ) { _queue.push( T() ); } // push() will block if the queue is full
 }
 
 } } // namespace snark { namespace tbb {

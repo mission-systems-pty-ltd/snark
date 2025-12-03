@@ -122,7 +122,7 @@ void pipeline< H >::run_serially()
     {
         m_error = ex.what();
     }
-    m_reader.stop(); 
+    m_reader.stop();
     m_reader.join();
 }
 
