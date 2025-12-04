@@ -11,9 +11,7 @@
 #include <comma/base/none.h>
 #include <comma/application/command_line_options.h>
 #include <comma/csv/stream.h>
-#ifndef WIN32
 #include <comma/io/select.h>
-#endif // #ifndef WIN32
 #include <comma/visiting/traits.h>
 #include "../../visiting/traits.h"
 
