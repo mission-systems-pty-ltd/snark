@@ -213,7 +213,7 @@ int main( int ac, char** av )
                         std::vector< double > amplitudes( size, 0 );
                         tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, size ), [&]( const tbb::blocked_range< std::size_t >& r )
                         {
-                            double t = t0;
+                            double t = t0 + r.begin() * step;
                             for( unsigned int j = r.begin(); j < r.end(); ++j, t += step )
                             {
                                 double factor = v[0].amplitude_factor( t );
