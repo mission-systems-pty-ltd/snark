@@ -190,7 +190,7 @@ int main( int ac, char** av )
                 }
                 std::vector< double > phases( v.size() );
                 for( unsigned int i = 0; i < v.size(); phases[i] = phase( previous, v[i].frequency ), ++i );
-                std::uint64_t steps = rate * 60; // quick and dirty; todo? parametrise?
+                std::uint64_t steps = rate * 60 * 5; // quick and dirty; todo? parametrise?
                 if( csv.flush )
                 {
                     for( double t = 0; t < v[0].duration; t += step )
@@ -214,9 +214,9 @@ int main( int ac, char** av )
                         tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, size ), [&]( const tbb::blocked_range< std::size_t >& r )
                         {
                             double t = t0;
-                            double factor = v[0].amplitude_factor( t );
                             for( unsigned int j = r.begin(); j < r.end(); ++j, t += step )
                             {
+                                double factor = v[0].amplitude_factor( t );
                                 for( unsigned int i = 0; i < v.size(); ++i ) // tbb::parallel_for here does not really speed it up
                                 {
                                     if( t > start[i] && t < finish[i] ) { amplitudes[j] += v[i].amplitude * factor * std::sin( M_PI * 2 * ( phases[i] + v[i].frequency * t ) ); }
@@ -225,7 +225,6 @@ int main( int ac, char** av )
                         } );
                         if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &amplitudes[0] ), amplitudes.size() * sizeof( double ) ); }
                         else { for( double a: amplitudes ) { std::cout << a << std::endl; } }
-                        if( csv.flush ) { std::cout.flush(); }
                     }
                 }
                 previous.resize( v.size() );
