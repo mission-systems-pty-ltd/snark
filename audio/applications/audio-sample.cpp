@@ -35,7 +35,7 @@ static void usage( bool verbose )
     std::cerr << "    --duration=[<seconds>]: if duration field absent, use this duration for all the samples" << std::endl;
     std::cerr << "    --flush: flush after each record (won't run in parallel, so, can be slow; todo: speed up)" << std::endl;
     std::cerr << "    --frequency=[<frequency>]: if frequency field absent, use this frequency for all the samples" << std::endl;
-    std::cerr << "    --input-fields: print input fields and exit" << std::endl;
+    std::cerr << "    --input-fields: print input fields and exit; use --verbose for more output" << std::endl;
     std::cerr << "    --rate=[<value>]: samples per second" << std::endl;
     std::cerr << "    --verbose,-v: more output" << std::endl;
     std::cerr << std::endl << "csv options" << std::endl << comma::csv::options::usage( verbose ) << std::endl;
@@ -147,7 +147,7 @@ int main( int ac, char** av )
     try
     {
         comma::command_line_options options( ac, av, usage );
-        if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input >( false ), ',' ) << std::endl; return 0; }
+        if( options.exists( "--input-fields" ) ) { std::cout << ( options.exists( "--verbose,-v" ) ? comma::join( comma::csv::names< input >( input{0, 0, 0, 0, {{0, 0}, {0, 0}}} ), ',' ) + ",..." : comma::join( comma::csv::names< input >(), ',' ) + ",amplitude_profile" ) << std::endl; return 0; }
         bool verbose = options.exists( "--verbose,-v" );
         unsigned int rate = options.value< unsigned int >( "--rate,-r" );
         comma::csv::options csv( options );
