@@ -6,7 +6,9 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
-#include <boost/date_time/posix_time/posix_time.hpp>
+// #include <boost/date_time/posix_time/posix_time.hpp>
+#include <tbb/parallel_for.h> 
+#include <comma/base/none.h>
 #include <comma/application/command_line_options.h>
 #include <comma/csv/stream.h>
 #ifndef WIN32
@@ -31,9 +33,9 @@ static void usage( bool verbose )
     std::cerr << "                                          decay  : 0.2-0.4 seconds max amplitude to 0.5 amplitude" << std::endl;
     std::cerr << "                                          sustain: 0.4-1.2 seconds at 0.5 amplitude" << std::endl;
     std::cerr << "                                          release: 1.2-2 seconds from 0.5 amplitude to zero" << std::endl;
-    //std::cerr << "    --attenuation=[<rate>]: attenuation rate per second (currently square root only; todo: implement properly)" << std::endl;
-    std::cerr << "    --anticlick; smoothen clicks; lame, but helps a bit" << std::endl;
+    std::cerr << "    --anticlick; smoothen clicks; lame, but helps a bit; todo: hanning or alike" << std::endl;
     std::cerr << "    --duration=[<seconds>]: if duration field absent, use this duration for all the samples" << std::endl;
+    std::cerr << "    --flush: flush after each record (won't run in parallel, so, can be slow; todo: speed up)" << std::endl;
     std::cerr << "    --frequency=[<frequency>]: if frequency field absent, use this frequency for all the samples" << std::endl;
     std::cerr << "    --input-fields: print input fields and exit" << std::endl;
     std::cerr << "    --rate=[<value>]: samples per second" << std::endl;
@@ -79,8 +81,6 @@ struct input
     {
         const auto& p = i == 0 ? point{0, 0} : amplitude_profile[ i - 1 ]; 
         const auto& q = i < amplitude_profile.size() ? amplitude_profile[i] : point{1, 0};
-        // std::cerr << "==> a: i: " << i << " t: " << t << " t/d: " << ( t / duration ) << " p: " << p.x << "," << p.y << " q: " << q.x << "," << q.y << std::endl;
-        // std::cerr << "==> b: factor: " << ( p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ) ) << std::endl;
         return p.y + ( q.y - p.y ) / ( q.x - p.x ) * ( t / duration - p.x ); // todo: calculate coefficients once - or tabulate
     }
 
@@ -153,7 +153,6 @@ int main( int ac, char** av )
         bool verbose = options.exists( "--verbose,-v" );
         unsigned int rate = options.value< unsigned int >( "--rate,-r" );
         comma::csv::options csv( options );
-        // csv.full_xpath = false;
         std::istringstream amplitude_profile( _replace( options.value< std::string >( "--amplitude-profile", "" ), ';', '\n' ) );
         input default_input{ options.value( "--frequency", 0.0 )
                            , options.value( "--amplitude", 0.0 )
@@ -163,15 +162,11 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( !options.exists( "--attack" ), "--attack removed; use --amplitude-profile" );
         bool anticlick = options.exists( "--anticlick" );
         bool realtime = options.exists( "--realtime" );
-        #ifdef WIN32
-        if( realtime ) { std::cerr << "audio-sample: --realtime not supported on windows" << std::endl; return 1; }
-        #else
-        if( realtime ) { std::cerr << "audio-sample: --realtime: todo" << std::endl; return 1; }
+        COMMA_ASSERT_BRIEF( !realtime, "--realtime: todo" );
         comma::io::select select;
         if( realtime ) { select.read().add( 0 ); }
-        #endif // #ifndef WIN32
         comma::csv::input_stream< input > istream( std::cin, csv, default_input );
-        boost::optional< input > last;
+        boost::optional< input > last = comma::silent_none< input >();
         std::vector< input > v;
         std::vector< value > previous;
         unsigned int count = 0;
@@ -197,17 +192,43 @@ int main( int ac, char** av )
                 }
                 std::vector< double > phases( v.size() );
                 for( unsigned int i = 0; i < v.size(); phases[i] = phase( previous, v[i].frequency ), ++i );
-                for( double t = 0; t < v[0].duration; t += step )
+                std::uint64_t steps = rate * 60; // quick and dirty; todo? parametrise?
+                if( csv.flush )
                 {
-                    double a = 0;
-                    double factor = v[0].amplitude_factor( t );
-                    for( unsigned int i = 0; i < v.size(); ++i )
+                    for( double t = 0; t < v[0].duration; t += step )
                     {
-                        if( t > start[i] && t < finish[i] ) { a += v[i].amplitude * factor * std::sin( M_PI * 2 * ( phases[i] + v[i].frequency * t ) ); }
+                        double factor = v[0].amplitude_factor( t );
+                        double a = 0;
+                        for( unsigned int i = 0; i < v.size(); ++i )
+                        {
+                            if( t > start[i] && t < finish[i] ) { a += v[i].amplitude * factor * std::sin( M_PI * 2 * ( phases[i] + v[i].frequency * t ) ); }
+                        }
+                        if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &a ), sizeof( double ) ); } else { std::cout << a << std::endl; }
+                        if( csv.flush ) { std::cout.flush(); }
                     }
-                    if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &a ), sizeof( double ) ); }
-                    else { std::cout << a << std::endl; }
-                    if( csv.flush ) { std::cout.flush(); }
+                }
+                else
+                {
+                    for( double t0 = 0; t0 < v[0].duration; t0 += step * steps )
+                    {
+                        unsigned int size = t0 + step * steps > v[0].duration ? ( v[0].duration - t0 ) / step : steps; 
+                        std::vector< double > amplitudes( size, 0 );
+                        tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, size ), [&]( const tbb::blocked_range< std::size_t >& r )
+                        {
+                            double t = t0;
+                            double factor = v[0].amplitude_factor( t );
+                            for( unsigned int j = r.begin(); j < r.end(); ++j, t += step )
+                            {
+                                for( unsigned int i = 0; i < v.size(); ++i ) // tbb::parallel_for here does not really speed it up
+                                {
+                                    if( t > start[i] && t < finish[i] ) { amplitudes[j] += v[i].amplitude * factor * std::sin( M_PI * 2 * ( phases[i] + v[i].frequency * t ) ); }
+                                }
+                            }
+                        } );
+                        if( csv.binary() ) { std::cout.write( reinterpret_cast< const char* >( &amplitudes[0] ), amplitudes.size() * sizeof( double ) ); }
+                        else { for( double a: amplitudes ) { std::cout << a << std::endl; } }
+                        if( csv.flush ) { std::cout.flush(); }
+                    }
                 }
                 previous.resize( v.size() );
                 for( unsigned int i = 0; i < v.size(); ++i ) { previous[i] = value( v[i].frequency, phases[i] + v[i].frequency * v[0].duration ); }
