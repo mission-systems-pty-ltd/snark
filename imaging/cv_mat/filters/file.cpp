@@ -107,7 +107,7 @@ std::string file< H >::make_filename_( const boost::posix_time::ptime& t )
 template < typename H >
 std::pair< typename file< H >::functor_t, bool > file< H >::make( boost::function< boost::posix_time::ptime( const H& ) > get_timestamp, const std::string& options )
 {
-    if( options.empty() ) { COMMA_THROW( comma::exception, "file: expected file type like jpg, ppm, etc" ); }
+    COMMA_ASSERT( !options.empty(), "file: expected file type like jpg, ppm, etc" );
     const std::vector< std::string >& s = comma::split( options, ',' );
     boost::optional< int > quality;
     bool do_index = false;
