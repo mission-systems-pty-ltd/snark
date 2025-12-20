@@ -86,7 +86,7 @@ class TopicSubscriber:
 
     def __init__(self, args):
         rclpy.init()
-        self.node = rclpy.create_node('listener')
+        self.node = rclpy.create_node(args.node_name)
         self.args = args
         self.subscription = self.node.create_subscription(
             rclpy_message_converter.convert_to_message_type(args.topic),
@@ -104,6 +104,7 @@ def main():
     parser.add_argument('--bag', help='Input bag file', type=str, nargs='*')
     parser.add_argument('--flush', help='Flush stdout after each message', action='store_true')
     parser.add_argument('--index-output-fields', '--index-fields', '--index', help='Output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true')
+    parser.add_argument('--node-name', '--node', default='ros2_to_csv', help='Message type, useful for debugging', type=str)
     parser.add_argument('--output-fields', help='Print output fields and exit', action='store_true')
     parser.add_argument('--output-format', '--output-types', help='Print output format for binary and exit', action='store_true')
     parser.add_argument('--topic', nargs='?', help='Topic', type=str)
@@ -116,12 +117,11 @@ def main():
         if args.topic is None:
             print("ros2-to-csv: please specify --topic", file=sys.stderr)
             sys.exit(1)
-        if args.verbose:
-            print("ros2-to-csv: listening to topic '%s'..." % args.topic, file=sys.stderr)
+        if args.verbose: print("ros2-to-csv: listening to topic '%s'..." % args.topic, file=sys.stderr)
         subscriber = TopicSubscriber(args)
         rclpy.spin(subscriber.node)
     else:
-        print("Reading bag files are not implemented yet", file=sys.stderr)
+        print("ros2-to-csv: reading from bag files: todo", file=sys.stderr)
         sys.exit(1)
 
     sys.exit(0)

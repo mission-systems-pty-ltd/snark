@@ -22,24 +22,24 @@ help_examples = """
 Examples:
     Forward ROS messages (e.g., to illustrate the principle or debug), start with trying --dry-run
         Forward with buffering:
-            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic
+            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic
         Forward without buffering:
-            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush
+            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush
         Print to stdout:
-            ros-to-csv --topic some-topic | ros-from-csv --topic some-topic --flush --dry-run
+            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush --dry-run
 
     Using message types offline, try it:
         Imply package from message type:
-            echo 1,2,3 | ros-from-csv --type geometry_msgs.msg.Point --format 3f --dry
+            echo 1,2,3 | ros2-from-csv --type geometry_msgs.msg.Point --format 3f --dry
         Explicitly specify package with message type definition:
-            echo 1,2,3 | ros-from-csv --import geometry_msgs.msg --type geometry_msgs.msg.Point --format 3f --dry
+            echo 1,2,3 | ros2-from-csv --import geometry_msgs.msg --type geometry_msgs.msg.Point --format 3f --dry
 """
 
 def main():
     parser = argparse.ArgumentParser(description=help_description, epilog=help_examples, formatter_class=argparse.RawDescriptionHelpFormatter, conflict_handler='resolve')
     parser.add_argument('--index-output-fields', help='Output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true')
     parser.add_argument('--message-type', '--type', help='Message type, useful for debugging', type=str)
-    parser.add_argument('--node-name', '--node', default='ros_from_csv', help='Message type, useful for debugging', type=str)
+    parser.add_argument('--node-name', '--node', default='ros2_from_csv', help='Message type, useful for debugging', type=str)
     parser.add_argument('--output-fields', help='Output input CSV fields and exit', action='store_true')
     parser.add_argument('--output-format', help='Output format for input fields and exit', action='store_true')
     parser.add_argument('--package', '--import', help='If --type specified, package to import', type=str)
@@ -61,14 +61,14 @@ def main():
         numpy.set_printoptions(linewidth=numpy.inf, threshold=numpy.inf, precision=args.precision and args.precision or numpy.get_printoptions()['precision'])
     
     if args.topic is None and not args.dry_run and ros_from_csv is None:
-        print("ros-from-csv: please specify --topic", file=sys.stderr)
+        print("ros2-from-csv: please specify --topic", file=sys.stderr)
         sys.exit(1)
     
     rclpy.init()  # Initialize ROS2 client library
     node = rclpy.create_node( args.node_name )
 
     if args.message_type is None:
-        print("ros-from-csv: message type not specified; resolving message types on the fly: todo", file=sys.stderr)
+        print("ros2-from-csv: message type not specified; resolving message types on the fly: todo", file=sys.stderr)
         sys.exit(1)
         # For ROS2, use a mechanism to resolve message types
         message_type = None  # todo: replace with actual message type lookup if possible
@@ -100,10 +100,10 @@ def main():
     assign = record_type.assign(message, convert.from_csv_supported_types)
     
     if args.dry_run:
-        if args.verbose: print("ros-from-csv: dry run, printing messages to stdout", file=sys.stderr)
+        if args.verbose: print("ros2-from-csv: dry run, printing messages to stdout", file=sys.stderr)
     else:
         publisher = node.create_publisher(message_type, args.topic, qos_profile=rclpy.qos.QoSProfile(depth=args.ros_queue_size))
-        if args.verbose: print("ros-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr)
+        if args.verbose: print("ros2-from-csv: publishing to topic '%s'..." % args.topic, file=sys.stderr)
     
     for records in istream:
         for record in records:
