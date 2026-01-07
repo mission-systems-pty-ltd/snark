@@ -148,7 +148,7 @@ std::string resize< H >::usage( unsigned int indent )
     oss << i << "                e.g. resize=1800,by-shortest: resize shortest side to 1800 pixels and\n";
     oss << i << "                the longest side proportionally\n";
     oss << i << "            by-height\n";
-    oss << i << "                e.g. resize=1800,by-width: resize height to 1800 pixels and\n";
+    oss << i << "                e.g. resize=1800,by-height: resize height to 1800 pixels and\n";
     oss << i << "                width proportionally\n";
     oss << i << "            by-width\n";
     oss << i << "                e.g. resize=1800,by-width: resize width to 1800 pixels and\n";
