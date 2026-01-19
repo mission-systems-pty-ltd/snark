@@ -1,0 +1,21 @@
+These scripts can be used to create .deb packages for snark. The building is
+done inside a docker container to ensure a consistent build environment and
+allow building for different Ubuntu versions.
+
+Build a docker image based on e.g. Ubuntu 20.04, that has all the necessary
+tools/libraries installed. Note, you need to specify a comma.deb that you
+have already built using the scripts in comma, and the vimba SDK tar file. 
+> ./snark-package-docker-build 20.04 comma-1.2.3-20.04.deb Vimba_v4.2_Linux.tgz
+
+Build deb package (e.g. snark version 1.2.3 for Ubuntu 20.04):
+> ./snark-package-docker-run 20.04 1.2.3
+
+If your snark reposity is not in ~/src/snark, but e.g. in ~/my/src/snark, run
+(you also need to specify snark directory if you run as sudo, since default
+location is ~):
+> ./snark-package-docker-run 20.04 1.2.3 ~/my/src/snark
+
+Debian package will be built in your current directory
+
+Test that package is ok, e.g:
+> ./snark-package-docker-test 20.04 snark-1.2.3-20.04.deb

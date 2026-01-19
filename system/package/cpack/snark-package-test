@@ -1,0 +1,20 @@
+#!/bin/bash
+
+name=$(basename "$0")
+function die() { echo "$name: $@" >&2; exit 1; }
+
+package="$1"
+[[ -n "$package" ]] || die "usage: <package>"
+
+apt update || die "failed to update apt"
+apt install --yes "$package" || die "failed to install package '$package'"
+
+echo "$name: testing points-frame..." >&2
+output=$(echo 0,0,0,0.1,0.1,0.1 | points-frame --fields x,y,z,roll,pitch,yaw --from 1,1,1,0,0,0)
+expected=1,1,1,0.1,0.1,0.1
+[[ "$output" == "$expected" ]] || die "failed: unexpected output: $output"
+echo "$name: testing points-frame: done" >&2
+
+echo "$name: testing vimba-cat..." >&2
+vimba-cat --help >/dev/null 2>&1 || die "failed: vimba-cat help failed"
+echo "$name: testing vimba-cat: done" >&2

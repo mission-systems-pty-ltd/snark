@@ -1,0 +1,79 @@
+#!/bin/bash
+
+name=$( basename $0 )
+function die() { echo -e "$name: $@" >&2; exit 1; }
+function usage() { die "usage: <ubuntu version> <snark version> <vimba_pkg> [<snark dir>]\ne.g. $name 20.04 1.2.3 Vimba-v4.2.tgz"; }
+
+ubuntu_version=$1
+snark_version=$2
+snark_dir="$3"
+package_name="snark-$snark_version-$ubuntu_version"
+[[ -n $ubuntu_version && -n $snark_version ]] || usage
+[[ -n "$snark_dir" ]] || snark_dir=$( realpath ~/src/snark )
+
+(
+    mkdir -p ~/build/snark
+    cd ~/build/snark
+    echo "$name: running cmake in $( pwd )..." >&2
+    cmake $snark_dir \
+            -Dsnark_version="$snark_version" \
+            -DCPACK_GENERATOR=DEB \
+            -DADD_PYTHON_PACKAGES_TO_RPM=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DBUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCPACK_DEBIAN_FILE_NAME="$package_name.deb" \
+            -DVIMBA_SDK_ROOT=$(ls -d /opt/Vimba*) \
+            -Dcomma_DIR=/usr/CMakeFiles/ \
+            -Dsnark_build_actuators=ON \
+            -Dsnark_build_actuators_quickset=OFF \
+            -Dsnark_build_actuators_universal_robots=OFF \
+            -Dsnark_build_actuators_wheels=OFF \
+            -Dsnark_build_batteries=OFF \
+            -Dsnark_build_comms=ON \
+            -Dsnark_build_control=OFF \
+            -Dsnark_build_graph=OFF \
+            -Dsnark_build_graphics=ON \
+            -Dsnark_build_graphics_csv_plot=OFF \
+            -Dsnark_build_imaging=ON \
+            -Dsnark_build_math_fft=OFF \
+            -Dsnark_build_math_geometry=ON \
+            -Dsnark_build_navigation=ON \
+            -Dsnark_build_point_cloud=ON \
+            -Dsnark_build_point_cloud_pcl=OFF \
+            -Dsnark_build_python=OFF \
+            -Dsnark_build_sensors=ON \
+            -Dsnark_build_sensors_asd=OFF \
+            -Dsnark_build_sensors_basler=OFF \
+            -Dsnark_build_sensors_dc1394=OFF \
+            -Dsnark_build_sensors_flycapture=OFF \
+            -Dsnark_build_sensors_gige=OFF \
+            -Dsnark_build_sensors_gobi=OFF \
+            -Dsnark_build_sensors_hokuyo=OFF \
+            -Dsnark_build_sensors_jai=OFF \
+            -Dsnark_build_sensors_realsense=OFF \
+            -Dsnark_build_sensors_sick=OFF \
+            -Dsnark_build_sensors_velodyne=OFF \
+            -Dsnark_build_sensors_robosense=ON \
+            -Dsnark_build_sensors_vimba=ON \
+            -Dsnark_build_system=OFF \
+            -Dsnark_build_terrain=OFF \
+            -Dsnark_build_web=ON \
+            -Dsnark_build_web_feeds=ON \
+            -Dsnark_build_sensors_kinect=OFF \
+      || die "cmake failed"
+    echo "$name: running make in $( pwd )..." >&2
+    make -j$(nproc) || die "make failed"
+    echo "$name: running make install in $( pwd )..." >&2
+    make install || die "make install failed"
+    echo "$name: running cpack in $( pwd )..." >&2
+    cpack -j$(nproc) || die "cpack failed"
+    echo "$name: created package at $( realpath $package_name.deb )" >&2
+    # todo: optionally run full regression test
+    echo "$name: done" >&2
+) || exit 1
+if [[ -d /root/output/ ]]; then
+    cp ~/build/snark/$package_name.deb /root/output/ || die "copy output failed"
+    echo "$name: copied $( realpath ~/build/snark/$package_name.deb ) to $( realpath output )" >&2
+fi

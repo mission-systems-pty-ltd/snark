@@ -1,0 +1,16 @@
+#!/bin/bash
+name=$( basename $0 )
+function die() { echo -e "$name: $@" >&2; exit 1; }
+version=$1
+comma_deb=$2
+vimba_pkg=$3
+snark_dir="$4"
+[[ -n "$version" && -s $comma_deb && -s $vimba_pkg ]] || die "usage: <ubuntu version> <comma_deb> <vimba_pkg> [<snark dir>]\ne.g. $name 20.04 comma-1.2.3-20.04.deb Vimba_v4.2_Linux.tgz"
+[[ -n "$snark_dir" ]] || snark_dir=$( realpath ~/src/snark )
+[[ -d "$snark_dir" ]] || { echo "usage: $name please specify <snark dir> explicitly (since you seem to either run with sudo or have snark not in '$snark_dir')" >&2; exit 1; }
+echo "$name: running:" >&2
+docker build -t ubuntu.$version.build.snark \
+  --build-arg version=$version \
+  --build-arg comma_deb=${comma_deb} \
+  --build-arg vimba_pkg=${vimba_pkg} \
+  -f "$snark_dir/system/package/cpack/Dockerfile" .
