@@ -2,7 +2,7 @@
 #include <comma/csv/format.h>
 #include <rclcpp/rclcpp.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "../version.h"
+//#include "../version.h"
 
 namespace snark { namespace ros { namespace time {
 

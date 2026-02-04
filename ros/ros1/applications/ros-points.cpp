@@ -1,31 +1,32 @@
 // Copyright (c) 2017 The University of Sydney
 // Copyright (c) 2021 Mission Systems Pty Ltd
 
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <rosbag2_cpp/writer.hpp>
-#include <rclcpp/serialization.hpp>
-#include "../rclcpp/time.h"
-#include "detail/ros-points-detail.h"
-
-
-
-
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <comma/application/command_line_options.h>
+#include <comma/application/verbose.h>
+#include <comma/base/exception.h>
+#include <comma/csv/format.h>
+#include <comma/csv/options.h>
+#include <comma/csv/stream.h>
+#include <comma/csv/traits.h>
+#include "../../file-util.h"
+#include "../../detail/ros-points-detail.h"
 
 void bash_completion( unsigned int const ac, char const * const * av )
 {
     static const char* completion_options =
         " --help -h --verbose -v"
         " --header-fields --header-format --node-name --output-fields --output-format"
-        " --from --bags --fields --flush --header --output-header --ignore-time-format --no-discard "
-        " --to --all --field-name-map --hang-on --stay --frame --latch --node-name --pass-through --pass --time-format"
+        " --from --bags --fields --flush --header --output-header --ignore-time-format --max-datagram-size --no-discard --queue-size"
+        " --to --all --field-name-map --hang-on --stay --frame --latch --node-name --pass-through --pass --queue-size --time-format"
         ;
     std::cout << completion_options << std::endl;
     exit( 0 );
 }
-
 
 void usage( bool verbose = false )
 {
@@ -54,7 +55,9 @@ void usage( bool verbose = false )
     std::cerr << "\n    --flush:                  call flush on stdout after each write";
     std::cerr << "\n    --header,--output-header: prepend t,block header to output with t,ui format";
     std::cerr << "\n    --ignore-time-format:     don't do any interpretation of time format";
+    std::cerr << "\n    --max-datagram-size:      for UDP transport. See ros::TransportHints";
     std::cerr << "\n    --no-discard:             don't discard points with nan or inf";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS Subscriber queue size, default 1";
     std::cerr << "\n";
     std::cerr << "\nto options";
     std::cerr << "\n    --to=<topic>:             topic to publish to";
@@ -68,6 +71,7 @@ void usage( bool verbose = false )
     std::cerr << "\n    --output,-o=[<bag>]:      write to bag rather than publish";
     std::cerr << "\n    --output-fields=[<fields>]: fields to output; default: all input fields";
     std::cerr << "\n    --pass-through,--pass:    pass input data to stdout";
+    std::cerr << "\n    --queue-size=[<n>]:       ROS publisher queue size, default=1";
     std::cerr << "\n    --time-format=<fmt>:      time format in ROS pointfield; default: none";
     std::cerr << "\n";
     if( verbose )
@@ -117,9 +121,9 @@ void usage( bool verbose = false )
         std::cerr << "\n               --ignore-time-format";
         std::cerr << "\n";
         std::cerr << "\n    --- create random test data ---";
-        std::cerr << "\n    csv-random make --type 3f | csv-paste line-number - \\";
+        std::cerr << "\n    csv-random make --type 3d | csv-paste line-number - \\";
         std::cerr << "\n        | csv-blocks group --fields scalar --span 1000 | csv-time-stamp \\";
-        std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3f,ui";
+        std::cerr << "\n        | " << comma::verbose.app_name() << " --to /points -f t,id,x,y,z,block --format t,ui,3d,ui";
     }
     else
     {
@@ -128,77 +132,63 @@ void usage( bool verbose = false )
     std::cerr << "\n" << std::endl;
 }
 
-// // =========================
-// // --from topic
-
 
 int main( int argc, char** argv )
 {
-
     try
     {
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" )) bash_completion( argc, argv );
 
-        int argc2 = 0;
-        char** argv2 = nullptr;
-        rclcpp::init(argc2, argv2);
-        boost::optional< std::string > node_name = options.optional< std::string >( "--node-name" );
-        if( !node_name ){ node_name = "ros_points"; }
-        auto node = std::make_shared<rclcpp::Node>(*node_name);
-
         if( options.exists( "--from" ))
         {
-            if( options.exists( "--header-fields" )) { std::cout << comma::join( comma::csv::names< snark::ros::detail::pointcloud< 2 >::header >(), ',' ) << std::endl; return 0; }
-            if( options.exists( "--header-format" )) { std::cout << comma::csv::format::value< snark::ros::detail::pointcloud< 2 >::header >() << std::endl; return 0; }
+            if( options.exists( "--header-fields" )) { std::cout << comma::join( comma::csv::names< snark::ros::detail::pointcloud< 1 >::header >(), ',' ) << std::endl; return 0; }
+            if( options.exists( "--header-format" )) { std::cout << comma::csv::format::value< snark::ros::detail::pointcloud< 1 >::header >() << std::endl; return 0; }
             std::string bags_option = options.value< std::string >( "--bags", "" );
             std::string topic = options.value< std::string >( "--from" );
-            snark::ros::detail::pointcloud< 2 >::points points( options );
+            unsigned int queue_size = options.value< unsigned int >( "--queue-size", 1 );
+            boost::optional< int > max_datagram_size = options.optional< int >( "--max-datagram-size" );
+            boost::optional< std::string > node_name = options.optional< std::string >( "--node-name" );
+            uint32_t node_options = 0;
+            if( !node_name )
+            {
+                node_name = "ros_points";
+                node_options = ros::init_options::AnonymousName;
+            }
+            int arrrgc = 1;
+            ros::init( arrrgc, argv, *node_name, node_options );
+            snark::ros::detail::pointcloud< 1 >::points points( options );
             if( !bags_option.empty() )
             {
-                COMMA_ASSERT( false, "bags not implemented" );
-                // rosbag::Bag bag;
-                // bag.open( bag_name );
-                // for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topic )))
-                // {
-                //     sensor_msgs::msg::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::msg::PointCloud2 >();
-                //     points.process( msg );
-                //     if( ros::isShuttingDown() ) { break; }
-                // }
-                // bag.close();
-
-                // rosbag2_cpp::Writer bag;
-                // std::vector< std::string > bag_names;
-                // for( auto name: comma::split( bags_option, ',' ))
-                // {
-                //     std::vector< std::string > expansion = snark::ros::glob( name );
-                //     bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
-                // }
-                // for( auto bag_name: bag_names )
-                // {
-                //     comma::verbose << "opening " << bag_name << std::endl;
-                //     bag.open( bag_name );
-
-
-                //     for( rosbag2_cpp::SerializedBagMessage const m: rosbag::View( bag, rosbag::TopicQuery( topic )))
-                //     {
-                //         sensor_msgs::msg::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::msg::PointCloud2 >();
-                //         points.process( msg );
-                //         if( ros::isShuttingDown() ) { break; }
-                //     }
-                //     bag.close();
-                //     if( ros::isShuttingDown() ) { break; }
-                // }
+                rosbag::Bag bag;
+                std::vector< std::string > bag_names;
+                for( auto name: comma::split( bags_option, ',' ))
+                {
+                    std::vector< std::string > expansion = snark::ros::glob( name );
+                    bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
+                }
+                for( auto bag_name: bag_names )
+                {
+                    comma::verbose << "opening " << bag_name << std::endl;
+                    bag.open( bag_name );
+                    for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topic )))
+                    {
+                        sensor_msgs::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::PointCloud2 >();
+                        points.process( msg );
+                        if( ros::isShuttingDown() ) { break; }
+                    }
+                    bag.close();
+                    if( ros::isShuttingDown() ) { break; }
+                }
             }
             else
             {
-                COMMA_ASSERT( false, "from ros msg not implemented" );
-//                 // Old ros1 code.
-//                 // ros::NodeHandle ros_node;
-//                 // ros::TransportHints transport_hints;
-//                 // if( max_datagram_size ) { transport_hints = ros::TransportHints().maxDatagramSize( *max_datagram_size ); }
-//                 // ros::Subscriber subscriber = ros_node.subscribe( topic, queue_size, &points::process, &points, transport_hints );
-//                 // ros::spin();
+                if( !ros::master::check() ) { std::cerr << comma::verbose.app_name() << ": roscore appears not to be running, node will wait for it to start" << std::endl; }
+                ros::NodeHandle ros_node;
+                ros::TransportHints transport_hints;
+                if( max_datagram_size ) { transport_hints = ros::TransportHints().maxDatagramSize( *max_datagram_size ); }
+                ros::Subscriber subscriber = ros_node.subscribe( topic, queue_size, &snark::ros::detail::pointcloud< 1 >::points::process, &points, transport_hints );
+                ros::spin();
             }
             return status;
         }
@@ -216,52 +206,47 @@ int main( int argc, char** argv )
             bool pass_through = options.exists( "--pass-through,--pass" );
             std::string output_option = options.value< std::string >( "--output,-o", "" );
             bool publishing = output_option.empty();
-            // auto bag_writer = std::make_unique<rosbag2_cpp::Writer>();
 
-            auto publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>(topic, queue_size);
-            std::unique_ptr< std::function< void( sensor_msgs::msg::PointCloud2 ) > > publish_fn;
-
-            rclcpp::Serialization<sensor_msgs::msg::PointCloud2> serialization;
-            sensor_msgs::msg::PointCloud2 pointcloud_message;
-
-            rosbag2_cpp::Writer writer;
-            rosbag2_storage::StorageOptions storage_options;
-            storage_options.uri = output_option;
-            storage_options.storage_id = "sqlite3";
-            rosbag2_storage::TopicMetadata tm;
-            tm.name = "pointcloud_topic";
-            tm.type = "sensor_msgs/msg/PointCloud2";
-            tm.serialization_format = "cdr";
-
-            std::shared_ptr<rclcpp::SerializedMessage> serialized_msg = std::make_shared<rclcpp::SerializedMessage>();
+            std::unique_ptr< ros::NodeHandle > ros_node;
+            std::unique_ptr< ros::Publisher > publisher;
+            std::unique_ptr< rosbag::Bag > bag;
+            std::unique_ptr< std::function< void( sensor_msgs::PointCloud2 ) > > publish_fn;
 
             if( publishing )
             {
-                if( !node_name ){ node_name = "ros_points"; }
-                publish_fn = std::make_unique<std::function<void(sensor_msgs::msg::PointCloud2)>>(
-                    [&publisher](sensor_msgs::msg::PointCloud2 msg) { publisher->publish(msg); }
-                );
+                int arrrgc = 1;
+                uint32_t node_options = 0;
+                if( !node_name )
+                {
+                    node_name = "ros_points";
+                    node_options = ros::init_options::AnonymousName;
+                }
+                ros::init( arrrgc, argv, *node_name, node_options );
+                ros_node.reset( new ros::NodeHandle );
+                publisher.reset( new ros::Publisher( ros_node->advertise< sensor_msgs::PointCloud2 >( topic, queue_size, options.exists( "--latch" ))));
+                ros::spinOnce();
+                publish_fn.reset( new std::function< void( sensor_msgs::PointCloud2 ) >(
+                                                                                        [&]( sensor_msgs::PointCloud2 msg )
+                                                                                        {
+                                                                                            publisher->publish( msg );
+                                                                                            ros::spinOnce();
+                                                                                        } ));
             }
             else
             {
-                writer.open(storage_options);//,converter_options);
-                writer.create_topic(tm);
-
-                publish_fn = std::make_unique<std::function<void(sensor_msgs::msg::PointCloud2)>>(
-                    [&topic, &writer, &node](sensor_msgs::msg::PointCloud2 msg) { 
-                    // TODO: Use serialization, doesn't work at the moment with: 'unable to dynamically resize serialized message'
-                    // [&topic, &serialization, &writer, &serialized_msg, &node](sensor_msgs::msg::PointCloud2 msg) { 
-                        // serialization.serialize_message(&msg, serialized_msg.get());
-                        // writer.write(serialized_msg, "pointcloud_topic", "sensor_msgs/msg/PointCloud2", node->now());
-                        writer.write(msg, "pointcloud_topic", node->now());
-                    }
-                );
+                bag.reset( new rosbag::Bag );
+                bag->open( output_option, rosbag::bagmode::Write );
+                publish_fn.reset( new std::function< void( sensor_msgs::PointCloud2 ) >(
+                                                                                        [&]( sensor_msgs::PointCloud2 msg )
+                                                                                        {
+                                                                                            bag->write( topic, msg.header.stamp, msg );
+                                                                                        } ));
             }
 
             comma::csv::input_stream< snark::ros::pointcloud::record > is( std::cin, csv );
             comma::csv::passed< snark::ros::pointcloud::record > passed( is, std::cout, csv.flush );
             unsigned int block = 0;
-            snark::ros::detail::pointcloud< 2 >::to_points points( options, csv );
+            snark::ros::detail::pointcloud< 1 >::to_points points( options, csv );
 
             while( std::cin.good() )
             {
@@ -275,21 +260,17 @@ int main( int argc, char** argv )
                 if( pass_through ) { passed.write(); }
                 block = p->block;
                 points.add_record( *p, is );
-                if( !has_block && !all ) { 
-                    points.send( *publish_fn.get() );
-                }
+                if( !has_block && !all ) { points.send( *publish_fn.get() ); }
             }
 
             if( publishing && options.exists( "--hang-on,--stay" ))
             {
                 for( int i = 0; i < 3; i++ )
                 {
-                    rclcpp::spin_some(node);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    ros::spinOnce();
+                    std::this_thread::sleep_for( std::chrono::milliseconds(1000) );
                 }
             }
-
-            rclcpp::shutdown();
             return 0;
         }
         else

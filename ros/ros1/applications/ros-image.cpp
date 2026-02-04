@@ -9,9 +9,9 @@
 #include <sensor_msgs/fill_image.h>
 #include <comma/application/signal_flag.h>
 #include <comma/io/stream.h>
-#include "../../imaging/cv_mat/serialization.h"
-#include "../../imaging/cv_mat/traits.h"
-#include "detail/file-util.h"
+#include "../../../imaging/cv_mat/serialization.h"
+#include "../../../imaging/cv_mat/traits.h"
+#include "../../file-util.h"
 
 void bash_completion( unsigned const ac, char const * const * av )
 {
