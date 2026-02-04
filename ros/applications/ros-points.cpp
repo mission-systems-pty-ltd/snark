@@ -13,8 +13,6 @@
 #include <comma/csv/options.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
-#include "../../imaging/cv_mat/serialization.h"
-#include "../../imaging/cv_mat/traits.h"
 #include "detail/file-util.h"
 #include "detail/ros-points-detail.h"
 
