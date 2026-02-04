@@ -303,8 +303,8 @@ CMAKE_DEPENDENT_OPTION( ADD_PYTHON_PACKAGES_TO_RPM "add snark python packages to
 
 CMAKE_DEPENDENT_OPTION( snark_build_imaging_opencv_contrib "build opencv contrib functions" ON "snark_build_imaging" ON )
 CMAKE_DEPENDENT_OPTION( snark_build_imaging_stereo "build imaging stereo" OFF "snark_build_imaging" ON )
-CMAKE_DEPENDENT_OPTION( snark_build_ros_version_1 "enable ros1 components" ON "snark_build_ros" OFF )
-CMAKE_DEPENDENT_OPTION( snark_build_ros_version_2 "enable ros2 components" ON "snark_build_ros" ON )
+CMAKE_DEPENDENT_OPTION( snark_build_ros_version_1 "enable ros1 components" OFF "snark_build_ros" OFF )
+CMAKE_DEPENDENT_OPTION( snark_build_ros_version_2 "enable ros2 components" OFF "snark_build_ros" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_asd "build asd components" OFF "snark_build_sensors" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_basler "build basler components" OFF "snark_build_sensors" OFF )
 CMAKE_DEPENDENT_OPTION( snark_build_sensors_cepton "build cepton components" OFF "snark_build_sensors" OFF )
