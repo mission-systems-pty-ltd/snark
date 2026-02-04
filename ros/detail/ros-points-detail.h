@@ -11,7 +11,7 @@
 #include <thread>
 #include <unordered_map>
 
-#include "file-util.h"
+#include "../file-util.h"
 
 #ifdef SNARK_BUILD_ROS_1
     #include <ros/ros.h>
@@ -21,10 +21,10 @@
 #endif
 
 #ifdef SNARK_BUILD_ROS_2
-    #include "../../rclcpp/time.h"
+    #include "../ros2/rclcpp/time.h"
 #endif
 
-#include "../../version.h"
+#include "../version.h"
 
 // TODO: Use this file in ros-points too.
 #if ROS_VERSION_MINIMUM(2,0,0)

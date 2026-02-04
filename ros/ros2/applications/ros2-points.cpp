@@ -8,7 +8,7 @@
 #include <rosbag2_cpp/writer.hpp>
 #include <rclcpp/serialization.hpp>
 #include "../rclcpp/time.h"
-#include "detail/ros-points-detail.h"
+#include "../../detail/ros-points-detail.h"
 
 
 
