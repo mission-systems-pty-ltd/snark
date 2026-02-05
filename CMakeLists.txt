@@ -601,7 +601,9 @@ endmacro()
 
 configure_testing( snark_build_geodesy_solar geodesy/solar/test )
 configure_testing( snark_build_navigation navigation )
-configure_testing( snark_build_ros ros/applications/test )
+configure_testing( snark_build_ros ros )
+configure_testing( snark_build_ros_version_1 ros/ros1 )
+configure_testing( snark_build_ros_version_2 ros/ros2 )
 configure_testing( snark_build_sensors_echodyne sensors/radars/echodyne )
 configure_testing( snark_build_sensors_ouster sensors/lidars/ouster )
 
