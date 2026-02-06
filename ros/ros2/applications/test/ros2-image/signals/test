@@ -1,0 +1,168 @@
+#!/bin/bash
+
+scriptname=$( basename $0 )
+
+tmp_data_dir="tmp_data"
+topic="/test/ros2_image/signals/image"
+
+function say() { echo "$scriptname: $*" >&2; }
+function die() { say "$@"; exit 1; }
+
+for distro in humble iron jazzy; do
+    setup_script=/opt/ros/$distro/setup.bash
+    [[ -f $setup_script ]] && source $setup_script && break
+done
+[[ -f $setup_script ]] || { die "couldn't source ros setup.bash script"; }
+
+function cleanup()
+{
+    [[ -d $tmp_data_dir ]] && rm -r $tmp_data_dir
+    [[ -f tmp_pipestatus ]] && rm tmp_pipestatus
+}
+
+trap cleanup EXIT
+
+# view the images with
+# random_images | cv-cat "view;null"
+function random_images()
+{
+    local rate=${1:-10}         # rate of generation in Hz
+    local sleep_duration=$( echo "1/$rate" | bc -l )
+    while : ; do
+        echo 400,400,24 | csv-time-stamp | csv-to-bin t,3ui
+        csv-random make --range 0,255 --output-binary --type ub --seed=$( csv-random true-random --once ) \
+            | head -c $(( 400 * 400 * 4 )) || return
+        sleep $sleep_duration
+    done
+}
+
+function test_to_option()
+{
+    local signal=$1
+    echo -e "\n--- to_option $signal ---\n" >&2
+
+    random_images | timeout -s KILL 10 ros2-image --to $topic &
+    local timeout_pid=$!
+    local ros_image_pid=$( pgrep --parent $timeout_pid )
+    {
+        sleep 3
+        say "sending $signal to $ros_image_pid"
+        kill -$signal $ros_image_pid
+    } &                       # send the kill after we set up the wait
+    wait $timeout_pid
+    local wait_exit_code=$?
+    echo "to/${signal}/timeout_exit_code=$wait_exit_code"
+}
+
+function test_from_option()
+{
+    local signal=$1
+    echo -e "\n--- from_option $signal ---\n" >&2
+
+    timeout -s KILL 20 ros2-image --from $topic > /dev/null &
+    local timeout_pid=$!
+    local ros_image_pid=$( pgrep --parent $timeout_pid )
+    {
+        sleep 3
+        say "sending $signal to $ros_image_pid"
+        kill -$signal $ros_image_pid
+    } &                       # send the kill after we set up the wait
+    wait $timeout_pid
+    local wait_exit_code=$?
+    echo "from/${signal}/timeout_exit_code=$wait_exit_code"
+}
+
+function bag_duration()
+{
+    local bag_path=$1
+    ros2 bag info $bag_path | sed -rn '/^Duration/s/.* ([0-9.]+).*/\1/p'
+}
+
+function bag_message_count()
+{
+    local bag_path=$1
+    local topic=$2
+    local sed_friendly_topic=$( echo $topic | sed 's#/#\\/#g' )
+
+    ros2 bag info $bag_path | sed -rn "/Topic: $sed_friendly_topic /s/.* Count: ([0-9]+).*/\1/p"
+}
+
+# in ROS 2 a bag is a folder that contains a bunch of (probably) sqlite (.db3) files
+# the folder name is rosbag2_<timestamp>
+function get_latest_bag()
+{
+    local bag_dir=$1
+    ls -d $bag_dir/rosbag2_* | tail -1
+}
+
+function make_bag_file()
+{
+    local duration=$1
+    local rate=$2
+    say "creating temporary bag files"
+    [[ -d $tmp_data_dir ]] || mkdir $tmp_data_dir
+    (
+        cd $tmp_data_dir
+        say "...writing random image data to $topic topic"
+        random_images $rate | ros2-image --to $topic &
+        local ros_image_pid=$!
+        say "...recording $duration seconds of images from $topic topic"
+        # ros2 bag record doesn't work under a timeout command for some reason
+        # so put it in the background, sleep, then kill
+        ros2 bag record $topic &
+        local ros2_bag_record_pid=$!
+        sleep $duration
+        kill $ros2_bag_record_pid
+        say "...recording complete"
+        kill $ros_image_pid
+    )
+    local bag_path=$( get_latest_bag $tmp_data_dir )
+    echo "input/bag/duration=$( bag_duration $bag_path )"
+    echo "input/bag/test_image/message_count=$( bag_message_count $bag_path $topic )"
+}
+
+function test_from_bags_option()
+{
+    local signal=$1
+    echo -e "\n--- from_bag_option $signal ---\n" >&2
+
+    # We play to csv-play to slow down the output from ros2-image, which
+    # otherwise will just dump out the bag files at maximum speed. That means
+    # we can't get the timeout pid from wait, as wait doesn't capture the pids
+    # of processes in a background pipeline.
+    {
+        timeout -s KILL 30 ros2-image --from $topic --bags "$tmp_data_dir/rosbag2*" \
+            | csv-play --speed 0.2 --binary t,3ui,$(( 400 * 400 * 4 ))ub > /dev/null
+        echo "${PIPESTATUS[@]}" > tmp_pipestatus
+    } &
+    local parent_pid=$!
+    local timeout_pid=$( pgrep --parent $parent_pid timeout )
+    local ros_image_pid=$( pgrep --parent $timeout_pid )
+    {
+        sleep 5
+        say "sending $signal to $ros_image_pid"
+        kill -$signal $ros_image_pid
+    } &                       # send the kill after we set up the wait
+    say "waiting for all processes"
+    wait
+    local timeout_exit_code=$( cut -f1 -d' ' < tmp_pipestatus )
+    echo "from_bag/${signal}/timeout_exit_code=$timeout_exit_code"
+}
+
+for signal in SIGTERM SIGINT; do
+    test_to_option $signal
+done
+
+# publish to a ros topic so we have something to read from
+random_images | ros2-image --to $topic &
+background_pid=$!
+for signal in SIGTERM SIGINT; do
+    test_from_option $signal
+done
+kill $background_pid
+
+echo "" >&2
+make_bag_file 10 10
+for signal in SIGTERM SIGPIPE SIGINT; do
+    test_from_bags_option $signal
+done

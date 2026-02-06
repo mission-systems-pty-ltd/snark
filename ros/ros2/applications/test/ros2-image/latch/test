@@ -1,0 +1,69 @@
+#!/bin/bash
+
+scriptname=$( basename $0 )
+
+topic="/test/ros2_image/latch/image"
+
+function say() { echo "$scriptname: $*" >&2; }
+function die() { say "$@"; exit 1; }
+
+for distro in jazzy iron humble; do
+    setup_script=/opt/ros/$distro/setup.bash
+    [[ -f $setup_script ]] && source $setup_script && break
+done
+[[ -f $setup_script ]] || { die "couldn't source ros setup.bash script"; }
+
+function cleanup()
+{
+    kill $ros2_image_to_pid 2>/dev/null
+}
+
+trap cleanup EXIT
+
+# view the images with
+# random_images | cv-cat "view;null"
+function random_images()
+{
+    local rate=${1:-10}         # rate of generation in Hz
+    local total_msgs=$2         # number of messages to generate, if unset then infinite
+
+    local sleep_duration=$( echo "1/$rate" | bc -l )
+    local num_msgs=0
+    while : ; do
+        echo 400,400,24 | csv-time-stamp | csv-to-bin t,3ui
+        csv-random make --range 0,255 --output-binary --type ub --seed=$( csv-random true-random --once ) \
+            | head -c $(( 400 * 400 * 4 )) || return
+        (( ++num_msgs == total_msgs )) && break
+        sleep $sleep_duration
+    done
+}
+
+function test()
+{
+    local name=$1
+    local options=$2
+
+    say "generating and publishing 10 messages at 0.5Hz"
+    random_images 0.5 10 | ros2-image --to $topic $options &
+    ros2_image_to_pid=$!
+
+    # message are published every 2 seconds
+    # we wait a second before we start looking
+    # if we have the --latch option we should get the message published earlier, i.e. at least a second ago
+    # without the latch option we'll wait for the next message then immediately grab it (i.e. small delay)
+    sleep 1
+
+    say "waiting for message"
+    echo -n "$name/time_offset="
+    ros2-image --from $topic $options \
+        | cv-cat --output "header-only" "head=1" | csv-from-bin t,3ui \
+        | csv-time-stamp | csv-eval --fields t1,t2 --format 2t "d=t2-t1" --output-format=l \
+        | csv-shuffle --fields t1,t2,,,,d --output d
+    # note that ros2-image won't actually get the SIGPIPE until it attempts to send the second message
+    # so elapsed will be the time until we get the first message plus the time to the second message
+    kill $ros2_image_to_pid
+}
+
+while IFS=, read name options; do
+    test $name "$options"
+done

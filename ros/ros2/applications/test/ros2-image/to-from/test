@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# test --to and --from options by publishing an image to a topic then reading
+# from that topic and comparing the images
+
+scriptname=$( basename $0 )
+
+topic=/test/image
+image_width=400
+image_height=400
+
+function say() { echo "$scriptname: $*" >&2; }
+function die() { say "$@"; exit 1; }
+
+# Note that this will make the same image each time it's called, although we
+# only call it once in any case. If you want different images then you need to
+# add --seed $( csv-random true-random --once )
+function make_image()
+{
+    csv-random make --type 6f --range 0,1 \
+        | csv-time-stamp \
+        | csv-eval --fields t,i,x,y,r,g,b "i=round(i*10);r=round(r*255);g=round(g*255);b=round(b*255)" \
+        | head -n100 \
+        | image-from-csv --fields t,id,x,y,r,g,b \
+                         --output "rows=${image_height};cols=${image_width};type=3ub" \
+                         --autoscale="once;proportional;centre" \
+                         --shape=lines
+}
+
+[[ -d output ]] || mkdir output
+[[ -f output/done ]] && rm output/done
+[[ -f output/captured.bin ]] && rm output/captured.bin
+
+# to avoid timing issues we just keep publishing until the subscriber gets an image
+say "creating image"
+# to see the generated image
+# cat output/generated.bin | cv-cat "view;null" --stay
+make_image > output/generated.bin
+say "publishing image to $topic"
+while [[ ! -f output/done ]]; do cat output/generated.bin; sleep 1; done | ros2-image --to $topic &
+publisher_pid=$!
+
+say "starting topic subscriber"
+ros2-image --from $topic | cv-cat "head=1" > output/captured.bin
+say "telling publisher that we've captured an image"
+touch output/done
+
+say "comparing images"
+diff output/generated.bin output/captured.bin
+echo "diff/status=$?"
+
+say "waiting for publisher to exit"
+wait $publisher_pid
+
+say "finished"

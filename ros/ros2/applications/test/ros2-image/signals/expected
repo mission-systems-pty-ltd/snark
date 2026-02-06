@@ -1,0 +1,7 @@
+to/SIGTERM/timeout_exit_code=0
+to/SIGINT/timeout_exit_code=0
+from/SIGTERM/timeout_exit_code=0
+from/SIGINT/timeout_exit_code=0
+from_bag/SIGTERM/timeout_exit_code=0
+from_bag/SIGPIPE/timeout_exit_code=0
+from_bag/SIGINT/timeout_exit_code=0
