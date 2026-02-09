@@ -45,6 +45,11 @@ def from_csv_supported_types( v ):
     microseconds = numpy.int64( v )
     return rospy.Time( microseconds // 1000000, ( microseconds % 1000000 ) * 1000 )
 
+
+# --- type predicates -----
+#
+# field_type is a string
+
 def is_binary_type( field_type ):
     """
     rospy_message_converter.is_ros_binary_type() was changed to an internal method in commit 6385e1a
@@ -56,6 +61,18 @@ def is_binary_type( field_type ):
 
 def is_primitive_type( field_type ):
     return field_type in message_converter.ros_primitive_types
+
+def is_time_type( field_type ):
+    return field_type == "time"
+
+def is_duration_type( field_type ):
+    return field_type == "duration"
+
+def is_array_type( field_type ):
+    return message_converter._is_field_type_an_array( field_type )
+
+# -------------------------
+
 
 def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """
@@ -85,18 +102,18 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
                 element_t = "S%d" % l
             else:
                 element_t = field_type
-        elif field_type == 'time':
+        elif is_time_type( field_type ):
             #continue
             def ctor( msg, field_name=field_name ):
                 ts = getattr( msg, field_name )
                 return numpy.datetime64( datetime.datetime.utcfromtimestamp( ts.secs + 1.0e-9 * ts.nsecs ) )
             element_t = 'datetime64[us]'
-        elif field_type == 'duration':
+        elif is_duration_type( field_type ):
             def ctor( msg, field_name=field_name ):
                 ts = getattr( msg, field_name )
                 return numpy.timedelta64( ts.secs, 's' ) + numpy.timedelta64( ts.nsecs, 'ns' )
             element_t = 'timedelta64[us]'
-        elif message_converter._is_field_type_an_array(field_type):
+        elif is_array_type( field_type ):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             list_brackets = re.compile( r'\[[^\]]*\]' )
             m = list_brackets.search( field_type )
