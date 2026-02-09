@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy
-import rosbag, rospy, rostopic
+import rospy
 import comma
 import datetime
 import re
