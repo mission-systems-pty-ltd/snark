@@ -7,7 +7,7 @@ import datetime
 import re
 
 try:
-    import rospy_message_converter
+    from rospy_message_converter import message_converter
 except ImportError:
     msg = """
 cannot import rospy_message_converter module; usually you can install it as
@@ -51,19 +51,16 @@ def is_binary_type( field_type ):
     https://github.com/uos/rospy_message_converter/commit/6385e1a5254e6ad984d7f93f7a4c05cc8b6a090b
     is_binary_type() will handle both before and after variations.
 """
-    from rospy_message_converter import message_converter as mc
-    try: return mc._is_ros_binary_type( field_type )
-    except AttributeError: return mc.is_ros_binary_type( field_type, None )
+    try: return message_converter._is_ros_binary_type( field_type )
+    except AttributeError: return message_converter.is_ros_binary_type( field_type, None )
 
 def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """
     Private implementation of ros_message_to_csv_record. Called recursively.
 """
-    from rospy_message_converter import message_converter as mc
-
     full_path = lambda name: prefix and prefix + "/" + name or name
 
-    message_fields = mc._get_message_fields(message)
+    message_fields = message_converter._get_message_fields(message)
     fields = []
     types = []
     ctors = []
@@ -71,12 +68,12 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
     # for the explanation of all the lambda signatures (and some function signatures in case of time)
     for field_name, field_type in message_fields:
         if is_binary_type( field_type ):
-            ctor = lambda msg, field_name=field_name, field_type=field_type: mc._convert_to_ros_binary( field_type, getattr( msg, field_name ) )
+            ctor = lambda msg, field_name=field_name, field_type=field_type: message_converter._convert_to_ros_binary( field_type, getattr( msg, field_name ) )
             current_path = full_path( field_name )
             try: l = lengths[ current_path ]
             except KeyError: l = len( ctor( message ) )
             element_t = "S%d" % l
-        elif field_type in mc.ros_primitive_types:
+        elif field_type in message_converter.ros_primitive_types:
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             if field_type == 'string':
                 current_path = full_path( field_name )
@@ -96,7 +93,7 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
                 ts = getattr( msg, field_name )
                 return numpy.timedelta64( ts.secs, 's' ) + numpy.timedelta64( ts.nsecs, 'ns' )
             element_t = 'timedelta64[us]'
-        elif mc._is_field_type_an_array(field_type):
+        elif message_converter._is_field_type_an_array(field_type):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             list_brackets = re.compile( r'\[[^\]]*\]' )
             m = list_brackets.search( field_type )
