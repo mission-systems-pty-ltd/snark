@@ -54,6 +54,9 @@ def is_binary_type( field_type ):
     try: return message_converter._is_ros_binary_type( field_type )
     except AttributeError: return message_converter.is_ros_binary_type( field_type, None )
 
+def is_primitive_type( field_type ):
+    return field_type in message_converter.ros_primitive_types
+
 def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """
     Private implementation of ros_message_to_csv_record. Called recursively.
@@ -73,7 +76,7 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
             try: l = lengths[ current_path ]
             except KeyError: l = len( ctor( message ) )
             element_t = "S%d" % l
-        elif field_type in message_converter.ros_primitive_types:
+        elif is_primitive_type( field_type ):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             if field_type == 'string':
                 current_path = full_path( field_name )

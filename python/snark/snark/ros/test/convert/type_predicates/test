@@ -6,4 +6,5 @@ import sys
 for line in sys.stdin:
     test_name, type_str = line.strip().split("=")
     type_str = type_str.strip('"')
-    print( f"{test_name}={ '1' if convert.is_binary_type( type_str ) else '0' }" )
+    for test_fn in ['is_binary_type', 'is_primitive_type']:
+        print( f"{test_name}/{test_fn}={ '1' if getattr( convert, test_fn )( type_str ) else '0' }" )
