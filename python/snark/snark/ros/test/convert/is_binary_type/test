@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+
+from snark.ros import convert
+import sys
+
+for line in sys.stdin:
+    test_name, type_str = line.strip().split("=")
+    type_str = type_str.strip('"')
+    print( f"{test_name}={ '1' if convert.is_binary_type( type_str ) else '0' }" )
