@@ -73,6 +73,9 @@ def is_array_type( field_type ):
 
 # -------------------------
 
+def message_fields( message ):
+    "take an instantiated message and return field name and type as list of tuples"
+    return message_converter._get_message_fields( message )
 
 def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays = True, prefix='' ):
     """
@@ -80,13 +83,13 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
 """
     full_path = lambda name: prefix and prefix + "/" + name or name
 
-    message_fields = message_converter._get_message_fields(message)
+    message_field_list = message_fields( message )
     fields = []
     types = []
     ctors = []
     # see Python programming FAQ why-do-lambdas-defined-in-a-loop-with-different-values-all-return-the-same-result
     # for the explanation of all the lambda signatures (and some function signatures in case of time)
-    for field_name, field_type in message_fields:
+    for field_name, field_type in message_field_list:
         if is_binary_type( field_type ):
             ctor = lambda msg, field_name=field_name, field_type=field_type: message_converter._convert_to_ros_binary( field_type, getattr( msg, field_name ) )
             current_path = full_path( field_name )

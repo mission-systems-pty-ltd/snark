@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+from snark.ros import convert
+import importlib
+import sys
+
+def remove_comments( lines ):
+    for line in lines:
+        stripped = line.split('#', 1)[0].rstrip()
+        if stripped:
+            yield stripped
+
+for line in remove_comments( sys.stdin ):
+    test_name, message_full_path = line.split("=")
+    # pythonize the message path, replacing ROS '/' separators with python '.'s
+    message_full_path = message_full_path.strip('"').replace('/', '.')
+    package, message_type_str = message_full_path.rsplit( ".", 1 )
+    module = importlib.import_module( package + ".msg" )
+    message_type = getattr( module, message_type_str )
+    message = message_type()
+    for i, ( field_name, field_type ) in enumerate( convert.message_fields( message )):
+        print( f"{test_name}/{i}/name=\"{field_name}\"" )
+        print( f"{test_name}/{i}/type=\"{field_type}\"" )
