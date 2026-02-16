@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+import yaml
+
+def pretty_print( di, prefix ):
+    for k, v in di.items():
+        if type(v) == dict:
+            pretty_print( v, prefix + k + '/' )
+        elif type(v) == str:
+            # ROS Melodic returns b'string' as a string type, for strings. Strip that out.
+            m = re.search( r'b\'(.*)\'', v )
+            cleaned_str = ( v if m is None else m.group(1) )
+            print( '%s=\"%s\"' % ( prefix + k, cleaned_str ))
+        else:
+            try:
+                _ = iter( v )
+            except TypeError:
+                # not iterable
+                print( '%s=%s' % ( prefix + k, str(v) ))
+            else:
+                # iterable
+                # numpy.array by default does not comma-separate array elements (as opposed to list); yaml wants commas
+                # thus, all arrays end up of length 1 and contain a single string
+                if len(v) == 1 and type(v[0]) == str:
+                    v = v[0].split()
+                n = 0
+                for e in v:
+                    print( '%s[%d]=%s' % ( prefix + k, n, str(e) ))
+                    n = n + 1
+
+def main():
+    lines = yaml.load_all( sys.stdin, Loader=yaml.SafeLoader )  # this is a generator, not actual load to memory
+    n = 0
+    for line in lines:
+        if line:
+            pretty_print( line, 'output[%d]/' % n )
+            n = n + 1
+
+if __name__ == '__main__':
+    main()
