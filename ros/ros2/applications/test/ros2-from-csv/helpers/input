@@ -1,0 +1,47 @@
+header:
+  stamp:
+    sec: 1509529950
+    nanosec: 785608000
+  frame_id: map
+status:
+  status: 0
+  service: 1
+latitude: -35.3632604
+longitude: 149.1652344
+altitude: 19.4686355427
+position_covariance:
+- 1.46410009232
+- 0.0
+- 0.0
+- 0.0
+- 1.46410009232
+- 0.0
+- 0.0
+- 0.0
+- 5.85640036926
+position_covariance_type: 1
+---
+
+header:
+  stamp:
+    sec: 1509529951
+    nanosec: 19301000
+  frame_id: map
+status:
+  status: 0
+  service: 1
+latitude: -35.3632604
+longitude: 149.1652344
+altitude: 19.4686355427
+position_covariance:
+- 1.46410009232
+- 0.0
+- 0.0
+- 0.0
+- 1.46410009232
+- 0.0
+- 0.0
+- 0.0
+- 5.85640036926
+position_covariance_type: 1
+---

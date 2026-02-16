@@ -1,0 +1,6 @@
+csv="../../data/input.csv"
+topic="/mavros/global_position/global"
+type="sensor_msgs.msg.NavSatFix"
+line/count=20
+converter="csv-shuffle --fields=header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance,position_covariance_type --output-fields header/stamp,header/frame_id,altitude,latitude | csv-to-bin t,s[4],d,d"
+args="--format=t,s[4],d,d --fields=header/stamp,header/frame_id,altitude,latitude"

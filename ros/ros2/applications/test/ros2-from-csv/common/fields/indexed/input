@@ -1,0 +1,4 @@
+csv="../../../data/input.csv"
+topic="/mavros/global_position/global"
+type="sensor_msgs.msg.NavSatFix"
+args="--output-fields --index-output-fields"

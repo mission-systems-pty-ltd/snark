@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+# take a string representation of a ROS 2 message and convert to path-value
+
+import sys
+import re
+import ast
+import numpy as np
+from collections.abc import Iterable
+
+def preprocess(text):
+    # Replace numpy array(...) with list
+    text = re.sub(r'array\((\[.*?\])\)', r'\1', text, flags=re.DOTALL)
+
+    # Replace ROS message constructors like Foo(bar=1, baz=2)
+    # with dict style {"bar":1, "baz":2}
+    def repl(match):
+        inner = match.group(1)
+        return "{" + inner + "}"
+
+    text = re.sub(r'\w+\((.*?)\)', repl, text, flags=re.DOTALL)
+
+    # Convert key=value to "key": value
+    text = re.sub(r'(\w+)=', r'"\1":', text)
+
+    return text
+
+def pretty_print(obj, prefix):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            pretty_print(v, prefix + k + "/")
+        return
+
+    if isinstance(obj, str):
+        print(f'{prefix[:-1]}="{obj}"')
+        return
+
+    if isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+        for i, v in enumerate(obj):
+            pretty_print(v, f"{prefix[:-1]}[{i}]/")
+        return
+
+    print(f"{prefix[:-1]}={obj}")
+
+def main():
+    for msg_str in sys.stdin:
+        print( f"msg_str={msg_str}", file=sys.stderr )
+        processed = preprocess( msg_str )
+        print( f"processed={processed}", file=sys.stderr )
+        data = ast.literal_eval( processed )
+
+        pretty_print( data, "output[0]/" )
+
+if __name__ == "__main__":
+    main()

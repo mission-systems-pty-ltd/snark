@@ -1,0 +1,4 @@
+std_msgs/Int32="std_msgs/Int32"
+std_msgs/Header="std_msgs/Header"                                             # include time
+sensor_msgs/Image="sensor_msgs/Image"
+trajectory_msgs/JointTrajectoryPoint="trajectory_msgs/JointTrajectoryPoint"   # includes duration

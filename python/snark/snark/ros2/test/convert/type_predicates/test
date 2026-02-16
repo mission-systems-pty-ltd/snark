@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+from snark.ros2 import convert
+import sys
+
+tests = ["binary", "primitive", "time", "duration", "array"]
+test_fns = [ "is_" + test + "_type" for test in tests ]
+
+def remove_comments( lines ):
+    for line in lines:
+        stripped = line.split('#', 1)[0].rstrip()
+        if stripped:
+            yield stripped
+
+for line in remove_comments( sys.stdin ):
+    test_name, type_str = line.strip().split("=")
+    type_str = type_str.strip('"')
+    for test_fn in test_fns:
+        print( f"{test_name}/{test_fn}={ '1' if getattr( convert, test_fn )( type_str ) else '0' }" )

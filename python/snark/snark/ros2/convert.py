@@ -5,29 +5,17 @@ import rclpy
 import comma
 import datetime
 import re
-import sys
 
-try:
-    from rclpy.serialization import deserialize_message
-    from rosidl_runtime_py.utilities import get_message
-except ImportError:
-    msg = """
-cannot import rclpy_message_converter module; usually you can install it as
-    sudo apt-get install ros-humble-rospy-message-converter
-(use your ROS distro name in place of humble). If the module is not available
-in your package manager, build and install the module manually.
-
-you can install it from source as:
-> git clone https://github.com/DFKI-NI/rospy_message_converter.git
-> cd rospy_message_converter
-> git checkout humble # or any other branch
-> python setup.bash build
-> python setup.bash install
+def ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays=True ):
+    """
+    Takes a ROS message and returns a comma.csv.struct (Python type) representing this message
+    and a lambda function converting the message into an instance of the new comma.csv.struct
+    Optional second argument allows to specify explicitly the length of variable-length values,
+    such as strings. By default, take the lengths from the message itself.
 """
-    raise ImportError(msg)
-
-def ros_message_to_csv_record(message, lengths={}, ignore_variable_size_arrays=True):
-    record_t, record_ctor = _ros_message_to_csv_record(message, lengths=lengths, ignore_variable_size_arrays=ignore_variable_size_arrays, prefix='')
+    record_t, record_ctor = _ros_message_to_csv_record( message, lengths=lengths,
+                                                        ignore_variable_size_arrays=ignore_variable_size_arrays,
+                                                        prefix='' )
     for k, v in lengths.items():
         try:
             pos = record_t.fields.index(k)
@@ -38,76 +26,115 @@ def ros_message_to_csv_record(message, lengths={}, ignore_variable_size_arrays=T
     return record_t, record_ctor
 
 def from_csv_supported_types(v):
-    if type(v) != numpy.datetime64:
+    import builtin_interfaces
+    if type(v) is numpy.bytes_:
+        return v.decode('utf-8')
+    elif type(v) is numpy.datetime64:
+        microseconds = int( numpy.int64(v) )
+        return builtin_interfaces.msg.Time( sec=microseconds // 1000000, nanosec=( microseconds % 1000000 ) * 1000 )
+    elif numpy.isscalar( v ):
+        return v.item()
+    else:
         return v
-    microseconds = numpy.int64(v)
-    return rclpy.time.Time(seconds=microseconds // 1000000, nanoseconds=(microseconds % 1000000) * 1000)
 
-def is_binary_type(field_type):
-    from rosidl_parser.definition import AbstractNestedType, AbstractString
-    if isinstance(field_type, AbstractNestedType) or isinstance(field_type, AbstractString):
-        return False
-    #return field_type.type in ('octet', 'uint8')
-    return field_type.__name__ in ('octet', 'uint8')
 
-def _ros_message_to_csv_record_impl(message, lengths={}, ignore_variable_size_arrays=True, prefix=''):
-    from rosidl_runtime_py import message_to_ordereddict
-    from rosidl_parser.definition import AbstractSequence, AbstractString, BasicType
+# --- type predicates -----
+
+def is_binary_type( field_type: str ) -> bool:
+    return ( field_type.startswith( ("uint8[", "byte[", "octet[") ) or
+             field_type in ("sequence<uint8>", "sequence<byte>", "sequence<octet>") )
+
+# types taken from ROS 1 message_converter.ros_primitive_types
+# https://github.com/DFKI-NI/rospy_message_converter/blob/master/src/rospy_message_converter/message_converter.py#L105
+# replacing 'char' with 'octet'
+def is_primitive_type( field_type: str ) -> bool:
+    return field_type in ['bool', 'byte', 'octet', 'int8', 'uint8', 'int16', 'uint16', 'int32',
+                          'uint32', 'int64', 'uint64', 'float32', 'float64', 'float', 'double', 'string']
+
+def is_time_type( field_type: str ) -> bool:
+    return field_type == "builtin_interfaces/Time"
+
+def is_duration_type( field_type: str ) -> bool:
+    return field_type == "builtin_interfaces/Duration"
+
+def is_array_type( field_type: str ) -> bool:
+    return field_type.find('[') >= 0 or field_type.startswith("sequence")
+
+def is_variable_array( field_type: str ) -> bool:
+    return field_type.find('[]') >= 0 or field_type.startswith("sequence")
+
+def is_fixed_array( field_type: str ) -> bool:
+    left_bracket = field_type.find('[')
+    return left_bracket > 0 and field_type[ left_bracket + 1 ] != ']'
+
+# -------------------------
+
+def message_fields( message ):
+    "take an instantiated message and return field name and type as list of tuples"
+    return message.get_fields_and_field_types().items()
+
+def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_arrays=True, prefix='' ):
+    "Private implementation of ros_message_to_csv_record. Called recursively."
 
     full_path = lambda name: prefix and prefix + "/" + name or name
 
-    message_dict = message_to_ordereddict(message)
     fields = []
     types = []
     ctors = []
 
-    for field_name, field_value in message_dict.items():
-        field_type = type(field_value)
-        if is_binary_type(field_type):
-            ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
+    for field_name, field_type_str in message_fields( message ):
+        field_value = getattr( message, field_name )
+        if is_binary_type( field_type_str ):
+            ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             current_path = full_path(field_name)
             try:
-                l = lengths[current_path]
+                length = lengths[current_path]
             except KeyError:
-                l = len(ctor(message))
-            element_t = "S%d" % l
-        elif isinstance(field_type, (BasicType, AbstractString)):
-            ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
-            if field_type in (AbstractString,):
+                length = len(ctor(message))
+            element_t = "S%d" % length
+        elif is_primitive_type( field_type_str ):
+            ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
+            if field_type_str in ['string']:
+                ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
                 current_path = full_path(field_name)
                 try:
-                    l = lengths[current_path]
+                    length = lengths[current_path]
                 except KeyError:
-                    l = len(ctor(message))
-                element_t = "S%d" % l
+                    length = len(ctor(message))
+                element_t = "S%d" % length
             else:
-                element_t = field_type.type
-        elif isinstance(field_type, rclpy.time.Time):
+                element_t = field_type_str
+        elif is_time_type( field_type_str ):
             def ctor(msg, field_name=field_name):
                 ts = getattr(msg, field_name)
                 return numpy.datetime64(datetime.datetime.utcfromtimestamp(ts.seconds + 1.0e-9 * ts.nanoseconds))
             element_t = 'datetime64[us]'
-        elif isinstance(field_type, rclpy.duration.Duration):
+        elif is_duration_type( field_type_str ):
             def ctor(msg, field_name=field_name):
                 ts = getattr(msg, field_name)
                 return numpy.timedelta64(ts.seconds, 's') + numpy.timedelta64(ts.nanoseconds, 'ns')
             element_t = 'timedelta64[us]'
-        elif isinstance(field_type, AbstractSequence):
+        elif is_array_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
-            list_brackets = re.compile(r'\[[^\]]*\]')
-            m = list_brackets.search(field_type.type)
-            size_string = m.group()[1:-1]
-            size = 0 if size_string == '' else int(size_string)
-            if size == 0 and ignore_variable_size_arrays:
-                continue
-            element_t = (field_type.type[:m.start()], (size,))
+            if is_variable_array( field_type_str ):
+                size = 0
+            else:
+                list_brackets = re.compile( r'\[[^\]]*\]' )
+                m = list_brackets.search( field_type_str )
+                size_string = m.group()[1:-1]
+                size = 0 if size_string == '' else int(size_string)
+            if size == 0 and ignore_variable_size_arrays: continue
+            element_t = (field_type_str[:m.start()], (size,))
         else:
-            element_t, element_ctor = _ros_message_to_csv_record_impl(getattr(message, field_name), lengths=lengths, ignore_variable_size_arrays=ignore_variable_size_arrays, prefix=full_path(field_name))
+            element_t, element_ctor = _ros_message_to_csv_record_impl( getattr( message, field_name ),
+                                                                       lengths=lengths,
+                                                                       ignore_variable_size_arrays=ignore_variable_size_arrays,
+                                                                       prefix=full_path( field_name ))
             ctor = lambda msg, field_name=field_name, element_ctor=element_ctor: element_ctor(getattr(msg, field_name))
 
-        fields.append(field_name)
-        ctors.append(ctor)
-        types.append(element_t)
+        fields.append( field_name )
+        ctors.append( ctor )
+        types.append( element_t )
 
     new_t = comma.csv.struct(','.join(fields), *types)
     return new_t, lambda msg, new_t=new_t: tuple([c(msg) for c in ctors])

@@ -1,0 +1,4 @@
+{
+    "fields": "header/seq,header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance,position_covariance_type",
+    "binary": "ui,t,s[3],b,uw,d,d,d,9d,ub"
+}

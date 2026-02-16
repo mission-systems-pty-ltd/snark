@@ -1,0 +1,29 @@
+#!/bin/bash
+
+name=$( basename "$0" )
+
+source $( type -p comma-application-util ) || { echo "$name: cannot source 'comma-application-util'" >&2; exit 1; }
+source $( type -p comma-name-value-util ) || { echo "$name: cannot source 'comma-name-value-util'" >&2; exit 1; }
+
+comma_path_value_to_var --prefix=input --export
+
+[[ -r "$input_csv" ]] || { echo "$name: cannot read input csv file '$input_csv'" >&2; exit 1; }
+
+input_converter=${input_converter:-"cat"}
+[[ -n "$input_line_count" ]] && input_head="head -n $input_line_count" || "cat"
+
+cat "$input_csv" \
+    | $input_head \
+    | $input_converter \
+    | ros2-from-csv --topic "$input_topic" --type "$input_type" $input_args --dry --verbose \
+    | sed '/^position_covariance_type:/a---' \
+    | $( dirname "$0" )/yaml-to-path-value
+
+fields=$( ros2-from-csv --topic "$input_topic" --type "$input_type" $input_args --output-fields )
+output_fields=$( echo "$fields" | csv-fields rename --fields "header/stamp" --to "time/seconds" )
+cat "$input_csv" \
+    | $input_head \
+    | csv-time --fields=t, --to seconds \
+    | name-value-from-csv "$output_fields" --output-line-number \
+    | sed 's/^/line/' \
+    | csv-quote --delimiter = --fields ,x

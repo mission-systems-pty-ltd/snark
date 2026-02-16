@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+#import re
+import sys
+import yaml
+from collections.abc import Mapping, Sequence
+
+
+def pretty_print(obj, prefix):
+    if isinstance(obj, Mapping):
+        for k, v in obj.items():
+            pretty_print(v, f"{prefix}{k}/")
+        return
+
+    if isinstance(obj, str):
+        print(f'{prefix[:-1]}="{obj}"')
+        return
+
+    if isinstance(obj, Sequence) and not isinstance(obj, (str, bytes)):
+        for i, v in enumerate(obj):
+            print(f"{prefix[:-1]}[{i}]={v}")
+        return
+
+    print(f"{prefix[:-1]}={obj}")
+
+
+#def pretty_print( di, prefix ):
+    # for k, v in di.items():
+    #     if type(v) == dict:
+    #         pretty_print( v, prefix + k + '/' )
+    #     elif type(v) == str:
+    #         # ROS Melodic returns b'string' as a string type, for strings. Strip that out.
+    #         m = re.search( r'b\'(.*)\'', v )
+    #         cleaned_str = ( v if m is None else m.group(1) )
+    #         print( '%s=\"%s\"' % ( prefix + k, cleaned_str ))
+    #     else:
+    #         try:
+    #             _ = iter( v )
+    #         except TypeError:
+    #             # not iterable
+    #             print( '%s=%s' % ( prefix + k, str(v) ))
+    #         else:
+    #             # iterable
+    #             # numpy.array by default does not comma-separate array elements (as opposed to list); yaml wants commas
+    #             # thus, all arrays end up of length 1 and contain a single string
+    #             if len(v) == 1 and type(v[0]) == str:
+    #                 v = v[0].split()
+    #             n = 0
+    #             for e in v:
+    #                 print( '%s[%d]=%s' % ( prefix + k, n, str(e) ))
+    #                 n = n + 1
+
+def main():
+    for n, msg in enumerate( yaml.safe_load_all( sys.stdin )):
+        if msg:
+            pretty_print( msg, f"output[{n}]/" )
+
+if __name__ == '__main__':
+    main()

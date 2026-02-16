@@ -1,0 +1,45 @@
+import sys
+import numpy as np
+from collections.abc import Iterable
+
+def is_ros_message(obj):
+    return hasattr(obj, "get_fields_and_field_types")
+
+def to_python_scalar(x):
+    # Convert numpy scalar to python scalar
+    if isinstance(x, np.generic):
+        return x.item()
+    return x
+
+def pretty_print_ros2(obj, prefix):
+    # ROS 2 message
+    if is_ros_message(obj):
+        for field in obj.get_fields_and_field_types().keys():
+            value = getattr(obj, field)
+            pretty_print_ros2(value, prefix + field + "/")
+        return
+
+    # numpy scalar
+    if isinstance(obj, np.generic):
+        obj = obj.item()
+
+    # string
+    if isinstance(obj, str):
+        print(f'{prefix[:-1]}="{obj}"')
+        return
+
+    # dict (just in case)
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            pretty_print_ros2(v, prefix + k + "/")
+        return
+
+    # iterable (but not string)
+    if isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+        for i, v in enumerate(obj):
+            v = to_python_scalar(v)
+            print(f"{prefix[:-1]}[{i}]={v}")
+        return
+
+    # scalar
+    print(f"{prefix[:-1]}={to_python_scalar(obj)}")

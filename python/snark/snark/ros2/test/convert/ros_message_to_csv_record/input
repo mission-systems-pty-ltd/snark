@@ -1,0 +1,5 @@
+std_msgs/Int32="std_msgs/Int32"
+std_msgs/Header="std_msgs/Header"
+sensor_msgs/Image="sensor_msgs/Image"
+trajectory_msgs/JointTrajectoryPoint="trajectory_msgs/JointTrajectoryPoint"
+geometry_msgs/PoseWithCovariance="geometry_msgs/msg/PoseWithCovariance"

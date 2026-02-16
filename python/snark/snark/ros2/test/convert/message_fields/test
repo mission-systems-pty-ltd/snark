@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+from snark.ros2 import convert
+from rosidl_runtime_py.utilities import get_message
+import sys
+
+def remove_comments( lines ):
+    for line in lines:
+        stripped = line.split('#', 1)[0].rstrip()
+        if stripped:
+            yield stripped
+
+for line in remove_comments( sys.stdin ):
+    test_name, msg_full_path = line.split("=")
+    msg_full_path = msg_full_path.strip('"')
+    msg_class = get_message( msg_full_path )
+
+    for i, ( field_name, field_type ) in enumerate( convert.message_fields( msg_class() )):
+        print( f"{test_name}/{i}/name=\"{field_name}\"" )
+        print( f"{test_name}/{i}/type=\"{field_type}\"" )

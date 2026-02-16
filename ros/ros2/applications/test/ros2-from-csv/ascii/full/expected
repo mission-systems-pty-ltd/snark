@@ -1,0 +1,22 @@
+#python
+
+expect number_of(output) == 20
+
+for i in range(number_of(output)):
+    expect output[i]/altitude == line[i]/altitude +/- 1.0e-6
+    expect output[i]/header/frame_id == line[i]/header/frame_id
+    expect output[i]/header/stamp/sec + 1.0e-9 * output[i]/header/stamp/nanosec == line[i]/time/seconds +/- 1.0e-6
+    expect output[i]/latitude == line[i]/latitude +/- 1.0e-6
+    expect output[i]/longitude == line[i]/longitude +/- 1.0e-6
+    expect output[i]/position_covariance[0] == 1.46410009 +/- 1.0e-6
+    expect output[i]/position_covariance[1] == 0.
+    expect output[i]/position_covariance[2] == 0.
+    expect output[i]/position_covariance[3] == 0.
+    expect output[i]/position_covariance[4] == 1.46410009 +/- 1.0e-6
+    expect output[i]/position_covariance[5] == 0.
+    expect output[i]/position_covariance[6] == 0.
+    expect output[i]/position_covariance[7] == 0.
+    expect output[i]/position_covariance[8] == 5.85640037 +/- 1.0e-6
+    expect output[i]/position_covariance_type == 1
+    expect output[i]/status/service == 1
+    expect output[i]/status/status == 0

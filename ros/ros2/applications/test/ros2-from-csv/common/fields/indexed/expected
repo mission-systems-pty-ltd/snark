@@ -1,0 +1,1 @@
+fields="header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance[0],position_covariance[1],position_covariance[2],position_covariance[3],position_covariance[4],position_covariance[5],position_covariance[6],position_covariance[7],position_covariance[8],position_covariance_type"
