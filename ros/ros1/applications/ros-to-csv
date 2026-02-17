@@ -3,7 +3,7 @@
 # allow this to run under Python 2, for ROS Melodic compatibility
 from __future__ import print_function
 
-import argparse, datetime, numpy, sys
+import argparse, sys
 from signal import signal, SIGPIPE, SIG_DFL
 import rosbag, rospy, rostopic
 import comma.csv
