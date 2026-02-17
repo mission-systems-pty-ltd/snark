@@ -34,11 +34,11 @@ help_examples = """
 Examples:
     Forward ROS messages (e.g., to illustrate the principle or debug), start with trying --dry-run
         Forward with buffering:
-            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic
+            ros2-to-csv --topic some-topic | ros2-from-csv --topic some-topic
         Forward without buffering:
-            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush
+            ros2-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush
         Print to stdout:
-            ros-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush --dry-run
+            ros2-to-csv --topic some-topic | ros2-from-csv --topic some-topic --flush --dry-run
 
     Using message types offline, try it:
         Imply package from message type:
