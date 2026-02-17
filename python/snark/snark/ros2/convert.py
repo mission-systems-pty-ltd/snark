@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy
-import rclpy
+#import rclpy
 import comma
 import datetime
 import re
