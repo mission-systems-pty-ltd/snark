@@ -10,17 +10,6 @@ import comma.csv
 import comma.application
 from snark.ros import convert, detail
 
-try:
-    import rospy_message_converter
-except ImportError:
-    msg = """
-cannot import rospy_message_converter module; usually you can install it as
-    sudo apt-get install ros-kinetic-rospy-message-converter
-(use your ROS distro name in place of kinetic). If the module is not available
-in your package manager, build and install the module manually.
-"""
-    raise ImportError(msg)
-
 help_description="output ROS messages on a given topic (todo) or ROS bag files of arbitrary content as csv streams"
 help_examples="""
 examples
