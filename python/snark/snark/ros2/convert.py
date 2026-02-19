@@ -66,6 +66,9 @@ def is_fixed_array( field_type: str ) -> bool:
     left_bracket = field_type.find('[')
     return left_bracket > 0 and field_type[ left_bracket + 1 ] != ']'
 
+# some type strings that might creep in from converted ROS 1 data
+aliases = { 'boolean': 'bool' }
+
 # -------------------------
 
 def message_fields( message ):
@@ -82,6 +85,7 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
     ctors = []
 
     for field_name, field_type_str in message_fields( message ):
+        field_type_str = aliases.get( field_type_str, field_type_str )
         if is_binary_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             current_path = full_path(field_name)
