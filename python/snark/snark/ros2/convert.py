@@ -103,14 +103,14 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
             else:
                 element_t = field_type_str
         elif is_time_type( field_type_str ):
-            def ctor(msg, field_name=field_name):
-                ts = getattr(msg, field_name)
-                return numpy.datetime64(datetime.datetime.utcfromtimestamp(ts.seconds + 1.0e-9 * ts.nanoseconds))
+            def ctor( msg, field_name=field_name ):
+                ts = getattr( msg, field_name )
+                return numpy.datetime64( datetime.datetime.utcfromtimestamp( ts.sec + 1.0e-9 * ts.nanosec ))
             element_t = 'datetime64[us]'
         elif is_duration_type( field_type_str ):
-            def ctor(msg, field_name=field_name):
-                ts = getattr(msg, field_name)
-                return numpy.timedelta64(ts.seconds, 's') + numpy.timedelta64(ts.nanoseconds, 'ns')
+            def ctor( msg, field_name=field_name ):
+                ts = getattr( msg, field_name )
+                return numpy.timedelta64( ts.sec, 's') + numpy.timedelta64( ts.nanosec, 'ns' )
             element_t = 'timedelta64[us]'
         elif is_array_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
