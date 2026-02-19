@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy
-#import rclpy
 import comma
 import datetime
 import re
@@ -83,7 +82,6 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
     ctors = []
 
     for field_name, field_type_str in message_fields( message ):
-        field_value = getattr( message, field_name )
         if is_binary_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
             current_path = full_path(field_name)
