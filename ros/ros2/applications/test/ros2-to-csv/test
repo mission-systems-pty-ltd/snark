@@ -1,0 +1,20 @@
+#!/bin/bash
+
+name=$( basename "$0" )
+
+source $( type -p comma-application-util ) || { echo "$name: cannot source 'comma-application-util'" >&2; exit 1; }
+source $( type -p comma-name-value-util ) || { echo "$name: cannot source 'comma-name-value-util'" >&2; exit 1; }
+
+comma_path_value_to_var --prefix=input --export
+
+[[ -r "$input_bag" ]] || { echo "$name: cannot read input bag file '$input_bag'" >&2; exit 1; }
+
+function number_lines()
+{
+    cat -n | awk '{ $1=$1-1; print $0; }' | sed 's/^/output[/;s/ /]="/;s/$/"/'
+}
+
+ros2-to-csv --topic "$input_topic" --bag "$input_bag" $input_args \
+    | if [[ -n "$input_output_format" ]] ; then csv-from-bin "$input_output_format" ; else cat; fi \
+    | if [[ -n "$input_output_lines" ]] ; then head -n $input_output_lines ; else cat ; fi \
+    | number_lines

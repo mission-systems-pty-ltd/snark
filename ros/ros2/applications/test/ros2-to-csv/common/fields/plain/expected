@@ -1,0 +1,1 @@
+output[0]="header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance,position_covariance_type"

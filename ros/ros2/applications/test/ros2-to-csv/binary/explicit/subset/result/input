@@ -1,0 +1,5 @@
+bag="../../../../data/input-ros2"
+topic="/mavros/global_position/global"
+args="--fields=header/frame_id --binary=s[5]"
+output/lines=1
+output/format="t,s[5],b,uw,d,d,d,9d,ub"

@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
 
 import argparse
-import datetime
-import numpy
+import os
 import sys
 from signal import signal, SIGPIPE, SIG_DFL
 
 import rclpy
+from rclpy.node import Node
+from rclpy.serialization import deserialize_message
+from rosidl_runtime_py.utilities import get_message
+
+import rosbag2_py
 import comma.csv
 import comma.application
 from snark.ros2 import convert, detail
 
-try:
-    import rclpy_message_converter
-except ImportError:
-    msg = """
-Cannot import rclpy_message_converter module; usually you can install it as
-    sudo apt-get install ros-humble-rclpy-message-converter
-(use your ROS distro name in place of humble). If the module is not available
-in your package manager, build and install the module manually.
-"""
-    raise ImportError(msg)
 
-help_description = "Output ROS messages on a given topic (todo) or ROS bag files of arbitrary content as CSV streams"
+ARG_VERBOSE = False
+
+def say( msg: str, scriptname=os.path.basename( sys.argv[0] )):
+    print( f"{scriptname}: {msg}", file=sys.stderr )
+
+def verbose( msg: str ):
+    if ARG_VERBOSE: say( msg )
+
+def die( msg: str ):
+    say( str )
+    sys.exit( 1 )
+
+
+help_description = "Output ROS 2 messages on a given topic or ROS 2 bag files of arbitrary content as csv streams"
 help_examples = """
 Examples:
     ROS bag to CSV
@@ -42,20 +49,20 @@ General ROS bag hints:
         ros2 topic echo /mavros/global_position/global --bag input.bag | head -n 32
 """
 
-class MessageHandler:
-    """Create a CSV output stream from a sample message, write messages to it"""
 
-    def __init__(self, msg, args):
-        self.record_type, self.record_ctor = convert.ros_message_to_csv_record(msg)
+class message_handler:
+    """Create a csv output stream from a sample message, write messages to it"""
+
+    def __init__( self, msg, args ):
+        self.record_type, self.record_ctor = convert.ros_message_to_csv_record( msg )
         self.output_format = ''
         if args.output_fields:
-            print(','.join(detail.command_line.fields_of_record(self.record_type, args.index_output_fields)))
+            print( ','.join( detail.command_line.fields_of_record( self.record_type, args.index_output_fields )))
             sys.exit(0)
         if args.binary:
             if args.binary == "guess":
                 self.output_format = self._output_format()
-                if args.verbose:
-                    print("ros2-to-csv: set the binary format to '%s'" % self.output_format, file=sys.stderr)
+                verbose( f"ros2-to-csv: set the binary format to '{self.output_format}'" )
             else:
                 lengths = self._set_lengths_from_format(args)
                 self.record_type, self.record_ctor = convert.ros_message_to_csv_record(msg, lengths)
@@ -67,44 +74,100 @@ class MessageHandler:
             sys.exit(0)
         self.flush = args.flush
         self.binary = not not self.output_format
-        self.ostream = comma.csv.stream(self.record_type, flush=args.flush, delimiter=args.delimiter, binary=self.binary, fields=args.fields)
+        self.ostream = comma.csv.stream( self.record_type,
+                                         flush=args.flush,
+                                         delimiter=args.delimiter,
+                                         binary=self.binary,
+                                         fields=args.fields )
 
-    def write(self, msg):
-        self.ostream.write(self.record_ctor(msg))
+    def write( self, msg ):
+        self.ostream.write( self.record_ctor( msg ))
         if self.flush:
             sys.stdout.flush()
 
-    def _output_format(self):
-        return ','.join([comma.csv.format.from_numpy(f) for f in self.record_type.format.split(',')])
+    def _output_format( self ):
+        return ','.join([ comma.csv.format.from_numpy(f) for f in self.record_type.format.split(',') ])
 
-    def _set_lengths_from_format(self, args):
+    def _set_lengths_from_format( self, args ):
         fields = args.fields and args.fields or self.record_type.fields
-        return detail.command_line.lengths_of_strings(fields, args.binary)
+        return detail.command_line.lengths_of_strings( fields, args.binary )
 
-class TopicSubscriber:
-    """Subscribe to a topic, output messages as CSV in callback"""
 
-    def __init__(self, args):
-        rclpy.init()
-        self.node = rclpy.create_node(args.node_name)
+class rostopic_subscriber( Node ):
+    """Subscribe to a ROS 2 topic, output messages as csv in callback"""
+
+    def __init__( self, args ):
+        super().__init__( args.node_name )
         self.args = args
-        self.subscription = self.node.create_subscription(
-            rclpy_message_converter.convert_to_message_type(args.topic),
-            args.topic,
-            self.callback,
-            10
-        )
-        self.handler = MessageHandler(rclpy_message_converter.convert_to_message_type(args.topic)(), self.args)
+        self.handler = None
 
-    def callback(self, msg):
-        self.handler.write(msg)
+        # determine the message type for the topic
+        topic_names_and_types = self.get_topic_names_and_types()
+        msg_type_str = None
+        for name, types in topic_names_and_types:
+            if name == args.topic:
+                msg_type_str = types[0]
+                break
+
+        if msg_type_str is None:
+            die( f"topic '{args.topic}' is not found" )
+
+        self._msg_class = get_message( msg_type_str )
+
+        # create a dummy instance to initialise the handler
+        self.handler = message_handler( self._msg_class(), args )
+        self.subscription = self.create_subscription( self._msg_class, args.topic, self.callback, 10 )
+
+    def callback( self, msg ):
+        self.handler.write( msg )
+
+
+def get_bag_topics_and_types( reader ):
+    """Return a dict of {topic_name: message_type_str} from an open rosbag2 reader"""
+    metadata = reader.get_all_topics_and_types()
+    return { t.name: t.type for t in metadata }
+
+
+def read_bag( bagfile, topic ):
+    """Read messages from a single ROS 2 bag file, yielding (topic, msg_obj) pairs"""
+    storage_options = rosbag2_py.StorageOptions( uri=bagfile, storage_id='sqlite3' )
+    converter_options = rosbag2_py.ConverterOptions(
+        input_serialization_format='cdr',
+        output_serialization_format='cdr'
+    )
+    reader = rosbag2_py.SequentialReader()
+    reader.open( storage_options, converter_options )
+
+    topic_type_map = get_bag_topics_and_types( reader )
+    available_topics = list( topic_type_map.keys() )
+
+    if not topic:
+        if len( available_topics ) != 1:
+            die( f"bag '{bagfile}' contains {len( available_topics )} topics; please specify --topic explicitly" )
+        topic = available_topics[0]
+    else:
+        if topic not in available_topics:
+            die( f"topic '{topic}' not found in bag '{bagfile}'" )
+
+    msg_type_str = topic_type_map[ topic ]
+    msg_class = get_message( msg_type_str )
+
+    # Filter to only the desired topic
+    topic_filter = rosbag2_py.StorageFilter( topics=[topic] )
+    reader.set_filter( topic_filter )
+
+    while reader.has_next():
+        topic_name, raw_data, timestamp = reader.read_next()
+        msg = deserialize_message( raw_data, msg_class )
+        yield topic_name, msg
+
 
 def main():
     parser = argparse.ArgumentParser(description=help_description, epilog=help_examples, formatter_class=argparse.RawDescriptionHelpFormatter, conflict_handler='resolve')
     parser.add_argument('--bag', help='Input bag file', type=str, nargs='*')
     parser.add_argument('--flush', help='Flush stdout after each message', action='store_true')
     parser.add_argument('--index-output-fields', '--index-fields', '--index', help='Output array fields with indices, e.g., output "array[0],array[1],array[2]", not "array"', action='store_true')
-    parser.add_argument('--node-name', '--node', default='ros2_to_csv', help='Message type, useful for debugging', type=str)
+    parser.add_argument('--node-name', '--node', default='ros2_to_csv_listener', help='Node name', type=str)
     parser.add_argument('--output-fields', help='Print output fields and exit', action='store_true')
     parser.add_argument('--output-format', '--output-types', help='Print output format for binary and exit', action='store_true')
     parser.add_argument('--topic', nargs='?', help='Topic', type=str)
@@ -113,18 +176,37 @@ def main():
     parser.add_argument('-b', '--binary', help='Produce binary output in the given format; if argument is "guess", figure out format from the message itself', type=str)
     args = parser.parse_args()
 
+    # Do not want the IOError message trace. Don't use this if using sockets.
+    # See https://docs.python.org/3/library/signal.html#note-on-sigpipe for more
+    signal( SIGPIPE, SIG_DFL )
+
     if args.bag is None:
         if args.topic is None:
-            print("ros2-to-csv: please specify --topic", file=sys.stderr)
-            sys.exit(1)
-        if args.verbose: print("ros2-to-csv: listening to topic '%s'..." % args.topic, file=sys.stderr)
-        subscriber = TopicSubscriber(args)
-        rclpy.spin(subscriber.node)
+            die( "please specify --topic" )
+
+        verbose( f"listening to topic '{args.topic}'..." )
+        rclpy.init()
+        node = rostopic_subscriber( args )
+        try:
+            rclpy.spin( node )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            node.destroy_node()
+            rclpy.shutdown()
     else:
-        print("ros2-to-csv: reading from bag files: todo", file=sys.stderr)
-        sys.exit(1)
+        handler = None
+        try:
+            for bagfile in args.bag:
+                for topic, msg in read_bag( bagfile, args.topic ):
+                    if handler is None:
+                        handler = message_handler( msg, args )
+                    handler.write( msg )
+        except IOError as e:
+            die( f"failed to open bag file: {e}" )
 
     sys.exit(0)
+
 
 if __name__ == '__main__':
     main()

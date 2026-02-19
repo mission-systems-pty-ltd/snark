@@ -1,0 +1,43 @@
+rosbag2_bagfile_information:
+  compression_format: ''
+  compression_mode: ''
+  custom_data: null
+  duration:
+    nanoseconds: 19437185163
+  files:
+  - duration:
+      nanoseconds: 19437185163
+    message_count: 246
+    path: input-ros2.db3
+    starting_time:
+      nanoseconds_since_epoch: 1510700322630811962
+  message_count: 246
+  relative_file_paths:
+  - input-ros2.db3
+  ros_distro: rosbags
+  starting_time:
+    nanoseconds_since_epoch: 1510700322630811962
+  storage_identifier: sqlite3
+  topics_with_message_count:
+  - message_count: 82
+    topic_metadata:
+      name: /mavros/global_position/global
+      offered_qos_profiles:
+      serialization_format: cdr
+      type: sensor_msgs/msg/NavSatFix
+      type_description_hash: RIHS01_62223ab3fe210a15976021da7afddc9e200dc9ec75231c1b6a557fc598a65404
+  - message_count: 82
+    topic_metadata:
+      name: /mavros/local_position/velocity
+      offered_qos_profiles:
+      serialization_format: cdr
+      type: geometry_msgs/msg/TwistStamped
+      type_description_hash: RIHS01_5f0fcd4f81d5d06ad9b4c4c63e3ea51b82d6ae4d0558f1d475229b1121db6f64
+  - message_count: 82
+    topic_metadata:
+      name: /mavros/imu/data
+      offered_qos_profiles:
+      serialization_format: cdr
+      type: sensor_msgs/msg/Imu
+      type_description_hash: RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b
+  version: 9

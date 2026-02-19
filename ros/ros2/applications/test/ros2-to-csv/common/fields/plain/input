@@ -1,0 +1,3 @@
+bag="../../../data/input-ros2"
+topic="/mavros/global_position/global"
+args="--output-fields"
