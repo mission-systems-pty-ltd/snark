@@ -29,7 +29,7 @@
 // TODO: Use this file in ros-points too.
 #if ROS_VERSION_MINIMUM(2,0,0)
     namespace snark_ros_sensor_msgs = sensor_msgs::msg;
-#else 
+#else
     namespace snark_ros_sensor_msgs = sensor_msgs;
 #endif
 
@@ -144,7 +144,7 @@ template < unsigned int Version > struct traits;
         static void update_block( PointCloud2Ptr input, unsigned int& block_ )
         {
             block_ = input->header.seq;
-        } 
+        }
     };
 #endif
 #ifdef SNARK_BUILD_ROS_2
@@ -168,7 +168,7 @@ template < unsigned int Version > struct traits;
         {
             return snark::ros::time::to_boost( t );
         }
-        // time_from_boost 
+        // time_from_boost
         static Time time_from_boost( const boost::posix_time::ptime& t )
         {
             return snark::ros::time::from_boost( t );
@@ -176,7 +176,7 @@ template < unsigned int Version > struct traits;
         static void update_block( PointCloud2Ptr input, unsigned int& block_ )
         {
             block_++;
-        } 
+        }
     };
 #endif
 template < unsigned int Version >
@@ -308,7 +308,7 @@ struct pointcloud
         };
 
     public:
-        /// prepare 
+        /// prepare
         bin_shuffle( const std::string& field_names
                 , const typename traits<Version>::PointCloud2::_fields_type& msg_fields
                 , const typename traits<Version>::Time header_time_stamp
@@ -450,7 +450,7 @@ struct pointcloud
                 }
                 unsigned int count = input->width * input->height;
                 unsigned int record_size = input->point_step;
-                traits<Version>::update_block( input, block_ ); 
+                traits<Version>::update_block( input, block_ );
                 header h( input->header.stamp, block_ );
 
                 std::unique_ptr< snark::ros::pointcloud::bin_base > bin;
@@ -640,7 +640,7 @@ struct pointcloud
 
             boost::posix_time::ptime msg_start_time = records[0].t;
 
-            msg.header.stamp = traits<Version>::time_from_boost( msg_start_time ); // 
+            msg.header.stamp = traits<Version>::time_from_boost( msg_start_time ); //
             msg.header.frame_id = frame_id;
             msg.height = 1;
             msg.width = count;
@@ -751,7 +751,7 @@ struct pointcloud
         std::string frame_id;
         std::unordered_map< std::string, std::string > field_name_map;
         snark::ros::pointcloud::time_format_enum time_format;
-        
+
     };
 
     class to_points
@@ -798,7 +798,6 @@ struct pointcloud
         std::size_t data_size;
         bool ascii;
     };
-
 
 }; // struct pointcloud<Version>
 
@@ -851,5 +850,3 @@ template <> struct traits< snark::ros::pointcloud::record >
 };
 
 } } // namespace comma { namespace visiting {
-
-
