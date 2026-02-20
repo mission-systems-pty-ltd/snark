@@ -119,14 +119,16 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
         elif is_array_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr(msg, field_name)
             if is_variable_array( field_type_str ):
+                if ignore_variable_size_arrays: continue
                 size = 0
+                element_t = field_type_str
             else:
                 list_brackets = re.compile( r'\[[^\]]*\]' )
                 m = list_brackets.search( field_type_str )
                 size_string = m.group()[1:-1]
                 size = 0 if size_string == '' else int(size_string)
-            if size == 0 and ignore_variable_size_arrays: continue
-            element_t = (field_type_str[:m.start()], (size,))
+                if size == 0 and ignore_variable_size_arrays: continue
+                element_t = ( field_type_str[:m.start()], ( size, ))
         else:
             element_t, element_ctor = _ros_message_to_csv_record_impl( getattr( message, field_name ),
                                                                        lengths=lengths,
