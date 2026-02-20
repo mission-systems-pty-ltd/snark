@@ -6,6 +6,7 @@ import sys
 from signal import signal, SIGPIPE, SIG_DFL
 
 import rclpy
+import rclpy.logging
 from rclpy.node import Node
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
@@ -16,13 +17,13 @@ import comma.application
 from snark.ros2 import convert, detail
 
 
-ARG_VERBOSE = False
+VERBOSE = False
 
 def say( msg: str, scriptname=os.path.basename( sys.argv[0] )):
     print( f"{scriptname}: {msg}", file=sys.stderr )
 
 def verbose( msg: str ):
-    if ARG_VERBOSE: say( msg )
+    if VERBOSE: say( msg )
 
 def die( msg: str ):
     say( str )
@@ -130,6 +131,9 @@ def get_bag_topics_and_types( reader ):
 
 def read_bag( bagfile, topic ):
     """Read messages from a single ROS 2 bag file, yielding (topic, msg_obj) pairs"""
+    global VERBOSE
+    if not VERBOSE: rclpy.logging.set_logger_level( 'rosbag2_storage', rclpy.logging.LoggingSeverity.WARN )
+
     storage_options = rosbag2_py.StorageOptions( uri=bagfile, storage_id='sqlite3' )
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format='cdr',
@@ -179,6 +183,9 @@ def main():
     # Do not want the IOError message trace. Don't use this if using sockets.
     # See https://docs.python.org/3/library/signal.html#note-on-sigpipe for more
     signal( SIGPIPE, SIG_DFL )
+
+    global VERBOSE
+    VERBOSE = args.verbose
 
     if args.bag is None:
         if args.topic is None:
