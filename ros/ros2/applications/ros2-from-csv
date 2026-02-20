@@ -13,13 +13,13 @@ from rosidl_runtime_py import message_to_yaml
 from rosidl_runtime_py.utilities import get_message
 
 
-ARG_VERBOSE = False
+VERBOSE = False
 
 def say( msg: str, scriptname=os.path.basename( sys.argv[0] )):
     print( f"{scriptname}: {msg}", file=sys.stderr )
 
 def verbose( msg: str ):
-    if ARG_VERBOSE: say( msg )
+    if VERBOSE: say( msg )
 
 
 help_description = """
@@ -73,9 +73,9 @@ def main():
     # See https://docs.python.org/3/library/signal.html#note-on-sigpipe for more
     signal( SIGPIPE, SIG_DFL )
 
-    global ARG_VERBOSE
+    global VERBOSE
     args = command_line_options()
-    ARG_VERBOSE = args.verbose
+    VERBOSE = args.verbose
 
     if args.dry_run:
         import numpy
