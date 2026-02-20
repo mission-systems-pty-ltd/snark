@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# get info from bag
+# supported fields are: messages, topics, msg_types
+function ros_bag_topic_information()
+{
+    local field=$1
+    sed -n '/^Topic information/,$s/.*Topic:/Topic:/p'| sed "s/.*${field}: \([^|]*\).*/\1/"
+}
+
+function ros_bag_info()
+{
+    local bag=$1
+    local field=$2
+    ros2 bag info $bag |
+        case $field in
+            topics)     ros_bag_topic_information Topic ;;
+            msg_types ) ros_bag_topic_information Type ;;
+            *)          awk "/^${field^*}:/{ print \$2 }"
+        esac
+}

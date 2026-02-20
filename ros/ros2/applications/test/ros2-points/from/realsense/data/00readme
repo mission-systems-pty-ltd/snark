@@ -1,0 +1,17 @@
+# Data generated from realsense data as follows
+
+points-from-ros --bags "realsense-1/*.bag" --topic /camera1/depth/color/points \
+    | csv-from-bin 3f,2ui | head -100020 | tail -20000 \
+    | csv-shuffle --fields x,y,z,padding,rgb --output x,y,z,rgb | csv-to-bin 3f,ui \
+    | points-to-ros --topic /camera1/depth/color/points --fields x,y,z,rgb --binary 3f,ui
+
+# then in another window
+
+rosbag record /camera1/depth/color/points -O pointcloud -l 10
+
+# then converted to ROS 2 with:
+
+sudo pip3 install rosbags
+rosbags-convert --src pointcloud.bag --dst pointcloud-bag
+
+# note that we get bogus timestamps, but we don't really care

@@ -1,0 +1,29 @@
+rosbag2_bagfile_information:
+  compression_format: ''
+  compression_mode: ''
+  custom_data: null
+  duration:
+    nanoseconds: 147963
+  files:
+  - duration:
+      nanoseconds: 147963
+    message_count: 10
+    path: pointcloud-bag.db3
+    starting_time:
+      nanoseconds_since_epoch: 1558408051178335313
+  message_count: 10
+  relative_file_paths:
+  - pointcloud-bag.db3
+  ros_distro: rosbags
+  starting_time:
+    nanoseconds_since_epoch: 1558408051178335313
+  storage_identifier: sqlite3
+  topics_with_message_count:
+  - message_count: 10
+    topic_metadata:
+      name: /camera1/depth/color/points
+      offered_qos_profiles:
+      serialization_format: cdr
+      type: sensor_msgs/msg/PointCloud2
+      type_description_hash: RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5
+  version: 9

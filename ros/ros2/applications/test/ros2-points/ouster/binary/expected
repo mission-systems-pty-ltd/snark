@@ -1,0 +1,26 @@
+#python
+
+expect rosbag/num_msgs = input/num_scans
+expect rosbag/topic = input/topic
+expect rosbag/msg_type = "sensor_msgs/msg/PointCloud2"
+
+for i in range( input/num_scans ):
+    for j in range( input/points_per_scan ):
+        input_point = input/point[ i * input/points_per_scan + j ]
+        rosbag_point = rosbag/pointfield[ i * input/points_per_scan + j ]
+        expect rosbag_point/t = input_point/t
+        expect rosbag_point/block = input_point/block
+        expect rosbag_point/channel = input_point/channel
+        expect rosbag_point/range = input_point/range
+        expect rosbag_point/bearing = input_point/bearing
+        expect rosbag_point/elevation = input_point/elevation
+        expect rosbag_point/signal = input_point/signal
+
+        output_point = ros_points/output[ i * input/points_per_scan + j ]
+        expect output_point/t = input_point/t
+        expect output_point/block = input_point/block
+        expect output_point/channel = input_point/channel
+        expect output_point/range = input_point/range
+        expect output_point/bearing = input_point/bearing
+        expect output_point/elevation = input_point/elevation
+        expect output_point/signal = input_point/signal

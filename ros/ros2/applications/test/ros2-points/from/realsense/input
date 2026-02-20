@@ -1,0 +1,8 @@
+output_fields[0]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --output-fields"
+output_fields[1]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --header --output-fields"
+output_fields[2]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --fields x,y --output-fields"
+output_format[0]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --output-format"
+output_format[1]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --header --output-format"
+output_format[2]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --fields x,y --output-format"
+basic[0]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag | csv-from-bin 3f,ui"
+header[0]="ros2-points --from /camera1/depth/color/points --bags data/pointcloud-bag --header | csv-from-bin t,ui,3f,ui"

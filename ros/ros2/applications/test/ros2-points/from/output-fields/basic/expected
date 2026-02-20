@@ -1,0 +1,2 @@
+#python
+expect ros_points/options/output_fields = test/output_fields

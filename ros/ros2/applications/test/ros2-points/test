@@ -1,0 +1,221 @@
+#!/bin/bash
+
+# create output similar to an Ouster
+# in particular
+#   * include ring (called channel in the ouster driver)
+#   * point timestamps are offsets from header timestamp, rather than absolute
+
+# input files in sub-directories can define their tests by setting the
+# parameters included below. Configurable parameters are so marked.
+#
+# e.g. change the number of channels by setting
+# channel=64
+# in an input file
+
+scriptname=$( basename $0 )
+
+source $( type -p comma-application-util ) || { echo "$scriptname: cannot source 'comma-application-util'" >&2; exit 1; }
+source $( dirname $0 )/test-fns
+
+input_vars="data_start_time verbose"
+input_vars+=" horiz_res channels rotation_rate elevation_max range_min range_max signal_min signal_max hit_prob fields format"
+input_vars+=" num_scans points_per_scan topic mode"
+input_vars+=" output_fields field_mapping"
+
+data_start_time="20200101T120000"
+
+# ----- configurable -----
+verbose=1
+keep_input=0
+# ----- configurable -----
+
+# ----------------------------------------------------------
+# make pointcloud
+# ----------------------------------------------------------
+
+# ----- configurable -----
+horiz_res=512                   # sample points per revolution
+channels=32                     # vertical channels
+rotation_rate=10                # rotations per second
+elevation_max=30                # elevation range assumed to be -elevation_max -> elevation_max (degrees)
+range_min=1
+range_max=100
+signal_min=0
+signal_max=255
+hit_prob=0.5                    # probably of a return for any given point in space
+fields=t,measurement_id,block,channel,range,bearing,elevation,signal,x,y,z
+format=t,uw,ui,uw,d,d,d,uw,d,d,d
+# ----- configurable -----
+
+# e.g. input file
+# horiz_res=4                     # sample points per revolution
+# channels=2                      # vertical channels
+# rotation_rate=2                 # rotations per second
+
+# create block,measurement_id,channel
+# keep a random set of points based on hit_prob
+# add a random range
+# add a random signal
+# add time (based on rotation angle and rate)
+# convert az, el to radians
+# add cartesian coordinates
+# reorder fields
+function pointcloud()
+{
+    csv-paste "line-number;size=$(( horiz_res * channels ))" "line-number;shape=$horiz_res,$channels" \
+        | csv-random sample --fields block --ratio $hit_prob \
+        | csv-random make --range $range_min,$range_max --append \
+        | csv-random make --range $signal_min,$signal_max --append \
+        | csv-eval --fields block,measurement_id,channel,range,signal "t = $( echo $data_start_time | csv-time --to us ) + ( block / $rotation_rate + measurement_id / $(( horiz_res * rotation_rate )) ) * 1000000" --output-format t \
+        | csv-eval --fields block,measurement_id,channel,range,signal,t "az = measurement_id / $horiz_res * 2 * pi; el = ( channel - $(( channels / 2 )) ) / $(( channels / 2 )) * $elevation_max / 360 * 2 * pi" \
+        | points-to-cartesian --fields block,measurement_id,channel,range,signal,t,bearing,elevation --append \
+        | csv-shuffle --fields block,measurement_id,channel,range,signal,t,bearing,elevation,x,y,z --output $fields
+}
+
+# ----------------------------------------------------------
+# filter pointcloud to a smaller selection of points
+# ----------------------------------------------------------
+
+# ----- configurable -----
+num_scans=5
+points_per_scan=100
+# ----- configurable -----
+
+function filter()
+{
+    csv-blocks index --reverse --fields $fields \
+        | csv-blocks head --num-of-blocks $num_scans --fields $fields,index \
+        | csv-shuffle --fields $fields,index --output $fields \
+        | csv-random sample --fields $fields --size $points_per_scan
+}
+
+# ----------------------------------------------------------
+# create ros bag
+# ----------------------------------------------------------
+
+function cleanup()
+{
+    if (( ! keep_input )); then
+        [[ -d $bag_dir ]] && rm -r $bag_dir;
+    fi
+}
+trap cleanup EXIT
+
+bag_dir=test_$$_bag
+
+# ----- configurable -----
+topic=/points
+field_mapping=
+time_format=
+mode=binary
+# ----- configurable -----
+
+# data always enters as ascii but we can process it in ros2-points as ascii or binary
+function ros_bag()
+{
+    # assume ascii mode, but switch to binary if requested
+    local input_filter=cat
+    local output_filter=cat
+    local format_option="--format $format"
+    if [[ $mode == "binary" ]]; then
+        input_filter="csv-to-bin $format"
+        output_filter="csv-from-bin $format"
+        format_option="--binary $format"
+    fi
+
+    local options=$format_option
+    [[ $field_mapping ]] && options+=" --field-name-map=$field_mapping"
+    [[ $time_format ]] && options+=" --time-format=$time_format"
+    (( verbose )) && options+=" --verbose"
+
+    # use the --pass option to also record the input data
+    $input_filter | ros2-points --to $topic --fields $fields $options --output $bag_dir --pass \
+        | $output_filter | name-value-from-csv $fields --prefix input/point --line-number --unquote-numbers
+}
+
+# ----------------------------------------------------------
+# load input and create bag file
+# ----------------------------------------------------------
+
+# ----- configurable -----
+output_fields=$fields
+# ----- configurable -----
+
+source <( cat )                 # load input
+
+for v in $input_vars; do
+    echo "input/$v=${!v}"
+done | csv-quote --fields ,x -d =
+
+pointcloud | filter | ros_bag
+
+# ----------------------------------------------------------
+# analyse bag
+# ----------------------------------------------------------
+
+echo "rosbag/num_msgs=$( ros_bag_info $bag_dir messages )"
+echo "rosbag/topic=$( ros_bag_info $bag_dir topics | head -1 )"
+echo "rosbag/msg_type=$( ros_bag_info $bag_dir msg_types | head -1 )"
+
+# map a:b,c:d,... to a,c,... b,d,...
+# extract <pos> <field-map>
+function extract()
+{
+    [[ $2 ]] && tr , '\n' <<< $2 | cut -f$1 -d: | paste -s -d, || echo "---empty---"
+}
+
+function fields_to_ros_fields()
+{
+    local fields=$1
+    local field_mapping=$2
+    csv-fields rename --fields $( extract 1 $field_mapping ) --to $( extract 2 $field_mapping ) <<< $fields
+}
+
+# fields and format of the pointcloud as stored in the ROS bag
+ros_fields=$( fields_to_ros_fields $fields $field_mapping )
+ros_format=$format
+
+# fields and format of the pointcloud as output by ros2-points
+ros_output_fields=$ros_fields
+ros_output_format=$ros_format
+output_fields_option=
+if [[ $output_fields ]]; then
+    ros_output_fields=$( fields_to_ros_fields $output_fields $field_mapping )
+    ros_output_format=$( echo $format | csv-format expand | csv-shuffle --fields $fields --output $output_fields | csv-format collapse )
+    output_fields_option="--fields $ros_output_fields"
+fi
+
+# we can't usefully use rostopic (or any other native ros application) to look inside the individual messages
+# since they just present it as a big data field, so we use ros2-points --from to extract meaningful data
+
+if [[ $time_format ]]; then
+    time_format_option="--time-format=$time_format"
+    case $time_format in
+        offset-seconds)     ros_format=$( csv-fields rename --fields t --to f <<< $ros_format ) ;;
+        offset-nanoseconds) ros_format=$( csv-fields rename --fields t --to ui <<< $ros_format ) ;;
+    esac
+fi
+
+verbose_option=
+if (( verbose )); then
+    echo "ros fields: $ros_output_fields" >&2
+    echo "ros format: $ros_format" >&2
+    echo "bin format: $ros_output_format" >&2
+    verbose_option="--verbose"
+fi
+
+echo "test/output_fields=\"$ros_output_fields\""
+echo "test/output_format=\"$ros_output_format\""
+
+# look at the raw data inside the ros bag
+ros2-points --from $topic --bags $bag_dir --fields $ros_fields --ignore-time-format $verbose_option \
+    | csv-from-bin $ros_format \
+    | name-value-from-csv $ros_fields --prefix rosbag/pointfield --line-number --unquote-numbers
+
+echo "ros_points/options/output_fields=$( ros2-points --from $topic --bags $bag_dir --output-fields )"
+echo "ros_points/options/output_format=$( ros2-points --from $topic --bags $bag_dir --output-format )"
+
+# look at the interpreted data - only the time field might change
+ros2-points --from $topic --bags $bag_dir $output_fields_option $verbose_option $time_format_option \
+    | csv-from-bin $ros_output_format \
+    | name-value-from-csv $ros_output_fields --prefix ros_points/output --line-number --unquote-numbers

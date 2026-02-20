@@ -22,11 +22,11 @@
 
 #ifdef SNARK_BUILD_ROS_2
     #include "../ros2/rclcpp/time.h"
+    #include <sensor_msgs/msg/point_cloud2.hpp>
 #endif
 
 #include "../version.h"
 
-// TODO: Use this file in ros-points too.
 #if ROS_VERSION_MINIMUM(2,0,0)
     namespace snark_ros_sensor_msgs = sensor_msgs::msg;
 #else

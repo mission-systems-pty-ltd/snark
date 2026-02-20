@@ -1,0 +1,38 @@
+#!/bin/bash
+
+scriptname=$( basename $0 )
+
+source $( type -p comma-application-util ) || { echo "$scriptname: cannot source 'comma-application-util'" >&2; exit 1; }
+source $( dirname $0 )/../test-fns
+
+comma_path_value_to_var --prefix=input --export
+
+num_points=2000
+points_per_scan=1000
+bag_dir=test_$$_bag
+topic=/points
+fields=t,id,x,y,z,block
+format=t,ui,3d,ui
+
+function cleanup() { rm -r $bag_dir; }
+trap cleanup EXIT
+
+# assume ascii tests, but switch to binary if requested
+convert_to_binary=cat
+ros_points_format_option="--format $format"
+if [[ $input_type == "binary" ]]; then
+    convert_to_binary="csv-to-bin $format"
+    ros_points_format_option="--binary $format"
+fi
+
+csv-random make --type 3d | head -n $num_points | csv-paste line-number - \
+    | csv-blocks group --fields scalar --span $points_per_scan | csv-time-stamp \
+    | $convert_to_binary \
+    | ros2-points --to $topic --fields $fields $ros_points_format_option --output $bag_dir
+
+echo "rosbag/num_msgs=$( ros_bag_info $bag_dir messages )"
+echo "rosbag/topic=$( ros_bag_info $bag_dir topics | head -1 )"
+echo "rosbag/msg_type=$( ros_bag_info $bag_dir msg_types | head -1 )"
+
+ros_fields=$( ros2-to-csv --bag $bag_dir --topic $topic --output-fields )
+ros2-to-csv --bag $bag_dir --topic $topic | name-value-from-csv $ros_fields --prefix rosbag/msg -n
