@@ -1,1 +1,1 @@
-environment/import="AMENT_PREFIX_PATH"
+environment/imports="AMENT_PREFIX_PATH"
