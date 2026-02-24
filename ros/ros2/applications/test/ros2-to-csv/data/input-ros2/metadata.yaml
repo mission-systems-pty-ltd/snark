@@ -22,22 +22,22 @@ rosbag2_bagfile_information:
   - message_count: 82
     topic_metadata:
       name: /mavros/global_position/global
-      offered_qos_profiles:
+      offered_qos_profiles: ""
       serialization_format: cdr
       type: sensor_msgs/msg/NavSatFix
       type_description_hash: RIHS01_62223ab3fe210a15976021da7afddc9e200dc9ec75231c1b6a557fc598a65404
   - message_count: 82
     topic_metadata:
       name: /mavros/local_position/velocity
-      offered_qos_profiles:
+      offered_qos_profiles: ""
       serialization_format: cdr
       type: geometry_msgs/msg/TwistStamped
       type_description_hash: RIHS01_5f0fcd4f81d5d06ad9b4c4c63e3ea51b82d6ae4d0558f1d475229b1121db6f64
   - message_count: 82
     topic_metadata:
       name: /mavros/imu/data
-      offered_qos_profiles:
+      offered_qos_profiles: ""
       serialization_format: cdr
       type: sensor_msgs/msg/Imu
       type_description_hash: RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b
-  version: 9
+  version: 8
