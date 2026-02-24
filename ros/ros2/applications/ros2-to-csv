@@ -134,7 +134,7 @@ def read_bag( bagfile, topic ):
     global VERBOSE
     if not VERBOSE: rclpy.logging.set_logger_level( 'rosbag2_storage', rclpy.logging.LoggingSeverity.WARN )
 
-    storage_options = rosbag2_py.StorageOptions( uri=bagfile, storage_id='sqlite3' )
+    storage_options = rosbag2_py.StorageOptions( uri=bagfile )
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format='cdr',
         output_serialization_format='cdr'
