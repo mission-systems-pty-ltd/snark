@@ -124,6 +124,19 @@ void bash_completion( unsigned int const ac, char const * const * av )
 }
 
 
+namespace snark { namespace ros {
+void set_time( rosbag2_storage::SerializedBagMessage& bag_message, rcl_time_point_value_t nanoseconds )
+{
+#if ROS_VERSION_MINIMUM( 2, 10, 0 )
+    bag_message.recv_timestamp = nanoseconds;
+    bag_message.send_timestamp = nanoseconds;
+#else
+    bag_message.time_stamp = nanoseconds;
+#endif
+}
+} } // namespace snark { namespace ros {
+
+
 int main( int argc, char** argv )
 {
     try
@@ -238,7 +251,7 @@ int main( int argc, char** argv )
                         *bag_message->serialized_data = serialized_msg.release_rcl_serialized_message();
                         bag_message->topic_name = topic;
                         rclcpp::Time stamp( msg.header.stamp.sec, msg.header.stamp.nanosec );
-                        bag_message->time_stamp = stamp.nanoseconds();
+                        snark::ros::set_time( *bag_message, stamp.nanoseconds() );
                         bag->write( bag_message );
                     } ));
 
