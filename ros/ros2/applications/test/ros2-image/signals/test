@@ -109,7 +109,7 @@ function make_bag_file()
         say "...recording $duration seconds of images from $topic topic"
         # ros2 bag record doesn't work under a timeout command for some reason
         # so put it in the background, sleep, then kill
-        ros2 bag record $topic &
+        ros2 bag record $topic >&2 &    # ROS2 Jazzy prints warnings to stdout
         local ros2_bag_record_pid=$!
         sleep $duration
         kill $ros2_bag_record_pid
