@@ -1,0 +1,14 @@
+std_msgs/Bool/0=0
+std_msgs/Bool/1=1
+std_msgs/Int8/0=5
+std_msgs/Int8/1=-10
+std_msgs/Int16/0=50
+std_msgs/Int16/1=-100
+std_msgs/Int32/0=500
+std_msgs/Int32/1=-1000
+std_msgs/UInt8/0=5
+std_msgs/UInt16/0=50
+std_msgs/UInt32/0=500
+std_msgs/Float32/0=3.1415
+std_msgs/Float64/0=3.14159265
+std_msgs/String/0="this is a test string"
