@@ -64,8 +64,7 @@ def command_line_options():
     group_dry = parser.add_mutually_exclusive_group()
     group_dry.add_argument('--dry-run', '--dry', help='Output messages to stdout, do not send to topic', action='store_true')
     group_dry.add_argument('--ros-queue-size', '--ros-queue', '--queue-size', '--queue', metavar='NUM', default=1, help='Length of ROS publisher queue', type=int)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
