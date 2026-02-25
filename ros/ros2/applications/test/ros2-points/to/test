@@ -17,6 +17,8 @@ format=t,ui,3d,ui
 function cleanup() { rm -r $bag_dir; }
 trap cleanup EXIT
 
+# ---- create a bag file from random data ----
+
 # assume ascii tests, but switch to binary if requested
 convert_to_binary=cat
 ros_points_format_option="--format $format"
@@ -30,9 +32,19 @@ csv-random make --type 3d | head -n $num_points | csv-paste line-number - \
     | $convert_to_binary \
     | ros2-points --to $topic --fields $fields $ros_points_format_option --output $bag_dir
 
+
+# ---- check the bag file ----
+
 echo "rosbag/num_msgs=$( ros_bag_info $bag_dir messages )"
 echo "rosbag/topic=$( ros_bag_info $bag_dir topics | head -1 )"
 echo "rosbag/msg_type=$( ros_bag_info $bag_dir msg_types | head -1 )"
 
 ros_fields=$( ros2-to-csv --bag $bag_dir --topic $topic --output-fields )
-ros2-to-csv --bag $bag_dir --topic $topic | name-value-from-csv $ros_fields --prefix rosbag/msg -n
+ros_format=$( ros2-to-csv --bag $bag_dir --topic $topic --output-format )
+ros_output_fields="header/stamp,height,width"
+ros_output_format=$( echo $ros_format | csv-shuffle --fields $ros_fields --output $ros_output_fields )
+
+ros2-to-csv --bag $bag_dir --topic $topic --binary $ros_format \
+    | csv-shuffle --fields $ros_fields --binary $ros_format --output $ros_output_fields \
+    | csv-from-bin $ros_output_format \
+    | name-value-from-csv $ros_output_fields --prefix rosbag/msg -n
