@@ -89,8 +89,7 @@ def _ros_message_to_csv_record_impl( message, lengths={}, ignore_variable_size_a
         if is_binary_type( field_type_str ):
             continue            # pending solution for converting binary data to comma string
             ctor = lambda msg, field_name=field_name: bytes( getattr( msg, field_name ))
-            current_path = full_path(field_name)
-            length = lengths.get( current_path, len( ctor( message )))
+            length = lengths.get( full_path( field_name ), len( ctor( message )))
             element_t = "S%d" % length
         elif is_primitive_type( field_type_str ):
             ctor = lambda msg, field_name=field_name: getattr( msg, field_name )
