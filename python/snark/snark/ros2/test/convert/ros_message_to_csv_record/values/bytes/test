@@ -1,0 +1,3 @@
+#!/bin/bash
+
+$( dirname $0 )/../msg-to-csv.py --binary | csv-from-bin ui,3ub | name-value-from-csv dim,a,b,c --line-number --prefix output
