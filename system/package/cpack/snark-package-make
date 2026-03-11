@@ -2,18 +2,28 @@
 
 name=$( basename $0 )
 function die() { echo -e "$name: $@" >&2; exit 1; }
-function usage() { die "usage: <ubuntu version> <snark version> <vimba_pkg> [<snark dir>]\ne.g. $name 20.04 1.2.3 Vimba-v4.2.tgz"; }
+function usage() { die "usage: <ubuntu version> <snark version> [<snark dir>]\ne.g. $name 20.04 1.2.3"; }
 
 ubuntu_version=$1
 snark_version=$2
 snark_dir="$3"
-package_name="snark-$snark_version-$ubuntu_version"
+package_name="snark-$snark_version-ubuntu-$ubuntu_version"
 [[ -n $ubuntu_version && -n $snark_version ]] || usage
 [[ -n "$snark_dir" ]] || snark_dir=$( realpath ~/src/snark )
 
 (
     mkdir -p ~/build/snark
     cd ~/build/snark
+
+    vimba_args=()
+    vimba_dir=$( ls -d /opt/Vimba* 2>/dev/null | tail -1 )
+    if [[ -d "$vimba_dir" ]]; then
+        echo "$name: found vimba in $vimba_dir" >&2
+        vimba_args=( -DVIMBA_SDK_ROOT="$vimba_dir" -Dsnark_build_sensors_vimba=ON )
+    else
+        echo "$name: vimba not found; building without vimba support" >&2
+    fi
+
     echo "$name: running cmake in $( pwd )..." >&2
     cmake $snark_dir \
             -Dsnark_version="$snark_version" \
@@ -24,8 +34,8 @@ package_name="snark-$snark_version-$ubuntu_version"
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DCPACK_DEBIAN_FILE_NAME="$package_name.deb" \
-            -DVIMBA_SDK_ROOT=$(ls -d /opt/Vimba*) \
             -Dcomma_DIR=/usr/CMakeFiles/ \
+            -Dsnark_system_manager=systemd \
             -Dsnark_build_actuators=ON \
             -Dsnark_build_actuators_quickset=OFF \
             -Dsnark_build_actuators_universal_robots=OFF \
@@ -56,12 +66,12 @@ package_name="snark-$snark_version-$ubuntu_version"
             -Dsnark_build_sensors_sick=OFF \
             -Dsnark_build_sensors_velodyne=OFF \
             -Dsnark_build_sensors_robosense=ON \
-            -Dsnark_build_sensors_vimba=ON \
             -Dsnark_build_system=OFF \
             -Dsnark_build_terrain=OFF \
             -Dsnark_build_web=ON \
             -Dsnark_build_web_feeds=ON \
             -Dsnark_build_sensors_kinect=OFF \
+            "${vimba_args[@]}" \
       || die "cmake failed"
     echo "$name: running make in $( pwd )..." >&2
     make -j$(nproc) || die "make failed"

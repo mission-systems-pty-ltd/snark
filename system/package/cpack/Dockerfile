@@ -13,13 +13,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends $PACKAGES \
     && rm -rf /var/lib/apt/lists/*
 
-# Unpack and install Vimba.
-ARG vimba_pkg
-COPY $vimba_pkg /tmp/vimba.tgz
-RUN tar -xzf /tmp/vimba.tgz -C /opt \
-    && rm /tmp/vimba.tgz \
-    && cd /opt/Vimba*/VimbaGigETL/ \
-    && ./Install.sh
+# Optionally unpack and install Vimba (pass vimba_pkg build arg to enable).
+ARG vimba_pkg=""
+COPY ${vimba_pkg:-__nothing__}* /tmp/
+RUN if [ -n "$vimba_pkg" ]; then \
+        tar -xzf /tmp/$( basename "$vimba_pkg" ) -C /opt \
+        && rm /tmp/$( basename "$vimba_pkg" ) \
+        && cd /opt/Vimba*/VimbaGigETL/ \
+        && ./Install.sh; \
+    fi
 
 # Make git ok with folder ownership.
 RUN git config --global --add safe.directory /mnt/snark

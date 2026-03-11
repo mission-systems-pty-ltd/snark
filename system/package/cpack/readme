@@ -4,8 +4,14 @@ allow building for different Ubuntu versions.
 
 Build a docker image based on e.g. Ubuntu 20.04, that has all the necessary
 tools/libraries installed. Note, you need to specify a comma.deb that you
-have already built using the scripts in comma, and the vimba SDK tar file. 
-> ./snark-package-docker-build 20.04 comma-1.2.3-20.04.deb Vimba_v4.2_Linux.tgz
+have already built using the scripts in comma.
+
+> ./snark-package-docker-build 20.04 comma-1.2.3-ubuntu-20.04.deb 
+
+You can optionally provide a path to a Vimba SDK .tgz file. If this is 
+provided, the final package will include vimba support.
+
+> ./snark-package-docker-build 20.04 comma-1.2.3-ubuntu-20.04.deb --vimba=Vimba_v4.2_Linux.tgz
 
 Build deb package (e.g. snark version 1.2.3 for Ubuntu 20.04):
 > ./snark-package-docker-run 20.04 1.2.3
@@ -18,4 +24,4 @@ location is ~):
 Debian package will be built in your current directory
 
 Test that package is ok, e.g:
-> ./snark-package-docker-test 20.04 snark-1.2.3-20.04.deb
+> ./snark-package-docker-test 20.04 snark-1.2.3-ubuntu-20.04.deb
