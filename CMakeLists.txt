@@ -1,21 +1,14 @@
-if( ${CMAKE_MAJOR_VERSION} LESS 4 )
-    cmake_minimum_required( VERSION 3.1 )
-else()
-    cmake_minimum_required( VERSION 3.5 )
-endif()
+cmake_minimum_required( VERSION 3.16 )
 cmake_policy( SET CMP0048 NEW )
-project( snark VERSION 1.1.3 LANGUAGES CXX )
-if( NOT DEFINED CMAKE_PROJECT_VERSION )
-    set( CMAKE_PROJECT_VERSION ${PROJECT_VERSION} )
-    set( CMAKE_PROJECT_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} )
-    set( CMAKE_PROJECT_VERSION_MINOR ${PROJECT_VERSION_MINOR} )
-    set( CMAKE_PROJECT_VERSION_PATCH ${PROJECT_VERSION_PATCH} )
-endif( NOT DEFINED CMAKE_PROJECT_VERSION )
 
-set( snark_version_major "${CMAKE_PROJECT_VERSION_MAJOR}" ) # quick and dirty
-set( snark_version_minor "${CMAKE_PROJECT_VERSION_MINOR}" ) # quick and dirty
-set( snark_version_patch "${CMAKE_PROJECT_VERSION_PATCH}" ) # quick and dirty
-set( snark_version "${CMAKE_PROJECT_VERSION}" ) # quick and dirty
+# Making the project version a variable means that you can override it
+# when building a DEB/RPM package (for example).
+set( snark_version "1.1.0" CACHE STRING "project version" )
+project( snark VERSION ${snark_version} LANGUAGES CXX )
+# Extract version components.
+set( snark_version_major "${CMAKE_PROJECT_VERSION_MAJOR}" )
+set( snark_version_minor "${CMAKE_PROJECT_VERSION_MINOR}" )
+set( snark_version_patch "${CMAKE_PROJECT_VERSION_PATCH}" )
 
 ENABLE_TESTING()
 INCLUDE( CMakeDependentOption )
@@ -111,14 +104,7 @@ IF(CMAKE_BUILD_TOOL MATCHES "make")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
   ENDIF(NOT CMAKE_C_FLAGS MATCHES "-Wall")
 
-  IF( IS_64_BIT )
-    IF(NOT CMAKE_CXX_FLAGS MATCHES "-fPIC")
-      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-    ENDIF(NOT CMAKE_CXX_FLAGS MATCHES "-fPIC")
-    IF(NOT CMAKE_C_FLAGS MATCHES "-fPIC")
-      SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    ENDIF(NOT CMAKE_C_FLAGS MATCHES "-fPIC")
-  ENDIF( IS_64_BIT )
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ENDIF(CMAKE_BUILD_TOOL MATCHES "make")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
@@ -611,50 +597,28 @@ configure_testing( snark_build_sensors_ouster sensors/lidars/ouster )
 
 add_subdirectory( CMakeFiles/post_install ) # uber-quick and dirty
 
-set( CPACK_PACKAGE_NAME "snark" )
-set( CPACK_PACKAGE_DESCRIPTION_SUMMARY "cli utilities for robotics and computer vision" )
 set( CPACK_PACKAGE_VENDOR "orthographic" )
-set( CPACK_DEBIAN_PACKAGE_DESCRIPTION "command line utilities for for robotics and computer vision" )
-set( CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://gitlab.com/orthographic/snark/-/wikis/home" )
-set( CPACK_DEBIAN_PACKAGE_MAINTAINER "vsevolod vlaskine <vsevolod.vlaskine@gmail.com>" )
-#set( CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/system/package/debian/changelog" )
 set( CPACK_PACKAGE_CONTACT "vsevolod.vlaskine@gmail.com" )
-set( CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING" )
-set( CPACK_GENERATOR "DEB" CACHE STRING "cpack generator: PRM or DEB" )
-set( CPACK_PACKAGE_VERSION_MAJOR ${snark_version_major} )
-set( CPACK_PACKAGE_VERSION_MINOR ${snark_version_minor} )
-set( CPACK_PACKAGE_VERSION_PATCH ${snark_version_patch} )
-SET(CPACK_RPM_PACKAGE_REQUIRES "snark python numpy python-opencv")
-#set( CPACK_DEBIAN_PACKAGE_DEPENDS "snark, " )
-set( CPACK_DEBIAN_PACKAGE_SHLIBDEPS "snark, libeigen3-dev, libfftw3-dev, libtbb-dev, zlib1g-dev, libbz2-dev, libopencv-dev, libopencv-highgui-dev, libpcap-dev, qtbase5-dev, qt5-default, qt3d5-dev, libassimp-dev, python-opencv, libqt5charts5-dev, libboost-all-dev (>=1.65), libc" )
-set( CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON )
-set( CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS_POLICY ON )
+set( CPACK_PACKAGE_DESCRIPTION "command line utilities for robotics and computer vision" )
+set( CPACK_PACKAGE_HOMEPAGE "https://gitlab.com/orthographic/snark/-/wikis/home" )
+set( CPACK_PACKAGE_MAINTAINER "vsevolod vlaskine <vsevolod.vlaskine@gmail.com>" )
 
-# if the user builds shared, make sure that the RPM package (that might be generated) runs ldconfig when it's installed.
+set( CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING" )
+
+set( CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set( CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON )
+set( CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS_POLICY ">=" )
+
+# if the user builds shared, make sure that the packages runs ldconfig when installed.
 if( BUILD_SHARED_LIBS )
-    #set( CPACK_RPM_SPEC_MORE_DEFINE "%posttrans -p /sbin/ldconfig" )
+    # RPM.
     set( CPACK_RPM_POST_INSTALL_SCRIPT_FILE "%posttrans -p /sbin/ldconfig" )
-    #set( SHLIBS_FILE "${CMAKE_CURRENT_BINARY_DIR}/shlibs" )
-    # witchcraft from here: https://github.com/roboception/rcdiscover/blob/master/cmake/package_debian.cmake
+
+    # DEB: create a triggers file and add it to the package control extras.
     set( TRIGGERS_FILE "${CMAKE_CURRENT_BINARY_DIR}/triggers" )
     file( WRITE "${TRIGGERS_FILE}" "activate-noawait ldconfig\n" )
-    #file( WRITE "${SHLIBS_FILE}" "" )
-    #foreach ( libname ${sharedlibs} )
-    #    get_target_property( so_abiversion ${libname} SOVERSION )
-    #    if(NOT ${so_abiversion})
-    #      set(so_abiversion ${abiversion})
-    #      message(STATUS "SOVERSION of shared lib \"${libname}\" not set explicitly. Using <Major.Minor> of latest tag: ${so_abiversion}")
-    #      set_target_properties(${libname} PROPERTIES SOVERSION ${so_abiversion})
-    #    endif()
-    #    file(APPEND "${SHLIBS_FILE}" "lib${libname} ${so_abiversion} ${CPACK_PACKAGE_NAME}\n")
-    #endforeach (libname)
-    #execute_process( COMMAND chmod 644 "${SHLIBS_FILE}" "${TRIGGERS_FILE}" )
     execute_process( COMMAND chmod 644 "${TRIGGERS_FILE}" )
-    if( CPACK_DEB_COMPONENT_INSTALL )
-        set( CPACK_DEBIAN_BIN_PACKAGE_CONTROL_EXTRA "${CPACK_DEBIAN_BIN_PACKAGE_CONTROL_EXTRA};${SHLIBS_FILE};${TRIGGERS_FILE}" )
-    else ( CPACK_DEB_COMPONENT_INSTALL )
-        set( CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA};${SHLIBS_FILE};${TRIGGERS_FILE}" )
-    endif ( CPACK_DEB_COMPONENT_INSTALL )
+    set( CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA};${TRIGGERS_FILE}" )
 endif( BUILD_SHARED_LIBS )
 
 IF( snark_build_python AND ADD_PYTHON_PACKAGES_TO_RPM )

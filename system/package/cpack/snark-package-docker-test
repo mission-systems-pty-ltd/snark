@@ -1,0 +1,20 @@
+#!/bin/bash
+
+name=$(basename "$0")
+function die() { echo "$name: $@" >&2; exit 1; }
+
+ubuntu_version="$1"
+package="$2"
+snark_dir="$3"
+[[ $# -ge 2 ]] || die "usage: <ubuntu version> <package> [<snark dir>]"
+[[ -s "$package" ]] || die "file not found or empty: '$package'"
+[[ -n "$snark_dir" ]] || snark_dir="$( realpath ~/src/snark )"
+[[ -d "$snark_dir" ]] || die "please specify <snark dir> explicitly (since you seem to either run with sudo or have snark not in '$snark_dir')"
+package_dir=$( dirname "$( realpath "$package" )" )
+
+# todo: optionally run full regression test
+docker run \
+       --mount "type=bind,source=$snark_dir,target=/mnt/snark" \
+       --mount "type=bind,source=$package_dir,target=/mnt/package" \
+       ubuntu.$ubuntu_version.build.snark \
+       /mnt/snark/system/package/cpack/snark-package-test "/mnt/package/$(basename $package)" || die "failed"

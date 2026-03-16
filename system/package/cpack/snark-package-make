@@ -1,0 +1,54 @@
+#!/bin/bash
+
+name=$( basename $0 )
+function die() { echo -e "$name: $@" >&2; exit 1; }
+function usage() { die "usage: <ubuntu version> <snark version> [<snark dir>]\ne.g. $name 20.04 1.2.3"; }
+
+ubuntu_version=$1
+snark_version=$2
+snark_dir="$3"
+package_name="snark-$snark_version-ubuntu-$ubuntu_version"
+[[ -n $ubuntu_version && -n $snark_version ]] || usage
+[[ -n "$snark_dir" ]] || snark_dir=$( realpath ~/src/snark )
+
+(
+    mkdir -p ~/build/snark
+    cd ~/build/snark
+
+    vimba_args=()
+    vimba_dir=$( ls -d /opt/Vimba* 2>/dev/null | tail -1 )
+    if [[ -d "$vimba_dir" ]]; then
+        echo "$name: found vimba in $vimba_dir" >&2
+        vimba_args=( -DVIMBA_SDK_ROOT="$vimba_dir" -Dsnark_build_sensors_vimba=ON )
+    else
+        echo "$name: vimba not found; building without vimba support" >&2
+    fi
+
+    echo "$name: running cmake in $( pwd )..." >&2
+    cmake $snark_dir \
+            -Dsnark_version="$snark_version" \
+            -DCPACK_GENERATOR=DEB \
+            -DADD_PYTHON_PACKAGES_TO_RPM=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DBUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCPACK_DEBIAN_FILE_NAME="$package_name.deb" \
+            -Dcomma_DIR=/usr/CMakeFiles/ \
+            -Dsnark_system_manager=systemd \
+            "${vimba_args[@]}" \
+      || die "cmake failed"
+    echo "$name: running make in $( pwd )..." >&2
+    make -j$(nproc) || die "make failed"
+    echo "$name: running make install in $( pwd )..." >&2
+    make install || die "make install failed"
+    echo "$name: running cpack in $( pwd )..." >&2
+    cpack -j$(nproc) || die "cpack failed"
+    echo "$name: created package at $( realpath $package_name.deb )" >&2
+    # todo: optionally run full regression test
+    echo "$name: done" >&2
+) || exit 1
+if [[ -d /root/output/ ]]; then
+    cp ~/build/snark/$package_name.deb /root/output/ || die "copy output failed"
+    echo "$name: copied $( realpath ~/build/snark/$package_name.deb ) to $( realpath output )" >&2
+fi
