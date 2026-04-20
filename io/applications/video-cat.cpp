@@ -274,14 +274,12 @@ int main( int ac, char** av )
                                                                      static bool warning_printed = false;
                                                                      if( !warning_printed )
                                                                      {
-                                                                         typedef snark::io::video::stream::timestamp_strategy timestamp_strategy;
-                                                                         timestamp_strategy timestamp_source = video.time_strategy();
-                                                                         switch( timestamp_source )
+                                                                         switch( video.timestamp_strategy() )
                                                                          {
-                                                                             case timestamp_strategy::epoch:
+                                                                             case video.timestamp_strategy_types::epoch:
                                                                                  comma::saymore() << "warning: V4L2 timestamp type UNKNOWN; using kernel-provided value as wall time" << std::endl;
                                                                                  break;
-                                                                             case timestamp_strategy::userspace_fallback:
+                                                                             case video.timestamp_strategy_types::userspace_fallback:
                                                                                  comma::saymore() << "warning: V4L2 timestamp type COPY; ignoring kernel value and using host system time" << std::endl;
                                                                                  break;
                                                                              default:

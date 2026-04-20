@@ -25,7 +25,7 @@ class stream
             record( std::uint32_t count, const snark::timestamped< void* >& buffer ): count( count ), buffer( buffer ) {}
             operator bool() const { return buffer.data != nullptr; }
         };
-        enum class timestamp_strategy
+        enum class timestamp_strategy_types
         {
             unset = 0,
             monotonic,
@@ -43,7 +43,7 @@ class stream
         void stop();
         record read( float timeout = 1, unsigned int attempts = 1 );
         const std::vector< snark::timestamped< void* > >& buffers() const { return _buffers; }
-        timestamp_strategy time_strategy() const { return _time_strategy; }
+        timestamp_strategy_types timestamp_strategy() const { return _timestamp_strategy; }
 
     private:
         std::string _name;
@@ -57,7 +57,8 @@ class stream
         unsigned int _count{0};
         bool _started{false};
         const bool _use_v4l2_time;
-        timestamp_strategy _time_strategy{timestamp_strategy::unset};
+        timestamp_strategy_types _timestamp_strategy{timestamp_strategy_types::unset};
+        boost::posix_time::ptime _boot_time;
 
 };
 

@@ -23,11 +23,11 @@ stream::stream( const std::string& name, unsigned int width, unsigned int height
     , _height( height )
     , _buffers( number_of_buffers )
     , _use_v4l2_time( use_v4l2_time )
+    , _timestamp_strategy( _use_v4l2_time ? timestamp_strategy_types::unset : timestamp_strategy_types::userspace_explicit )
 {
     _file = std::fopen( &name[0], "r+" );
     COMMA_ASSERT( _file, "failed to open '" << name << "'" );
     _fd = ::fileno( _file );
-    if(!_use_v4l2_time) { _time_strategy = timestamp_strategy::userspace_explicit; }
     v4l2_capability capability{};
     v4l2_format format{};
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -122,41 +122,39 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
         _index = buffer.index;
         if( _use_v4l2_time )
         {
-            if( _time_strategy == timestamp_strategy::unset )
+            if( _timestamp_strategy == timestamp_strategy_types::unset )
             {
-                uint32_t timestamp_type = buffer.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK;
-                switch( timestamp_type )
+                switch( uint32_t( buffer.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK ) )
                 {
                     // Standard modern V4L2 behavior
                     case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
-                        _time_strategy = timestamp_strategy::monotonic;
+                        _timestamp_strategy = timestamp_strategy_types::monotonic;
+                        _boot_time = comma::timing::kernel::boot_time();
                         break;
                     // Legacy drivers use CLOCK_REALTIME (epoch)
                     // Note: Subject to NTP adjustments.
                     case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN:
-                        _time_strategy = timestamp_strategy::epoch;
+                        _timestamp_strategy = timestamp_strategy_types::epoch;
                         break;
                     // Timestamp was copied from some other source. Unknown conversion to
                     // system time so fallback to userspace time to be safe
                     case V4L2_BUF_FLAG_TIMESTAMP_COPY:
                     default:
-                        _time_strategy = timestamp_strategy::userspace_fallback;
+                        _timestamp_strategy = timestamp_strategy_types::userspace_fallback;
                         break;
                 }
             }
-
-            if( _time_strategy == timestamp_strategy::monotonic )
+            switch( _timestamp_strategy )
             {
-                static const boost::posix_time::ptime boot_time = comma::timing::kernel::boot_time();
-                _buffers[_index].t = boot_time + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
-            }
-            else if( _time_strategy == timestamp_strategy::epoch )
-            {
-                _buffers[_index].t = comma::timing::epoch_time() + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
-            }
-            else
-            {
-                _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+                case timestamp_strategy_types::monotonic:
+                    _buffers[_index].t = _boot_time + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
+                    break;
+                case timestamp_strategy_types::epoch:
+                    _buffers[_index].t = comma::timing::epoch_time() + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
+                    break;
+                default:
+                    _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+                    break;
             }
         }
         else
