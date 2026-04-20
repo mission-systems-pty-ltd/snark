@@ -4,6 +4,8 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <comma/base/exception.h>
+#include <comma/timing/epoch.h>
+#include <comma/timing/kernel.h>
 #include "video.h"
 
 namespace snark { namespace io { namespace video {
@@ -15,15 +17,17 @@ static int xioctl( int fd, int request, void* arg )
     return r;
 }
 
-stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format )
+stream::stream( const std::string& name, unsigned int width, unsigned int height, unsigned int number_of_buffers, int pixel_format, bool use_v4l2_time )
     : _name( name )
     , _width( width )
     , _height( height )
     , _buffers( number_of_buffers )
+    , _use_v4l2_time( use_v4l2_time )
 {
     _file = std::fopen( &name[0], "r+" );
     COMMA_ASSERT( _file, "failed to open '" << name << "'" );
     _fd = ::fileno( _file );
+    if(!_use_v4l2_time) { _time_strategy = timestamp_strategy::userspace_explicit; }
     v4l2_capability capability{};
     v4l2_format format{};
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -116,7 +120,49 @@ stream::record stream::read( float timeout_seconds, unsigned int attempts )
         COMMA_ASSERT( buffer.index < _buffers.size(), "'" << _name << "': expected buffer index less than number of buffers (" << _buffers.size() << "); got: " << buffer.index );
         COMMA_ASSERT( xioctl( _fd, VIDIOC_QBUF, &buffer ) != -1, "'" << _name << "': ioctl error: VIDIOC_QBUF" );
         _index = buffer.index;
-        _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+        if( _use_v4l2_time )
+        {
+            if( _time_strategy == timestamp_strategy::unset )
+            {
+                uint32_t timestamp_type = buffer.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK;
+                switch( timestamp_type )
+                {
+                    // Standard modern V4L2 behavior
+                    case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
+                        _time_strategy = timestamp_strategy::monotonic;
+                        break;
+                    // Legacy drivers use CLOCK_REALTIME (epoch)
+                    // Note: Subject to NTP adjustments.
+                    case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN:
+                        _time_strategy = timestamp_strategy::epoch;
+                        break;
+                    // Timestamp was copied from some other source. Unknown conversion to
+                    // system time so fallback to userspace time to be safe
+                    case V4L2_BUF_FLAG_TIMESTAMP_COPY:
+                    default:
+                        _time_strategy = timestamp_strategy::userspace_fallback;
+                        break;
+                }
+            }
+
+            if( _time_strategy == timestamp_strategy::monotonic )
+            {
+                static const boost::posix_time::ptime boot_time = comma::timing::kernel::boot_time();
+                _buffers[_index].t = boot_time + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
+            }
+            else if( _time_strategy == timestamp_strategy::epoch )
+            {
+                _buffers[_index].t = comma::timing::epoch_time() + boost::posix_time::seconds( buffer.timestamp.tv_sec ) + boost::posix_time::microseconds( buffer.timestamp.tv_usec );
+            }
+            else
+            {
+                _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+            }
+        }
+        else
+        {
+            _buffers[_index].t = boost::posix_time::microsec_clock::universal_time();
+        }
         return stream::record( ++_count, _buffers[_index] );
     }
 }

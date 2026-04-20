@@ -62,6 +62,8 @@ output options
     --output-header-format,--output-format
     --output-no-header,--no-header; do not output header
     --output-header-only,--header-only; output header only, e.g. for debugging
+    --use-v4l2-time; use v4l2 assigned timestamp (converted to system time) instead of tagging
+        with system time in userspace
 examples
     acquire and display video stream from a FLIR 16-bit greyscale camera
         porcelain
@@ -269,6 +271,24 @@ int main( int ac, char** av )
                                                                , [&]( const record_t& record )
                                                                  {
                                                                      if( !record ) { return; }
+                                                                     static bool warning_printed = false;
+                                                                     if( !warning_printed )
+                                                                     {
+                                                                         typedef snark::io::video::stream::timestamp_strategy timestamp_strategy;
+                                                                         timestamp_strategy timestamp_source = video.time_strategy();
+                                                                         switch( timestamp_source )
+                                                                         {
+                                                                             case timestamp_strategy::epoch:
+                                                                                 comma::saymore() << "warning: V4L2 timestamp type UNKNOWN; using kernel-provided value as wall time" << std::endl;
+                                                                                 break;
+                                                                             case timestamp_strategy::userspace_fallback:
+                                                                                 comma::saymore() << "warning: V4L2 timestamp type COPY; ignoring kernel value and using host system time" << std::endl;
+                                                                                 break;
+                                                                             default:
+                                                                                 break;
+                                                                         }
+                                                                         warning_printed = true;
+                                                                     }
                                                                      unsigned int c{count};
                                                                      int d = c - record.count;
                                                                      if( latest ) // todo? don't skip, just jump straight to the latest record
