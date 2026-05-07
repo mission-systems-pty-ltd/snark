@@ -83,7 +83,12 @@ std::pair< H, cv::Mat > encode< H >::operator()( std::pair< H, cv::Mat > m )
     // according to the specification (which is hard to find and sucks once found),
     // the subsecond timing value is to be interpreted as decimal digits in the
     // seconds value of the time
-    Exiv2::Image::AutoPtr exiv2_image = Exiv2::ImageFactory::open( ( const Exiv2::byte* )( &buffer[0] ), buffer.size() );
+    auto exiv2_image = Exiv2::ImageFactory::open((const Exiv2::byte*)(&buffer[0]), buffer.size());
+    // #if EXIV2_TEST_VERSION(0, 28, 0)
+    //     Exiv2::Image::UniquePtr exiv2_image = Exiv2::ImageFactory::open((const Exiv2::byte*)(&buffer[0]), buffer.size());
+    // #else
+    //     Exiv2::Image::AutoPtr exiv2_image = Exiv2::ImageFactory::open( ( const Exiv2::byte* )(&buffer[0]), buffer.size());
+    // #endif
     exiv2_image->readMetadata();
     Exiv2::ExifData& exif_data = exiv2_image->exifData();
     auto t = _get_timestamp( p.first );
@@ -108,7 +113,11 @@ std::pair< H, cv::Mat > encode< H >::operator()( std::pair< H, cv::Mat > m )
     // Exiv2::ExifTags::taglist( std::cerr );
     // std::cerr << "===========================" << std::endl;
     p.second = cv::Mat( exiv_size, 1, CV_8UC1 );
-    ::memcpy( p.second.data, ( const char* )( exiv_buffer.pData_ ), exiv_size );
+    #if EXIV2_TEST_VERSION(0, 28, 0)
+        ::memcpy(p.second.data, exiv_buffer.data(), exiv_size);
+    #else
+        ::memcpy( p.second.data, ( const char* )( exiv_buffer.pData_ ), exiv_size );
+    #endif
     return p;
 }
 

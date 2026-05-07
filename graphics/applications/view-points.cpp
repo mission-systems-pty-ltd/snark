@@ -523,9 +523,17 @@ static std::vector< Options > make_image_options( const std::string& shape )
         std::string e = path.extension().string();
         if( e != ".png" && e != ".jpg" && e != ".jpeg" && e != ".bmp" && e != ".gif" ) { break; } // quick and dirty
         std::vector< std::string > filenames;
+        #if ( BOOST_VERSION < 109000 )
         if( path.leaf().string() == ( "*" + e ) ) // quick and dirty; proper regex: todo
+        #else
+        if( path.filename().string() == ( "*" + e ) ) // quick and dirty; proper regex: todo
+        #endif
         {
+            #if ( BOOST_VERSION < 109000 )
             std::string dir = path.branch_path().string();
+            #else
+            std::string dir = path.parent_path().string();
+            #endif
             if( dir.empty() ) { dir = "."; }
             for( boost::filesystem::directory_iterator it( dir ); it != boost::filesystem::directory_iterator(); ++it ) { if( it->path().extension() == e ) { filenames.push_back( it->path().string() ); } }
             if( filenames.empty() ) { COMMA_THROW( comma::exception, "no " << e << " files found in " << dir ); }

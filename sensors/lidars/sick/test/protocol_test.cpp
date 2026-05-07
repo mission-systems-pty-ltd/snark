@@ -40,8 +40,11 @@
 
 TEST( sick, DISABLED_protocol )
 {
-    boost::asio::ip::tcp::endpoint e( boost::asio::ip::address::from_string( "127.0.0.1" ), 1234 );
-
+    #if ( BOOST_VERSION < 108700 )
+        boost::asio::ip::tcp::endpoint e( boost::asio::ip::address::from_string( "127.0.0.1" ), 1234 );
+    #else
+        boost::asio::ip::tcp::endpoint e( boost::asio::ip::make_address( "127.0.0.1" ), 1234 );
+    #endif
     boost::asio::ip::tcp::iostream stream( e );
     if( !stream ) { std::cerr << "---> connect failed" << std::endl; exit( -1 ); }
     std::cerr << "---> connected" << std::endl;

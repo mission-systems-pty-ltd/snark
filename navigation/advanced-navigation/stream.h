@@ -33,7 +33,11 @@ struct stream
 
 struct serial_stream : public stream
 {
-    boost::asio::io_service service;
+    #if ( BOOST_VERSION < 108700 )
+        boost::asio::io_service service;
+    #else
+        boost::asio::io_context service;
+    #endif
     boost::asio::serial_port port;
     serial_stream( const std::string& name, const advanced_navigation::options& options );
     std::size_t read_some( char* buf, std::size_t buf_size, std::size_t read_size );

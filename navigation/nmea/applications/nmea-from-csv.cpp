@@ -207,10 +207,14 @@ static void write_to_stdout( const std::string& s ) { std::cout << s << ( output
 
 static void write_to_serial( const std::string& a, const std::string& s )
 {
-    static comma::io::serial::port p( comma::name_value::parser( "name", ';', '=' ).get< comma::io::serial::port::properties >( a ) );
-    p.write( &s[0], s.size() );
-    if( output_carriage_return ) { p.write( "\r", 1 ); }
-    p.write( "\n", 1 );
+    #if ( BOOST_VERSION < 108700 )
+        static comma::io::serial::port p( comma::name_value::parser( "name", ';', '=' ).get< comma::io::serial::port::properties >( a ) );
+        p.write( &s[0], s.size() );
+        if( output_carriage_return ) { p.write( "\r", 1 ); }
+        p.write( "\n", 1 );
+    #else
+        COMMA_THROW( comma::exception, "serial port for boost versions higher than 1.86: todo; got boost version: " << BOOST_VERSION );
+    #endif
 }
 
 int main( int ac, char** av )

@@ -173,7 +173,7 @@ ENDIF( NOT BUILD_SHARED_LIBS )
 option( snark_BUILD_PYTHON_PACKAGES "install snark python packages" OFF )
 CMAKE_DEPENDENT_OPTION( snark_BUILD_PYTHON_BINDINGS "build C++/Python bindings" OFF "snark_BUILD_PYTHON_PACKAGES" ON )
 
-set( snark_boost_components iostreams thread filesystem system serialization date_time program_options regex )
+set( snark_boost_components iostreams thread filesystem serialization date_time program_options regex )
 if( snark_BUILD_PYTHON_PACKAGES AND snark_BUILD_PYTHON_BINDINGS )
     IF( NOT BUILD_SHARED_LIBS )
         MESSAGE( WARNING "Linking C++/Python bindings with static libraries is requested. If linking fails, recompile required libraries with -fPIC or use shared libraries. Note that this feature has only been tested with shared libraries." )
@@ -193,7 +193,7 @@ if( snark_BUILD_PYTHON_PACKAGES AND snark_BUILD_PYTHON_BINDINGS )
         endif()
     endif()
 endif()
-find_package( Boost COMPONENTS REQUIRED ${snark_boost_components} )
+find_package( Boost COMPONENTS REQUIRED ${snark_boost_components} OPTIONAL_COMPONENTS system ) # system is not a library from boost 1.89 onward
 
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIRS} )
 LINK_DIRECTORIES( ${Boost_LIBRARY_DIRS} )
