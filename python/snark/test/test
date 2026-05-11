@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pytest -v -s 1>&2
+python3 -m pytest -v -s 1>&2
 status=$?
 echo "pytest/status=$status"
 exit $status
