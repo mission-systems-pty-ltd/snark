@@ -25,7 +25,7 @@ if( snark_vimba_cat_ptp_support )
     set_source_files_properties( vimba-cat.cpp PROPERTIES COMPILE_OPTIONS "-DVIMBA_PTP_SUPPORT" )
 endif()
 # we also selectively choose which comma libraries to link against, also to avoid boost filesystem
-set( vimba_comma_libraries comma_application comma_string comma_csv comma_xpath comma_name_value comma_base )
+set( vimba_comma_libraries comma_application comma_string comma_csv comma_xpath comma_name_value comma_base comma_timing )
 if( snark_vimba_cat_ptp_support )
     set( vimba_comma_libraries comma_io ${vimba_comma_libraries} )
 endif()
