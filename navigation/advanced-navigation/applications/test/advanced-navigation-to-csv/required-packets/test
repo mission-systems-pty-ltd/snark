@@ -1,0 +1,5 @@
+#!/bin/bash
+
+while read packet; do
+    echo "required_packets/${packet//-/_}=\"$( advanced-navigation-to-csv $packet --required-packets )\""
+done
