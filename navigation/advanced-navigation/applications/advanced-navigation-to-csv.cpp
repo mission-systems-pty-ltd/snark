@@ -268,13 +268,6 @@ template <> struct traits< status_data >
 
 } } // namespace comma { namespace visiting {
 
-struct app_i
-{
-    virtual ~app_i() {}
-    virtual void run() = 0;
-    virtual void output_fields() = 0;
-};
-
 struct app_base : public snark::navigation::advanced_navigation::device
 {
     comma::io::select select;
