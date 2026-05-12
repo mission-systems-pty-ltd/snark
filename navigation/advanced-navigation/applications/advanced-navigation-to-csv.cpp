@@ -165,21 +165,21 @@ struct output_geodetic_pose
 struct output_imu
 {
     output_imu() {}
-    messages::unix_time unix_time;
-    messages::raw_sensors raw_sensors;
-    Eigen::Vector3f orientation_stddev;
-    messages::euler_orientation orientation;
-    messages::angular_velocity angular_velocity;
+    messages::unix_time unix_time;               // packet id 21
+    Eigen::Vector3f orientation_stddev;          // packet id 26
+    messages::raw_sensors raw_sensors;           // packet id 28
+    messages::euler_orientation orientation;     // packet id 39
+    messages::angular_velocity angular_velocity; // packet id 42
 };
 
 struct output_all
 {
     output_all() : velocity_stddev( 0, 0, 0 ), orientation_stddev( 0, 0, 0 ) {}
-    messages::system_state system_state;
-    messages::raw_sensors raw_sensors;
-    Eigen::Vector3f velocity_stddev;
-    Eigen::Vector3f orientation_stddev;
-    messages::satellites satellites;
+    messages::system_state system_state;         // packet id 20
+    Eigen::Vector3f velocity_stddev;             // packet id 25
+    Eigen::Vector3f orientation_stddev;          // packet id 26
+    messages::raw_sensors raw_sensors;           // packet id 28
+    messages::satellites satellites;             // packet id 30
 };
 
 struct status_data
