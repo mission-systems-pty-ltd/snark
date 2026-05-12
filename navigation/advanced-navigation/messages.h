@@ -84,6 +84,8 @@ struct reset : public comma::packed::packed_struct< reset, 4 >
 struct system_state : public comma::packed::packed_struct< system_state, 100 >
 {
     enum { id = 20 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::uint16 system_status;
     comma::packed::little_endian::uint16 filter_status;
     comma::packed::little_endian::uint32 unix_time_seconds;
@@ -162,6 +164,8 @@ struct filter_status_description
 struct unix_time : public comma::packed::packed_struct< unix_time, 8 >
 {
     enum { id = 21 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::uint32 unix_time_seconds;
     comma::packed::little_endian::uint32 microseconds;
 
@@ -171,24 +175,32 @@ struct unix_time : public comma::packed::packed_struct< unix_time, 8 >
 struct position_standard_deviation : public comma::packed::packed_struct< position_standard_deviation, 12 >
 {
     enum { id = 24 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     boost::array< comma::packed::little_endian::float32, 3 > stddev;
 };
 
 struct velocity_standard_deviation : public comma::packed::packed_struct< velocity_standard_deviation, 12 >
 {
     enum { id = 25 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     boost::array< comma::packed::little_endian::float32, 3 > stddev;
 };
 
 struct orientation_standard_deviation : public comma::packed::packed_struct< orientation_standard_deviation, 12 >
 {
     enum { id = 26 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     boost::array< comma::packed::little_endian::float32, 3 > stddev;
 };
 
 struct raw_sensors : public comma::packed::packed_struct< raw_sensors, 48 >
 {
     enum { id = 28 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     boost::array< comma::packed::little_endian::float32, 3 > accelerometer; //x,y,z m/s/s
     boost::array< comma::packed::little_endian::float32, 3 > gyroscope; //x,y,z rad/s
     boost::array< comma::packed::little_endian::float32, 3 > magnetometer;  //x,y,z mG
@@ -200,6 +212,8 @@ struct raw_sensors : public comma::packed::packed_struct< raw_sensors, 48 >
 struct satellites : public comma::packed::packed_struct< satellites, 13 >
 {
     enum { id = 30 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float32 hdop;
     comma::packed::little_endian::float32 vdop;
     comma::packed::uint8 gps_satellites;
@@ -212,6 +226,8 @@ struct satellites : public comma::packed::packed_struct< satellites, 13 >
 struct geodetic_position : public comma::packed::packed_struct< geodetic_position, 24 >
 {
     enum { id = 32 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float64 latitude;
     comma::packed::little_endian::float64 longitude;
     comma::packed::little_endian::float64 height;
@@ -220,6 +236,8 @@ struct geodetic_position : public comma::packed::packed_struct< geodetic_positio
 struct acceleration : public comma::packed::packed_struct< acceleration, 12 >
 {
     enum { id = 37 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float32 x;
     comma::packed::little_endian::float32 y;
     comma::packed::little_endian::float32 z;
@@ -228,6 +246,8 @@ struct acceleration : public comma::packed::packed_struct< acceleration, 12 >
 struct euler_orientation : public comma::packed::packed_struct< euler_orientation, 12 >
 {
     enum { id = 39 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float32 roll;
     comma::packed::little_endian::float32 pitch;
     comma::packed::little_endian::float32 heading;
@@ -236,6 +256,8 @@ struct euler_orientation : public comma::packed::packed_struct< euler_orientatio
 struct quaternion_orientation : public comma::packed::packed_struct< quaternion_orientation, 16 >
 {
     enum { id = 40 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float32 qs;
     comma::packed::little_endian::float32 qx;
     comma::packed::little_endian::float32 qy;
@@ -245,6 +267,8 @@ struct quaternion_orientation : public comma::packed::packed_struct< quaternion_
 struct angular_velocity : public comma::packed::packed_struct< angular_velocity, 12 >
 {
     enum { id = 42 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::little_endian::float32 x;
     comma::packed::little_endian::float32 y;
     comma::packed::little_endian::float32 z;
@@ -253,6 +277,8 @@ struct angular_velocity : public comma::packed::packed_struct< angular_velocity,
 struct external_time : public comma::packed::packed_struct< external_time, 8 >
 {
     enum { id = 52 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     enum : bool { expects_response = false };
 
     comma::packed::little_endian::uint32 unix_time_seconds;
@@ -266,6 +292,8 @@ struct external_time : public comma::packed::packed_struct< external_time, 8 >
 struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections, 260 >
 {
     enum { id = 55 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     enum : bool { expects_response = true };
 
     messages::header header;
@@ -278,6 +306,8 @@ struct rtcm_corrections : public comma::packed::packed_struct< rtcm_corrections,
 struct filter_options : public comma::packed::packed_struct< filter_options, 17 >
 {
     enum { id = 186 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     enum : bool { expects_response = true };
 
     comma::packed::uint8 permanent;
@@ -297,6 +327,8 @@ struct filter_options : public comma::packed::packed_struct< filter_options, 17 
 struct magnetic_calibration_configuration : public comma::packed::packed_struct< magnetic_calibration_configuration, 1 >
 {
     enum { id = 190 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     enum : bool { expects_response = true };
 
     comma::packed::uint8 action;
@@ -307,6 +339,8 @@ struct magnetic_calibration_configuration : public comma::packed::packed_struct<
 struct magnetic_calibration_status : public comma::packed::packed_struct< magnetic_calibration_status, 3 >
 {
     enum { id = 191 };
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { id }; }
+
     comma::packed::uint8 status;
     comma::packed::uint8 progress;
     comma::packed::uint8 error;

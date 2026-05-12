@@ -80,6 +80,7 @@ options
     --magnetic-calibration-description: print description table
     --output-fields:   print output fields and exit
     --output-format:   print output format and exit
+    --required-packets;  print comma-separated list of required packet ids
     --sleep=<microseconds>: sleep between reading, default " << sleep_us;
     --status=<packet>: print out expanded status bit map of input values
     --status-description=<packet>: print description of status bit field
@@ -117,6 +118,9 @@ csv options
         | csv-paste - value=0 | csv-calc --fields id size \
         | csv-eval --fields c --format d 'c*=0.5'
 
+    --- see required packets ---
+    advanced-navigation-to-csv imu --required-packets
+
   where <raw-data> is coming from advanced-navigation-cat or similar
 )";
     }
@@ -131,7 +135,7 @@ static void bash_completion()
 {
     std::cout << "--help --verbose"
               << " system-state unix-time raw-sensors satellites magnetic-calibration navigation all packet-ids"
-              << " --output-fields --output-format --send --json"
+              << " --output-fields --output-format --send --json --required-packets"
               << " --magnetic-calibration-description --status --status-description"
               << std::endl;
 }
@@ -141,6 +145,8 @@ struct output_packet_id
 {
     output_packet_id() : packet_id( 0 ) {}
     uint8_t packet_id;
+
+    static constexpr std::array< unsigned int, 0 > required_packets() { return {}; }
 };
 
 struct output_nav
@@ -152,6 +158,8 @@ struct output_nav
     snark::roll_pitch_yaw orientation;
     uint16_t system_status;
     uint16_t filter_status;
+
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { messages::system_state::id }; }
 };
 
 struct output_geodetic_pose
@@ -160,6 +168,10 @@ struct output_geodetic_pose
     messages::unix_time unix_time;
     messages::geodetic_position geodetic_position;
     messages::quaternion_orientation quaternion_orientation;
+
+    static constexpr std::array< unsigned int, 3 > required_packets() { return { messages::unix_time::id
+                                                                               , messages::geodetic_position::id
+                                                                               , messages::quaternion_orientation::id }; }
 };
 
 struct output_imu
@@ -170,6 +182,12 @@ struct output_imu
     messages::raw_sensors raw_sensors;           // packet id 28
     messages::euler_orientation orientation;     // packet id 39
     messages::angular_velocity angular_velocity; // packet id 42
+
+    static constexpr std::array< unsigned int, 5 > required_packets() { return { messages::unix_time::id
+                                                                               , messages::orientation_standard_deviation::id
+                                                                               , messages::raw_sensors::id
+                                                                               , messages::euler_orientation::id
+                                                                               , messages::angular_velocity::id }; }
 };
 
 struct output_all
@@ -180,6 +198,12 @@ struct output_all
     Eigen::Vector3f orientation_stddev;          // packet id 26
     messages::raw_sensors raw_sensors;           // packet id 28
     messages::satellites satellites;             // packet id 30
+
+    static constexpr std::array< unsigned int, 5 > required_packets() { return { messages::system_state::id
+                                                                               , messages::velocity_standard_deviation::id
+                                                                               , messages::orientation_standard_deviation::id
+                                                                               , messages::raw_sensors::id
+                                                                               , messages::satellites::id }; }
 };
 
 struct status_data
@@ -294,6 +318,7 @@ template< typename T > struct app_t : public app_base
     app_t( const comma::command_line_options& options ): os( std::cout, comma::csv::options( options, "", true )) {}
     static void output_fields() { std::cout << comma::join( comma::csv::names< T >( true ), ',' ) << std::endl; }
     static void output_format() { std::cout << comma::csv::format::value< T >() << std::endl; }
+    static void output_required_packets() { std::cout << comma::join( T::required_packets(), ',' ) << std::endl; }
 };
 
 struct app_packet_id : public app_t< output_packet_id >
@@ -411,6 +436,7 @@ template < typename T > struct handler_of : public app_t< T >
         this->os.write( *msg );
         if( flush ) { this->os.flush(); }
     }
+    static constexpr std::array< unsigned int, 1 > required_packets() { return { T::id }; }
 };
 
 struct factory_i
@@ -418,6 +444,7 @@ struct factory_i
     virtual ~factory_i() {}
     virtual void output_fields() = 0;
     virtual void output_format() = 0;
+    virtual void output_required_packets() = 0;
     virtual void run( const comma::command_line_options& options ) = 0;
 };
 
@@ -426,6 +453,7 @@ template < typename T > struct factory_t : public factory_i
     typedef T type;
     void output_fields() { T::output_fields(); }
     void output_format() { T::output_format(); }
+    void output_required_packets() { T::output_required_packets(); }
     void run( const comma::command_line_options& options )
     {
         T app( options );
@@ -514,6 +542,7 @@ int main( int argc, char** argv )
         else { COMMA_THROW( comma::exception, "unsupported packet '" << packet << "; see --help for more details" );}
         if( options.exists( "--output-fields" )) { factory->output_fields(); return 0; }
         if( options.exists( "--output-format" )) { factory->output_format(); return 0; }
+        if( options.exists( "--required-packets" )) { factory->output_required_packets(); return 0; }
         comma::csv::detail::unsynchronize_with_stdio();
         factory->run( options );
         return 0;
