@@ -56,11 +56,11 @@ usage: <raw-data> | advanced-navigation-to-csv  <packet> [<options>]
                 euler-orientation (39)
                 angular-velocity (42)
         or
-            geodetic-pose: combination of 
+            geodetic-pose: combination of
                 unix-time (21)
                 geodetic-position (32)
                 quaternion-orientation (40)
-        or 
+        or
             all: combination of
                 system-state (20)
                 velocity-std-dev (25)
@@ -349,7 +349,7 @@ struct app_geodetic_pose : public app_t< output_geodetic_pose >
         std::memcpy( output.quaternion_orientation.data(), msg->data(), messages::quaternion_orientation::size );
         os.write( output );
         if( flush ) { os.flush(); }
-    } 
+    }
 };
 
 // ---------------------------- imu ----------------------------
