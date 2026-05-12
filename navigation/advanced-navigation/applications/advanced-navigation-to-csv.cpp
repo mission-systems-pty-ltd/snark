@@ -372,7 +372,8 @@ struct app_geodetic_pose : public app_t< output_geodetic_pose >
 
 // ---------------------------- imu ----------------------------
 //
-// accumulate unix-time and raw-sensors packets into one output record
+// accumulate unix-time, raw-sensors, orientation, orientation-std-dev and
+// angular-velocity packets into one output record
 //
 // configure packets to output at the same rate, then packets are received in
 // order of lowest to highest packet id
