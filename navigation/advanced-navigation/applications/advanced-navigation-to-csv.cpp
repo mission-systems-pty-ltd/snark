@@ -44,7 +44,7 @@ usage: <raw-data> | advanced-navigation-to-csv  <packet> [<options>]
             magnetic-calibration (191)
         or combination or subset of packets
             navigation:     navigation data from system-state packet (default)
-            imu:            combine unix-time and raw-sensors packets
+            imu:            combine several packets as described below
             geodetic-pose:  combine several packets as described below
         or
             packet-ids:     display only id's of all received packets
