@@ -566,7 +566,7 @@ if( snark_build_web )
     add_subdirectory( web )
 endif( snark_build_web )
 
-if( snark_build_ros OR snark_build_ros2)
+if( snark_build_ros )
     add_subdirectory( ros )
 endif()
 
