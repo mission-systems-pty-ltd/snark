@@ -6,10 +6,13 @@
 - hosts: localhost
   connection: local
   vars:
-    make_j: 6
+    make_j: 4
     base: "{{ ansible_env.HOME }}"
     snark_cmake_options: "-DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DINSTALL_BASH_COMPLETION=ON -Dsnark_build_control=ON -Dsnark_build_graph=ON -Dsnark_build_graphics=ON -Dsnark_build_math_fft=ON -Dsnark_build_geometry=ON -Dsnark_build_point_cloud=ON Dsnark_build_python=ON -Dsnark_build_sensors_dc1394=ON -Dsnark_build_sensors_velodyne=ON -Dsnark_build_sensors_vimba=OFF -Dsnark_build_web=ON -Dsnark_build_web_feeds=ON -Dsnark_build_imaging=ON -Dsnark_build_imaging_stereo=OFF"
-    comma_directory: "{{ ansible_env.HOME }}/src/comma"
+    src_dir: "{{ base }}/src/snark"
+    build_in_src: false
+    build_dir: "{{ src_dir + '/build' if build_in_src else base + '/build/snark' }}"
+    comma_src_dir: "{{ src_dir }}/../comma"
 
   tasks:
   - name: "snark: dependencies: installing"
@@ -41,45 +44,42 @@
   #       executable: pip3
   #   become: true
 
-  - name: "snark: make source directory at {{ base }}"
-    file: path={{ base }}/{{ item }} state=directory
-    with_items:
-        - src
-        - build
+  - name: "snark: make directory {{ base }}/src"
+    file: path={{ base }}/src state=directory
 
   - name: "snark: dependencies: clone comma"
     git:
         repo: "https://gitlab.com/orthographic/comma.git"
-        dest: "{{ comma_directory }}"
+        dest: "{{ comma_src_dir }}"
         clone: yes
         update: yes
 
   - name: "snark: dependencies: install comma"
-    script: /usr/bin/ansible-playbook {{ comma_directory }}/system/ansible/install.yml
+    script: /usr/bin/ansible-playbook {{ comma_src_dir }}/system/ansible/install.yml -e "src_dir={{ comma_src_dir }} build_in_src={{ build_in_src }}"
 
   - name: "snark: clone"
     git:
         repo: "https://gitlab.com/orthographic/snark.git"
-        dest: "{{ base }}/src/snark"
+        dest: "{{ src_dir }}"
         clone: yes
         update: yes
 
   - name: "snark: make build directory at {{ base }}"
-    file: dest="{{ base }}/build/snark" state=directory
+    file: dest="{{ build_dir }}" state=directory
 
   - name: "snark: cmake"
-    shell: "/usr/bin/cmake {{ snark_cmake_options }} {{ base }}/src/snark chdir={{ base }}/build/snark"
+    shell: "/usr/bin/cmake {{ snark_cmake_options }} {{ src_dir }} chdir={{ build_dir }}"
 
   - name: "snark: make"
     make:
-        chdir: "{{ base }}/build/snark"
+        chdir: "{{ build_dir }}"
         params:
             MAKEFLAGS: "-j {{ make_j }}"
 
   - name: "snark: install"
     become: true
     make:
-        chdir: "{{ base }}/build/snark"
+        chdir: "{{ build_dir }}"
         target: "install"
 
 #  - name: "snark: cmake"
