@@ -1,17 +1,22 @@
 // Copyright (c) 2019 The University of Sydney
 
 #include <algorithm>
+#include <chrono>
+#include <comma/application/signal_flag.h>
 #include <comma/io/stream.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
+#include <comma/timing/conversions.h>
+#include "../../../../imaging/cv_mat/serialization.h"
+#include "../../../../imaging/cv_mat/traits.h"
 #include <librealsense2/rs.hpp>
 
 namespace {
 
 //comma::signal_flag signaled;
 
-void bash_completion( unsigned const ac, char const * const * av )
+static void bash_completion( unsigned const ac, char const * const * av )
 {
     static char const * const arguments[] =
     {
@@ -27,15 +32,16 @@ void bash_completion( unsigned const ac, char const * const * av )
     exit( 0 );
 }
 
-void operations( unsigned const indent_count = 0 )
+static void operations( unsigned const indent_count = 0 )
 {
     auto const indent = std::string( indent_count, ' ' );
-    std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)." << std::endl;
-    std::cerr << indent << "list; list devices." << std::endl;
-    std::cerr << indent << "reset; reset devices." << std::endl;
+    std::cerr << indent << "camera; acquire rgb camera data, output to stdout as cv-cat-formatted images" << std::endl;
+    std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)" << std::endl;
+    std::cerr << indent << "list; list devices" << std::endl;
+    std::cerr << indent << "reset; reset devices" << std::endl;
 }
 
-void usage( bool const verbose )
+static void usage( bool const verbose )
 {
     static const char* const indent="    ";
 
@@ -47,40 +53,36 @@ void usage( bool const verbose )
     std::cerr << "Operations:" << std::endl;
     operations(4);
     std::cerr << std::endl;
-    std::cerr << "Options:" << std::endl;
+    std::cerr << "options" << std::endl;
     std::cerr << "    common:" << std::endl;
     std::cerr << "        --device=<serial>; serial number(s) of device(s)." << std::endl;
     std::cerr << std::endl;
     std::cerr << "    configure:" << std::endl;
     std::cerr << "        --sensor=<index>; serial number(s) of device(s)." << std::endl;
     std::cerr << std::endl;
-    std::cerr << "Info:" << std::endl;
+    std::cerr << "info options" << std::endl;
     std::cerr << "    --operations; print operations and exit." << std::endl;
     std::cerr << "    --output-fields; print operation-dependent output fields to stdout and exit." << std::endl;
     std::cerr << "    --output-format; print operation-dependent output format to stdout and exit." << std::endl;
     std::cerr << std::endl;
-    std::cerr << "Examples:" << std::endl;
-    std::cerr << indent << comma::verbose.app_name() << " list" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << indent << comma::verbose.app_name() << " reset --device 1234 --device 4321" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << indent << comma::verbose.app_name() << " configure --sensor=1 <<< '11,0'" << std::endl;
+    std::cerr << "examples" << std::endl;
+    std::cerr << "    realsense2-util camera | cv-cat 'view;null'" << std::endl;
+    std::cerr << "    realsense2-util configure --sensor=1 <<< '11,0'" << std::endl;
+    std::cerr << "    realsense2-util list" << std::endl;
+    std::cerr << "    realsense2-util reset --device 1234 --device 4321" << std::endl;
     std::cerr << std::endl;
 }
 
-void handle_info_options( comma::command_line_options const& options )
-{
-    if( options.exists( "--operations" ) ) { operations(); exit( 0 ); }
-}
+static void handle_info_options( comma::command_line_options const& options ) { if( options.exists( "--operations" ) ) { operations(); exit( 0 ); } }
 
-std::string get_operation( comma::command_line_options const& options )
+static std::string get_operation( comma::command_line_options const& options )
 {
     std::vector< std::string > operations = options.unnamed( "", "--device,--sensor,--output-fields,--output-format,--operations,--verbose" );
     if( operations.size() == 1 ) { return operations.front(); }
     COMMA_THROW( comma::exception, "expected one operation, got " << operations.size() << ": " << comma::join( operations, ' ' ) );
 }
 
-void list_sensors( rs2::device const& device )
+static void list_sensors( rs2::device const& device )
 {
     auto sensors = device.query_sensors();
     for( auto& sensor : sensors )
@@ -138,8 +140,7 @@ template <> struct traits< configure::input_t >
     }
 };
 
-}}
-
+} } // namespace comma { namespace visiting {
 
 int main( int ac, char* av[] )
 {
@@ -148,11 +149,9 @@ int main( int ac, char* av[] )
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( ac, av );
         handle_info_options( options );
-
         auto const verbose = options.exists( "--verbose" );
         auto operation = get_operation( options );
         auto device_ids = options.values< std::string >( "--device" );
-
         if( "configure" == operation )
         {
             rs2::context context;
@@ -198,9 +197,9 @@ int main( int ac, char* av[] )
                 sensor.set_option( option, record->value );
 
             }
-
+            return 0;
         }
-        else if( "list" == operation )
+        if( "list" == operation )
         {
             rs2::context context;
             auto devices = context.query_devices();
@@ -217,26 +216,52 @@ int main( int ac, char* av[] )
                 }
             }
             if( !verbose ) { std::cerr << comma::verbose.app_name() << ": pass --verbose for sensor information." << std::endl; }
+            return 0;
         }
-        else if( "reset" == operation )
+        if( "reset" == operation )
         {
             rs2::context context;
             auto devices = context.query_devices();
             for( auto dev : devices )
             {
                 auto device_id = std::string( dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) );
-                if( device_ids.empty() || device_ids.end() != std::find( device_ids.begin(), device_ids.end(), device_id ) )
-                {
-                    dev.hardware_reset();
-                }
+                if( device_ids.empty() || device_ids.end() != std::find( device_ids.begin(), device_ids.end(), device_id ) ) { dev.hardware_reset(); }
             }
+            return 0;
         }
-        else
+        if( operation == "camera" )
         {
-            std::cerr << comma::verbose.app_name() << ": unknown operation '" << operation << '\'' << std::endl;
+            COMMA_ASSERT( !options.exists( "--device" ), "camera: --device: todo" );
+            rs2::pipeline pipe;
+            rs2::config config;
+            config.enable_stream( RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 30 );
+            pipe.start(config);
+            comma::saymore() << "camera: aquisition: running..." << std::endl;
+            comma::signal_flag is_shutdown;
+            snark::cv_mat::serialization::header h;
+            snark::cv_mat::serialization output;
+            comma::csv::binary_output_stream< snark::cv_mat::serialization::header > header_stream( std::cout, h.default_format(), h.default_fields() );
+            while( std::cout.good() && !is_shutdown )
+            {
+                rs2::frameset frames = pipe.wait_for_frames();
+                rs2::video_frame color_frame = frames.get_color_frame();
+                if( !color_frame ) { continue; }
+                int width = color_frame.get_width();
+                int height = color_frame.get_height();
+                h.timestamp = comma::timing::as_ptime( std::chrono::system_clock::now() );
+                h.rows = height;
+                h.cols = width;
+                h.type = CV_8UC3;
+                h.size = height * width * 3;
+                header_stream.write( h );
+                std::cout.write( reinterpret_cast< const char* >( color_frame.get_data() ), h.size );
+                std::cout.flush();
+            }
+            comma::saymore() << "camera: aquisition: done" << std::endl;
+            return 0;
         }
-        
-        return 0;
+        comma::say() << ": expected operation; got: '" << operation << "'" << std::endl;
+        return 1;
     }
     catch( rs2::error& ex ) { std::cerr << comma::verbose.app_name() << ": realsense exception: " << ex.what() << std::endl; }
     catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
