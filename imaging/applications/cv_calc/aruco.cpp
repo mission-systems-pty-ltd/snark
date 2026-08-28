@@ -24,6 +24,8 @@ std::string options()
     #endif
     std::ostringstream oss;
     oss << "        --dictionary,--dict=<dictionary>" << std::endl;
+    oss << "        --output-corners-in-one-record,--all; output all marker corners in a single csv record," << std::endl;
+    oss << "                                              assuming that there always are four corners in a detection" << std::endl;
     oss << "        --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit" << std::endl;
     oss << "        --output-fields; output csv fields to stdout and exit" << std::endl;
     oss << "        --output-format; output csv format to stdout and exit" << std::endl;
@@ -33,6 +35,15 @@ std::string options()
 }
 
 struct output
+{
+    boost::posix_time::ptime t;
+    unsigned int block{0};
+    unsigned int id{0};
+    unsigned int marker{0};
+    cv::Point2f corner;
+};
+
+struct output_all
 {
     boost::posix_time::ptime t;
     unsigned int block{0};
@@ -93,10 +104,31 @@ template <> struct traits< snark::cv_calc::aruco::detection::output >
         v.apply( "block", p.block );
         v.apply( "id", p.id );
         v.apply( "marker", p.marker );
-        v.apply( "corners", p.corners );
+        v.apply( "corner", p.corner );
     }
     
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::detection::output& p, Visitor& v )
+    {
+        v.apply( "t", p.t );
+        v.apply( "block", p.block );
+        v.apply( "id", p.id );
+        v.apply( "marker", p.marker );
+        v.apply( "corner", p.corner );
+    }
+};
+
+template <> struct traits< snark::cv_calc::aruco::detection::output_all >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::aruco::detection::output_all& p, Visitor& v )
+    {
+        v.apply( "t", p.t );
+        v.apply( "block", p.block );
+        v.apply( "id", p.id );
+        v.apply( "marker", p.marker );
+        v.apply( "corners", p.corners );
+    }
+    
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::detection::output_all& p, Visitor& v )
     {
         v.apply( "t", p.t );
         v.apply( "block", p.block );
@@ -115,11 +147,13 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
         COMMA_THROW_BRIEF( comma::exception, "cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" );
     #endif
-    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >(), ',' ) << std::endl; return 0; };
-    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format( comma::csv::format::value< output >() ).collapsed_string() << std::endl; return 0; }
+    bool output_corners_in_one_record = options.exists( "--output-corners-in-one-record,--all" );
+    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( output_corners_in_one_record ? comma::csv::names< output_all >() : comma::csv::names< output >(), ',' ) << std::endl; return 0; };
+    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format( output_corners_in_one_record ? comma::csv::format::value< output_all >() : comma::csv::format::value< output >() ).collapsed_string() << std::endl; return 0; }
     if( options.exists( "--output-dictionaries,--dictionaries" ) ) { for( const auto& t: dictionaries::types() ) { std::cout << t.first << "," << t.second << std::endl; } return 0; }
     snark::cv_mat::serialization input( input_options );
     comma::csv::output_stream< output > ostream( std::cout, comma::csv::options( options ) );
+    comma::csv::output_stream< output_all > ostream_all( std::cout, comma::csv::options( options ) );
     bool flush = options.exists( "--flush" );
     #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
         COMMA_THROW( comma::exception, "opencv " << CV_VERSION << ": todo soon"  );
@@ -128,7 +162,8 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
         cv::aruco::ArucoDetector detector( dictionary, params );
         output o;
-        for( ; std::cin.good() && !std::cin.eof(); ++o.block )
+        output_all oa;
+        for( ; std::cin.good() && !std::cin.eof(); ++o.block, ++oa.block )
         {
             std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
             if( p.second.empty() ) { return 0; }
@@ -136,13 +171,26 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             std::vector< int > markers;
             std::vector< std::vector< cv::Point2f > > rejectedImgPoints;
             detector.detectMarkers( p.second, corners, markers, rejectedImgPoints );
-            for( unsigned i = 0; i < markers.size(); ++i )
+            if( output_corners_in_one_record )
             {
-                o.t = p.first;
-                o.id = i;
-                o.marker = markers[i];
-                for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } // are there always four corners?
-                ostream.write( o );
+                for( unsigned i = 0; i < markers.size(); ++i )
+                {
+                    oa.t = p.first;
+                    oa.id = i;
+                    oa.marker = markers[i];
+                    for( unsigned int j = 0; j < corners[i].size(); ++j ) { oa.corners[j] = corners[i][j]; }
+                    ostream_all.write( oa );
+                }
+            }
+            else
+            {
+                for( unsigned i = 0; i < markers.size(); ++i )
+                {
+                    o.t = p.first;
+                    o.id = i;
+                    o.marker = markers[i];
+                    for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corner = corners[i][j]; ostream.write( o ); }
+                }
             }
             if( flush ) { std::cout.flush(); }
         }
