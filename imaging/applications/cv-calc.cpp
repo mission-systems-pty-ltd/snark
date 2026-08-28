@@ -35,6 +35,7 @@
 #include "../../imaging/cv_mat/serialization.h"
 #include "../../imaging/cv_mat/traits.h"
 #include "../../visiting/eigen.h"
+#include "cv_calc/aruco.h"
 #include "cv_calc/grep.h"
 #include "cv_calc/enumerate.h"
 #include "cv_calc/equirectangular_map.h"
@@ -62,6 +63,7 @@ static void usage( bool verbose=false )
     std::cerr << "usage: cat images.bin | cv-calc <operation> [<options>] > processed.bin " << std::endl;
     std::cerr << std::endl;
     std::cerr << "operations" << std::endl;
+    std::cerr << "    aruco-detect: output corners of aruco markers in the image to stdout as csv" << std::endl;
     std::cerr << "    blank: make a blank image" << std::endl;
     std::cerr << "    chessboard-corners: detect and output corners of a chessboard calibration image" << std::endl;
     std::cerr << "    crop-random,roi-random,random-crop,random-roi: output random patches of given size, e.g. to create a machine learning test dataset" << std::endl;
@@ -101,6 +103,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "operation options" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "    aruco-detect" << std::endl << snark::cv_calc::aruco::detection::options() << std::endl;
     std::cerr << "    blank" << std::endl;
     std::cerr << "        use --output to specify rows, cols, and image type" << std::endl;
     std::cerr << "        --number,-n=<n>; default=1; output a given number of blank images" << std::endl;
@@ -1156,6 +1159,7 @@ int main( int ac, char** av )
             if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
+        if( operation == "aruco-detect" ) { return snark::cv_calc::aruco::detection::run( options, input_options ); }
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
         if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
