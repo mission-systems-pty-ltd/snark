@@ -43,43 +43,47 @@ static void operations( unsigned const indent_count = 0 )
 
 static void usage( bool const verbose )
 {
-    static const char* const indent="    ";
+    std::cerr << R"(
+show and configure realsense cameras
 
-    std::cerr << std::endl;
-    std::cerr << "Show and configure realsense cameras" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Usage: " << comma::verbose.app_name() << " <operation> [<options>...]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Operations:" << std::endl;
-    operations(4);
-    std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    common:" << std::endl;
-    std::cerr << "        --device=<serial>; serial number(s) of device(s)." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    configure:" << std::endl;
-    std::cerr << "        --sensor=<index>; serial number(s) of device(s)." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "info options" << std::endl;
-    std::cerr << "    --operations; print operations and exit." << std::endl;
-    std::cerr << "    --output-fields; print operation-dependent output fields to stdout and exit." << std::endl;
-    std::cerr << "    --output-format; print operation-dependent output format to stdout and exit." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "examples" << std::endl;
-    std::cerr << "    realsense2-util camera | cv-cat 'view;null'" << std::endl;
-    std::cerr << "    realsense2-util configure --sensor=1 <<< '11,0'" << std::endl;
-    std::cerr << "    realsense2-util list" << std::endl;
-    std::cerr << "    realsense2-util reset --device 1234 --device 4321" << std::endl;
-    std::cerr << std::endl;
+usage: " << comma::verbose.app_name() << " <operation> [<options>...]
+
+operations: camera, configure, list, reset
+
+options
+    --device=<serial>; serial number(s) of device(s); TODO for camera
+    --operations; print list of operations and exit
+    --output-fields; print operation-dependent output fields to stdout and exit
+    --output-format; print operation-dependent output format to stdout and exit
+
+operations
+    camera
+        colour profiles
+            width: 1280 height: 720 fps: 6, 15, 30
+            width:  640 height: 480 fps: 6, 15, 30
+            width:  424 height: 240 fps: 6, 15, 30, 60
+        options
+            --fps=<framerate>; default=30
+            --width=<pixels>; default=1280
+    configure
+        options
+            --sensor=<index>; serial number(s) of device(s).
+
+examples
+    realsense2-util camera | cv-cat 'view;null'
+    realsense2-util configure --sensor=1 <<< '11,0'
+    realsense2-util list
+    realsense2-util reset --device 1234 --device 4321
+)" << std::endl;
 }
 
 static void handle_info_options( comma::command_line_options const& options ) { if( options.exists( "--operations" ) ) { operations(); exit( 0 ); } }
 
 static std::string get_operation( comma::command_line_options const& options )
 {
-    std::vector< std::string > operations = options.unnamed( "", "--device,--sensor,--output-fields,--output-format,--operations,--verbose" );
-    if( operations.size() == 1 ) { return operations.front(); }
-    COMMA_THROW( comma::exception, "expected one operation, got " << operations.size() << ": " << comma::join( operations, ' ' ) );
+    std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--operations", "-.*" );
+    COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one operation, got " << unnamed.size() << ": " << comma::join( unnamed, ' ' ) );
+    return unnamed[0];
 }
 
 static void list_sensors( rs2::device const& device )
@@ -99,7 +103,6 @@ static void list_sensors( rs2::device const& device )
                     << ','<< range.def << ',' << range.min << ',' << range.max << ',' << sensor.get_option( option ) << std::endl;
             }
         }
-
         //std::cout << "        Stream Profiles( id, index, name, type):" << std::endl;
         //auto stream_profiles = sensor.get_stream_profiles();
         //for( auto const& sp : stream_profiles )
@@ -156,18 +159,21 @@ int main( int ac, char* av[] )
         {
             rs2::context context;
             auto devices = context.query_devices();
-            if( 0 == devices.size() ) { std::cerr << comma::verbose.app_name() << ": no device present." << std::endl; return 1; }
-            if( 1 < device_ids.size() ) { std::cerr << comma::verbose.app_name() << ": only one device can be configured at a time." << std::endl; return 1; }
+            COMMA_ASSERT_BRIEF( devices.size() > 0, "please specify at least one --device" );
+            COMMA_ASSERT_BRIEF( device_ids.size() == 1, "currently only one device can be configured at a time; got: " << device_ids.size() );
             rs2::device device;
-            if( 0 == device_ids.size() ) { device = devices[ 0 ]; }
+            if( device_ids.size() == 1 )
+            {
+                device = devices[0];
+            }
             else
             {
-                for( auto const& dev : devices )
+                for( auto const& dev : devices ) // hm... so, we do handle multiple devices after all...
                 {
-                    auto device_id = std::string( dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) );
-                    if( device_id == device_ids[ 0 ] ) { device = dev; break; }
+                    auto device_id = std::string( dev.get_info( RS2_CAMERA_INFO_SERIAL_NUMBER ) );
+                    if( device_id == device_ids[0] ) { device = dev; break; }
                 }
-                if( !device ) { std::cerr << comma::verbose.app_name() << ": device with serial "<< device_ids[ 0 ] << std::endl; return 1; }
+                COMMA_ASSERT_BRIEF( device, "device with serial number '"<< device_ids[0] << "' not found" );
             }
             auto sensors = device.query_sensors();
             auto const sensor_index = options.value< unsigned >( "--sensor" );
@@ -231,10 +237,32 @@ int main( int ac, char* av[] )
         }
         if( operation == "camera" )
         {
-            COMMA_ASSERT( !options.exists( "--device" ), "camera: --device: todo" );
+            COMMA_ASSERT_BRIEF( !options.exists( "--device" ), "camera: --device: todo" );
             rs2::pipeline pipe;
             rs2::config config;
-            config.enable_stream( RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 30 );
+            unsigned int width = options.value( "--width", 1280 );
+            unsigned int fps = options.value( "--fps", 30 );
+            unsigned int height = 0;
+            switch( width )
+            {
+                case 1280:
+                    height = 720;
+                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps );
+                    break;
+                case 640:
+                    height = 480;
+                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps );
+                    break;
+                case 424:
+                    height = 240;
+                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30 || fps == 60, "expected --fps of 6, 15, 30, or 60 for width " << width << " got: " << fps );
+                    break;
+                default:
+                    COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
+            }
+            comma::saymore() << "camera: aquisition: configuring for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
+            config.enable_stream( RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps );
+            comma::saymore() << "camera: aquisition: starting..." << std::endl;
             pipe.start(config);
             comma::saymore() << "camera: aquisition: running..." << std::endl;
             comma::signal_flag is_shutdown;
@@ -263,7 +291,7 @@ int main( int ac, char* av[] )
         comma::say() << ": expected operation; got: '" << operation << "'" << std::endl;
         return 1;
     }
-    catch( rs2::error& ex ) { std::cerr << comma::verbose.app_name() << ": realsense exception: " << ex.what() << std::endl; }
+    catch( rs2::error& ex ) { std::cerr << comma::verbose.app_name() << ": realsense exception: " << ex.what() << " (maybe try smaller width or lower fps?)" << std::endl; }
     catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": " << ex.what() << std::endl; }
     catch( ... ) { std::cerr << comma::verbose.app_name() << ": unknown exception" << std::endl; }
     return 1;
