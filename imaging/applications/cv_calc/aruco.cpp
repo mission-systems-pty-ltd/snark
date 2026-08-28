@@ -47,27 +47,28 @@ struct dictionaries
 {
     static const std::map< std::string, cv::aruco::PredefinedDictionaryType > types()
     {
-        static const std::map< std::string, cv::aruco::PredefinedDictionaryType > t =   { { "DICT_4X4_100", cv::aruco::DICT_4X4_100 }
-                                                                                        , { "DICT_4X4_250", cv::aruco::DICT_4X4_250 }
-                                                                                        , { "DICT_4X4_1000", cv::aruco::DICT_4X4_1000 }
-                                                                                        , { "DICT_5X5_50", cv::aruco::DICT_5X5_50 }
-                                                                                        , { "DICT_5X5_100", cv::aruco::DICT_5X5_100 }
-                                                                                        , { "DICT_5X5_250", cv::aruco::DICT_5X5_250 }
-                                                                                        , { "DICT_5X5_1000", cv::aruco::DICT_5X5_1000 }
-                                                                                        , { "DICT_6X6_50", cv::aruco::DICT_6X6_50 }
-                                                                                        , { "DICT_6X6_100", cv::aruco::DICT_6X6_100 }
-                                                                                        , { "DICT_6X6_250", cv::aruco::DICT_6X6_250 }
-                                                                                        , { "DICT_6X6_1000", cv::aruco::DICT_6X6_1000 }
-                                                                                        , { "DICT_7X7_50", cv::aruco::DICT_7X7_50 }
-                                                                                        , { "DICT_7X7_100", cv::aruco::DICT_7X7_100 }
-                                                                                        , { "DICT_7X7_250", cv::aruco::DICT_7X7_250 }
-                                                                                        , { "DICT_7X7_1000", cv::aruco::DICT_7X7_1000 }
-                                                                                        , { "DICT_ARUCO_ORIGINAL", cv::aruco::DICT_ARUCO_ORIGINAL }
-                                                                                        , { "DICT_APRILTAG_16h5", cv::aruco::DICT_APRILTAG_16h5 }
-                                                                                        , { "DICT_APRILTAG_25h9", cv::aruco::DICT_APRILTAG_25h9 }
-                                                                                        , { "DICT_APRILTAG_36h10", cv::aruco::DICT_APRILTAG_36h10 }
-                                                                                        , { "DICT_APRILTAG_36h11", cv::aruco::DICT_APRILTAG_36h11 }
-                                                                                        , { "DICT_ARUCO_MIP_36h12", cv::aruco::DICT_ARUCO_MIP_36h12 } };
+        static const std::map< std::string, cv::aruco::PredefinedDictionaryType > t =   { { "4X4_50", cv::aruco::DICT_4X4_50 }
+                                                                                        , { "4X4_100", cv::aruco::DICT_4X4_100 }
+                                                                                        , { "4X4_250", cv::aruco::DICT_4X4_250 }
+                                                                                        , { "4X4_1000", cv::aruco::DICT_4X4_1000 }
+                                                                                        , { "5X5_50", cv::aruco::DICT_5X5_50 }
+                                                                                        , { "5X5_100", cv::aruco::DICT_5X5_100 }
+                                                                                        , { "5X5_250", cv::aruco::DICT_5X5_250 }
+                                                                                        , { "5X5_1000", cv::aruco::DICT_5X5_1000 }
+                                                                                        , { "6X6_50", cv::aruco::DICT_6X6_50 }
+                                                                                        , { "6X6_100", cv::aruco::DICT_6X6_100 }
+                                                                                        , { "6X6_250", cv::aruco::DICT_6X6_250 }
+                                                                                        , { "6X6_1000", cv::aruco::DICT_6X6_1000 }
+                                                                                        , { "7X7_50", cv::aruco::DICT_7X7_50 }
+                                                                                        , { "7X7_100", cv::aruco::DICT_7X7_100 }
+                                                                                        , { "7X7_250", cv::aruco::DICT_7X7_250 }
+                                                                                        , { "7X7_1000", cv::aruco::DICT_7X7_1000 }
+                                                                                        , { "ARUCO_ORIGINAL", cv::aruco::DICT_ARUCO_ORIGINAL }
+                                                                                        , { "APRILTAG_16h5", cv::aruco::DICT_APRILTAG_16h5 }
+                                                                                        , { "APRILTAG_25h9", cv::aruco::DICT_APRILTAG_25h9 }
+                                                                                        , { "APRILTAG_36h10", cv::aruco::DICT_APRILTAG_36h10 }
+                                                                                        , { "APRILTAG_36h11", cv::aruco::DICT_APRILTAG_36h11 }
+                                                                                        , { "ARUCO_MIP_36h12", cv::aruco::DICT_ARUCO_MIP_36h12 } };
         return t;
     }
     static cv::aruco::PredefinedDictionaryType type_from_string( const std::string& name )
@@ -116,19 +117,33 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
     #endif
     if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >(), ',' ) << std::endl; return 0; };
     if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format( comma::csv::format::value< output >() ).collapsed_string() << std::endl; return 0; }
-    if( options.exists( "--output-dictionaries,--dictionaries" ) ) { for( const auto& t: dictionaries::types() ) { std::cout << t.first << "," << t.second << std::endl; return 0; } }
+    if( options.exists( "--output-dictionaries,--dictionaries" ) ) { for( const auto& t: dictionaries::types() ) { std::cout << t.first << "," << t.second << std::endl; } return 0; }
     snark::cv_mat::serialization input( input_options );
     comma::csv::output_stream< output > ostream( std::cout, comma::csv::options( options ) );
     bool flush = options.exists( "--flush" );
     #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
-        // todo
+        COMMA_THROW( comma::exception, "opencv " << CV_VERSION << ": todo soon"  );
     #else
         cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
-        while( std::cin.good() && !std::cin.eof() )
+        cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
+        cv::aruco::ArucoDetector detector( dictionary, params );
+        output o;
+        for( ; std::cin.good() && !std::cin.eof(); ++o.block )
         {
             std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
             if( p.second.empty() ) { return 0; }
-
+            std::vector< std::vector< cv::Point2f > > corners;
+            std::vector< int > markers;
+            std::vector< std::vector< cv::Point2f > > rejectedImgPoints;
+            detector.detectMarkers( p.second, corners, markers, rejectedImgPoints );
+            for( unsigned i = 0; i < markers.size(); ++i )
+            {
+                o.t = p.first;
+                o.id = i;
+                o.marker = markers[i];
+                for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } // are there always four corners?
+                ostream.write( o );
+            }
             if( flush ) { std::cout.flush(); }
         }
     #endif
