@@ -13,6 +13,10 @@
 #include <comma/base/exception.h>
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
+#include <comma/name_value/serialize.h>
+#include <comma/string/string.h>
+#include "../../../imaging/camera/pinhole.h"
+#include "../../../imaging/camera/traits.h"
 #include "../../../imaging/cv_mat/traits.h"
 #include "../../../math/pose.h"
 #include "../../../visiting/traits.h"
@@ -158,14 +162,16 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
         cv::aruco::ArucoDetector detector( dictionary, params );
         double marker_length = options.value( "--marker-length", 0. );
-        std::string pinhole_config = options.value< std::string >( "--pinhole-config,--pinhole", "" );
-        cv::Mat camera_matrix, distortion_coeffs;
-        COMMA_ASSERT_BRIEF( !has_pose || !camera_matrix.empty(), "asked to calculate marker poses, but got no --camera-config" );
-        
-
-        // todo!!!
-
-
+        cv::Mat camera_matrix{}, distortion_coeffs{};
+        if( has_pose )
+        {
+            auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
+            const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
+            COMMA_ASSERT_BRIEF( v.size() == 1 || v.size() == 2, "expected --pinhole-config=<file>[:<path>]; got: '" << s << "'" );
+            const auto& config = comma::read_json< snark::camera::pinhole::config_t >( v[0], v.size() == 2 ? v[1] : "" );
+            camera_matrix = config.camera_matrix();
+            if( config.distortion ) { distortion_coeffs = config.distortion->as< cv::Mat >(); }
+        }
         output o;
         std::vector< std::vector< cv::Point2f > > corners;
         std::vector< int > markers;

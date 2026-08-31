@@ -8,6 +8,7 @@
 #include <boost/optional.hpp>
 #include <Eigen/Core>
 #include <opencv2/core/core.hpp>
+#include <comma/base/none.h>
 #include <comma/sync/lazy.h>
 #include "../../math/pose.h"
 
@@ -66,7 +67,7 @@ class pinhole
             boost::optional< Eigen::Vector2d > principal_point;
 
             /// distortion
-            boost::optional< distortion_t > distortion;
+            boost::optional< distortion_t > distortion{comma::silent_none< distortion_t >()};
 
             /// default constructor
             config_t();
