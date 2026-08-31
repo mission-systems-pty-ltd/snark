@@ -59,12 +59,14 @@ options
 operations
     camera
         colour profiles
-            width: 1280 height: 720 fps: 6, 15, 30
-            width:  640 height: 480 fps: 6, 15, 30
-            width:  424 height: 240 fps: 6, 15, 30, 60
+            width: 1920 height: 1880 fps: 8
+            width: 1280 height: 720  fps: 6, 15, 30
+            width:  640 height: 480  fps: 6, 15, 30
+            width:  424 height: 240  fps: 6, 15, 30, 60
         options
             --fps=<framerate>; default=30
             --width=<pixels>; default=1280
+            --image-format,--format=<format>; default=bgr
     configure
         options
             --sensor=<index>; serial number(s) of device(s).
@@ -76,6 +78,8 @@ examples
     realsense2-util reset --device 1234 --device 4321
 )" << std::endl;
 }
+
+
 
 static void handle_info_options( comma::command_line_options const& options ) { if( options.exists( "--operations" ) ) { operations(); exit( 0 ); } }
 
@@ -144,6 +148,19 @@ template <> struct traits< configure::input_t >
 };
 
 } } // namespace comma { namespace visiting {
+
+static std::map< std::string, rs2_format > image_formats =  { { "bgr8",  RS2_FORMAT_BGR8  }
+                                                            , { "bgra8", RS2_FORMAT_BGRA8 }
+                                                            , { "rgba8", RS2_FORMAT_RGBA8 }
+                                                            , { "rgb8",  RS2_FORMAT_RGB8  }
+                                                            , { "yuyv",  RS2_FORMAT_YUYV  } };
+
+rs2_format image_format_from_string( const std::string& s )
+{
+    auto i = image_formats.find( s );
+    COMMA_ASSERT_BRIEF( i != image_formats.end(), "expected image format, got: '" << s << "'" );
+    return i->second;
+}
 
 int main( int ac, char* av[] )
 {
@@ -230,7 +247,7 @@ int main( int ac, char* av[] )
             auto devices = context.query_devices();
             for( auto dev : devices )
             {
-                auto device_id = std::string( dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) );
+                auto device_id = std::string( dev.get_info( RS2_CAMERA_INFO_SERIAL_NUMBER ) );
                 if( device_ids.empty() || device_ids.end() != std::find( device_ids.begin(), device_ids.end(), device_id ) ) { dev.hardware_reset(); }
             }
             return 0;
@@ -245,6 +262,10 @@ int main( int ac, char* av[] )
             unsigned int height = 0;
             switch( width )
             {
+                case 1920:
+                    height = 1080;
+                    COMMA_ASSERT_BRIEF( fps == 8, "expected --fps of 8 for width " << width << " got: " << fps );
+                    break;
                 case 1280:
                     height = 720;
                     COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps );
@@ -261,7 +282,7 @@ int main( int ac, char* av[] )
                     COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
             }
             comma::saymore() << "camera: aquisition: configuring for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
-            config.enable_stream( RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps );
+            config.enable_stream( RS2_STREAM_COLOR, width, height, image_format_from_string( options.value< std::string >( "--image-format", "bgr8" ) ), fps );
             comma::saymore() << "camera: aquisition: starting..." << std::endl;
             pipe.start(config);
             comma::saymore() << "camera: aquisition: running..." << std::endl;
