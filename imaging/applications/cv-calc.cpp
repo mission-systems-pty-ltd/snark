@@ -986,8 +986,8 @@ class keep
 
 static snark::cv_mat::serialization::options handle_fields_and_format( const comma::csv::options& csv, snark::cv_mat::serialization::options input_options )
 {
-    if( !csv.fields.empty() && !input_options.fields.empty() ) { COMMA_THROW(comma::exception, "cv-calc: please set fields in --fields or --input, not both"); }
-    if( csv.binary() && !input_options.format.elements().empty() ) { COMMA_THROW(comma::exception, "cv-calc: please set binary format in --binary or --input, not both"); }
+    COMMA_ASSERT_BRIEF( csv.fields.empty() || input_options.fields.empty(), "cv-calc: please set fields in --fields or --input, not both" );
+    COMMA_ASSERT_BRIEF( !csv.binary() || input_options.format.elements().empty(), "please set binary format in --binary or --input, not both" );
     if( !csv.fields.empty() && input_options.fields.empty() ) { input_options.fields = csv.fields; }
     if( csv.binary() && input_options.format.string().empty() ) { input_options.format = csv.format(); }
     return input_options;
@@ -1005,8 +1005,8 @@ int main( int ac, char** av )
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify operation" );
         COMMA_ASSERT_BRIEF( unnamed.size() == 1, "please specify only one operation, got " << comma::join( unnamed, ' ' ) );
         std::string operation = unnamed.front();
-        const snark::cv_mat::serialization::options input_parsed = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--input", "" ) );
-        snark::cv_mat::serialization::options input_options = handle_fields_and_format(csv, input_parsed );
+        const snark::cv_mat::serialization::options input_options_parsed = comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( options.value< std::string >( "--input", "" ) );
+        snark::cv_mat::serialization::options input_options = handle_fields_and_format( csv, input_options_parsed );
         std::string output_options_string = options.value< std::string >( "--output", "" );
         snark::cv_mat::serialization::options output_options = output_options_string.empty() ? input_options : comma::name_value::parser( ';', '=' ).get< snark::cv_mat::serialization::options >( output_options_string );
         if( input_options.no_header && !output_options.fields.empty() && input_options.fields != output_options.fields )
@@ -1159,7 +1159,7 @@ int main( int ac, char** av )
             if( !output_serialization.last_error().empty() ) { comma::say() << output_serialization.last_error() << std::endl; }
             return 0;
         }
-        if( operation == "aruco-detect" ) { return snark::cv_calc::aruco::detection::run( options, input_options ); }
+        if( operation == "aruco-detect" ) { return snark::cv_calc::aruco::detection::run( options, input_options_parsed ); } // quick and dirty because csv fields have been hijacked in early design unfortunately
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
         if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
