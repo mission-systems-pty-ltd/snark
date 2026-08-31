@@ -35,7 +35,7 @@ static void bash_completion( unsigned const ac, char const * const * av )
 static void operations( unsigned const indent_count = 0 )
 {
     auto const indent = std::string( indent_count, ' ' );
-    std::cerr << indent << "camera; acquire rgb camera data, output to stdout as cv-cat-formatted images" << std::endl;
+    std::cerr << indent << "color; acquire colour camera data, output to stdout as cv-cat-formatted images" << std::endl;
     std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)" << std::endl;
     std::cerr << indent << "list; list devices" << std::endl;
     std::cerr << indent << "reset; reset devices" << std::endl;
@@ -48,7 +48,7 @@ show and configure realsense cameras
 
 usage: " << comma::verbose.app_name() << " <operation> [<options>...]
 
-operations: camera, configure, list, reset
+operations: color, configure, list, reset
 
 options
     --device=<serial>; serial number(s) of device(s); TODO for camera
@@ -57,7 +57,7 @@ options
     --output-format; print operation-dependent output format to stdout and exit
 
 operations
-    camera
+    color
         colour profiles
             width: 1920 height: 1880 fps: 8
             width: 1280 height: 720  fps: 6, 15, 30
@@ -252,7 +252,7 @@ int main( int ac, char* av[] )
             }
             return 0;
         }
-        if( operation == "camera" )
+        if( operation == "color" )
         {
             COMMA_ASSERT_BRIEF( !options.exists( "--device" ), "camera: --device: todo" );
             rs2::pipeline pipe;
@@ -281,11 +281,11 @@ int main( int ac, char* av[] )
                 default:
                     COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
             }
-            comma::saymore() << "camera: aquisition: configuring for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
+            comma::saymore() << "color: aquisition: configuring for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
             config.enable_stream( RS2_STREAM_COLOR, width, height, image_format_from_string( options.value< std::string >( "--image-format", "bgr8" ) ), fps );
-            comma::saymore() << "camera: aquisition: starting..." << std::endl;
+            comma::saymore() << "color: aquisition: starting..." << std::endl;
             pipe.start(config);
-            comma::saymore() << "camera: aquisition: running..." << std::endl;
+            comma::saymore() << "color: aquisition: running..." << std::endl;
             comma::signal_flag is_shutdown;
             snark::cv_mat::serialization::header h;
             snark::cv_mat::serialization output;
