@@ -162,6 +162,19 @@ rs2_format image_format_from_string( const std::string& s )
     return i->second;
 }
 
+// rs-enumerate-devices -c
+// ...
+//  Intrinsic of "Color" / 640x480 / {YUYV/RGB8/BGR8/RGBA8/BGRA8}
+//   Width:        640
+//   Height:       480
+//   PPX:          327.709014892578
+//   PPY:          251.378204345703
+//   Fx:           607.996337890625
+//   Fy:           607.972229003906
+//   Distortion:   Inverse Brown Conrady
+//   Coeffs:       0       0       0       0       0  
+//   FOV (deg):    55.51 x 43.07
+
 int main( int ac, char* av[] )
 {
     try

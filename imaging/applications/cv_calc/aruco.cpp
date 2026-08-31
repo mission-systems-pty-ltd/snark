@@ -30,14 +30,27 @@ std::string options()
     oss << "    cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     std::ostringstream oss;
-    oss << "        --dictionary,--dict=<dictionary>" << std::endl;
-    oss << "        --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]" << std::endl;
-    oss << "        --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit" << std::endl;
-    oss << "        --output-fields; output csv fields to stdout and exit" << std::endl;
-    oss << "        --output-format; output csv format to stdout and exit" << std::endl;
-    // todo? output rejected?
+    oss << R"(        --dictionary,--dict=<dictionary>
+        --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
+        --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit
+        --output-fields; output csv fields to stdout and exit
+        --output-format; output csv format to stdout and exit
+    examples
+        realsense2-util color --fps 30 --width 640 \
+            | cv-cat timestamp \
+            | cv-cat view \
+            | cv-calc aruco-detect --dict 4X4_50 \
+                                   --fields block,id,marker,pose \
+                                   --pinhole pinhole.json \
+                                   --marker-length 0.1 \
+                                   --binary 3ui,6d \
+                                   --flush \
+            | view-points '-;binary=3ui,6d;fields=,,id,x,y,z;weight=3')";
     return oss.str();
 }
+
+// realsense2-util color --fps 30 --width 640 --height 480 --verbose | cv-cat timestamp | cv-cat view | cv-calc aruco-detect --dict 4X4_50 --fields block,id,marker,pose --flush --pinhole pinhole.json --marker-length 0.1 --binary 3ui,6d | view-points '-;binary=3ui,6d;fields=,,id,x,y,z;weight=3' --camera-config <( echo '{"center":{"x":0,"y":0,"z":0},"world":{"translation":{"x":0,"y":0,"z":0},"rotation":{"x":0,"y":-0,"z":0}},"camera":{"translation":{"x":0,"y":0,"z":-1},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":1000,"field_of_view":45}}' )
+// realsense2-util color --fps 30 --width 640 --height 480 --verbose | cv-cat timestamp | cv-cat view | cv-calc aruco-detect --dict 4X4_50 --fields block,id,marker,pose --flush --pinhole pinhole.json --marker-length 0.1 --binary 3ui,6d | csv-eval --binary 3ui,6d --fields ,,id 'id=(id+7)*2' --flush | view-points '-;binary=3ui,6d;fields=,,id,x,y,z;weight=10' --camera-config <( echo '{"center":{"x":0,"y":0,"z":0},"world":{"translation":{"x":0,"y":0,"z":0},"rotation":{"x":0,"y":-0,"z":0}},"camera":{"translation":{"x":0,"y":0,"z":-1},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":1000,"field_of_view":45}}' )
 
 struct output
 {
@@ -165,6 +178,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         cv::Mat camera_matrix{}, distortion_coeffs{};
         if( has_pose )
         {
+            COMMA_ASSERT_BRIEF( marker_length > 0, "please specify --marker-length" );
             auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
             const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
             COMMA_ASSERT_BRIEF( v.size() == 1 || v.size() == 2, "expected --pinhole-config=<file>[:<path>]; got: '" << s << "'" );

@@ -120,8 +120,9 @@ static snark::camera::pinhole::config_t make_sample_config()
 {
     snark::camera::pinhole::config_t config;
     config.focal_length = 0.1;
-    config.image_size = Eigen::Vector2i( 1000, 2000 );
+    config.image_size = Eigen::Vector2i( 2000, 1000 );
     config.sensor_size = Eigen::Vector2d( 0.1, 0.2 );
+    config.principal_point = Eigen::Vector2d( 1000, 500 );
     config.distortion = snark::camera::pinhole::config_t::distortion_t( snark::camera::pinhole::config_t::distortion_t::radial_t( 0.001, -0.0002, 0.003 ), snark::camera::pinhole::config_t::distortion_t::tangential_t( 0.0004, -0.0005 ) );
     return config;
 }
