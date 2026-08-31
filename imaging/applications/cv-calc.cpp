@@ -1001,7 +1001,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         verbose = options.exists( "--verbose,-v" );
         //std::vector< std::string > unnamed = options.unnamed("-h,--help,-v,--verbose,--flush,--input-fields,--input-format,--output-fields,--output-format,--show-partial", "--fields,--binary,--input,--output,--strides,--padding,--shape,--size,--kernel");
-        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--dictionaries,--output-dictionaries,--output-corners-in-one-record,--all,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u,--status,--use-initial-flow,--use-gaussian,--gaussian", "-.*" );
+        std::vector< std::string > unnamed = options.unnamed( "-h,--help,-v,--verbose,--dictionaries,--output-dictionaries,--flush,--forever,--header-fields,--header-format,--interleave-channels,--interleave,--output-fields,--output-format,--exit-on-stability,--crop,--no-discard,--show-partial,--permissive,--deterministic,--fit-last,--output-number-of-strides,--number-of-strides,--prepend,--realtime,--reverse,--transposed,--list,--view,--no-stdout,--null,--update-on-each-input,-u,--status,--use-initial-flow,--use-gaussian,--gaussian", "-.*" );
         COMMA_ASSERT_BRIEF( !unnamed.empty(), "please specify operation" );
         COMMA_ASSERT_BRIEF( unnamed.size() == 1, "please specify only one operation, got " << comma::join( unnamed, ' ' ) );
         std::string operation = unnamed.front();

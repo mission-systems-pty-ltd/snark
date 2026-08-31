@@ -37,7 +37,7 @@ Eigen::Vector3d rotation_matrix::angle_axis() const
     Eigen::AngleAxisd a( m_rotation );
     double angle = snark::math::angle< double >( snark::math::radians( a.angle() ) ).as_radians();
     Eigen::Vector3d axis = a.axis();
-    if( comma::math::less( M_PI, angle ) ) { angle = 2*M_PI - angle; axis = -axis; }
+    if( comma::math::less( M_PI, angle ) ) { angle = 2 * M_PI - angle; axis = -axis; }
     return axis * angle;
 }
 

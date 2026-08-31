@@ -13,6 +13,8 @@
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
 #include "../../../imaging/cv_mat/traits.h"
+#include "../../../math/pose.h"
+#include "../../../visiting/traits.h"
 #include "aruco.h"
 
 namespace snark { namespace cv_calc { namespace aruco { namespace detection {
@@ -24,8 +26,7 @@ std::string options()
     #endif
     std::ostringstream oss;
     oss << "        --dictionary,--dict=<dictionary>" << std::endl;
-    oss << "        --output-corners-in-one-record,--all; output all marker corners in a single csv record," << std::endl;
-    oss << "                                              assuming that there always are four corners in a detection" << std::endl;
+    oss << "        --pinhole-config,--pinhole=<config>" << std::endl;
     oss << "        --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit" << std::endl;
     oss << "        --output-fields; output csv fields to stdout and exit" << std::endl;
     oss << "        --output-format; output csv format to stdout and exit" << std::endl;
@@ -40,16 +41,8 @@ struct output
     unsigned int block{0};
     unsigned int id{0};
     unsigned int marker{0};
-    cv::Point2f corner;
-};
-
-struct output_all
-{
-    boost::posix_time::ptime t;
-    unsigned int block{0};
-    unsigned int id{0};
-    unsigned int marker{0};
     std::array< cv::Point2f, 4 > corners;
+    snark::pose pose;
 };
 
 #if CV_MAJOR_VERSION > 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION >= 5 )
@@ -104,7 +97,8 @@ template <> struct traits< snark::cv_calc::aruco::detection::output >
         v.apply( "block", p.block );
         v.apply( "id", p.id );
         v.apply( "marker", p.marker );
-        v.apply( "corner", p.corner );
+        v.apply( "corners", p.corners );
+        v.apply( "pose", p.pose );
     }
     
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::detection::output& p, Visitor& v )
@@ -113,28 +107,8 @@ template <> struct traits< snark::cv_calc::aruco::detection::output >
         v.apply( "block", p.block );
         v.apply( "id", p.id );
         v.apply( "marker", p.marker );
-        v.apply( "corner", p.corner );
-    }
-};
-
-template <> struct traits< snark::cv_calc::aruco::detection::output_all >
-{
-    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::aruco::detection::output_all& p, Visitor& v )
-    {
-        v.apply( "t", p.t );
-        v.apply( "block", p.block );
-        v.apply( "id", p.id );
-        v.apply( "marker", p.marker );
         v.apply( "corners", p.corners );
-    }
-    
-    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::detection::output_all& p, Visitor& v )
-    {
-        v.apply( "t", p.t );
-        v.apply( "block", p.block );
-        v.apply( "id", p.id );
-        v.apply( "marker", p.marker );
-        v.apply( "corners", p.corners );
+        v.apply( "pose", p.pose );
     }
 };
 
@@ -142,55 +116,68 @@ template <> struct traits< snark::cv_calc::aruco::detection::output_all >
 
 namespace snark { namespace cv_calc { namespace aruco { namespace detection {
 
+#if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7 ) // how painful...
+    static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
+    { 	
+        cv::aruco::estimatePoseSingleMarkers( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
+    }
+#else
+    static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
+    {
+        // todo
+        rvecs.resize( corners.size() );
+        tvecs.resize( corners.size() );
+    }
+#endif 
+
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
     #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
         COMMA_THROW_BRIEF( comma::exception, "cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" );
     #endif
-    bool output_corners_in_one_record = options.exists( "--output-corners-in-one-record,--all" );
-    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( output_corners_in_one_record ? comma::csv::names< output_all >() : comma::csv::names< output >(), ',' ) << std::endl; return 0; };
-    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format( output_corners_in_one_record ? comma::csv::format::value< output_all >() : comma::csv::format::value< output >() ).collapsed_string() << std::endl; return 0; }
+    if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >(), ',' ) << std::endl; return 0; };
+    if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format( comma::csv::format::value< output >() ).collapsed_string() << std::endl; return 0; }
     if( options.exists( "--output-dictionaries,--dictionaries" ) ) { for( const auto& t: dictionaries::types() ) { std::cout << t.first << "," << t.second << std::endl; } return 0; }
     snark::cv_mat::serialization input( input_options );
-    comma::csv::output_stream< output > ostream( std::cout, comma::csv::options( options ) );
-    comma::csv::output_stream< output_all > ostream_all( std::cout, comma::csv::options( options ) );
+    comma::csv::options csv( options );
+    comma::csv::output_stream< output > ostream( std::cout, csv );
     bool flush = options.exists( "--flush" );
+    bool has_corners = csv.fields.empty() || csv.has_paths( "corners" );
+    bool has_pose = csv.fields.empty() || csv.has_paths( "pose" );
     #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
         COMMA_THROW( comma::exception, "opencv " << CV_VERSION << ": todo soon"  );
     #else
         cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
         cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
         cv::aruco::ArucoDetector detector( dictionary, params );
+        double marker_length = options.value( "--marker-length", 0. );
+        std::string camera_config = options.value< std::string >( "--camera-config", "" );
+        cv::Mat camera_matrix, distortion_coeffs;
+        COMMA_ASSERT_BRIEF( !has_pose || !camera_matrix.empty(), "asked to calculate marker poses, but got no --camera-config" );
+        
+
+        // todo!!!
+
+
         output o;
-        output_all oa;
-        for( ; std::cin.good() && !std::cin.eof(); ++o.block, ++oa.block )
+        std::vector< std::vector< cv::Point2f > > corners;
+        std::vector< int > markers;
+        std::vector< std::vector< cv::Point2f > > rejected;
+        std::vector< cv::Vec3d > rvecs, tvecs;
+        for( ; std::cin.good() && !std::cin.eof(); ++o.block )
         {
             std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
             if( p.second.empty() ) { return 0; }
-            std::vector< std::vector< cv::Point2f > > corners;
-            std::vector< int > markers;
-            std::vector< std::vector< cv::Point2f > > rejectedImgPoints;
-            detector.detectMarkers( p.second, corners, markers, rejectedImgPoints );
-            if( output_corners_in_one_record )
+            detector.detectMarkers( p.second, corners, markers, rejected );
+            if( has_pose ) { estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs ); }
+            for( unsigned i = 0; i < markers.size(); ++i )
             {
-                for( unsigned i = 0; i < markers.size(); ++i )
-                {
-                    oa.t = p.first;
-                    oa.id = i;
-                    oa.marker = markers[i];
-                    for( unsigned int j = 0; j < corners[i].size(); ++j ) { oa.corners[j] = corners[i][j]; }
-                    ostream_all.write( oa );
-                }
-            }
-            else
-            {
-                for( unsigned i = 0; i < markers.size(); ++i )
-                {
-                    o.t = p.first;
-                    o.id = i;
-                    o.marker = markers[i];
-                    for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corner = corners[i][j]; ostream.write( o ); }
-                }
+                o.t = p.first;
+                o.id = i;
+                o.marker = markers[i];
+                if( has_corners ) { for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } }
+                if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( tvecs[i][0], tvecs[i][1], tvecs[i][2] ) ); }
+                ostream.write( o );
             }
             if( flush ) { std::cout.flush(); }
         }

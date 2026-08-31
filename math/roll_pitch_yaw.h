@@ -23,6 +23,9 @@ struct roll_pitch_yaw : public Eigen::Vector3d
     roll_pitch_yaw() : Eigen::Vector3d( Eigen::Vector3d::Zero() ) {}
     roll_pitch_yaw( const Eigen::Vector3d& v ) : Eigen::Vector3d( v ) {}
     roll_pitch_yaw( double roll, double pitch, double yaw ) : Eigen::Vector3d( roll, pitch, yaw ) {}
+
+    static roll_pitch_yaw from_rodriques( const Eigen::Vector3d& v );
+    static roll_pitch_yaw from_rodriques( double x, double y, double z );
 };
 
 } // namespace snark {
