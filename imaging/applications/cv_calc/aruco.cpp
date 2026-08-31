@@ -4,6 +4,7 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/calib3d.hpp>
 #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
     #include <opencv2/aruco.hpp>
 #elif CV_MAJOR_VERSION > 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION >= 7 )
@@ -26,12 +27,11 @@ std::string options()
     #endif
     std::ostringstream oss;
     oss << "        --dictionary,--dict=<dictionary>" << std::endl;
-    oss << "        --pinhole-config,--pinhole=<config>" << std::endl;
+    oss << "        --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]" << std::endl;
     oss << "        --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit" << std::endl;
     oss << "        --output-fields; output csv fields to stdout and exit" << std::endl;
     oss << "        --output-format; output csv format to stdout and exit" << std::endl;
     // todo? output rejected?
-    // todo: cv::aruco::DICT_4X4_250
     return oss.str();
 }
 
@@ -124,9 +124,16 @@ namespace snark { namespace cv_calc { namespace aruco { namespace detection {
 #else
     static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
     {
-        // todo
+        float half_length = marker_length / 2.0f;
+        static std::vector< cv::Point3f > obj_points = {
+            cv::Point3f( -half_length,  half_length, 0 ), // top-left
+            cv::Point3f(  half_length,  half_length, 0 ), // top-right
+            cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
+            cv::Point3f( -half_length, -half_length, 0 )  // bottom-left
+        };
         rvecs.resize( corners.size() );
         tvecs.resize( corners.size() );
+        for( unsigned int i = 0; i < corners.size(); ++i ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); }
     }
 #endif 
 
@@ -151,7 +158,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
         cv::aruco::ArucoDetector detector( dictionary, params );
         double marker_length = options.value( "--marker-length", 0. );
-        std::string camera_config = options.value< std::string >( "--camera-config", "" );
+        std::string pinhole_config = options.value< std::string >( "--pinhole-config,--pinhole", "" );
         cv::Mat camera_matrix, distortion_coeffs;
         COMMA_ASSERT_BRIEF( !has_pose || !camera_matrix.empty(), "asked to calculate marker poses, but got no --camera-config" );
         

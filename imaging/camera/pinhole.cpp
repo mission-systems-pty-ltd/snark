@@ -28,20 +28,10 @@ void pinhole::config_t::validate()
     if( image_size.x() <= 0 || image_size.y() <= 0 ) { COMMA_THROW( comma::exception, "pinhole config: expected positive image size, got: " << image_size.x() << "," << image_size.y() ); }
 }
 
-template < typename V > V pinhole::config_t::distortion_t::as() const
-{
-    V v;
-    v[0] = radial.k1;
-    v[1] = radial.k2;
-    v[2] = tangential.p1;
-    v[3] = tangential.p2;
-    v[4] = radial.k3;
-    return v;
-}
-
+template < typename V > V pinhole::config_t::distortion_t::as() const { return V( { radial.k1, radial.k2, tangential.p1, tangential.p2, radial.k3 } ); }
 template Eigen::Matrix< double, 5, 1 > pinhole::config_t::distortion_t::as< Eigen::Matrix< double, 5, 1 > >() const;
-
 template cv::Vec< double, 5 > pinhole::config_t::distortion_t::as< cv::Vec< double, 5 > >() const;
+template cv::Mat pinhole::config_t::distortion_t::as< cv::Mat >() const;
 
 bool pinhole::config_t::distortion_t::radial_t::empty() const { return k1 == 0 && k2 == 0 && k3 == 0; }
 
