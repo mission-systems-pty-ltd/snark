@@ -6,7 +6,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/calib3d.hpp>
-#if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
+#if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
     #include <opencv2/aruco.hpp>
 #elif CV_MAJOR_VERSION > 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION >= 7 )
     #include <opencv2/objdetect/aruco_detector.hpp>
@@ -67,7 +67,7 @@ struct output
 
 struct dictionaries
 {
-    #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION == 5
+    #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
         using type = cv::aruco::PREDEFINED_DICTIONARY_NAME;
     #else
         using type = cv::aruco::PredefinedDictionaryType;
@@ -174,7 +174,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         bool flush = options.exists( "--flush" );
         bool has_corners = csv.fields.empty() || csv.has_paths( "corners" );
         bool has_pose = csv.fields.empty() || csv.has_paths( "pose" );
-        #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
+        #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
             cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
         #else
@@ -203,7 +203,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         {
             std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
             if( p.second.empty() ) { return 0; }
-            #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
+            #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
                 cv::aruco::detectMarkers( p.second, dictionary, corners, markers, params, rejected );
             #else
                 detector.detectMarkers( p.second, corners, markers, rejected );
