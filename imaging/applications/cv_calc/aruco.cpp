@@ -162,7 +162,7 @@ namespace snark { namespace cv_calc { namespace aruco { namespace detection {
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
-    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
+    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 5 )
         COMMA_THROW_BRIEF( comma::exception, "cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" );
     #else
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >(), ',' ) << std::endl; return 0; };
@@ -174,47 +174,52 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         bool flush = options.exists( "--flush" );
         bool has_corners = csv.fields.empty() || csv.has_paths( "corners" );
         bool has_pose = csv.fields.empty() || csv.has_paths( "pose" );
-        #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 5
-            COMMA_THROW( comma::exception, "opencv " << CV_VERSION << ": todo soon"  );
+        #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
+            cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
+            cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
         #else
             cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
             cv::aruco::ArucoDetector detector( dictionary, params );
-            double marker_length = options.value( "--marker-length", 0. );
-            cv::Mat camera_matrix{}, distortion_coeffs{};
-            if( has_pose )
-            {
-                COMMA_ASSERT_BRIEF( marker_length > 0, "please specify --marker-length" );
-                auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
-                const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
-                COMMA_ASSERT_BRIEF( v.size() == 1 || v.size() == 2, "expected --pinhole-config=<file>[:<path>]; got: '" << s << "'" );
-                const auto& config = comma::read_json< snark::camera::pinhole::config_t >( v[0], v.size() == 2 ? v[1] : "" );
-                camera_matrix = config.camera_matrix();
-                if( config.distortion ) { distortion_coeffs = config.distortion->as< cv::Mat >(); }
-            }
-            output o;
-            std::vector< std::vector< cv::Point2f > > corners;
-            std::vector< int > markers;
-            std::vector< std::vector< cv::Point2f > > rejected;
-            std::vector< cv::Vec3d > rvecs, tvecs;
-            for( ; std::cin.good() && !std::cin.eof(); ++o.block )
-            {
-                std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
-                if( p.second.empty() ) { return 0; }
-                detector.detectMarkers( p.second, corners, markers, rejected );
-                if( has_pose ) { estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs ); }
-                for( unsigned i = 0; i < markers.size(); ++i )
-                {
-                    o.t = p.first;
-                    o.id = i;
-                    o.marker = markers[i];
-                    if( has_corners ) { for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } }
-                    if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( tvecs[i][0], tvecs[i][1], tvecs[i][2] ) ); }
-                    ostream.write( o );
-                }
-                if( flush ) { std::cout.flush(); }
-            }
         #endif
+        double marker_length = options.value( "--marker-length", 0. );
+        cv::Mat camera_matrix{}, distortion_coeffs{};
+        if( has_pose )
+        {
+            COMMA_ASSERT_BRIEF( marker_length > 0, "please specify --marker-length" );
+            auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
+            const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
+            COMMA_ASSERT_BRIEF( v.size() == 1 || v.size() == 2, "expected --pinhole-config=<file>[:<path>]; got: '" << s << "'" );
+            const auto& config = comma::read_json< snark::camera::pinhole::config_t >( v[0], v.size() == 2 ? v[1] : "" );
+            camera_matrix = config.camera_matrix();
+            if( config.distortion ) { distortion_coeffs = config.distortion->as< cv::Mat >(); }
+        }
+        output o;
+        std::vector< std::vector< cv::Point2f > > corners;
+        std::vector< int > markers;
+        std::vector< std::vector< cv::Point2f > > rejected;
+        std::vector< cv::Vec3d > rvecs, tvecs;
+        for( ; std::cin.good() && !std::cin.eof(); ++o.block )
+        {
+            std::pair< boost::posix_time::ptime, cv::Mat > p = input.read< boost::posix_time::ptime >( std::cin );
+            if( p.second.empty() ) { return 0; }
+            #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
+                cv::aruco::detectMarkers( p.second, dictionary, corners, markers, params, rejected );
+            #else
+                detector.detectMarkers( p.second, corners, markers, rejected );
+            #endif
+            if( has_pose ) { estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs ); }
+            for( unsigned i = 0; i < markers.size(); ++i )
+            {
+                o.t = p.first;
+                o.id = i;
+                o.marker = markers[i];
+                if( has_corners ) { for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } }
+                if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( tvecs[i][0], tvecs[i][1], tvecs[i][2] ) ); }
+                ostream.write( o );
+            }
+            if( flush ) { std::cout.flush(); }
+        }
         return 0;
     #endif
 }
