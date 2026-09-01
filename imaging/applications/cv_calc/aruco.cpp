@@ -175,7 +175,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         bool has_corners = csv.fields.empty() || csv.has_paths( "corners" );
         bool has_pose = csv.fields.empty() || csv.has_paths( "pose" );
         #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5
-            cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
+            cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
         #else
             cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
