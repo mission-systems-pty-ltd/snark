@@ -66,7 +66,7 @@ struct output
 
 struct dictionaries
 {
-    static const std::map< std::string, cv::aruco::PredefinedDictionaryType > types()
+    static const std::map< std::string, cv::aruco::PredefinedDictionaryType >& types()
     {
         static const std::map< std::string, cv::aruco::PredefinedDictionaryType > t =   { { "4X4_50", cv::aruco::DICT_4X4_50 }
                                                                                         , { "4X4_100", cv::aruco::DICT_4X4_100 }
