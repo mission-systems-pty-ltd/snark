@@ -98,6 +98,8 @@ std::string options()
     return oss.str();
 }
 
+// view-points '0.csv;fields=,,,x,y,z;weight=2' '0.csv;fields=,,,x,y,z;shape=lines' '0.csv;fields=,,,x,y,z,roll,pitch,yaw;shape=axes;length=0.01' <( echo 0,0,0 )';fields=x,y,z;shape=axes;length=0.2' <( echo 0,0,0 )';weight=10;label=0,0,0'
+
 struct output
 {
     boost::posix_time::ptime t;
@@ -211,20 +213,50 @@ struct dictionaries
         cv::aruco::estimatePoseSingleMarkers( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
     }
 #else
+    // static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
+    // {
+    //     float half_length = marker_length / 2.0f;
+    //     static std::vector< cv::Point3f > obj_points = {
+    //         cv::Point3f( -half_length,  half_length, 0 ), // top-left
+    //         cv::Point3f(  half_length,  half_length, 0 ), // top-right
+    //         cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
+    //         cv::Point3f( -half_length, -half_length, 0 )  // bottom-left
+    //     };
+    //     // static std::vector< cv::Point3f > obj_points = {
+    //     //     cv::Point3f( -half_length, -half_length, 0 ), // top-left
+    //     //     cv::Point3f(  half_length, -half_length, 0 ), // top-right
+    //     //     cv::Point3f(  half_length,  half_length, 0 ), // bottom-right
+    //     //     cv::Point3f( -half_length,  half_length, 0 )  // bottom-left
+    //     // };
+    //     rvecs.resize( corners.size() );
+    //     tvecs.resize( corners.size() );
+    //     for( unsigned int i = 0; i < corners.size(); ++i ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); }
+    // }
     static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
     {
         float half_length = marker_length / 2.0f;
-        static std::vector< cv::Point3f > obj_points = {
-            cv::Point3f( -half_length,  half_length, 0 ), // top-left
-            cv::Point3f(  half_length,  half_length, 0 ), // top-right
-            cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
-            cv::Point3f( -half_length, -half_length, 0 )  // bottom-left
+        std::vector< cv::Point3f > obj_points =
+        {
+            cv::Point3f( -half_length,  -half_length, 0 ),
+            cv::Point3f(  half_length,  -half_length, 0 ),
+            cv::Point3f(  half_length,   half_length, 0 ),
+            cv::Point3f( -half_length,   half_length, 0 )
         };
         rvecs.resize( corners.size() );
         tvecs.resize( corners.size() );
-        for( unsigned int i = 0; i < corners.size(); ++i ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); }
+        for( unsigned int i = 0; i < corners.size(); ++i )
+        {
+            std::vector< cv::Vec3d > r, t;
+            cv::solvePnPGeneric( obj_points, corners[i], camera_matrix, distortion_coeffs, r, t, false, cv::SOLVEPNP_IPPE_SQUARE );
+            if( r.empty() ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); continue; }
+            if( r.size() == 1 ) { rvecs[i] = r[0]; tvecs[i] = t[0]; continue; }
+            double a0 = cv::norm( r[0] );
+            double a1 = cv::norm( r[1] );
+            //std::cerr << "==> r.size(): " << r.size() << " a0: " << a0 << " (" << ( a0 * 180 / M_PI ) << ") " << " a1: " << a1 << "(" << ( a1 * 180 / M_PI ) << ")" << std::endl; 
+            rvecs[i] = r[0]; tvecs[i] = t[0];
+        }
     }
-#endif 
+#endif
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
@@ -281,7 +313,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
                 o.id = i;
                 o.marker = markers[i];
                 if( has_corners ) { for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } }
-                if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( tvecs[i][0], tvecs[i][1], tvecs[i][2] ) ); }
+                if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ); }
                 ostream.write( o );
             }
             if( flush ) { std::cout.flush(); }
@@ -413,9 +445,10 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             #endif
             detection::estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
             poses.resize( markers.size() );
-            for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( tvecs[i][0], tvecs[i][1], tvecs[i][2] ) ) ); }
+            for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ); }
             const auto& p = map.update( poses );
             if( !p ) { continue; }
+            o.t = i.first;
             o.number_of_markers = markers.size();
             o.pose = *p;
             ostream.write( o );
