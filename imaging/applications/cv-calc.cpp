@@ -48,7 +48,6 @@
 #include "cv_calc/stride.h"
 #include "cv_calc/unstride.h"
 
-const char* name = "cv-calc: ";
 static bool verbose = false;
 
 static void usage( bool verbose=false )
@@ -64,6 +63,7 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "operations" << std::endl;
     std::cerr << "    aruco-detect: output corners of aruco markers in the image to stdout as csv" << std::endl;
+    std::cerr << "    aruco-localize: output camera position relative to a given aruco marker" << std::endl; // todo: move to points-calc or at least replicate it there
     std::cerr << "    blank: make a blank image" << std::endl;
     std::cerr << "    chessboard-corners: detect and output corners of a chessboard calibration image" << std::endl;
     std::cerr << "    crop-random,roi-random,random-crop,random-roi: output random patches of given size, e.g. to create a machine learning test dataset" << std::endl;
@@ -1160,6 +1160,7 @@ int main( int ac, char** av )
             return 0;
         }
         if( operation == "aruco-detect" ) { return snark::cv_calc::aruco::detection::run( options, input_options_parsed ); } // quick and dirty because csv fields have been hijacked in early design unfortunately
+        if( operation == "aruco-localize" ) { return snark::cv_calc::aruco::localization::run( options, input_options_parsed ); } // quick and dirty because csv fields have been hijacked in early design unfortunately
         if( operation == "enumerate" ) { return snark::cv_calc::enumerate::run( options, input_options, output_options ); }
         if( operation == "equirectangular-map" ) { return snark::cv_calc::equirectangular_map::run( options ); }
         if( operation == "filter" ) { return snark::cv_calc::filter::run( options, input_options, output_options ); }
@@ -1292,7 +1293,7 @@ int main( int ac, char** av )
             unsigned int stride_rows = ( unstrided.y - shape.y ) / strides.y + 1;
             unsigned int stride_cols = ( unstrided.x - shape.x ) / strides.x + 1;
             unsigned int num_strides = stride_rows * stride_cols;
-            if( verbose ) { std::cerr << name << "unstride-positions: stride rows: " << stride_rows << " stride cols: " << stride_cols << " number of strides: " << num_strides << std::endl; }
+            if( verbose ) { comma::say() << "unstride-positions: stride rows: " << stride_rows << " stride cols: " << stride_cols << " number of strides: " << num_strides << std::endl; }
 
             comma::csv::options icsv( options );
             icsv.full_xpath = true;
@@ -1337,11 +1338,11 @@ int main( int ac, char** av )
             snark::cv_mat::serialization output_serialization( output_options );
             if( options.exists("--header-fields") ) { std::cout << "t,rows,cols,type" << std::endl; return 0; }
             if( options.exists("--header-format") ) { std::cout << "t,3ui" << std::endl; return 0; }
-            if( verbose ) { std::cerr << name << "fields: " << input_options.fields << std::endl; std::cerr << name << "format: " << input_options.format.string() << std::endl; }
+            if( verbose ) { comma::say() << "fields: " << input_options.fields << std::endl; comma::say() << "format: " << input_options.format.string() << std::endl; }
             if( options.exists("--output-fields") ) { std::cout << "rows,cols,type,format" << std::endl;  return 0; }
             snark::cv_mat::serialization serialization( input_options );
             std::pair< snark::cv_mat::serialization::header::buffer_t, cv::Mat > p = serialization.read< snark::cv_mat::serialization::header::buffer_t >(std::cin);
-            if( p.second.empty() ) { std::cerr << name << "failed to read input stream" << std::endl; return 1; }
+            if( p.second.empty() ) { comma::say() << "failed to read input stream" << std::endl; return 1; }
             const auto& h = serialization.get_header( &serialization.header_buffer()[0] );
             std::string output = comma::csv::ascii< snark::cv_mat::serialization::header >( "rows,cols,type" ).put( h );
             std::cout << output << "," << snark::cv_mat::format_from_type( h.type ) << std::endl;
@@ -1355,11 +1356,11 @@ int main( int ac, char** av )
             snark::cv_mat::serialization output_serialization( output_options );
             if( options.exists("--header-fields") ) { std::cout << "t,rows,cols,type" << std::endl;  exit(0); }
             if( options.exists("--header-format") ) { std::cout << "t,3ui" << std::endl;  exit(0); }
-            if( verbose ) { std::cerr << name << "fields: " << input_options.fields << std::endl; std::cerr << name << "format: " << input_options.format.string() << std::endl; }
+            if( verbose ) { comma::say() << "fields: " << input_options.fields << std::endl; comma::say() << "format: " << input_options.format.string() << std::endl; }
 
             snark::cv_mat::serialization serialization( input_options );
             std::pair< snark::cv_mat::serialization::header::buffer_t, cv::Mat > p = serialization.read< snark::cv_mat::serialization::header::buffer_t >(std::cin);
-            if( p.second.empty() ) { std::cerr << name << "failed to read input stream" << std::endl; return 1; }
+            if( p.second.empty() ) { comma::say() << "failed to read input stream" << std::endl; return 1; }
             snark::cv_mat::serialization::header header = serialization.get_header( &serialization.header_buffer()[0] );
             comma::csv::format format = input_options.format.elements().empty() ? comma::csv::format("t,3ui") : input_options.format ;
             format += "s[" + boost::lexical_cast<std::string>( comma::uint64(header.rows) * header.cols * p.second.elemSize() )  + "]";
@@ -1447,7 +1448,7 @@ int main( int ac, char** av )
                 if( input_options.fields.empty() ) { input_options.fields = "min/x,min/y,max/x,max/y,t,rows,cols,type"; }
                 if( input_options.format.elements().empty() ) { input_options.format = comma::csv::format( "4i,t,3ui" ); }
                 if( output_options_string.empty() ) { output_options = input_options; }
-                if( verbose ) { std::cerr << name << "fields: " << input_options.fields << std::endl; std::cerr << name << "format: " << input_options.format.string() << std::endl; }
+                if( verbose ) { comma::say() << "fields: " << input_options.fields << std::endl; comma::say() << "format: " << input_options.format.string() << std::endl; }
                 snark::cv_mat::serialization input_serialization( input_options );
                 snark::cv_mat::serialization output_serialization( output_options );
                 csv.fields = input_options.fields;
