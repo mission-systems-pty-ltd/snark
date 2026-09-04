@@ -99,6 +99,11 @@ std::string options()
 
 // view-points '0.csv;fields=,,,x,y,z;weight=2' '0.csv;fields=,,,x,y,z;shape=lines' '0.csv;fields=,,,x,y,z,roll,pitch,yaw;shape=axes;length=0.01' <( echo 0,0,0 )';fields=x,y,z;shape=axes;length=0.2' <( echo 0,0,0 )';weight=10;label=0,0,0'
 
+// realsense2-util color --fps 30 --width 640             | cv-cat timestamp             | cv-cat view             | cv-calc aruco-detect --dict 4X4_50                                    --fields pose --max-number-of-markers 1                                    --pinhole pinhole.json --anchor 0                                   --marker-length 0.1                                    --binary 6d                                    --flush     | tee detect.bin        | view-points '-;binary=6d;fields=x,y,z,roll,pitch,yaw;shape=axes;length=0.05;weight=3;size=1' <(echo 0)';fields=x;shape=axes;length=0.1' <( echo 0 )';fields=x;weight=10;label=0,0,0' --camera-config <( echo '{"center":{"x":0.0802531689,"y":-0.0248078629,"z":0.549671054},"world":{"translation":{"x":-0.263532609,"y":0.406255633,"z":-0.299200088},"rotation":{"x":1.99405885,"y":0.0683527067,"z":0.00327160885}},"camera":{"translation":{"x":0.274289042,"y":-0.428598017,"z":-0.908777118},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":8.2387313842773438,"field_of_view":45}}' )
+
+// realsense2-util color --fps 30 --width 640   | cv-cat view | cv-cat resize=2             | cv-calc aruco-detect --dict 4X4_50                                    --fields pose --max-number-of-markers 1                                    --pinhole pinhole.2.json --anchor 0                                   --marker-length 0.1                                    --binary 6d                                    --flush    | view-points '-;binary=6d;fields=x,y,z,roll,pitch,yaw;shape=axes;length=0.1;weight=3;size=1' <(echo 0)';fields=x;shape=axes;length=0.1' <( echo 0 )';fields=x;weight=10;label=0,0,0' --camera-config <( echo '{"center":{"x":0.0802531689,"y":-0.0248078629,"z":0.549671054},"world":{"translation":{"x":-0.263532609,"y":0.406255633,"z":-0.299200088},"rotation":{"x":1.99405885,"y":0.0683527067,"z":0.00327160885}},"camera":{"translation":{"x":0.274289042,"y":-0.428598017,"z":-0.908777118},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":8.2387313842773438,"field_of_view":45}}' )
+// realsense2-util color --fps 30 --width 640   | cv-cat view | cv-cat resize=2             | cv-calc aruco-detect --dict 4X4_50                                    --fields pose --max-number-of-markers 1                                    --pinhole pinhole.2.json --anchor 0                                   --marker-length 0.1                                    --binary 6d                                    --flush    | csv-paste value='0,0,0,0,0,0;binary=6d' '-;binary=6d' --flush | points-frame --fields x,y,z,roll,pitch,yaw,frame --binary 12d --to --flush | csv-shuffle --fields ,,,,,,,,,,,,x,y,z,roll,pitch,yaw --binary 18d -e --flush        | view-points '-;binary=6d;fields=x,y,z,roll,pitch,yaw;shape=axes;length=0.05;weight=3;size=1' <(echo 0)';fields=x;shape=axes;length=0.1' <( echo 0 )';fields=x;weight=10;label=0,0,0' --camera-config <( echo '{"center":{"x":0.0802531689,"y":-0.0248078629,"z":0.549671054},"world":{"translation":{"x":-0.263532609,"y":0.406255633,"z":-0.299200088},"rotation":{"x":1.99405885,"y":0.0683527067,"z":0.00327160885}},"camera":{"translation":{"x":0.274289042,"y":-0.428598017,"z":-0.908777118},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":8.2387313842773438,"field_of_view":45}}' )
+
 struct output
 {
     boost::posix_time::ptime t;
@@ -359,19 +364,26 @@ static Eigen::Quaterniond as_quaternion( const snark::roll_pitch_yaw& rpy ) // q
 std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks )
 {
     if( marks.size() < _min_number_of_landmarks ) { return std::optional< snark::pose >{}; }
-    auto i = marks.begin();
-    for( ; i != marks.end() && i->first != _anchor; ++i );
-    if( i != marks.end() ) // kinda could do more, but whatever
+    auto anchor = marks.begin();
+    for( ; anchor != marks.end() && anchor->first != _anchor; ++anchor );
+    if( anchor != marks.end() ) // kinda could do more, but whatever
     {
         _initialised = true;
+        _anchored[_anchor] = snark::pose{};
         for( const auto& m: marks ) // lousy for now; todo: interpolation from multple updates
         {
+            if( m.first == _anchor ) { continue; } // quick and dirty
             auto& a = _anchored[m.first];
             *a = m.second;
-            a->to( i->second );
+            a->to( anchor->second );
         }
     }
     if( !_initialised ) { return std::optional< snark::pose >{}; }
+    if( marks.size() == 1 )
+    {
+        return snark::pose{}.to( marks[0].second ); // p.to( marks[0].second ).to( *_anchored[marks[0].first] );
+        // return p; // return marks[0].second; // return p;
+    }
     snark::pose p{};
     Eigen::Matrix4d qsum = Eigen::Matrix4d::Zero();
     for( const auto& m: marks )
