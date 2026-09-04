@@ -27,15 +27,13 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-#ifndef SNARK_FILTER_KALMAN_FILTER_H
-#define SNARK_FILTER_KALMAN_FILTER_H
+#pragma once
 
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 
-namespace snark{ 
-    
+namespace snark { 
+
 /// generic kalman filter
 template< class State, class Model >
 class kalman_filter
@@ -87,6 +85,4 @@ private:
     Model& model_; /// process model
 };
 
-} 
-
-#endif // SNARK_FILTER_KALMAN_FILTER_H
+} // namespace snark {
