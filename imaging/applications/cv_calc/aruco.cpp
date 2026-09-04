@@ -47,12 +47,12 @@ std::string options()
             | cv-cat timestamp \
             | cv-cat view \
             | cv-calc aruco-detect --dict 4X4_50 \
-                                   --fields block,id,marker,pose \
+                                   --fields block,marker,pose \
                                    --pinhole pinhole.json \
                                    --marker-length 0.1 \
-                                   --binary 3ui,6d \
+                                   --binary 2ui,6d \
                                    --flush \
-            | view-points '-;binary=3ui,6d;fields=,,id,x,y,z;weight=3')";
+            | view-points '-;binary=2ui,6d;fields=,id,x,y,z;weight=3')";
     return oss.str();
 }
 
@@ -63,7 +63,6 @@ struct output
 {
     boost::posix_time::ptime t;
     std::uint32_t block{0};
-    std::uint32_t id{0};
     std::uint32_t marker{0};
     std::array< cv::Point2f, 4 > corners;
     snark::pose pose;
@@ -81,7 +80,7 @@ std::string options()
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
         --marker-anchor-id,--anchor=<id>; output camera pose relative to this marker
-        --markers-min-number,--min-number-of-markers=<n>; default=3
+        --markers-min-number,--min-number-of-markers=<n>; default=1
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
         --output-fields; output csv fields to stdout and exit
         --output-format; output csv format to stdout and exit
@@ -120,7 +119,6 @@ template <> struct traits< snark::cv_calc::aruco::detection::output >
     {
         v.apply( "t", p.t );
         v.apply( "block", p.block );
-        v.apply( "id", p.id );
         v.apply( "marker", p.marker );
         v.apply( "corners", p.corners );
         v.apply( "pose", p.pose );
@@ -130,7 +128,6 @@ template <> struct traits< snark::cv_calc::aruco::detection::output >
     {
         v.apply( "t", p.t );
         v.apply( "block", p.block );
-        v.apply( "id", p.id );
         v.apply( "marker", p.marker );
         v.apply( "corners", p.corners );
         v.apply( "pose", p.pose );
@@ -213,49 +210,44 @@ struct dictionaries
         cv::aruco::estimatePoseSingleMarkers( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
     }
 #else
-    // static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
-    // {
-    //     float half_length = marker_length / 2.0f;
-    //     static std::vector< cv::Point3f > obj_points = {
-    //         cv::Point3f( -half_length,  half_length, 0 ), // top-left
-    //         cv::Point3f(  half_length,  half_length, 0 ), // top-right
-    //         cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
-    //         cv::Point3f( -half_length, -half_length, 0 )  // bottom-left
-    //     };
-    //     // static std::vector< cv::Point3f > obj_points = {
-    //     //     cv::Point3f( -half_length, -half_length, 0 ), // top-left
-    //     //     cv::Point3f(  half_length, -half_length, 0 ), // top-right
-    //     //     cv::Point3f(  half_length,  half_length, 0 ), // bottom-right
-    //     //     cv::Point3f( -half_length,  half_length, 0 )  // bottom-left
-    //     // };
-    //     rvecs.resize( corners.size() );
-    //     tvecs.resize( corners.size() );
-    //     for( unsigned int i = 0; i < corners.size(); ++i ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); }
-    // }
     static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
     {
         float half_length = marker_length / 2.0f;
-        std::vector< cv::Point3f > obj_points =
-        {
-            cv::Point3f( -half_length,  -half_length, 0 ),
-            cv::Point3f(  half_length,  -half_length, 0 ),
-            cv::Point3f(  half_length,   half_length, 0 ),
-            cv::Point3f( -half_length,   half_length, 0 )
+        static std::vector< cv::Point3f > obj_points = {
+            cv::Point3f( -half_length,  half_length, 0 ), // top-left
+            cv::Point3f(  half_length,  half_length, 0 ), // top-right
+            cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
+            cv::Point3f( -half_length, -half_length, 0 )  // bottom-left
         };
         rvecs.resize( corners.size() );
         tvecs.resize( corners.size() );
-        for( unsigned int i = 0; i < corners.size(); ++i )
-        {
-            std::vector< cv::Vec3d > r, t;
-            cv::solvePnPGeneric( obj_points, corners[i], camera_matrix, distortion_coeffs, r, t, false, cv::SOLVEPNP_IPPE_SQUARE );
-            if( r.empty() ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); continue; }
-            if( r.size() == 1 ) { rvecs[i] = r[0]; tvecs[i] = t[0]; continue; }
-            double a0 = cv::norm( r[0] );
-            double a1 = cv::norm( r[1] );
-            //std::cerr << "==> r.size(): " << r.size() << " a0: " << a0 << " (" << ( a0 * 180 / M_PI ) << ") " << " a1: " << a1 << "(" << ( a1 * 180 / M_PI ) << ")" << std::endl; 
-            rvecs[i] = r[0]; tvecs[i] = t[0];
-        }
+        for( unsigned int i = 0; i < corners.size(); ++i ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); }
     }
+    // gemini slop
+    // static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
+    // {
+    //     float half_length = marker_length / 2.0f;
+    //     std::vector< cv::Point3f > obj_points =
+    //     {
+    //         cv::Point3f( -half_length,  -half_length, 0 ),
+    //         cv::Point3f(  half_length,  -half_length, 0 ),
+    //         cv::Point3f(  half_length,   half_length, 0 ),
+    //         cv::Point3f( -half_length,   half_length, 0 )
+    //     };
+    //     rvecs.resize( corners.size() );
+    //     tvecs.resize( corners.size() );
+    //     for( unsigned int i = 0; i < corners.size(); ++i )
+    //     {
+    //         std::vector< cv::Vec3d > r, t;
+    //         cv::solvePnPGeneric( obj_points, corners[i], camera_matrix, distortion_coeffs, r, t, false, cv::SOLVEPNP_IPPE_SQUARE );
+    //         if( r.empty() ) { cv::solvePnP( obj_points, corners[i], camera_matrix, distortion_coeffs, rvecs[i], tvecs[i], false, cv::SOLVEPNP_IPPE_SQUARE ); continue; }
+    //         if( r.size() == 1 ) { rvecs[i] = r[0]; tvecs[i] = t[0]; continue; }
+    //         double a0 = cv::norm( r[0] );
+    //         double a1 = cv::norm( r[1] );
+    //         //std::cerr << "==> r.size(): " << r.size() << " a0: " << a0 << " (" << ( a0 * 180 / M_PI ) << ") " << " a1: " << a1 << "(" << ( a1 * 180 / M_PI ) << ")" << std::endl; 
+    //         rvecs[i] = r[0]; tvecs[i] = t[0];
+    //     }
+    // }
 #endif
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
@@ -310,7 +302,6 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             for( unsigned i = 0; i < markers.size(); ++i )
             {
                 o.t = p.first;
-                o.id = i;
                 o.marker = markers[i];
                 if( has_corners ) { for( unsigned int j = 0; j < corners[i].size(); ++j ) { o.corners[j] = corners[i][j]; } }
                 if( has_pose ) { o.pose = snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ); }
@@ -420,7 +411,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             cv::aruco::ArucoDetector detector( dictionary, params );
         #endif
         double marker_length = options.value< double >( "--marker-length" );
-        localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 3 ) );
+        localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
         cv::Mat camera_matrix{}, distortion_coeffs{};
         auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
         const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
