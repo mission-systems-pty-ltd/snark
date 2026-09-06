@@ -43,27 +43,16 @@ const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& meas
     COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
     F = std::move( f );
     if( dt < 1e-6 ) { return x; }
-
-    // 1. Time Update (Predict)
-    // With uniform noise, Q simplifies to the transition matrix uncertainty footprint
-    // scaled uniformly by your process variance coefficient
-    Eigen::MatrixXd Q = (F * F.transpose()) * _q_variance * dt; 
-    
+    Eigen::MatrixXd Q = ( F * F.transpose() ) * _q_variance * dt; 
     x = F * x;
     P = F * P * F.transpose() + Q;
-
-    // 2. Measurement Update (Correct)
-    // R is generated instantly on the stack as an identity matrix multiplied by the scalar variance
     Eigen::MatrixXd S = H * P * H.transpose();
     S.diagonal().array() += _r_variance; 
-
-    // Robust solve to find Kalman Gain
-    Eigen::MatrixXd K = P * H.transpose() * S.colPivHouseholderQr().solve(Eigen::MatrixXd::Identity(_measurement_dimensions, _measurement_dimensions));
-
-    x = x + K * (measurement - H * x);
-    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(_state_dimensions, _state_dimensions);
-    P = (I - K * H) * P;
-
+    static auto state_identity = Eigen::MatrixXd::Identity(_state_dimensions, _state_dimensions );
+    static auto measurement_identity = Eigen::MatrixXd::Identity( _measurement_dimensions, _measurement_dimensions );
+    Eigen::MatrixXd K = P * H.transpose() * S.colPivHouseholderQr().solve( measurement_identity );
+    P = ( state_identity - K * H ) * P;
+    x = x + K * ( measurement - H * x );
     return x;
 }
 
