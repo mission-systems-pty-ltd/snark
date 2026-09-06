@@ -28,20 +28,24 @@ void linear_kalman_filter::state( const Eigen::VectorXd& x0 ) { x = std::move( x
 
 void linear_kalman_filter::covariance( const Eigen::MatrixXd& p0 ) { P = std::move( p0 ); }
 
-const Eigen::VectorXd& update( const Eigen::VectorXd& measurement, double dt )
+const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& measurement, double dt ) // quick and dirty
 {
-    // todo!
-    // Eigen::MatrixXd F = Eigen::MatrixXd::Identity(6, 6);
-    // F(0, 3) = dt; // x_new  = x_old  + (vx * dt)
-    // F(1, 4) = dt; // y_new  = y_old  + (vy * dt)
-    // F(2, 5) = dt; // z_new  = z_old  + (vz * dt)
-    COMMA_THROW( comma::exception, "implementing..." );
+    COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
+    F = Eigen::MatrixXd::Identity( _state_dimensions, _state_dimensions );
+    static unsigned int half = _state_dimensions / 2;
+    for( unsigned int i = 0; i < half; ++i ) { F( i, half + i ) = dt; } // new = old + v * dt
+    return _update( measurement, dt );
 }
 
 const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& measurement, double dt, const Eigen::MatrixXd& f )
 {
     COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
     F = std::move( f );
+    return _update( measurement, dt );
+}
+
+const Eigen::VectorXd& linear_kalman_filter::_update( const Eigen::VectorXd& measurement, double dt )
+{
     if( dt < 1e-6 ) { return x; }
     Eigen::MatrixXd Q = ( F * F.transpose() ) * _q_variance * dt; 
     x = F * x;
