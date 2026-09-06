@@ -40,6 +40,7 @@ class linear_kalman_filter
         double _q_variance; // uniform process noise variance (scalar)
         double _r_variance; // uniform measurement noise variance (scalar)
         std::optional< double > _dt{};
+        const Eigen::VectorXd& _update( const Eigen::VectorXd& measurement, double dt );
 };
 
 } // namespace snark {
