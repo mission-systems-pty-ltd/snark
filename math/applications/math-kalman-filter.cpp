@@ -47,7 +47,7 @@ examples
             | math-kalman-filter --measurement-size 3 \
                                  --fields measurement \
                                  --measurement-noise 1 \
-                                 --process-noise 0.0005 \
+                                 --process-noise 0.00001 \
                                  --state-from-measurement \
                                  --dt 1 \
             | head -n5000 \
