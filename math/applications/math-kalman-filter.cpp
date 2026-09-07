@@ -18,9 +18,12 @@
 void usage( bool verbose )
 {
     std::cerr << R"(
-read measurements on stdin, apply kalman filter, output states
+read measurement on stdin, apply kalman filter, append state, output to stdout
 
-currently, only linear kalman filter uniform across dimensions is plugged in 
+currently, only linear kalman filter uniform across dimensions is plugged in
+
+usage
+    cat measurements.csv | math-kalman-filter <options> > measurements.states.csv
 
 options
     --measurement-dimensions,--measurement-size=<n>
@@ -44,25 +47,7 @@ examples
 static unsigned int measurement_dimensions{0};
 static unsigned int state_dimensions{0};
 
-namespa };
-template <> struct input_traits< boost::posix_time::ptime > { static double diff( boost::posix_time::ptime a, boost::posix_time::ptime b ) { return 1e-6 * ( b - a ).total_microseconds(); } };
-
-} } } } // namespace snark { namespace math { namespace applications { namespace kalman_filtering {
-
-namespace comma { namespace visiting {
-
-template < typename T > struct traits< snark::math::applications::kalman_filtering::input< T > >
-{
-    template < typename K, typename V > static void visit( const K&, snark::math::applications::kalman_filtering::input< T >& p, V& v )
-    {
-        v.apply( "t", p.t );
-        v.apply( "measurement", p );
-    }
-    template < typename K, typename V > static void visit( const K&, const snark::math::applications::kalman_filtering::input< T >& p, V& v )
-    {
-        v.apply( "t", p.t );
-        static std::vector< double > m( measurement_dimensions ); // quick and dirty for now
-        std::memcpy( reinterpret_cast< char* >( &m[0] ), reinterpret_cast< cce snark { namespace math { namespace applications { namespace kalman_filtering {
+namespace snark { namespace math { namespace applications { namespace kalman_filtering {
 
 template < typename T >
 struct input
