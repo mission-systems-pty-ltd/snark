@@ -16,7 +16,7 @@ linear_kalman_filter::linear_kalman_filter( unsigned int state_dimensions
     , _measurement_dimensions( measurement_dimensions )
     , x( Eigen::VectorXd::Zero( state_dimensions ) )
     , P( Eigen::MatrixXd::Identity( state_dimensions, state_dimensions ) * 1.0 )
-    , H( Eigen::MatrixXd::Zero(_measurement_dimensions, state_dimensions ) )
+    , H( Eigen::MatrixXd::Zero( _measurement_dimensions, state_dimensions ) )
     , _q_variance( process_noise )
     , _r_variance( measurement_noise )
 {    
@@ -52,8 +52,8 @@ const Eigen::VectorXd& linear_kalman_filter::_update( const Eigen::VectorXd& mea
     P = F * P * F.transpose() + Q;
     Eigen::MatrixXd S = H * P * H.transpose();
     S.diagonal().array() += _r_variance; 
-    static auto state_identity = Eigen::MatrixXd::Identity(_state_dimensions, _state_dimensions );
-    static auto measurement_identity = Eigen::MatrixXd::Identity( _measurement_dimensions, _measurement_dimensions );
+    static const auto state_identity = Eigen::MatrixXd::Identity(_state_dimensions, _state_dimensions );
+    static const auto measurement_identity = Eigen::MatrixXd::Identity( _measurement_dimensions, _measurement_dimensions );
     Eigen::MatrixXd K = P * H.transpose() * S.colPivHouseholderQr().solve( measurement_identity );
     P = ( state_identity - K * H ) * P;
     x = x + K * ( measurement - H * x );

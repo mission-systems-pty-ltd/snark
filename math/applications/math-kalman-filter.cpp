@@ -27,12 +27,12 @@ usage
 
 options
     --measurement-dimensions,--measurement-size=<n>
-    --measurement-noise=<n>
-    --process-noise=<n>
-    --state-from-measurement
-    --state-dimensions,--state-size=<n>
+    --measurement-noise=<value>
+    --process-noise=<value>
+    --state-dimensions,--state-size=[<n>]; optional if --state-from-measurement
+    --state-from-measurement; use measurement as state estimate
     --step,-dt=[<dt>]; use <dt> as a fixed step
-    --step-max,--max-step=[<max_dt>]
+    --step-max,--max-step=[<max_dt>]; if exceeded, reset filter
 info options
     --input-fields
     --output-fields
@@ -55,16 +55,16 @@ struct input
     T t{};
     Eigen::VectorXd measurement;
     
-    input() : measurement( measurement_dimensions, 0 ) {}
-    input( unsigned int d ) : measurement( d, 0 ) {}
+    input() : measurement( Eigen::VectorXd::Zero( measurement_dimensions ) ) {}
+    input( unsigned int d ) : measurement( Eigen::VectorXd::Zero( d ) ) {}
 };
 
 struct output
 {
     Eigen::VectorXd state;
     
-    output() : state( state_dimensions, 0 ) {}
-    output( unsigned int d ) : state( d, 0 ) {}
+    output() : state( Eigen::VectorXd::Zero( state_dimensions ) ) {}
+    output( unsigned int d ) : state( Eigen::VectorXd::Zero( d ) ) {}
 };
 
 template < typename T > struct input_traits { static double diff( T a, T b ) { return b - a; } };
@@ -79,12 +79,15 @@ template < typename T > struct traits< snark::math::applications::kalman_filteri
     template < typename K, typename V > static void visit( const K&, snark::math::applications::kalman_filtering::input< T >& p, V& v )
     {
         v.apply( "t", p.t );
-        v.apply( "measurement", p );
+        static std::vector< double > m( measurement_dimensions ); // quick and dirty for now
+        std::memcpy( reinterpret_cast< char* >( &m[0] ), reinterpret_cast< const char* >( &p.measurement[0] ), measurement_dimensions * sizeof( double ) );
+        v.apply( "measurement", m );
+        std::memcpy( reinterpret_cast< char* >( &p.measurement[0] ), reinterpret_cast< const char* >( &m[0] ), measurement_dimensions * sizeof( double ) );
     }
     template < typename K, typename V > static void visit( const K&, const snark::math::applications::kalman_filtering::input< T >& p, V& v )
     {
         v.apply( "t", p.t );
-        static std::vector< double > m( measurement_dimensions ); // quick and dirty for now
+        static std::vector< double > m( measurement_dimensions ); // todo: quick and dirty for now; fix visiting Eigen::VectorXd!
         std::memcpy( reinterpret_cast< char* >( &m[0] ), reinterpret_cast< const char* >( &p.measurement[0] ), measurement_dimensions * sizeof( double ) );
         v.apply( "measurement", m );
     }
@@ -92,13 +95,9 @@ template < typename T > struct traits< snark::math::applications::kalman_filteri
 
 template <> struct traits< snark::math::applications::kalman_filtering::output >
 {
-    template < typename K, typename V > static void visit( const K&, snark::math::applications::kalman_filtering::output& p, V& v )
-    {
-        v.apply( "state", p.state );
-    }
     template < typename K, typename V > static void visit( const K&, const snark::math::applications::kalman_filtering::output& p, V& v )
     {
-        static std::vector< double > s( state_dimensions ); // quick and dirty for now
+        static std::vector< double > s( state_dimensions ); // todo: quick and dirty for now; fix visiting Eigen::VectorXd!
         std::memcpy( reinterpret_cast< char* >( &s[0] ), reinterpret_cast< const char* >( &p.state[0] ), state_dimensions * sizeof( double ) );
         v.apply( "state", s );
     }
@@ -126,7 +125,7 @@ template < typename T > static int run( const comma::command_line_options& optio
     double measurement_noise = options.value< double >( "--measurement-noise" );
     auto dt = options.optional< double >( "--step,--dt" );
     COMMA_ASSERT_BRIEF( dt || csv.fields.empty() || csv.has_field( "t" ), "expected either --dt or t field; got neither" );
-    COMMA_ASSERT_BRIEF( !dt || ( !csv.fields.empty() && csv.has_field( "t" ) ), "expected either --dt or t field; got both" );
+    COMMA_ASSERT_BRIEF( !dt || ( !csv.fields.empty() && !csv.has_field( "t" ) ), "expected either --dt or t field; got both" );
     std::string initial_state_string = options.value< std::string >( "--initial-state,--state", "" );
     auto v = initial_state_string.empty() ? std::vector< double >( state_dimensions, 0. ) : comma::split_as< double >( initial_state_string, ',' );
     Eigen::VectorXd initial_state( state_dimensions );
@@ -134,7 +133,7 @@ template < typename T > static int run( const comma::command_line_options& optio
     auto max_step = options.optional< double >( "--max-step" );
     comma::csv::input_stream< input_t > istream( std::cin, csv, input_t( measurement_dimensions ) );
     comma::csv::options output_csv;
-    if( csv.binary() ) { output_csv.format( comma::csv::format::value( output{} ) ); }
+    if( csv.binary() ) { output_csv.format( comma::csv::format::value( output( state_dimensions ) ) ); }
     comma::csv::output_stream< output > ostream( std::cout, output_csv, output( state_dimensions ) );
     std::unique_ptr< linear_kalman_filter > f;
     if( !initial_state_string.empty() || !state_from_measurement )
