@@ -30,7 +30,6 @@ options
     --measurement-noise=<value>
     --process-noise=<value>
     --state-dimensions,--state-size=[<n>]; optional if --state-from-measurement
-    --state-from-measurement; use measurement as state estimate
     --step,-dt=[<dt>]; use <dt> as a fixed step
     --step-max,--max-step=[<max_dt>]; if exceeded, reset filter
 info options
@@ -54,7 +53,7 @@ examples
             > filtered.csv
         view-points 'filtered.csv;fields=x,y,z;weight=3;colour=yellow' \
                     'filtered.csv;fields=,,,x,y,z;weight=3;colour=green;shape=lines' \
-                    <( echo 0 )";fields=x;label=0,0,0;weight=10"
+                    <( echo 0 )';fields=x;label=0,0,0;weight=10'
 )" << std::endl;
     exit( 0 );
 }
@@ -128,12 +127,10 @@ template < typename T > static int run( const comma::command_line_options& optio
 {
     using input_t = input< T >;
     measurement_dimensions = options.value< unsigned int >( "--measurement-dimensions,--measurement-size" );
-    bool state_from_measurement = options.exists( "--state-from-measurement" );
-    COMMA_ASSERT_BRIEF( state_from_measurement, "currently, only --state-from-measurement is implemented" );
     if( options.exists( "--input-fields" ) ) { std::cout << comma::join( comma::csv::names< input_t >( true, input_t( measurement_dimensions ) ), ',' ) << std::endl; return 0; }
-    state_dimensions = options.value< unsigned int >( "--state-dimensions,--state-size", 0 );
-    COMMA_ASSERT_BRIEF( !state_from_measurement || state_dimensions == 0 || state_dimensions == measurement_dimensions * 2, "if --state-from-measurement, for measurement dimensions " << measurement_dimensions << " expected state dimensions" << ( measurement_dimensions * 2 ) << "; got: " << state_dimensions << " (remove --state-dimensions option to allow default behaviour)" );
-    state_dimensions = measurement_dimensions * 2;
+    bool state_from_measurement = !options.exists( "--state-dimensions,--state-size" );
+    state_dimensions = options.value< unsigned int >( "--state-dimensions,--state-size", measurement_dimensions * 2 );
+    COMMA_ASSERT_BRIEF( state_dimensions == measurement_dimensions * 2, "currently, only state-from-measurement mapping is implemented, thus for measurement dimensions " << measurement_dimensions << " expected state dimensions" << ( measurement_dimensions * 2 ) << "; got: " << state_dimensions << " (remove --state-dimensions option to allow default behaviour)" );
     if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >( true, output( state_dimensions ) ), ',' ) << std::endl; return 0; }
     if( options.exists( "--output-format" ) ) { std::cout << comma::csv::format::value< output >( output( state_dimensions ) ) << std::endl; return 0; }
     comma::csv::options csv( options );
