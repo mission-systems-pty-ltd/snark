@@ -46,6 +46,11 @@ target_link_libraries( math-eigen snark_math ${comma_ALL_LIBRARIES} ${snark_ALL_
 set_target_properties( math-eigen PROPERTIES LINK_FLAGS_RELEASE -s )
 install( TARGETS math-eigen RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
+add_executable( math-kalman-filter math-kalman-filter.cpp )
+target_link_libraries( math-kalman-filter snark_math ${comma_ALL_LIBRARIES} ${snark_ALL_EXTERNAL_LIBRARIES} )
+set_target_properties( math-kalman-filter PROPERTIES LINK_FLAGS_RELEASE -s )
+install( TARGETS math-kalman-filter RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
+
 if( USE_CUDA )
     cuda_add_executable( math-k-means math-k-means.cpp math-k-means/math_k_means.cu )
 else()
