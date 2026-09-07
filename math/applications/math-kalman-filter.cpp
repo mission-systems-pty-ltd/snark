@@ -18,9 +18,25 @@
 void usage( bool verbose )
 {
     std::cerr << R"(
+read measurements on stdin, apply kalman filter, output states
 
-todo
+currently, only linear kalman filter uniform across dimensions is plugged in 
 
+options
+    --measurement-dimensions,--measurement-size=<n>
+    --measurement-noise=<n>
+    --process-noise=<n>
+    --state-from-measurement
+    --state-dimensions,--state-size=<n>
+    --step,-dt=[<dt>]; use <dt> as a fixed step
+    --step-max,--max-step=[<max_dt>]
+info options
+    --input-fields
+    --output-fields
+    --output-format
+
+examples
+    todo
 )" << std::endl;
     exit( 0 );
 }
@@ -28,7 +44,25 @@ todo
 static unsigned int measurement_dimensions{0};
 static unsigned int state_dimensions{0};
 
-namespace snark { namespace math { namespace applications { namespace kalman_filtering {
+namespa };
+template <> struct input_traits< boost::posix_time::ptime > { static double diff( boost::posix_time::ptime a, boost::posix_time::ptime b ) { return 1e-6 * ( b - a ).total_microseconds(); } };
+
+} } } } // namespace snark { namespace math { namespace applications { namespace kalman_filtering {
+
+namespace comma { namespace visiting {
+
+template < typename T > struct traits< snark::math::applications::kalman_filtering::input< T > >
+{
+    template < typename K, typename V > static void visit( const K&, snark::math::applications::kalman_filtering::input< T >& p, V& v )
+    {
+        v.apply( "t", p.t );
+        v.apply( "measurement", p );
+    }
+    template < typename K, typename V > static void visit( const K&, const snark::math::applications::kalman_filtering::input< T >& p, V& v )
+    {
+        v.apply( "t", p.t );
+        static std::vector< double > m( measurement_dimensions ); // quick and dirty for now
+        std::memcpy( reinterpret_cast< char* >( &m[0] ), reinterpret_cast< cce snark { namespace math { namespace applications { namespace kalman_filtering {
 
 template < typename T >
 struct input
@@ -49,7 +83,6 @@ struct output
 };
 
 template < typename T > struct input_traits { static double diff( T a, T b ) { return b - a; } };
-
 template <> struct input_traits< boost::posix_time::ptime > { static double diff( boost::posix_time::ptime a, boost::posix_time::ptime b ) { return 1e-6 * ( b - a ).total_microseconds(); } };
 
 } } } } // namespace snark { namespace math { namespace applications { namespace kalman_filtering {
