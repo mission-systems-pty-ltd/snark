@@ -58,6 +58,10 @@ examples
     exit( 0 );
 }
 
+// Q matrix
+// sigma_a^2 * ( dt^3/3 dt^2/2
+//               dt^2/2     dt )
+
 static unsigned int measurement_dimensions{0};
 static unsigned int state_dimensions{0};
 
