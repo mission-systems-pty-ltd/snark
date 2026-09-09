@@ -16,6 +16,10 @@
     comma_src_dir: "{{ src_dir }}/../comma"
 
   tasks:
+  - name: will use cmake extra options
+    ansible.builtin.debug:
+      var: snark_cmake_options_extra
+
   - name: "snark: dependencies: installing"
     become: true
     apt: pkg={{ item }} state=present update_cache=yes
