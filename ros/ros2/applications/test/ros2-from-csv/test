@@ -15,7 +15,7 @@ input_converter=${input_converter:-"cat"}
 cat "$input_csv" \
     | $input_head \
     | $input_converter \
-    | ros2-from-csv --topic "$input_topic" --type "$input_type" $input_args --dry --verbose \
+    | ros2-from-csv --topic "$input_topic" --type "$input_type" $input_args --pass --yaml \
     | sed '/^position_covariance_type:/a---' \
     | $( dirname "$0" )/yaml-to-path-value
 
