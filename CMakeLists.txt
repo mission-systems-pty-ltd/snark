@@ -4,7 +4,7 @@ cmake_policy( SET CMP0048 NEW )
 # Making the project version a variable means that you can override it
 # when building a DEB/RPM package (for example).
 set( snark_version "1.1.0" CACHE STRING "project version" )
-project( snark VERSION ${snark_version} LANGUAGES CXX )
+project( snark VERSION ${snark_version} LANGUAGES C CXX )
 # Extract version components.
 set( snark_version_major "${CMAKE_PROJECT_VERSION_MAJOR}" )
 set( snark_version_minor "${CMAKE_PROJECT_VERSION_MINOR}" )
