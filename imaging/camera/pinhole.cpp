@@ -29,6 +29,14 @@ void pinhole::config_t::validate()
 }
 
 template < typename V > V pinhole::config_t::distortion_t::as() const { return V( { radial.k1, radial.k2, tangential.p1, tangential.p2, radial.k3 } ); }
+
+template <> Eigen::Matrix< double, 5, 1 > pinhole::config_t::distortion_t::as< Eigen::Matrix< double, 5, 1 > >() const // Eigen 3.3 breaks on curly-bracket initialisers
+{
+    Eigen::Matrix< double, 5, 1 > v;
+    v << radial.k1, radial.k2, tangential.p1, tangential.p2, radial.k3;
+    return v;
+}
+
 template Eigen::Matrix< double, 5, 1 > pinhole::config_t::distortion_t::as< Eigen::Matrix< double, 5, 1 > >() const;
 template cv::Vec< double, 5 > pinhole::config_t::distortion_t::as< cv::Vec< double, 5 > >() const;
 template cv::Mat pinhole::config_t::distortion_t::as< cv::Mat >() const;
