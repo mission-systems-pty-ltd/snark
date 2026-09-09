@@ -23,7 +23,7 @@ def verbose( msg: str ):
 
 
 help_description = """
-Take CSV records on stdin, publish on a given ROS topic
+Take CSV records on stdin, publish on a given ROS2 topic
 
 TODO: fix binary (currently only ascii mode works)
 
@@ -32,6 +32,11 @@ TODO: load message type from .msg file
 
 help_examples = """
 Examples:
+    Timestamping: ROS2 header.stamp field expects input csv field
+                  of type t with the usual comma time values (ascii
+                  or binary)
+        for example
+            echo 20260101T123456.123456 | ros2-from-csv ... --fields header/stamp --type t
     Forward ROS messages (e.g., to illustrate the principle or debug), start with trying --dry-run
         Forward with buffering:
             ros2-to-csv --topic some-topic | ros2-from-csv --topic some-topic
@@ -66,7 +71,6 @@ def command_line_options():
     group_dry.add_argument('--ros-queue-size', '--ros-queue', '--queue-size', '--queue', metavar='NUM', default=1, help='Length of ROS publisher queue', type=int)
     return parser.parse_args()
 
-
 def main():
     # Do not want the IOError message trace. Don't use this if using sockets.
     # See https://docs.python.org/3/library/signal.html#note-on-sigpipe for more
@@ -75,21 +79,11 @@ def main():
     global VERBOSE
     args = command_line_options()
     VERBOSE = args.verbose
-
-    if args.dry_run:
-        import numpy
-        numpy.set_printoptions( linewidth=numpy.inf, threshold=numpy.inf,
-                                precision=args.precision and args.precision or numpy.get_printoptions()['precision'] )
-
-    if args.topic is None and not args.dry_run:
-        say( "please specify --topic" )
-        sys.exit(1)
-
+    assert args.dry_run or args.output_fields or args.output_format or args.topic, "please specify --topic"
+    if args.dry_run: import numpy; numpy.set_printoptions( linewidth=numpy.inf, threshold=numpy.inf, precision=args.precision and args.precision or numpy.get_printoptions()['precision'] )
     rclpy.init()  # Initialize ROS2 client library
     node = rclpy.create_node( args.node_name )
-
     msg_type = args.message_type.replace( '.', '/' )
-
     verbose( f"looking for message {msg_type}" )
     msg_class = get_message( msg_type )
     record_type, record_ctor = convert.ros_message_to_csv_record( msg_class() )
@@ -100,21 +94,19 @@ def main():
         lengths = detail.command_line.lengths_of_strings( fields, comma.csv.format.expand( formats ))
         record_type, record_ctor = convert.ros_message_to_csv_record( msg_class(), lengths )
 
-    if args.output_fields:
-        print( ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields )))
-        sys.exit(0)
-
-    if args.output_format:
-        print( ','.join( [comma.csv.format.from_numpy(f) for f in record_type.format.split(',')] ))
-        sys.exit(0)
-
+    if args.output_fields: print( ','.join( detail.command_line.fields_of_record( record_type, args.index_output_fields ))); sys.exit(0)
+    if args.output_format: print( ','.join( [comma.csv.format.from_numpy(f) for f in record_type.format.split(',')] )); sys.exit(0)
     format = ','.join( comma.csv.format.to_numpy( args.binary and args.binary or args.format, compress=True ))
     binary = not not args.binary
 
     # for details see https://gitlab.com/orthographic/comma/-/wikis/csv/writing-your-own-csv-application-in-python
     istream = comma.csv.stream( record_type,   # of type comma.csv.struct
-                                delimiter=args.delimiter, fields=args.fields,
-                                format=format, binary=binary, default_values=None, flush=args.flush)
+                                delimiter=args.delimiter,
+                                fields=args.fields,
+                                format=format,
+                                binary=binary,
+                                default_values=None,
+                                flush=args.flush )
 
     message = msg_class()
     assign = record_type.assign( message, convert.from_csv_supported_types )
@@ -129,11 +121,8 @@ def main():
         for record in records:
             if args.verbose and not args.dry_run: print( message )
             assign( record )
-            if args.dry_run:
-                print( message_to_yaml( message ))
-            else:
-                publisher.publish( message )
-
+            if args.dry_run: print( message_to_yaml( message ))
+            else: publisher.publish( message )
 
 if __name__ == '__main__':
     main()
