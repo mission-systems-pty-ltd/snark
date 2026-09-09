@@ -9,6 +9,7 @@
     make_j: 4
     base: "{{ ansible_env.HOME }}"
     snark_cmake_options: "-DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DINSTALL_BASH_COMPLETION=ON -Dsnark_build_control=ON -Dsnark_build_graph=ON -Dsnark_build_graphics=ON -Dsnark_build_math_fft=ON -Dsnark_build_geometry=ON -Dsnark_build_point_cloud=ON Dsnark_build_python=ON -Dsnark_build_sensors_dc1394=ON -Dsnark_build_sensors_velodyne=ON -Dsnark_build_sensors_vimba=OFF -Dsnark_build_web=ON -Dsnark_build_web_feeds=ON -Dsnark_build_imaging=ON -Dsnark_build_imaging_stereo=OFF"
+    snark_cmake_options_extra: "" 
     src_dir: "{{ base }}/src/snark"
     build_in_src: false
     build_dir: "{{ src_dir + '/build' if build_in_src else base + '/build/snark' }}"
@@ -68,7 +69,7 @@
     file: dest="{{ build_dir }}" state=directory
 
   - name: "snark: cmake"
-    shell: "/usr/bin/cmake {{ snark_cmake_options }} {{ src_dir }} chdir={{ build_dir }}"
+    shell: "/usr/bin/cmake {{ snark_cmake_options }} {{ snark_cmake_options_extra }} {{ src_dir }} chdir={{ build_dir }}"
 
   - name: "snark: make"
     make:
