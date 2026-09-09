@@ -1,26 +1,18 @@
 #!/usr/bin/env python3
 
-import argparse
-import os
+import argparse, os, sys
 from signal import signal, SIGPIPE, SIG_DFL
-import sys
-
 import rclpy
-import comma.csv
-import comma.application
+import comma.application, comma.csv
 from snark.ros2 import convert, detail
-from rosidl_runtime_py import message_to_yaml
+from rosidl_runtime_py import message_to_yaml, message_to_csv
 from rosidl_runtime_py.utilities import get_message
-
 
 VERBOSE = False
 
-def say( msg: str, scriptname=os.path.basename( sys.argv[0] )):
-    print( f"{scriptname}: {msg}", file=sys.stderr )
+def say( msg: str, scriptname=os.path.basename( sys.argv[0] )): print( f"{scriptname}: {msg}", file=sys.stderr )
 
-def verbose( msg: str ):
-    if VERBOSE: say( msg )
-
+def verbose( msg: str ): VERBOSE: say( msg ) if VERBOSE else None
 
 help_description = """
 Take CSV records on stdin, publish on a given ROS2 topic
@@ -59,6 +51,8 @@ def command_line_options():
     parser.add_argument('--node-name', '--node', default='ros2_from_csv', help='Message type, useful for debugging', type=str)
     parser.add_argument('--output-fields', help='Output input CSV fields and exit', action='store_true')
     parser.add_argument('--output-format', help='Output format for input fields and exit', action='store_true')
+    parser.add_argument('--output-yaml', '--yaml', help='if --dry or --pass, output messages to stdout as yaml instead of csv', action='store_true')
+    parser.add_argument('--pass-through', '--pass', help='Publish to topic and output messages to stdout (e.g. for debugging)', action='store_true')
     parser.add_argument('--topic', nargs='?', help='Topic', type=str)
     parser.add_argument('--verbose', '-v', help='Chat more', action='store_true')
     comma.csv.add_options(parser)
@@ -98,7 +92,6 @@ def main():
     if args.output_format: print( ','.join( [comma.csv.format.from_numpy(f) for f in record_type.format.split(',')] )); sys.exit(0)
     format = ','.join( comma.csv.format.to_numpy( args.binary and args.binary or args.format, compress=True ))
     binary = not not args.binary
-
     # for details see https://gitlab.com/orthographic/comma/-/wikis/csv/writing-your-own-csv-application-in-python
     istream = comma.csv.stream( record_type,   # of type comma.csv.struct
                                 delimiter=args.delimiter,
@@ -107,22 +100,19 @@ def main():
                                 binary=binary,
                                 default_values=None,
                                 flush=args.flush )
-
     message = msg_class()
     assign = record_type.assign( message, convert.from_csv_supported_types )
-
     if args.dry_run:
-        verbose( "dry run, printing messages to stdout" )
+        verbose( "dry run, printing messages to stdout..." )
     else:
         publisher = node.create_publisher( msg_class, args.topic, qos_profile=rclpy.qos.QoSProfile( depth=args.ros_queue_size ))
         verbose( "publishing to topic '%s'..." % args.topic )
-
     for records in istream:
         for record in records:
-            if args.verbose and not args.dry_run: print( message )
             assign( record )
-            if args.dry_run: print( message_to_yaml( message ))
-            else: publisher.publish( message )
+            if args.verbose: print( message, file=sys.stderr )
+            if args.dry_run or args.pass_through: print( ( message_to_yaml if args.output_yaml else message_to_csv )( message ) )
+            if args.dry_run: continue 
+            publisher.publish( message )
 
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
