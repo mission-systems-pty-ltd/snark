@@ -1,7 +1,5 @@
 // Copyright (c) 2011 The University of Sydney
 
-#pragma once
-
 #include <comma/base/exception.h>
 #include "depth_traits.h"
 

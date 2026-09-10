@@ -104,6 +104,7 @@ static void usage( bool verbose=false )
     std::cerr << "operation options" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    aruco-detect" << std::endl << snark::cv_calc::aruco::detection::options() << std::endl;
+    std::cerr << "    aruco-localize" << std::endl << snark::cv_calc::aruco::localization::options() << std::endl;
     std::cerr << "    blank" << std::endl;
     std::cerr << "        use --output to specify rows, cols, and image type" << std::endl;
     std::cerr << "        --number,-n=<n>; default=1; output a given number of blank images" << std::endl;
