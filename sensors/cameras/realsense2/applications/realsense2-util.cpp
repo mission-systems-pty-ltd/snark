@@ -2,15 +2,18 @@
 
 #include <algorithm>
 #include <chrono>
+#include <librealsense2/rs.hpp>
 #include <comma/application/signal_flag.h>
 #include <comma/io/stream.h>
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
+#include <comma/name_value/serialize.h>
 #include <comma/timing/conversions.h>
+#include "../../../../imaging/camera/pinhole.h"
+#include "../../../../imaging/camera/traits.h"
 #include "../../../../imaging/cv_mat/serialization.h"
 #include "../../../../imaging/cv_mat/traits.h"
-#include <librealsense2/rs.hpp>
 
 namespace {
 
@@ -23,22 +26,10 @@ static void bash_completion( unsigned const ac, char const * const * av )
         " configure list reset",
         " --device",
         " --sensor",
-        " --operations",
-        " --output-fields",
-        " --output-format",
         " --verbose"
     };
     std::cout << arguments << std::endl;
     exit( 0 );
-}
-
-static void operations( unsigned const indent_count = 0 )
-{
-    auto const indent = std::string( indent_count, ' ' );
-    std::cerr << indent << "color; acquire colour camera data, output to stdout as cv-cat-formatted images" << std::endl;
-    std::cerr << indent << "configure; configure sensor options from stdin (fields: index,value)" << std::endl;
-    std::cerr << indent << "list; list devices" << std::endl;
-    std::cerr << indent << "reset; reset devices" << std::endl;
 }
 
 static void usage( bool const verbose )
@@ -46,15 +37,17 @@ static void usage( bool const verbose )
     std::cerr << R"(
 show and configure realsense cameras
 
-usage: " << comma::verbose.app_name() << " <operation> [<options>...]
+usage: relasense2-util <operation> [<options>...]
 
-operations: color, configure, list, reset
+operations: color, configure, intrinsics, list, reset
+    color; acquire colour camera data, output to stdout as cv-cat-formatted images
+    configure; configure sensor options from stdin (fields: index,value)
+    profile; output sensor profile and exit
+    list; list devices
+    reset; reset devices
 
 options
     --device=<serial>; serial number(s) of device(s); TODO for camera
-    --operations; print list of operations and exit
-    --output-fields; print operation-dependent output fields to stdout and exit
-    --output-format; print operation-dependent output format to stdout and exit
 
 operations
     color
@@ -65,11 +58,18 @@ operations
             width:  424 height: 240  fps: 6, 15, 30, 60
         options
             --fps=<framerate>; default=30
-            --width=<pixels>; default=1280
+            --width=<pixels>; default=1280; sensor width in pixels
             --image-format,--format=<format>; default=bgr
+
     configure
         options
-            --sensor=<index>; serial number(s) of device(s).
+            --sensor=<index>; serial number(s) of device(s)
+            --width=<pixels>; default=1280; sensor width in pixels
+    
+    profile
+        --intrinsics; output sensor intrinsics as json
+        --minified; output as one-line minified json
+        --sensor=<which>; default=color; choices: color, ... todo
 
 examples
     realsense2-util camera | cv-cat 'view;null'
@@ -77,17 +77,6 @@ examples
     realsense2-util list
     realsense2-util reset --device 1234 --device 4321
 )" << std::endl;
-}
-
-
-
-static void handle_info_options( comma::command_line_options const& options ) { if( options.exists( "--operations" ) ) { operations(); exit( 0 ); } }
-
-static std::string get_operation( comma::command_line_options const& options )
-{
-    std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--operations", "-.*" );
-    COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one operation, got " << unnamed.size() << ": " << comma::join( unnamed, ' ' ) );
-    return unnamed[0];
 }
 
 static void list_sensors( rs2::device const& device )
@@ -175,15 +164,30 @@ rs2_format image_format_from_string( const std::string& s )
 //   Coeffs:       0       0       0       0       0  
 //   FOV (deg):    55.51 x 43.07
 
+static unsigned int _height( unsigned int width )
+{
+    unsigned int height;
+    switch( width )
+    {
+        case 1920: height = 1080; break;
+        case 1280: height = 720; break;
+        case 640: height = 480; break;
+        case 424: height = 240; break;
+        default: COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
+    }
+    return height;
+}
+
 int main( int ac, char* av[] )
 {
     try
     {
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( ac, av );
-        handle_info_options( options );
         auto const verbose = options.exists( "--verbose" );
-        auto operation = get_operation( options );
+        std::vector< std::string > unnamed = options.unnamed( "--verbose,-v,--intrinsics,--minified", "-.*" );
+        COMMA_ASSERT_BRIEF( unnamed.size() == 1, "expected one operation, got " << unnamed.size() << ": " << comma::join( unnamed, ' ' ) );
+        auto operation = unnamed[0];
         auto device_ids = options.values< std::string >( "--device" );
         if( "configure" == operation )
         {
@@ -272,29 +276,16 @@ int main( int ac, char* av[] )
             rs2::config config;
             unsigned int width = options.value( "--width", 1280 );
             unsigned int fps = options.value( "--fps", 30 );
-            unsigned int height = 0;
+            unsigned int height = _height( width );
             switch( width )
             {
-                case 1920:
-                    height = 1080;
-                    COMMA_ASSERT_BRIEF( fps == 8, "expected --fps of 8 for width " << width << " got: " << fps );
-                    break;
-                case 1280:
-                    height = 720;
-                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps );
-                    break;
-                case 640:
-                    height = 480;
-                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps );
-                    break;
-                case 424:
-                    height = 240;
-                    COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30 || fps == 60, "expected --fps of 6, 15, 30, or 60 for width " << width << " got: " << fps );
-                    break;
-                default:
-                    COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
+                case 1920: COMMA_ASSERT_BRIEF( fps == 8, "expected --fps of 8 for width " << width << " got: " << fps ); break;
+                case 1280: COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps ); break;
+                case 640: COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30, "expected --fps of 6, 15, or 30 for width " << width << " got: " << fps ); break;
+                case 424: COMMA_ASSERT_BRIEF( fps == 6 || fps == 15 || fps == 30 || fps == 60, "expected --fps of 6, 15, 30, or 60 for width " << width << " got: " << fps ); break;
+                default: COMMA_THROW_BRIEF( comma::exception, "unsupported --width=" << width );
             }
-            comma::saymore() << "color: aquisition: configuring for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
+            comma::saymore() << "color: aquisition: enabling for width: " << width << " height: " << height << " fps: " << fps << "..." << std::endl;
             config.enable_stream( RS2_STREAM_COLOR, width, height, image_format_from_string( options.value< std::string >( "--image-format", "bgr8" ) ), fps );
             comma::saymore() << "color: aquisition: starting..." << std::endl;
             pipe.start(config);
@@ -304,7 +295,7 @@ int main( int ac, char* av[] )
             snark::cv_mat::serialization output;
             comma::csv::binary_output_stream< snark::cv_mat::serialization::header > header_stream( std::cout, h.default_format(), h.default_fields() );
             while( std::cout.good() && !is_shutdown )
-            {
+            {       
                 rs2::frameset frames = pipe.wait_for_frames();
                 rs2::video_frame color_frame = frames.get_color_frame();
                 if( !color_frame ) { continue; }
@@ -321,6 +312,52 @@ int main( int ac, char* av[] )
             }
             comma::saymore() << "camera: aquisition: done" << std::endl;
             return 0;
+        }
+        if( operation == "profile" )
+        {
+            rs2::context context;
+            auto devices = context.query_devices();
+            COMMA_ASSERT_BRIEF( devices.size() > 0, "no realsense devices found" );
+            COMMA_ASSERT_BRIEF( devices.size() == 1, "found " << devices.size() << " realsense devices; only 1 currently supported: todo, just ask" );
+            rs2::device device = devices[0]; // todo: parametrise on devices
+            rs2::sensor sensor;
+            auto sensor_option = options.value< std::string >( "--which", "color" );
+            bool minified = options.exists( "--minified" );
+            auto which = RS2_STREAM_COLOR;
+            COMMA_ASSERT_BRIEF( sensor_option == "color", "only --which=color implemented, others: todo, just ask" );
+            bool found = false;
+            for( auto&& s : device.query_sensors() )
+            {
+                for( auto&& profile: s.get_stream_profiles() ) { if( profile.stream_type() == which ) { sensor = s; found = true; break; } }
+                if( found ) { break; }
+            }
+            COMMA_ASSERT_BRIEF( found, sensor_option << "profile: sensor not found" );
+            if( options.exists( "--intrinsics" ) )
+            {
+                unsigned int width = options.value< unsigned int >( "--width" );
+                unsigned int height = _height( width );
+                for( auto&& profile: sensor.get_stream_profiles() ) // todo! quick and dirty for now; make it generic! 
+                {
+                    if( !profile.is< rs2::video_stream_profile >() ) { continue; }
+                    auto video_profile = profile.as< rs2::video_stream_profile >();
+                    if( video_profile.width() != int( width ) && video_profile.height() != int( height ) ) { continue; }
+                    rs2_intrinsics intrinsics = video_profile.get_intrinsics();
+                    snark::camera::pinhole::config_t config;
+                    config.focal_length = ( intrinsics.fx + intrinsics.fy ) / 2.;
+                    config.image_size = Eigen::Vector2i( width, height );
+                    config.principal_point = Eigen::Vector2d( intrinsics.ppx, intrinsics.ppy );
+                    config.distortion = snark::camera::pinhole::config_t::distortion_t();
+                    config.distortion->radial.k1 = intrinsics.coeffs[0];
+                    config.distortion->radial.k2 = intrinsics.coeffs[1];
+                    config.distortion->radial.k3 = intrinsics.coeffs[4];
+                    config.distortion->tangential.p1 = intrinsics.coeffs[2];
+                    config.distortion->tangential.p2 = intrinsics.coeffs[3];
+                    comma::write_json( config, std::cout, !minified );
+                    return 0;
+                }
+                COMMA_THROW_BRIEF( comma::exception, "profile: intrinsics for image width: " << width << " height: " << height << " not found" );
+            }
+            COMMA_THROW_BRIEF( comma::exception, "profile: generic profile output: todo" );
         }
         comma::say() << ": expected operation; got: '" << operation << "'" << std::endl;
         return 1;
