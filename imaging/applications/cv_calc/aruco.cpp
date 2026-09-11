@@ -393,11 +393,7 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
         }
     }
     if( !_initialised ) { return std::optional< snark::pose >{}; }
-    if( marks.size() == 1 )
-    {
-        return snark::pose{}.to( marks[0].second ); // p.to( marks[0].second ).to( *_anchored[marks[0].first] );
-        // return p; // return marks[0].second; // return p;
-    }
+    if( marks.size() == 1 && marks[0].first == _anchor ) { return snark::pose{}.to( marks[0].second ); }
     snark::pose p{};
     Eigen::Matrix4d qsum = Eigen::Matrix4d::Zero();
     for( const auto& m: marks )
