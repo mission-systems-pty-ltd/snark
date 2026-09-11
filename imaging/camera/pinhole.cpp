@@ -30,6 +30,13 @@ void pinhole::config_t::validate()
 
 template < typename V > V pinhole::config_t::distortion_t::as() const { return V( { radial.k1, radial.k2, tangential.p1, tangential.p2, radial.k3 } ); }
 
+template <> cv::Mat pinhole::config_t::distortion_t::as< cv::Mat >() const // cv::Mat 3.2 breaks on curly-bracket initialisers
+{
+    cv::Mat v;
+    v = ( cv::Mat_< double >( 5, 1 ) << radial.k1, radial.k2, tangential.p1, tangential.p2, radial.k3 );
+    return v;
+}
+
 template <> Eigen::Matrix< double, 5, 1 > pinhole::config_t::distortion_t::as< Eigen::Matrix< double, 5, 1 > >() const // Eigen 3.3 breaks on curly-bracket initialisers
 {
     Eigen::Matrix< double, 5, 1 > v;
