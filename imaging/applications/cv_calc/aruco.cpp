@@ -90,6 +90,10 @@ std::string options()
         --marker-anchor-id,--anchor=<id>; output camera pose relative to this marker
         --markers-min-number,--min-number-of-markers=<n>; default=1
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
+        --orientation-frame,--frame=<which>; default=camera
+            <which>
+                camera: right-down-forward, i.e. camera looking along z axis
+                frd: forward-right-down, i.e. camera looking along x axis
         --output-fields; output csv fields to stdout and exit
         --output-format; output csv format to stdout and exit
     examples
@@ -413,6 +417,42 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
     return p;
 }
 
+// static Eigen::Matrix3d swap()
+// {
+//     Eigen::Matrix3d m;
+//     m << 0, 0, 1
+//        , 1, 0, 0
+//        , 0, 1, 0;
+//     return m;
+// }
+
+// static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
+// {
+//     static Eigen::Matrix3d s = swap();
+//     static Eigen::Matrix3d t = s.transpose();
+//     return snark::rotation_matrix::roll_pitch_yaw( s * snark::rotation_matrix::rotation( a ).transpose() * t );
+// }
+
+static Eigen::Matrix3d swap()
+{
+    Eigen::Matrix3d m;
+    m << 0, 0, 1
+       , 1, 0, 0
+       , 0, 1, 0;
+    return m;
+}
+
+static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
+{
+    static Eigen::Matrix3d t = swap().transpose();
+    return snark::rotation_matrix::roll_pitch_yaw( t * snark::rotation_matrix::rotation( snark::roll_pitch_yaw( a.yaw(), a.roll(), a.pitch() ) ) );
+}
+
+// static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
+// {
+//     return snark::roll_pitch_yaw( a.yaw(), a.pitch(), a.roll() );
+// }
+
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
     #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 5 )
@@ -434,6 +474,9 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         #endif
         double marker_length = options.value< double >( "--marker-length" );
         localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
+        std::string reference_frame = options.value< std::string >( "--orientation-frame,--frame", "camera" );
+        COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd", "expected --orientation-frame 'camera' or 'frd'; got: --orientation-frame='" << reference_frame << "'" );
+        bool use_frd = reference_frame == "frd";
         cv::Mat camera_matrix{}, distortion_coeffs{};
         auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
         const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
@@ -463,7 +506,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             if( !p ) { continue; }
             o.t = i.first;
             o.number_of_markers = markers.size();
-            o.pose = *p;
+            o.pose = use_frd ? snark::pose( p->translation, to_frd( p->rotation ) ) : *p;
             ostream.write( o );
             if( flush ) { std::cout.flush(); }
         }
