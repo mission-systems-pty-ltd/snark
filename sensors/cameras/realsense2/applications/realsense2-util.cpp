@@ -39,7 +39,7 @@ show and configure realsense cameras
 
 usage: relasense2-util <operation> [<options>...]
 
-operations: color, configure, intrinsics, list, reset
+operations
     color; acquire colour camera data, output to stdout as cv-cat-formatted images
     configure; configure sensor options from stdin (fields: index,value)
     profile; output sensor profile and exit
