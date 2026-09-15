@@ -90,10 +90,11 @@ std::string options()
         --marker-anchor-id,--anchor=<id>; output camera pose relative to this marker
         --markers-min-number,--min-number-of-markers=<n>; default=1
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
-        --orientation-frame,--frame=<which>; default=camera
+        --reference-frame,--frame=<which>; default=camera
             <which>
                 camera: right-down-forward, i.e. camera looking along z axis
-                frd: forward-right-down, i.e. camera looking along x axis
+                frd   : forward-right-down, i.e. camera looking along x axis
+                raw   : as comes from aruco detection (z axis along marker z axis)
         --output-fields; output csv fields to stdout and exit
         --output-format; output csv format to stdout and exit
     examples
@@ -347,7 +348,7 @@ class map
 
         map( unsigned int anchor_id, unsigned min_number_of_landmarks = 3, const std::set< unsigned int >& expected = std::set< unsigned int >{} );
         
-        std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks );
+        std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw );
 
     private:
         unsigned int _anchor;
@@ -373,13 +374,13 @@ map::map( unsigned int anchor_id, unsigned int min_number_of_landmarks, const st
 
 static Eigen::Quaterniond as_quaternion( const snark::roll_pitch_yaw& rpy ) // quick and dirty for now 
 {
-    Eigen::AngleAxisd raa( rpy.roll(), Eigen::Vector3d::UnitX() );
-    Eigen::AngleAxisd paa( rpy.pitch(), Eigen::Vector3d::UnitY() );
-    Eigen::AngleAxisd yaa( rpy.yaw(), Eigen::Vector3d::UnitZ() );
-    return yaa * paa * raa;
+    Eigen::AngleAxisd r( rpy.roll(), Eigen::Vector3d::UnitX() );
+    Eigen::AngleAxisd p( rpy.pitch(), Eigen::Vector3d::UnitY() );
+    Eigen::AngleAxisd y( rpy.yaw(), Eigen::Vector3d::UnitZ() );
+    return y * p * r;
 }
 
-std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks )
+std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw )
 {
     if( marks.size() < _min_number_of_landmarks ) { return std::optional< snark::pose >{}; }
     auto anchor = marks.begin();
@@ -397,7 +398,9 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
         }
     }
     if( !_initialised ) { return std::optional< snark::pose >{}; }
-    if( marks.size() == 1 && marks[0].first == _anchor ) { return snark::pose{}.to( marks[0].second ); }
+    static const snark::pose global( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
+    if( marks.size() == 1 && marks[0].first == _anchor ) { return raw ? snark::pose{}.to( marks[0].second ) : snark::pose{}.to( marks[0].second ).from( global ); }
+    // todo! solver! return in correct reference frame!
     snark::pose p{};
     Eigen::Matrix4d qsum = Eigen::Matrix4d::Zero();
     for( const auto& m: marks )
@@ -474,9 +477,10 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         #endif
         double marker_length = options.value< double >( "--marker-length" );
         localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
-        std::string reference_frame = options.value< std::string >( "--orientation-frame,--frame", "camera" );
-        COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd", "expected --orientation-frame 'camera' or 'frd'; got: --orientation-frame='" << reference_frame << "'" );
+        std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "raw" );
+        COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool use_frd = reference_frame == "frd";
+        bool raw = reference_frame == "raw";
         cv::Mat camera_matrix{}, distortion_coeffs{};
         auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
         const auto& v = comma::split( options.value< std::string >( "--pinhole-config,--pinhole" ), ':', true );
@@ -502,7 +506,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             detection::estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
             poses.resize( markers.size() );
             for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ); }
-            const auto& p = map.update( poses );
+            const auto& p = map.update( poses, raw );
             if( !p ) { continue; }
             o.t = i.first;
             o.number_of_markers = markers.size();
