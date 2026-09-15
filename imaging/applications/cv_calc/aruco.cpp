@@ -348,7 +348,7 @@ class map
 
         map( unsigned int anchor_id, unsigned min_number_of_landmarks = 3, const std::set< unsigned int >& expected = std::set< unsigned int >{} );
         
-        std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw );
+        std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd );
 
     private:
         unsigned int _anchor;
@@ -380,7 +380,7 @@ static Eigen::Quaterniond as_quaternion( const snark::roll_pitch_yaw& rpy ) // q
     return y * p * r;
 }
 
-std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw )
+std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd )
 {
     if( marks.size() < _min_number_of_landmarks ) { return std::optional< snark::pose >{}; }
     auto anchor = marks.begin();
@@ -398,8 +398,16 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
         }
     }
     if( !_initialised ) { return std::optional< snark::pose >{}; }
-    static const snark::pose global( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
-    if( marks.size() == 1 && marks[0].first == _anchor ) { return raw ? snark::pose{}.to( marks[0].second ) : snark::pose{}.to( marks[0].second ).from( global ); }
+    static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
+    static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
+    if( marks.size() == 1 && marks[0].first == _anchor )
+    {
+        snark::pose p{};
+        if( frd ) { p.to( camera_offset ); }
+        p.to( marks[0].second );
+        if( !raw ) { p.from( marker_offset ); }
+        return p;
+    }
     // todo! solver! return in correct reference frame!
     snark::pose p{};
     Eigen::Matrix4d qsum = Eigen::Matrix4d::Zero();
@@ -419,42 +427,6 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
     p.rotation = snark::rotation_matrix( Eigen::Quaterniond( mean( 0 ), mean( 1 ), mean( 2 ), mean( 3 ) ).normalized() ).roll_pitch_yaw();  // todo: quick and dirty, reduce number of forth-and-back conversions
     return p;
 }
-
-// static Eigen::Matrix3d swap()
-// {
-//     Eigen::Matrix3d m;
-//     m << 0, 0, 1
-//        , 1, 0, 0
-//        , 0, 1, 0;
-//     return m;
-// }
-
-// static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
-// {
-//     static Eigen::Matrix3d s = swap();
-//     static Eigen::Matrix3d t = s.transpose();
-//     return snark::rotation_matrix::roll_pitch_yaw( s * snark::rotation_matrix::rotation( a ).transpose() * t );
-// }
-
-static Eigen::Matrix3d swap()
-{
-    Eigen::Matrix3d m;
-    m << 0, 0, 1
-       , 1, 0, 0
-       , 0, 1, 0;
-    return m;
-}
-
-static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
-{
-    static Eigen::Matrix3d t = swap().transpose();
-    return snark::rotation_matrix::roll_pitch_yaw( t * snark::rotation_matrix::rotation( snark::roll_pitch_yaw( a.yaw(), a.roll(), a.pitch() ) ) );
-}
-
-// static snark::roll_pitch_yaw to_frd( const snark::roll_pitch_yaw& a ) // quick and dirty, watch performance
-// {
-//     return snark::roll_pitch_yaw( a.yaw(), a.pitch(), a.roll() );
-// }
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
@@ -479,7 +451,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
         std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "raw" );
         COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
-        bool use_frd = reference_frame == "frd";
+        bool frd = reference_frame == "frd";
         bool raw = reference_frame == "raw";
         cv::Mat camera_matrix{}, distortion_coeffs{};
         auto s = options.value< std::string >( "--pinhole-config,--pinhole" );
@@ -506,11 +478,11 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             detection::estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
             poses.resize( markers.size() );
             for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ); }
-            const auto& p = map.update( poses, raw );
+            const auto& p = map.update( poses, raw, frd );
             if( !p ) { continue; }
             o.t = i.first;
             o.number_of_markers = markers.size();
-            o.pose = use_frd ? snark::pose( p->translation, to_frd( p->rotation ) ) : *p;
+            o.pose = *p;
             ostream.write( o );
             if( flush ) { std::cout.flush(); }
         }
