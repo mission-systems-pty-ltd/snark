@@ -9,13 +9,33 @@
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 #include <opencv2/calib3d.hpp>
-#ifdef SNARK_OPENCV_CONTRIB
+#if defined( CV_VERSION_EPOCH ) && CV_VERSION_EPOCH == 2 // i hate opencv so much...
+    #define ARUCO_SUPPORTED false
+    #define NEEDS_CONTRIB false
+#elif CV_MAJOR_VERSION < 4
+    #define ARUCO_SUPPORTED false
+    #define NEEDS_CONTRIB false
+#else
     #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
-        #include <opencv2/aruco.hpp>
-    #elif CV_MAJOR_VERSION > 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION >= 7 )
+        #if CV_MINOR_VERSION <= 5
+            #define ARUCO_SUPPORTED false
+            #define NEEDS_CONTRIB false
+        #else
+            #ifdef SNARK_OPENCV_CONTRIB
+                #define ARUCO_SUPPORTED true
+                #define NEEDS_CONTRIB false
+                #include <opencv2/aruco.hpp>
+            #else
+                #define ARUCO_SUPPORTED true
+                #define NEEDS_CONTRIB true
+            #endif
+        #endif
+    #else
+        #define ARUCO_SUPPORTED true
+        #define NEEDS_CONTRIB false
         #include <opencv2/objdetect/aruco_detector.hpp>
     #endif
-#endif // SNARK_OPENCV_CONTRIB
+#endif
 #include <comma/base/exception.h>
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
@@ -36,11 +56,12 @@ namespace detection {
 std::string options()
 {
     std::ostringstream oss;
-    #ifndef SNARK_OPENCV_CONTRIB
-    oss << "    cv-calc built with cmake flag snark_build_imaging_opencv_contrib=OFF, which does not support aruco detection" << std::endl;
-    #endif // #ifndef SNARK_OPENCV_CONTRIB
-    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
-    oss << "    cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
+    #if ARUCO_SUPPORTED
+        #if NEEDS_CONTRIB
+            oss << "    cv-calc built with cmake flag snark_build_imaging_opencv_contrib=OFF; set snark_build_imaging_opencv_contrib=ON and rebuild" << std::endl;
+        #endif
+    #else
+        oss << "    cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
         --pinhole-config,--pinhole=[<config>]; <config>: <filename>[:<path>]
@@ -80,11 +101,12 @@ namespace localization {
 std::string options()
 {
     std::ostringstream oss;
-    #ifndef SNARK_OPENCV_CONTRIB
-    oss << "    cv-calc built with cmake flag snark_build_imaging_opencv_contrib=OFF, which does not support aruco localization" << std::endl;
-    #endif // #ifndef SNARK_OPENCV_CONTRIB
-    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
-    oss << "    cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
+    #if ARUCO_SUPPORTED
+        #if NEEDS_CONTRIB
+            oss << "        cv-calc built with cmake flag snark_build_imaging_opencv_contrib=OFF; set snark_build_imaging_opencv_contrib=ON and rebuild" << std::endl;
+        #endif
+    #else
+        oss << "        cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
         --marker-anchor-id,--anchor=<id>; output camera pose relative to this marker
@@ -177,13 +199,11 @@ template <> struct traits< snark::cv_calc::aruco::localization::output >
 
 } } // namespace comma { namespace visiting {
 
+#if ARUCO_SUPPORTED && !NEEDS_CONTRIB
+
 namespace snark { namespace cv_calc { namespace aruco {
 
-#ifdef SNARK_OPENCV_CONTRIB
-
 namespace detection {
-
-#if CV_MAJOR_VERSION > 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION >= 5 )
 
 struct dictionaries
 {
@@ -225,8 +245,6 @@ struct dictionaries
         return i->second;
     }
 };
-
-#endif
 
 #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7 ) // how painful...
     static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
@@ -276,7 +294,7 @@ struct dictionaries
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
-    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 5 )
+    #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION <= 5 )
         COMMA_THROW_BRIEF( comma::exception, "cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" );
     #else
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< output >(), ',' ) << std::endl; return 0; };
@@ -492,32 +510,58 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
 
 } // namespace localization {
 
-#else // #ifdef SNARK_OPENCV_CONTRIB
-
-namespace detection {
-
-int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
-{
-    COMMA_THROW_BRIEF( comma::exception,    "aruco-detect: built with cmake flag"
-                            << std::endl << "    snark_build_imaging_opencv_contrib=OFF, which does"
-                            << std::endl << "    not support aruco detection; please rebuild with"
-                            << std::endl << "    snark_build_imaging_opencv_contrib=ON" );
-}
-
-} // namespace detection {
-
-namespace localization {
-
-int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
-{
-    COMMA_THROW_BRIEF( comma::exception,    "aruco-localize: built with cmake flag"
-                            << std::endl << "    snark_build_imaging_opencv_contrib=OFF, which does"
-                            << std::endl << "    not support aruco localization; please rebuild with"
-                            << std::endl << "    snark_build_imaging_opencv_contrib=ON" );
-}
-
-} // namespace localization {
-
-#endif // #ifdef SNARK_OPENCV_CONTRIB
-
 } } } // namespace snark { namespace cv_calc { namespace aruco {
+
+#else // #if ARUCO_SUPPORTED && !NEEDS_CONTRIB
+    #if ARUCO_SUPPORTED
+        namespace snark { namespace cv_calc { namespace aruco {
+
+        namespace detection {
+
+        int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
+        {
+            COMMA_THROW_BRIEF( comma::exception,    "aruco-detect: built with cmake flag"
+                                    << std::endl << "    snark_build_imaging_opencv_contrib=OFF, which does"
+                                    << std::endl << "    not support aruco detection; please rebuild with"
+                                    << std::endl << "    snark_build_imaging_opencv_contrib=ON" );
+        }
+
+        } // namespace detection {
+
+        namespace localization {
+
+        int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
+        {
+            COMMA_THROW_BRIEF( comma::exception,    "aruco-localize: built with cmake flag"
+                                    << std::endl << "    snark_build_imaging_opencv_contrib=OFF, which does"
+                                    << std::endl << "    not support aruco localization; please rebuild with"
+                                    << std::endl << "    snark_build_imaging_opencv_contrib=ON" );
+        }
+
+        } // namespace localization {
+
+        } } } // namespace snark { namespace cv_calc { namespace aruco {
+    #else
+        namespace snark { namespace cv_calc { namespace aruco {
+
+        namespace detection {
+
+        int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
+        {
+            COMMA_THROW_BRIEF( comma::exception,    "aruco-detect: not supported in opencv version " << CV_VERSION );
+        }
+
+        } // namespace detection {
+
+        namespace localization {
+
+        int run( const comma::command_line_options&, const snark::cv_mat::serialization::options& )
+        {
+            COMMA_THROW_BRIEF( comma::exception,    "aruco-localize: not supported in opencv version " << CV_VERSION );
+        }
+
+        } // namespace localization {
+
+        } } } // namespace snark { namespace cv_calc { namespace aruco {
+    #endif
+#endif // #if ARUCO_SUPPORTED && !NEEDS_CONTRIB
