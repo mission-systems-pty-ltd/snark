@@ -30,7 +30,7 @@ void linear_kalman_filter::covariance( const Eigen::MatrixXd& p0 ) { P = std::mo
 
 const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& measurement, double dt ) // quick and dirty
 {
-    COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
+    //COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
     F = Eigen::MatrixXd::Identity( _state_dimensions, _state_dimensions );
     static unsigned int half = _state_dimensions / 2;
     for( unsigned int i = 0; i < half; ++i ) { F( i, half + i ) = dt; } // new = old + v * dt
@@ -39,17 +39,24 @@ const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& meas
 
 const Eigen::VectorXd& linear_kalman_filter::update( const Eigen::VectorXd& measurement, double dt, const Eigen::MatrixXd& f )
 {
-    COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
+    //COMMA_ASSERT( dt >= 0, "expected non-negative time step; got: " << dt );
     F = std::move( f );
     return _update( measurement, dt );
 }
 
 const Eigen::VectorXd& linear_kalman_filter::_update( const Eigen::VectorXd& measurement, double dt )
 {
-    if( dt < 1e-6 ) { return x; }
-    Eigen::MatrixXd Q = ( F * F.transpose() ) * _q_variance * dt; 
+    if( std::abs( dt ) < 1e-6 ) { return x; }
+    static unsigned int half = _state_dimensions / 2;
+    Eigen::MatrixXd Q = Eigen::MatrixXd::Zero( _state_dimensions, _state_dimensions );
+    double dt2 = dt * dt;
+    double dt3 = dt * dt * dt;
+    Q.topLeftCorner( half, half ).diagonal().setConstant( dt3 / 3 );
+    Q.topRightCorner( half, half ).diagonal().setConstant( dt2 / 2 );
+    Q.bottomLeftCorner( half, half ).diagonal().setConstant( dt2 / 2 );
+    Q.bottomRightCorner( half, half ).diagonal().setConstant( dt );
     x = F * x;
-    P = F * P * F.transpose() + Q;
+    P = F * P * F.transpose() + Q * _q_variance;
     Eigen::MatrixXd S = H * P * H.transpose();
     S.diagonal().array() += _r_variance; 
     static const auto state_identity = Eigen::MatrixXd::Identity(_state_dimensions, _state_dimensions );
