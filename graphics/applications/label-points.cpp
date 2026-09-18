@@ -42,6 +42,7 @@
 #include <comma/name_value/parser.h>
 #include <comma/string/string.h>
 #include <comma/csv/format.h>
+#include "../wayland.h"
 #include "../qt3d/camera_options.h"
 #include "label_points/MainWindow.h"
 
@@ -90,6 +91,7 @@ int main( int argc, char** argv )
 {
     try
     {
+        snark::wayland::use_permissive_window_management();
         comma::command_line_options options( argc, argv );
         bool verbose = options.exists( "--verbose,-v" );
         if( argc == 1 || options.exists( "--help" ) || options.exists( "-h" ) ) { usage( verbose ); }

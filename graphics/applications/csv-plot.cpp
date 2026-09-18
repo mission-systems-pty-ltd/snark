@@ -14,6 +14,7 @@
 #include <comma/csv/traits.h>
 #include <comma/string/string.h>
 #include <comma/name_value/parser.h>
+#include "../wayland.h"
 #include "csv_plot/main_window.h"
 #include "csv_plot/traits.h"
 
@@ -375,6 +376,7 @@ int main( int ac, char** av )
 {
     try
     {
+        snark::wayland::use_permissive_window_management();
         comma::command_line_options options( ac, av, usage );
         bool verbose = options.exists( "--verbose,-v" );
         if( options.exists( "--input-fields" ) ) { std::cout << "t,series,block" << std::endl; return 0; } // quick and dirty

@@ -26,6 +26,7 @@
 #include "../../visiting/eigen.h"
 #include "../qt3d/camera_options.h"
 #include "../traits.h"
+#include "../wayland.h"
 #include "view_points/click_mode.h"
 #include "view_points/console_reader.h"
 #include "view_points/shape_reader.h"
@@ -317,6 +318,8 @@ usage: view-points [<options>] [<filenames>]"
         "\n                   may end up not where you want it; for more, see: https://doc.qt.io/qt-5/application-windows.html#window-geometry"
         "\n                   for now, find the desired window position by hand and use those window position values"
         "\n    --window-title=[<title>]: main window title; default: view-points command line"
+        "\n    --window-wayland,--wayland: use wayland display server (native from ubuntu 26.04)"
+        "\n                                may look better, but will disable --window-geometry"
         qt55_unsupported_marker_start
         "\n    --z-is-up : z-axis is pointing up, default: pointing down ( north-east-down system )"
         qt55_unsupported_marker_end
@@ -803,8 +806,9 @@ int main( int argc, char** argv )
         comma::command_line_options options( argc, argv, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if( options.exists( "--version" ) ) { version(); exit( 0 ); }
+        if( !options.exists( "--window-wayland,--wayland" ) ) { snark::wayland::use_permissive_window_management(); }
         comma::csv::options csv_options( argc, argv, "", false );
-        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill,--hide-file-panel,--hide-file-panel-fields,--hide-fields", "-[^;].*" );
+        std::vector< std::string > properties = options.unnamed( "--full-screen,--maximize,--z-is-up,--orthographic,--flush,--no-stdin,--output-camera-config,--output-camera,--output-camera-position,--pass-through,--pass,--exit-on-end-of-input,--fill,--hide-file-panel,--hide-file-panel-fields,--hide-fields,--window-wayland,--wayland", "-[^;].*" );
         snark::graphics::view::color_t  background_color( QColor( QString( options.value< std::string >( "--background-colour,--background-color", "#000000" ).c_str() ) ) );
         boost::optional< comma::csv::options > camera_csv;
         boost::optional< Eigen::Vector3d > camera_position;

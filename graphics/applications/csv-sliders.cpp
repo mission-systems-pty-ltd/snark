@@ -14,6 +14,7 @@
 #include <comma/csv/traits.h>
 #include <comma/name_value/parser.h>
 #include <comma/visiting/traits.h>
+#include "../wayland.h"
 #include "csv_sliders/gui.h"
 #include "csv_sliders/slider.h"
 
@@ -176,6 +177,7 @@ int main( int ac, char** av )
 {
     try
     {
+        snark::wayland::use_permissive_window_management();
         comma::command_line_options options( ac, av, usage );
         comma::csv::options global_csv( options );
         bool verbose = options.exists( "--verbose,-v" );

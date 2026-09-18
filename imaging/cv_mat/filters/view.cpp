@@ -8,6 +8,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <comma/string/string.h>
+#include "../../wayland.h"
 #include "../utils.h"
 #include "view.h"
 
@@ -133,6 +134,7 @@ view< H >::view( const typename view< H >::timestamp_functor_t& get_timestamp
     , _capture_on_exit( capture_on_exit )
     , _capture_on_exit_filename( capture_on_exit_filename )
 {
+    wayland::use_permissive_window_management();
     _make_window( _name, _flags, _title, _window_position, _window_size );
 }
 
