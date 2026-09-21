@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <string>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "roll_pitch_yaw.h"
@@ -62,5 +63,7 @@ struct pose
     bool near( const pose& rhs, const pose& epsilon = pose( 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ) ) const; // todo
     operator position() const;
 };
+
+std::string to_string( const pose& p, char separator = ',', bool as_quaternion = false );
 
 } // namespace snark {

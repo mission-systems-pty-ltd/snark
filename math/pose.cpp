@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Vsevolod Vlaskine
 // All rights reserved.
 
+#include <sstream>
+#include <comma/base/exception.h>
 #include "pose.h"
 #include "position.h"
 #include "rotation_matrix.h"
@@ -57,5 +59,13 @@ pose pose::velocity_from( const pose& frame, const pose& frame_velocity ) const
 }
 
 pose::operator position() const { return position{ translation, rotation }; }
+
+std::string to_string( const pose& p, char separator, bool as_quaternion )
+{
+    COMMA_ASSERT( !as_quaternion, "as quaternion: todo, just ask" );
+    std::ostringstream oss;
+    oss << p.translation.x() << separator << p.translation.y() << separator << p.translation.z() << separator << p.rotation.roll() << separator << p.rotation.pitch() << separator << p.rotation.yaw();
+    return oss.str();
+}
 
 } // namespace snark {

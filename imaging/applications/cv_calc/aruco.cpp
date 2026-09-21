@@ -64,6 +64,7 @@ std::string options()
         oss << "    cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
+        --marker-length=[<marker_length>]; length of marker side
         --pinhole-config,--pinhole=[<config>]; <config>: <filename>[:<path>]
         --output-dictionaries,--dictionaries; output list of dictionary names to stdout and exit
         --output-fields; output csv fields to stdout and exit
@@ -109,7 +110,14 @@ std::string options()
         oss << "        cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
-        --marker-anchor-id,--anchor=<id>; output camera pose relative to this marker
+        --marker=<id>; anchor marker (soon to be deprecated)
+        --marker=<id>[;<properties>]; (todo) if markers of different length are detected,
+                                      the largest detected markers are used for
+                                      localisation
+            <properties>
+                length=<length>; default: value of --market-length; length of marker side
+                pose=[<pose>]; marker pose as x,y,z,roll,pitch,yaw, default: 0,0,0,0,0,0
+        --marker-length=[<marker_length>]; length of marker side, also, see --marker
         --markers-min-number,--min-number-of-markers=<n>; default=1
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
         --reference-frame,--frame=<which>; default=camera
@@ -142,6 +150,13 @@ std::string options()
 // realsense2-util color --fps 30 --width 640   | cv-cat view | cv-cat resize=2             | cv-calc aruco-detect --dict 4X4_50                                    --fields t,pose --max-number-of-markers 1                                    --pinhole pinhole.2.json --anchor 0                                   --marker-length 0.1                                    --binary t,6d                                    --flush    | csv-paste '-;binary=t,6d' value='0,0,0,0,0,0;binary=6d' --flush | points-frame --fields ,frame,x,y,z,roll,pitch,yaw --binary t,12d --to --flush | csv-shuffle --fields t,,,,,,,,,,,,,x,y,z,roll,pitch,yaw --binary t,18d -e --flush | math-kalman-filter --measurement-size 3                                  --fields t,measurement --binary t,6d                                  --measurement-noise 0.05                                  --process-noise 0.000001 --flush | csv-shuffle --fields t,,,,roll,pitch,yaw,x,y,z --output-fields t,x,y,z,roll,pitch,yaw --binary t,12d --flush
 // realsense2-util color --fps 30 --width 640   | cv-cat view | cv-cat resize=2             | cv-calc aruco-detect --dict 4X4_50                                    --fields t,pose --max-number-of-markers 1                                    --pinhole pinhole.2.json --anchor 0                                   --marker-length 0.1                                    --binary t,6d                                    --flush    | csv-paste '-;binary=t,6d' value='0,0,0,0,0,0;binary=6d' --flush | points-frame --fields ,frame,x,y,z,roll,pitch,yaw --binary t,12d --to --flush | csv-shuffle --fields t,,,,,,,,,,,,,x,y,z,roll,pitch,yaw --binary t,18d -e --flush | math-kalman-filter --measurement-size 3                                  --fields t,measurement --binary t,6d                                  --measurement-noise 0.05                                  --process-noise 0.000001 --flush | csv-shuffle --fields t,,,,roll,pitch,yaw,x,y,z --output-fields t,x,y,z,roll,pitch,yaw --binary t,12d --flush | view-points '-;binary=6d;fields=x,y,z,roll,pitch,yaw;shape=axes;length=0.1;weight=5;size=1' <(echo 0)';fields=x;shape=axes;length=0.1' <( echo 0 )';fields=x;weight=10;label=0,0,0' --camera-config <( echo '{"center":{"x":0.0802531689,"y":-0.0248078629,"z":0.549671054},"world":{"translation":{"x":-0.263532609,"y":0.406255633,"z":-0.299200088},"rotation":{"x":1.99405885,"y":0.0683527067,"z":0.00327160885}},"camera":{"translation":{"x":0.274289042,"y":-0.428598017,"z":-0.908777118},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":8.2387313842773438,"field_of_view":45}}' )
 // realsense2-util color --fps 30 --width 640   | cv-cat view | cv-cat resize=2             | cv-calc aruco-detect --dict 4X4_50                                    --fields t,pose --max-number-of-markers 1                                    --pinhole pinhole.2.json --anchor 0                                   --marker-length 0.1                                    --binary t,6d                                    --flush    | csv-paste '-;binary=t,6d' value='0,0,0,0,0,0;binary=6d' --flush | points-frame --fields ,frame,x,y,z,roll,pitch,yaw --binary t,12d --to --flush | csv-shuffle --fields t,,,,,,,,,,,,,x,y,z,roll,pitch,yaw --binary t,18d -e --flush | tee 0.bin | math-kalman-filter --measurement-size 3                                  --fields t,measurement --binary t,6d                                  --measurement-noise 0.05                                  --process-noise 0.001 --flush | view-points '-;binary=t,12d;fields=t,,,,roll,pitch,yaw,x,y,z;shape=axes;length=0.1;weight=5;size=1' <(echo 0)';fields=x;shape=axes;length=0.1' <( echo 0 )';fields=x;weight=10;label=0,0,0' --camera-config <( echo '{"center":{"x":0.0802531689,"y":-0.0248078629,"z":0.549671054},"world":{"translation":{"x":-0.263532609,"y":0.406255633,"z":-0.299200088},"rotation":{"x":1.99405885,"y":0.0683527067,"z":0.00327160885}},"camera":{"translation":{"x":0.274289042,"y":-0.428598017,"z":-0.908777118},"rotation":{"x":0,"y":0,"z":0}},"projection":{"up":{"x":0,"y":0,"z":-1},"orthographic":false,"near_plane":0.01,"far_plane":8.2387313842773438,"field_of_view":45}}' )
+
+struct marker
+{
+    std::uint32_t id{0};
+    double length{0.};
+    snark::pose pose;
+};
 
 struct output
 {
@@ -194,6 +209,33 @@ template <> struct traits< snark::cv_calc::aruco::localization::output >
         v.apply( "block", p.block );
         v.apply( "number_of_markers", p.number_of_markers );
         v.apply( "pose", p.pose );
+    }
+};
+
+template <> struct traits< snark::cv_calc::aruco::localization::marker >
+{
+    template < typename Key, class Visitor > static void visit( const Key&, const snark::cv_calc::aruco::localization::marker& p, Visitor& v )
+    {
+        v.apply( "id", p.id );
+        v.apply( "length", p.length );
+        v.apply( "pose", snark::to_string( p.pose ) );
+    }
+    
+    template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::localization::marker& p, Visitor& v )
+    {
+        v.apply( "id", p.id );
+        v.apply( "length", p.length );
+        std::string pose; // quick and dirty
+        v.apply( "pose", pose );
+        if( !pose.empty() )
+        {
+            const auto& v = comma::split_as< double >( pose, ',' );
+            COMMA_ASSERT( v.size() == 3 || v.size() == 6, "expected comma-separated pose; got: '" << pose << "'" );
+            p.pose.translation.x() = v[0];
+            p.pose.translation.y() = v[1];
+            p.pose.translation.z() = v[2];
+            if( v.size() == 6 ) { p.pose.rotation = snark::roll_pitch_yaw( v[3], v[4], v[5] ); }
+        }
     }
 };
 
@@ -466,7 +508,9 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             cv::aruco::ArucoDetector detector( dictionary, params );
         #endif
         double marker_length = options.value< double >( "--marker-length" );
-        localization::map map( options.value< unsigned int >( "--marker-anchor-id,--anchor" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
+
+        localization::map map( options.value< unsigned int >( "--marker" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
+        
         std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "raw" );
         COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool frd = reference_frame == "frd";
