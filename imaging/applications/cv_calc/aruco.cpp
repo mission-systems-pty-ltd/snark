@@ -111,6 +111,10 @@ std::string options()
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
         --marker=<id>[,<length>[,<x>,<y>,<z>[,<roll>,<pitch>,<yaw>]]]
+            ATTENTION: marker pose is in ned/frd, i.e. if marker lies on the floor
+                       its x axis is considered pointing from the bottom of the
+                       marker to its top; its y axis points to the right; and
+                       its z axis points down
         --marker-length=[<marker_length>]; length of marker side, also, see --marker
         --markers=[<csv_file>]; csv file, fields: id,length,x,y,z,roll,pitch,yaw
         --markers-min-number,--min-number-of-markers=<n>; default=1; min number of markers
@@ -487,6 +491,8 @@ class map
 
         std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd );
 
+        const std::unordered_map< unsigned int, pose >& landmarks() const { return _landmarks; }
+
     private:
         unsigned int _min_number_of_landmarks{1};
         bool _do_update{false};
@@ -496,7 +502,7 @@ class map
 std::optional< pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd )
 {
     if( marks.size() < _min_number_of_landmarks ) { return {}; }
-    for( const auto& m: marks ) // quick and dirty for now
+    for( const auto& m: marks ) // todo: quick and dirty for now; solve on multiple landmarks
     {
         const auto& i = _landmarks.find( m.first );
         if( i == _landmarks.end() ) { continue; }
@@ -504,9 +510,8 @@ std::optional< pose > map::update( const std::vector< std::pair< unsigned int, s
         static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
         snark::pose p{};
         if( frd ) { p.to( camera_offset ); }
-        p.to( marks[0].second );
-        if( !raw ) { p.from( marker_offset ).from( i->second ); }
-        return p;
+        p.to( m.second );
+        return ( raw ? p : p.from( marker_offset ) ).from( i->second );
     }
     return {};
 }
@@ -550,8 +555,10 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
                 map.insert( { m.id, m.pose } );
             }
         }
+        // std::cerr << "==> a: landmarks" << std::endl;
+        // for( const auto& m: map.landmarks() ) { std::cerr << "==>     " << m.first << ": " << snark::to_string( m.second ) << std::endl; }
         COMMA_ASSERT_BRIEF( marker_length, "marker length not specified; either specify --marker-length, or specify length of specific markers" );
-        std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "raw" );
+        std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "camera" );
         COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool frd = reference_frame == "frd";
         bool raw = reference_frame == "raw";
