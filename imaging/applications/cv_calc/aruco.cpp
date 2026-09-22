@@ -39,6 +39,7 @@
 #include <comma/base/exception.h>
 #include <comma/csv/names.h>
 #include <comma/csv/stream.h>
+#include <comma/math/compare.h>
 #include <comma/name_value/serialize.h>
 #include <comma/string/string.h>
 #include "../../../imaging/camera/pinhole.h"
@@ -542,7 +543,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         {
             const auto& m = ascii.get( s, true );
             if( m.length > 1e-6 && !marker_length ) { marker_length = m.length; } // todo!!!
-            COMMA_ASSERT_BRIEF( m.length < 1e-6 || m.length == *marker_length, "variable marker length: todo!" );
+            COMMA_ASSERT_BRIEF( m.length < 1e-6 || m.length == *marker_length, "aruco-localize: variable marker length: todo!" );
             map.insert( { m.id, m.pose } );
         }
         std::string markers_filename = options.value< std::string >( "--markers", "" );
@@ -551,15 +552,15 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             for( const auto& m: comma::csv::read_as< std::vector< localization::marker > >( markers_filename ) )
             {
                 if( !marker_length ) { marker_length = m.length; } // todo!!!
-                COMMA_ASSERT_BRIEF( m.length == *marker_length, "variable marker length: todo!" );
+                COMMA_ASSERT_BRIEF( comma::math::equal( m.length, *marker_length ), "aruco-localize: variable marker length: todo!" );
                 map.insert( { m.id, m.pose } );
             }
         }
         // std::cerr << "==> a: landmarks" << std::endl;
         // for( const auto& m: map.landmarks() ) { std::cerr << "==>     " << m.first << ": " << snark::to_string( m.second ) << std::endl; }
-        COMMA_ASSERT_BRIEF( marker_length, "marker length not specified; either specify --marker-length, or specify length of specific markers" );
+        COMMA_ASSERT_BRIEF( marker_length, "aruco-localize: marker length not specified; either specify --marker-length, or specify length of specific markers" );
         std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "camera" );
-        COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
+        COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "aruco-localize: expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool frd = reference_frame == "frd";
         bool raw = reference_frame == "raw";
         cv::Mat camera_matrix{}, distortion_coeffs{};
