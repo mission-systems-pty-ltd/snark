@@ -110,15 +110,11 @@ std::string options()
         oss << "        cv-calc built with opencv " << CV_VERSION << ", which does not support aruco detection" << std::endl;
     #endif
     oss << R"(        --dictionary,--dict=<dictionary>
-        --marker=<id>; anchor marker (soon to be deprecated)
-        --marker=<id>[;<properties>]; (todo) if markers of different length are detected,
-                                      the largest detected markers are used for
-                                      localisation
-            <properties>
-                length=<length>; default: value of --market-length; length of marker side
-                pose=[<pose>]; marker pose as x,y,z,roll,pitch,yaw, default: 0,0,0,0,0,0
+        --marker=<id>[,<length>[,<x>,<y>,<z>[,<roll>,<pitch>,<yaw>]]]
         --marker-length=[<marker_length>]; length of marker side, also, see --marker
-        --markers-min-number,--min-number-of-markers=<n>; default=1
+        --markers=[<csv_file>]; csv file, fields: id,length,x,y,z,roll,pitch,yaw
+        --markers-min-number,--min-number-of-markers=<n>; default=1; min number of markers
+                visible in a single frame (only 1 supported for now)
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
         --reference-frame,--frame=<which>; default=camera
             <which>
@@ -218,24 +214,14 @@ template <> struct traits< snark::cv_calc::aruco::localization::marker >
     {
         v.apply( "id", p.id );
         v.apply( "length", p.length );
-        v.apply( "pose", snark::to_string( p.pose ) );
+        v.apply( "pose", p.pose );
     }
     
     template < typename Key, class Visitor > static void visit( const Key&, snark::cv_calc::aruco::localization::marker& p, Visitor& v )
     {
         v.apply( "id", p.id );
         v.apply( "length", p.length );
-        std::string pose; // quick and dirty
-        v.apply( "pose", pose );
-        if( !pose.empty() )
-        {
-            const auto& v = comma::split_as< double >( pose, ',' );
-            COMMA_ASSERT( v.size() == 3 || v.size() == 6, "expected comma-separated pose; got: '" << pose << "'" );
-            p.pose.translation.x() = v[0];
-            p.pose.translation.y() = v[1];
-            p.pose.translation.z() = v[2];
-            if( v.size() == 6 ) { p.pose.rotation = snark::roll_pitch_yaw( v[3], v[4], v[5] ); }
-        }
+        v.apply( "pose", p.pose );
     }
 };
 
@@ -401,6 +387,8 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
 
 namespace localization {
 
+namespace todo {
+
 class map
 {
     public:
@@ -412,7 +400,7 @@ class map
 
     private:
         unsigned int _anchor;
-        unsigned int _min_number_of_landmarks{3};
+        unsigned int _min_number_of_landmarks{1};
         bool _initialised{false};
         std::unordered_map< unsigned int, std::optional< pose > > _anchored;
 };
@@ -488,6 +476,41 @@ std::optional< snark::pose > map::update( const std::vector< std::pair< unsigned
     return p;
 }
 
+} // namespace todo {
+
+class map
+{
+    public:
+        map( unsigned int min_number_of_landmarks = 1, bool do_update = false ): _min_number_of_landmarks( min_number_of_landmarks ), _do_update( do_update ) { COMMA_ASSERT_BRIEF( !_do_update, "dynamic update: todo" ); }
+        
+        void insert( const std::pair< unsigned int, pose >& p ) { _landmarks[p.first] = p.second; }
+
+        std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd );
+
+    private:
+        unsigned int _min_number_of_landmarks{1};
+        bool _do_update{false};
+        std::unordered_map< unsigned int, pose > _landmarks;
+};
+
+std::optional< pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd )
+{
+    if( marks.size() < _min_number_of_landmarks ) { return {}; }
+    for( const auto& m: marks ) // quick and dirty for now
+    {
+        const auto& i = _landmarks.find( m.first );
+        if( i == _landmarks.end() ) { continue; }
+        static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
+        static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
+        snark::pose p{};
+        if( frd ) { p.to( camera_offset ); }
+        p.to( marks[0].second );
+        if( !raw ) { p.from( marker_offset ).from( i->second ); }
+        return p;
+    }
+    return {};
+}
+
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
 {
     #if CV_MAJOR_VERSION < 4 || ( CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 5 )
@@ -507,10 +530,27 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
             cv::aruco::ArucoDetector detector( dictionary, params );
         #endif
-        double marker_length = options.value< double >( "--marker-length" );
-
-        localization::map map( options.value< unsigned int >( "--marker" ), options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
-        
+        auto marker_length = options.optional< double >( "--marker-length" );
+        localization::map map( options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
+        comma::csv::ascii< localization::marker > ascii;
+        for( const auto& s: options.values< std::string >( "--marker" ) )
+        {
+            const auto& m = ascii.get( s, true );
+            if( m.length > 1e-6 && !marker_length ) { marker_length = m.length; } // todo!!!
+            COMMA_ASSERT_BRIEF( m.length < 1e-6 || m.length == *marker_length, "variable marker length: todo!" );
+            map.insert( { m.id, m.pose } );
+        }
+        std::string markers_filename = options.value< std::string >( "--markers", "" );
+        if( !markers_filename.empty() )
+        {
+            for( const auto& m: comma::csv::read_as< std::vector< localization::marker > >( markers_filename ) )
+            {
+                if( !marker_length ) { marker_length = m.length; } // todo!!!
+                COMMA_ASSERT_BRIEF( m.length == *marker_length, "variable marker length: todo!" );
+                map.insert( { m.id, m.pose } );
+            }
+        }
+        COMMA_ASSERT_BRIEF( marker_length, "marker length not specified; either specify --marker-length, or specify length of specific markers" );
         std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "raw" );
         COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool frd = reference_frame == "frd";
@@ -537,7 +577,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             #else
                 detector.detectMarkers( i.second, corners, markers, rejected );
             #endif
-            detection::estimate_poses( corners, marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
+            detection::estimate_poses( corners, *marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
             poses.resize( markers.size() );
             for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ); }
             const auto& p = map.update( poses, raw, frd );
