@@ -118,6 +118,7 @@ std::string options()
                        its z axis points down
         --marker-length=[<marker_length>]; length of marker side, also, see --marker
         --markers=[<csv_file>]; csv file, fields: id,length,x,y,z,roll,pitch,yaw
+        --markers-ignore-unknown,--ignore-unknown; ignore unregistered markers
         --markers-min-number,--min-number-of-markers=<n>; default=1; min number of markers
                 visible in a single frame (only 1 supported for now)
         --pinhole-config,--pinhole=<config>; <config>: <filename>[:<path>]
@@ -288,7 +289,7 @@ struct dictionaries
     static void estimate_poses( const std::vector< std::vector< cv::Point2f > >& corners, float marker_length, const cv::Mat& camera_matrix, const cv::Mat& distortion_coeffs, std::vector< cv::Vec3d >& rvecs, std::vector< cv::Vec3d >& tvecs )
     {
         float half_length = marker_length / 2.0f;
-        static std::vector< cv::Point3f > obj_points = {
+        std::vector< cv::Point3f > obj_points = {
             cv::Point3f( -half_length,  half_length, 0 ), // top-left
             cv::Point3f(  half_length,  half_length, 0 ), // top-right
             cv::Point3f(  half_length, -half_length, 0 ), // bottom-right
@@ -488,33 +489,39 @@ class map
     public:
         map( unsigned int min_number_of_landmarks = 1, bool do_update = false ): _min_number_of_landmarks( min_number_of_landmarks ), _do_update( do_update ) { COMMA_ASSERT_BRIEF( !_do_update, "dynamic update: todo" ); }
         
-        void insert( const std::pair< unsigned int, pose >& p ) { _landmarks[p.first] = p.second; }
+        void insert( const std::pair< unsigned int, localization::marker >& p ) { _landmarks[p.first] = p.second; }
 
         std::optional< pose > update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd );
 
-        const std::unordered_map< unsigned int, pose >& landmarks() const { return _landmarks; }
+        const std::unordered_map< unsigned int, localization::marker >& landmarks() const { return _landmarks; }
 
     private:
         unsigned int _min_number_of_landmarks{1};
         bool _do_update{false};
-        std::unordered_map< unsigned int, pose > _landmarks;
+        std::unordered_map< unsigned int, localization::marker > _landmarks;
 };
 
 std::optional< pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd )
 {
+    if( _do_update )
+    {
+        // todo
+    }
     if( marks.size() < _min_number_of_landmarks ) { return {}; }
+    auto j = _landmarks.end();
+    snark::pose q;
     for( const auto& m: marks ) // todo: quick and dirty for now; solve on multiple landmarks
     {
-        const auto& i = _landmarks.find( m.first );
-        if( i == _landmarks.end() ) { continue; }
-        static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
-        static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
-        snark::pose p{};
-        if( frd ) { p.to( camera_offset ); }
-        p.to( m.second );
-        return ( raw ? p : p.from( marker_offset ) ).from( i->second );
+        auto i = _landmarks.find( m.first );
+        if( i != _landmarks.end() && ( j == _landmarks.end() || j->second.length < i->second.length ) ) { j = i; q = m.second; }
     }
-    return {};
+    if( j == _landmarks.end() ) { return {}; }
+    static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
+    static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
+    snark::pose p{};
+    if( frd ) { p.to( camera_offset ); }
+    p.to( q );
+    return ( raw ? p : p.from( marker_offset ) ).from( j->second.pose );
 }
 
 int run( const comma::command_line_options& options, const snark::cv_mat::serialization::options& input_options )
@@ -539,26 +546,21 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         auto marker_length = options.optional< double >( "--marker-length" );
         localization::map map( options.value( "--markers-min-number,--min-number-of-markers", 1 ) );
         comma::csv::ascii< localization::marker > ascii;
-        for( const auto& s: options.values< std::string >( "--marker" ) )
+        std::vector< double > lengths;
+        bool ignore_unknown_markers = options.exists( "--markers-ignore-unknown,--ignore-unknown" );
+        auto init_marker = [&]( const localization::marker& n )
         {
-            const auto& m = ascii.get( s, true );
-            if( m.length > 1e-6 && !marker_length ) { marker_length = m.length; } // todo!!!
-            COMMA_ASSERT_BRIEF( m.length < 1e-6 || m.length == *marker_length, "aruco-localize: variable marker length: todo!" );
-            map.insert( { m.id, m.pose } );
-        }
+            COMMA_ASSERT_BRIEF( n.length > 1e-6 || marker_length, "aruco-localize: marker with id: " << n.id << ": no length specified; please specify marker length least or --marker-length" );
+            auto m = n;
+            if( m.length <= 1e-6 ) { m.length = *marker_length; }
+            map.insert( { m.id, m } );
+            bool found = false;
+            for( double length: lengths ) { if( comma::math::equal( m.length, length ) ) { found = true; break; } }
+            if( !found ) { lengths.push_back( m.length ); }
+        };
+        for( const auto& s: options.values< std::string >( "--marker" ) ) { init_marker( ascii.get( s, true ) ); }
         std::string markers_filename = options.value< std::string >( "--markers", "" );
-        if( !markers_filename.empty() )
-        {
-            for( const auto& m: comma::csv::read_as< std::vector< localization::marker > >( markers_filename ) )
-            {
-                if( !marker_length ) { marker_length = m.length; } // todo!!!
-                COMMA_ASSERT_BRIEF( comma::math::equal( m.length, *marker_length ), "aruco-localize: variable marker length: todo!" );
-                map.insert( { m.id, m.pose } );
-            }
-        }
-        // std::cerr << "==> a: landmarks" << std::endl;
-        // for( const auto& m: map.landmarks() ) { std::cerr << "==>     " << m.first << ": " << snark::to_string( m.second ) << std::endl; }
-        COMMA_ASSERT_BRIEF( marker_length, "aruco-localize: marker length not specified; either specify --marker-length, or specify length of specific markers" );
+        if( !markers_filename.empty() ) { for( const auto& m: comma::csv::read_as< std::vector< localization::marker > >( markers_filename ) ) { init_marker( m ); } }
         std::string reference_frame = options.value< std::string >( "--reference-frame,--frame", "camera" );
         COMMA_ASSERT_BRIEF( reference_frame == "camera" || reference_frame == "frd" || reference_frame == "raw", "aruco-localize: expected --reference-frame 'raw', 'camera', or 'frd'; got: --reference-frame='" << reference_frame << "'" );
         bool frd = reference_frame == "frd";
@@ -572,7 +574,7 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         if( config.distortion ) { distortion_coeffs = config.distortion->as< cv::Mat >(); }
         output o;
         std::vector< std::vector< cv::Point2f > > corners;
-        std::vector< int > markers;
+        std::vector< int > ids;
         std::vector< std::vector< cv::Point2f > > rejected;
         std::vector< cv::Vec3d > rvecs, tvecs;
         std::vector< std::pair< unsigned int, snark::pose > > poses;
@@ -581,17 +583,47 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
             std::pair< boost::posix_time::ptime, cv::Mat > i = input.read< boost::posix_time::ptime >( std::cin );
             if( i.second.empty() ) { return 0; }
             #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
-                cv::aruco::detectMarkers( i.second, dictionary, corners, markers, params, rejected );
+                cv::aruco::detectMarkers( i.second, dictionary, corners, ids, params, rejected );
             #else
-                detector.detectMarkers( i.second, corners, markers, rejected );
+                detector.detectMarkers( i.second, corners, ids, rejected );
             #endif
-            detection::estimate_poses( corners, *marker_length, camera_matrix, distortion_coeffs, rvecs, tvecs );
-            poses.resize( markers.size() );
-            for( unsigned i = 0; i < markers.size(); ++i ) { poses[i] = std::make_pair( markers[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ); }
+            if( ids.empty() ) { continue; }
+            poses.clear();
+            poses.reserve( ids.size() );
+            if( lengths.size() == 1 ) // quick and dirty, a minor optimisation
+            {
+                detection::estimate_poses( corners, lengths[0], camera_matrix, distortion_coeffs, rvecs, tvecs );
+                for( unsigned i = 0; i < ids.size(); ++i ) { poses.emplace_back( std::make_pair( ids[i], snark::pose( Eigen::Vector3d( tvecs[i][0], tvecs[i][1], tvecs[i][2] ), roll_pitch_yaw::from_rodriques( rvecs[i][0], rvecs[i][1], rvecs[i][2] ) ) ) ); }
+            }
+            else
+            {
+                for( double length: lengths )
+                {
+                    std::vector< int > i;
+                    std::vector< std::vector< cv::Point2f > > c;
+                    for( unsigned j = 0; j < ids.size(); ++j )
+                    {
+                        auto m = map.landmarks().find( ids[j] );
+                        if( m == map.landmarks().end() )
+                        {
+                            if( ignore_unknown_markers ) { continue; }
+                            COMMA_ASSERT_BRIEF( marker_length, "got unregistered marker with id: " << ids[j] << "; please specify --marker-length" );
+                            if( !comma::math::equal( *marker_length, length ) ) { continue; }
+                        }
+                        if( !comma::math::equal( m->second.length, length ) ) { continue; }
+                        i.push_back( ids[j] );
+                        c.push_back( corners[j] );
+                    }
+                    if( i.empty() ) { continue; }
+                    std::vector< cv::Vec3d > r, t;
+                    detection::estimate_poses( c, length, camera_matrix, distortion_coeffs, r, t );
+                    for( unsigned j = 0; j < i.size(); ++j ) { poses.emplace_back( std::make_pair( i[j], snark::pose( Eigen::Vector3d( t[j][0], t[j][1], t[j][2] ), roll_pitch_yaw::from_rodriques( r[j][0], r[j][1], r[j][2] ) ) ) ); }
+                }
+            }
             const auto& p = map.update( poses, raw, frd );
             if( !p ) { continue; }
             o.t = i.first;
-            o.number_of_markers = markers.size();
+            o.number_of_markers = poses.size();
             o.pose = *p;
             ostream.write( o );
             if( flush ) { std::cout.flush(); }
@@ -657,3 +689,277 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         } } } // namespace snark { namespace cv_calc { namespace aruco {
     #endif
 #endif // #if ARUCO_SUPPORTED && !NEEDS_CONTRIB
+
+// #include <iostream>
+// #include <vector>
+// #include <cmath>
+// #include <Eigen/Dense>
+// #include <Eigen/Geometry>
+
+// using Pose2D = Eigen::Transform<double, 2, Eigen::Isometry>;
+// using Vector3d = Eigen::Vector3d;
+
+// struct PlanarMeasurement {
+//     int vehicle_idx;
+//     int landmark_idx;
+//     Pose2D T_v_l; // 2D projected measurement of landmark relative to vehicle
+// };
+
+// // Normalises an angle to the range [-pi, pi]
+// double normalizeAngle(double theta) {
+//     return std::atan2(std::sin(theta), std::cos(theta));
+// }
+
+// class PlanarMapOptimizer {
+// public:
+//     int num_vehicles;
+//     int num_landmarks;
+    
+//     std::vector<Pose2D> T_0_v; // Vehicle 2D poses relative to Marker 0
+//     std::vector<Pose2D> T_0_l; // Marker 2D poses relative to Marker 0
+//     std::vector<PlanarMeasurement> measurements;
+
+//     PlanarMapOptimizer(int nv, int nl) : num_vehicles(nv), num_landmarks(nl) {
+//         T_0_v.resize(nv, Pose2D::Identity());
+//         T_0_l.resize(nl, Pose2D::Identity());
+//     }
+
+//     void optimize(int max_iterations = 15) {
+//         // State dimension: 3 variables (x, y, yaw) per vehicle + (landmarks - 1)
+//         // Marker 0 is perfectly locked at (0, 0, 0) to resolve gauge freedom
+//         int state_dim = (num_vehicles + (num_landmarks - 1)) * 3;
+
+//         for (int iter = 0; iter < max_iterations; ++iter) {
+//             Eigen::MatrixXd H = Eigen::MatrixXd::Zero(state_dim, state_dim);
+//             Eigen::VectorXd g = Eigen::VectorXd::Zero(state_dim);
+//             double total_chi2 = 0.0;
+
+//             for (const auto& meas : measurements) {
+//                 int v_idx = meas.vehicle_idx;
+//                 int l_idx = meas.landmark_idx;
+
+//                 Pose2D T_0_v_curr = T_0_v[v_idx];
+//                 Pose2D T_0_l_curr = T_0_l[l_idx];
+
+//                 // Predicted measurement: T_v_l = T_0_v^-1 * T_0_l
+//                 Pose2D T_v_l_pred = T_0_v_curr.inverse() * T_0_l_curr;
+
+//                 // Difference matrix
+//                 Pose2D Error_T = meas.T_v_l.inverse() * T_v_l_pred;
+                
+//                 // Extract 3DoF vector error
+//                 Vector3d residual;
+//                 residual(0) = Error_T.translation().x();
+//                 residual(1) = Error_T.translation().y();
+//                 // Extract angle from the 2D rotation matrix component
+//                 residual(2) = normalizeAngle(std::atan2(Error_T.linear()(1,0), Error_T.linear()(0,0)));
+
+//                 total_chi2 += residual.squaredNorm();
+
+//                 // Compute explicit analytical Jacobians for 2D rigid transformations
+//                 Eigen::Matrix3d J_v = Eigen::Matrix3d::Zero();
+//                 Eigen::Matrix3d J_l = Eigen::Matrix3d::Zero();
+
+//                 double theta_v = std::atan2(T_0_v_curr.linear()(1,0), T_0_v_curr.linear()(0,0));
+//                 double cos_v = std::cos(theta_v);
+//                 double sin_v = std::sin(theta_v);
+
+//                 // Jacobian with respect to vehicle state updates [dx, dy, dtheta]
+//                 J_v.block<2,2>(0,0) = -T_0_v_curr.linear().transpose();
+//                 double tx = T_0_l_curr.translation().x() - T_0_v_curr.translation().x();
+//                 double ty = T_0_l_curr.translation().y() - T_0_v_curr.translation().y();
+//                 J_v(0, 2) = -sin_v * tx + cos_v * ty;
+//                 J_v(1, 2) = -cos_v * tx - sin_v * ty;
+//                 J_v(2, 2) = -1.0;
+
+//                 // Jacobian with respect to landmark state updates (skipped for fixed Marker 0)
+//                 if (l_idx > 0) {
+//                     J_l.block<2,2>(0,0) = T_0_v_curr.linear().transpose();
+//                     J_l(2, 2) = 1.0;
+//                 }
+
+//                 // Map blocks to global Hessian system matrix
+//                 int v_block = v_idx * 3;
+//                 int l_block = (num_vehicles * 3) + ((l_idx - 1) * 3);
+
+//                 H.block<3, 3>(v_block, v_block) += J_v.transpose() * J_v;
+//                 g.segment<3>(v_block) -= J_v.transpose() * residual;
+
+//                 if (l_idx > 0) {
+//                     H.block<3, 3>(l_block, l_block) += J_l.transpose() * J_l;
+//                     g.segment<3>(l_block) -= J_l.transpose() * residual;
+
+//                     // Inter-pose cross correlation constraints
+//                     H.block<3, 3>(v_block, l_block) += J_v.transpose() * J_l;
+//                     H.block<3, 3>(l_block, v_block) += J_l.transpose() * J_v;
+//                 }
+//             }
+
+//             std::cout (j * 3);
+//                 T_0_v[j] = T_0_v[j] * createPose2D(upd(0), upd(1), upd(2));
+//             }
+//             for (int i = 1; i < num_landmarks; ++i) {
+//                 int l_block = (num_vehicles * 3) + ((i - 1) * 3);
+//                 Vector3d upd = delta.segment<3>(l_block);
+//                 T_0_l[i] = T_0_l[i] * createPose2D(upd(0), upd(1), upd(2));
+//             }
+//         }
+//     }
+// };
+
+// #include <iostream>
+// #include <vector>
+// #include <Eigen/Dense>
+// #include <Eigen/Geometry>
+
+// using Pose3D = Eigen::Isometry3d;
+// using Vector6d = Eigen::Matrix<double, 6, 1>;
+
+// struct Measurement {
+//     int vehicle_idx;    // Index of the vehicle position (j)
+//     int landmark_idx;   // Index of the landmark observed (i)
+//     Pose3D T_v_l;       // Landmark pose measured relative to the vehicle
+// };
+
+// // Converts a 6D twist vector (w, v) into a 4x4 perturbation matrix
+// Pose3D expMap(const Vector6d& twist) {
+//     Eigen::Vector3d w = twist.head<3>();
+//     Eigen::Vector3d v = twist.tail<3>();
+    
+//     // Angle-axis for rotation
+//     double angle = w.norm();
+//     Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
+//     if (angle > 1e-6) {
+//         R = Eigen::AngleAxisd(angle, w.normalized()).toRotationMatrix();
+//     }
+    
+//     Pose3D T = Pose3D::Identity();
+//     T.linear() = R;
+//     T.translation() = v; // Using standard first-order approximation for translation
+//     return T;
+// }
+
+// class BatchMapOptimizer {
+// public:
+//     int num_vehicles;
+//     int num_landmarks;
+    
+//     std::vector<Pose3D> T_0_v; // Vehicle poses relative to Landmark 0
+//     std::vector<Pose3D> T_0_l; // Landmark poses relative to Landmark 0
+//     std::vector<Measurement> measurements;
+
+//     BatchMapOptimizer(int nv, int nl) : num_vehicles(nv), num_landmarks(nl) {
+//         T_0_v.resize(nv, Pose3D::Identity());
+//         T_0_l.resize(nl, Pose3D::Identity());
+//     }
+
+//     // Call this before optimizing! Ensure your log initializes poses 
+//     // transitively so they aren't all just identity matrices.
+//     void initializeMapFromLogs() {
+//         T_0_l[0] = Pose3D::Identity(); // Landmark 0 is the global anchor
+//         // TODO: Users should seed T_0_v and T_0_l using direct chain calculations 
+//         // e.g., T_0_v[j] = T_0_l[0] * T_v_l_measurement.inverse()
+//     }
+
+//     void optimize(int max_iterations = 10) {
+//         // State vector size: (num_vehicles + num_landmarks - 1) * 6
+//         // We subtract 1 because Landmark 0 is strictly fixed at Identity (gauge freedom)
+//         int num_poses_to_optimize = num_vehicles + (num_landmarks - 1);
+//         int state_dim = num_poses_to_optimize * 6;
+
+//         for (int iter = 0; iter < max_iterations; ++iter) {
+//             Eigen::MatrixXd H = Eigen::MatrixXd::Zero(state_dim, state_dim);
+//             Eigen::VectorXd g = Eigen::VectorXd::Zero(state_dim);
+//             double total_error = 0.0;
+
+//             for (const auto& meas : measurements) {
+//                 int v_idx = meas.vehicle_idx;
+//                 int l_idx = meas.landmark_idx;
+
+//                 // Current estimates
+//                 Pose3D T_0_v_curr = T_0_v[v_idx];
+//                 Pose3D T_0_l_curr = T_0_l[l_idx];
+
+//                 // Predicted measurement: T_v_l = T_0_v^-1 * T_0_l
+//                 Pose3D T_v_l_pred = T_0_v_curr.inverse() * T_0_l_curr;
+
+//                 // Compute Residual Matrix (Error in measurement space)
+//                 // Residual = Log( Meas^-1 * Pred )
+//                 Pose3D Error_T = meas.T_v_l.inverse() * T_v_l_pred;
+                
+//                 // Extract 6D vector residual (3 rotation elements, 3 translation elements)
+//                 Eigen::AngleAxisd aa(Error_T.linear());
+//                 Vector6d residual;
+//                 residual.head<3>() = aa.angle() * aa.axis();
+//                 residual.tail<3>() = Error_T.translation();
+
+//                 total_error += residual.squaredNorm();
+
+//                 // State mapping helpers
+//                 int v_state_block = v_idx * 6;
+//                 // Landmark 0 isn't optimized, so scale back indices by 1
+//                 int l_state_block = (num_vehicles * 6) + ((l_idx - 1) * 6); 
+
+//                 // Compute Numerical Jacobians for this measurement
+//                 Eigen::Matrix<double, 6, 6> J_v = Eigen::Matrix<double, 6, 6>::Zero();
+//                 Eigen::Matrix<double, 6, 6> J_l = Eigen::Matrix<double, 6, 6>::Zero();
+//                 double eps = 1e-6;
+
+//                 for (int k = 0; k < 6; ++k) {
+//                     Vector6d perturbation = Vector6d::Zero();
+//                     perturbation(k) = eps;
+//                     Pose3D delta_T = expMap(perturbation);
+
+//                     // Perturb vehicle pose
+//                     if (true) {
+//                         Pose3D T_v_perturbed = T_0_v_curr * delta_T;
+//                         Pose3D E_perturbed = meas.T_v_l.inverse() * (T_v_perturbed.inverse() * T_0_l_curr);
+//                         Eigen::AngleAxisd aa_p(E_perturbed.linear());
+//                         Vector6d res_p;
+//                         res_p.head<3>() = aa_p.angle() * aa_p.axis();
+//                         res_p.tail<3>() = E_perturbed.translation();
+//                         J_v.col(k) = (res_p - residual) / eps;
+//                     }
+
+//                     // Perturb landmark pose (skip if it is Landmark 0)
+//                     if (l_idx > 0) {
+//                         Pose3D T_l_perturbed = T_0_l_curr * delta_T;
+//                         Pose3D E_perturbed = meas.T_v_l.inverse() * (T_0_v_curr.inverse() * T_l_perturbed);
+//                         Eigen::AngleAxisd aa_p(E_perturbed.linear());
+//                         Vector6d res_p;
+//                         res_p.head<3>() = aa_p.angle() * aa_p.axis();
+//                         res_p.tail<3>() = E_perturbed.translation();
+//                         J_l.col(k) = (res_p - residual) / eps;
+//                     }
+//                 }
+
+//                 // Populate global Hessian (H) and Gradient vector (g)
+//                 // Contribution from Vehicle Pose
+//                 H.block<6, 6>(v_state_block, v_state_block) += J_v.transpose() * J_v;
+//                 g.segment<6>(v_state_block) -= J_v.transpose() * residual;
+
+//                 // Contribution from Landmark Pose
+//                 if (l_idx > 0) {
+//                     H.block<6, 6>(l_state_block, l_state_block) += J_l.transpose() * J_l;
+//                     g.segment<6>(l_state_block) -= J_l.transpose() * residual;
+
+//                     // Cross terms between vehicle and landmark
+//                     H.block<6, 6>(v_state_block, l_state_block) += J_v.transpose() * J_l;
+//                     H.block<6, 6>(l_state_block, v_state_block) += J_l.transpose() * J_v;
+//                 }
+//             }
+
+//             std::cout (j * 6));
+//             }
+//             for (int i = 1; i < num_landmarks; ++i) {
+//                 int l_state_block = (num_vehicles * 6) + ((i - 1) * 6);
+//                 T_0_l[i] = T_0_l[i] * expMap(delta.segment<6>(l_state_block));
+//             }
+            
+//             if (delta.norm() < 1e-5) {
+//                 std::cout << "Converged early at iteration " << iter << "!\n";
+//                 break;
+//             }
+//         }
+//     }
+// };
