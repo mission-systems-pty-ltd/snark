@@ -483,6 +483,8 @@ std::optional< pose > map::update( const std::vector< std::pair< unsigned int, s
             snark::pose p{};
             if( frd ) { p.to( camera_offset ); }
             p.translation = *t;
+            return p;
+            // todo
             if( !raw ) { p.from( marker_offset ); }
 
             // todo: p to marker frame
