@@ -343,9 +343,13 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
             cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
+            params->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+            params->cornerRefinementWinSize = 5;
         #else
             cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
+            params.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+            params.cornerRefinementWinSize = 5;
             cv::aruco::ArucoDetector detector( dictionary, params );
         #endif
         double marker_length = options.value( "--marker-length", 0. );
@@ -482,9 +486,13 @@ int run( const comma::command_line_options& options, const snark::cv_mat::serial
         #if CV_MAJOR_VERSION == 4 && CV_MINOR_VERSION < 7
             cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary( detection::dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
+            params->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+            params->cornerRefinementWinSize = 5;
         #else
             cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary( detection::dictionaries::type_from_string( options.value< std::string >( "--dictionary,--dict" ) ) );
             cv::aruco::DetectorParameters params = cv::aruco::DetectorParameters();
+            params.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+            params.cornerRefinementWinSize = 5;
             cv::aruco::ArucoDetector detector( dictionary, params );
         #endif
         auto marker_length = options.optional< double >( "--marker-length" );
