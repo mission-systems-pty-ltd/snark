@@ -72,7 +72,7 @@ operations
         --sensor=<which>; default=color; choices: color, ... todo
 
 examples
-    realsense2-util camera | cv-cat 'view;null'
+    realsense2-util color --fps 30 --width 640 | cv-cat 'view;null'
     realsense2-util configure --sensor=1 <<< '11,0'
     realsense2-util list
     realsense2-util reset --device 1234 --device 4321
