@@ -6,6 +6,7 @@
 #include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 #include <opencv2/calib3d.hpp>
@@ -412,10 +413,10 @@ class map
         unsigned int _min_number_of_landmarks{1};
         bool _do_update{false};
         std::unordered_map< unsigned int, localization::marker > _landmarks;
-        std::optional< Eigen::Vector3d > _translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks, unsigned int id );
+        std::optional< Eigen::Vector3d > _translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks );
 };
 
-std::optional< Eigen::Vector3d > map::_translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks, unsigned int id )
+std::optional< Eigen::Vector3d > map::_translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks )
 {
     unsigned int size = 0;
     for( unsigned int i = 0; i < marks.size(); size += _landmarks.find( marks[i++].first ) == _landmarks.end() ? 0 : 1 );
@@ -447,6 +448,24 @@ std::optional< Eigen::Vector3d > map::_translation( const std::vector< std::pair
     return centroid_b - rotation * centroid_a;
 }
 
+Eigen::Quaterniond _average_rotation( const std::vector< Eigen::Quaterniond >& quats )
+{
+    Eigen::Quaterniond q_avg = quats[0];
+    for( const auto& q: quats ) { q_avg.coeffs() += ( q_avg.dot( q ) < 0.0 ? -1 : 1 ) * q.coeffs(); }
+    q_avg.coeffs() /= quats.size();
+    return q_avg.normalized();
+}
+
+Eigen::Quaterniond _rotation( const std::vector< Eigen::Quaterniond >& quats )
+{
+    Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
+    for( const auto& q : quats ) { M += q.coeffs() * q.coeffs().transpose(); } // [x, y, z, w]
+    M /= static_cast< double >( quats.size() );
+    Eigen::SelfAdjointEigenSolver< Eigen::Matrix4d > solver( M );
+    Eigen::Vector4d coeffs = solver.eigenvectors().col(3);
+    return Eigen::Quaterniond( coeffs[3], coeffs[0], coeffs[1], coeffs[2] ).normalized(); // eigen's internal storage format [x, y, z, w]
+}
+
 std::optional< pose > map::update( const std::vector< std::pair< unsigned int, snark::pose > >& marks, bool raw, bool frd )
 {
     if( _do_update )
@@ -454,6 +473,24 @@ std::optional< pose > map::update( const std::vector< std::pair< unsigned int, s
         // todo
     }
     if( marks.size() < _min_number_of_landmarks ) { return {}; }
+    static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
+    static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
+    if( false ) // todo: consolidate with single marker
+    {
+        auto t = _translation( marks );
+        if( t )
+        {
+            snark::pose p{};
+            if( frd ) { p.to( camera_offset ); }
+            p.translation = *t;
+            if( !raw ) { p.from( marker_offset ); }
+
+            // todo: p to marker frame
+            
+            // p.to( q );
+            // return ( raw ? p : p.from( marker_offset ) ).from( j->second.pose );
+        }
+    }
     auto j = _landmarks.end();
     snark::pose q;
     for( const auto& m: marks ) // todo: quick and dirty for now; solve on multiple landmarks
@@ -462,13 +499,9 @@ std::optional< pose > map::update( const std::vector< std::pair< unsigned int, s
         if( i != _landmarks.end() && ( j == _landmarks.end() || j->second.length < i->second.length ) ) { j = i; q = m.second; }
     }
     if( j == _landmarks.end() ) { return {}; }
-    static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
-    static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
     snark::pose p{};
     if( frd ) { p.to( camera_offset ); }
     p.to( q );
-    //auto t = _translation( marks, j->first );
-    //if( t ) { p.translation = *t; }
     return ( raw ? p : p.from( marker_offset ) ).from( j->second.pose );
 }
 
