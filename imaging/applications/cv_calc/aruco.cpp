@@ -413,10 +413,10 @@ class map
         unsigned int _min_number_of_landmarks{1};
         bool _do_update{false};
         std::unordered_map< unsigned int, localization::marker > _landmarks;
-        std::optional< Eigen::Vector3d > _translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks );
+        std::optional< snark::pose > _pose( const std::vector< std::pair< unsigned int, snark::pose > >& marks );
 };
 
-std::optional< Eigen::Vector3d > map::_translation( const std::vector< std::pair< unsigned int, snark::pose > >& marks )
+std::optional< snark::pose > map::_pose( const std::vector< std::pair< unsigned int, snark::pose > >& marks )
 {
     unsigned int size = 0;
     for( unsigned int i = 0; i < marks.size(); size += _landmarks.find( marks[i++].first ) == _landmarks.end() ? 0 : 1 );
@@ -445,7 +445,7 @@ std::optional< Eigen::Vector3d > map::_translation( const std::vector< std::pair
         v.col( 2 ) *= -1.0;
         rotation = v * u.transpose();
     }
-    return centroid_b - rotation * centroid_a;
+    return snark::pose( centroid_b - rotation * centroid_a, snark::rotation_matrix::roll_pitch_yaw( rotation ) );
 }
 
 Eigen::Quaterniond _average_rotation( const std::vector< Eigen::Quaterniond >& quats )
@@ -475,22 +475,16 @@ std::optional< pose > map::update( const std::vector< std::pair< unsigned int, s
     if( marks.size() < _min_number_of_landmarks ) { return {}; }
     static const snark::pose marker_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI, 0, M_PI / 2 ) );
     static const snark::pose camera_offset( Eigen::Vector3d( 0, 0, 0 ), snark::roll_pitch_yaw( M_PI / 2, 0, M_PI / 2 ) );
-    if( false ) // todo: consolidate with single marker
+    if( true ) // todo: consolidate with single marker
     {
-        auto t = _translation( marks );
+        auto t = _pose( marks );
         if( t )
         {
             snark::pose p{};
             if( frd ) { p.to( camera_offset ); }
-            p.translation = *t;
+            p.from( *t );
+            // todo? if( !raw ) { p.from( marker_offset ); }
             return p;
-            // todo
-            if( !raw ) { p.from( marker_offset ); }
-
-            // todo: p to marker frame
-            
-            // p.to( q );
-            // return ( raw ? p : p.from( marker_offset ) ).from( j->second.pose );
         }
     }
     auto j = _landmarks.end();
